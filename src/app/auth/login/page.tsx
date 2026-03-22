@@ -27,9 +27,9 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gray-50 font-sans flex flex-col">
       
       {/* White Header */}
-      <header className="bg-white border-b border-gray-100 h-20 flex items-center px-8">
+      <header className="bg-white border-b border-gray-100 h-28 flex items-center px-8">
         <Link href="/">
-          <img src="/synka-logo.png" alt="Synka" className="h-14 object-contain" />
+          <img src="/synka-logo.png" alt="Synka" className="h-20 object-contain" />
         </Link>
       </header>
 
@@ -37,8 +37,8 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-md bg-white border border-gray-200 rounded-3xl shadow-xl p-8">
 
-          <div className="text-center mb-8">
-            <img src="/synka-logo.png" alt="Synka" className="h-20 object-contain mx-auto mb-6" />
+          <div className="text-center mb-10">
+            <img src="/synka-logo.png" alt="Synka" className="h-32 object-contain mx-auto mb-8" />
             <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
               {isLogin ? 'Bem-vindo de volta' : 'Crie sua conta'}
             </h2>
@@ -124,8 +124,8 @@ export default function LoginPage() {
       </div>
 
       {/* White Footer */}
-      <footer className="bg-white border-t border-gray-100 py-6 px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-400">
-        <img src="/synka-logo.png" alt="Synka" className="h-10 object-contain" />
+      <footer className="bg-white border-t border-gray-100 py-8 px-8 flex flex-col sm:flex-row items-center justify-between gap-6 text-xs text-gray-400">
+        <img src="/synka-logo.png" alt="Synka" className="h-16 object-contain" />
         <span>© 2025 SOMMAR SOLUÇÕES DIGITAIS — CNPJ: 65.771.133/0001-07</span>
         <div className="flex gap-4">
           <a href="https://wa.me/5585991516106" className="hover:text-gray-600 transition-colors">Suporte</a>

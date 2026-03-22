@@ -67,8 +67,8 @@ export default function LandingPage() {
 
       {/* ── Nav ── */}
       <nav className="fixed top-0 w-full z-50 bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 h-24 flex items-center justify-between">
-          <img src="/synka-logo.png" alt="Synka" className="h-16 object-contain" />
+        <div className="max-w-7xl mx-auto px-6 h-32 flex items-center justify-between">
+          <img src="/synka-logo.png" alt="Synka" className="h-24 object-contain" />
           <div className="flex items-center gap-3">
             <Link href="/auth/login" className="hidden sm:block text-sm text-gray-500 hover:text-gray-800 font-medium transition-colors">
               Entrar
@@ -225,9 +225,9 @@ export default function LandingPage() {
       </section>
 
       {/* ── Footer ── */}
-      <footer className="bg-white border-t border-gray-100 py-16 px-6">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-8 text-xs text-gray-400">
-          <img src="/synka-logo.png" alt="Synka" className="h-14 object-contain" />
+      <footer className="bg-white border-t border-gray-100 py-20 px-6">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-10 text-xs text-gray-400">
+          <img src="/synka-logo.png" alt="Synka" className="h-20 object-contain" />
           <div className="text-center">
             © 2025 SOMMAR SOLUÇÕES DIGITAIS — CNPJ: 65.771.133/0001-07
           </div>
