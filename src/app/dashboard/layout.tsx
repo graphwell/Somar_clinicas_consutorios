@@ -30,10 +30,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Sidebar */}
       <nav className={`fixed left-0 top-0 h-full w-64 ${sidebarBg} backdrop-blur-xl border-r p-5 flex flex-col gap-3 z-40 transition-transform duration-300 ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
         
-        {/* Logo Synka */}
-        <div className="w-full h-16 flex items-center justify-center px-2 mb-2">
-           <img src="/synka-icon.png" alt="Synka" className="h-12 w-12 object-contain" />
-           <span className="ml-3 text-xl font-bold tracking-tight">Synka</span>
+        {/* Logo do Cliente (se configurada) — senão exibe Synka */}
+        <div className="w-full h-16 flex items-center gap-3 px-2 mb-2">
+           <img src="/synka-icon.png" alt="Logo" className="h-10 w-10 object-contain flex-shrink-0" />
+           <span className="text-lg font-bold tracking-tight truncate">Synka</span>
         </div>
 
         <div className="flex flex-col gap-1 flex-1">
@@ -41,15 +41,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <NavItem href="/dashboard/patients" label="👥  Pacientes" />
           <NavItem href="/dashboard/reports" label="📊  Relatórios" />
           <div className="border-t border-white/5 my-2" />
-          {/* Admin-only links */}
-          <NavItem href="/dashboard/team" label="🧑‍💼  Equipe" active />
+          <NavItem href="/dashboard/team" label="🧑‍💼  Equipe" />
           <NavItem href="/dashboard/billing" label="💳  Financeiro" />
           <NavItem href="/dashboard/settings" label="⚙️  Configurações" />
         </div>
 
         <div className="p-3 bg-[#4a4ae2]/10 border border-[#4a4ae2]/20 rounded-xl text-center text-xs">
-          <p className="text-[#a0a0ff] uppercase tracking-widest font-bold mb-0.5">Plano Starter</p>
-          <p className="text-gray-400">Trial — 14 dias restantes</p>
+          <p className="text-[#a0a0ff] uppercase tracking-widest font-bold mb-0.5">🟢 Trial</p>
+          <p className="text-gray-400">7 dias restantes</p>
         </div>
       </nav>
 

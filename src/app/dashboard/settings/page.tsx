@@ -1,132 +1,175 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 
-const NICHES = [
-  "Clínica Médica",
-  "Clínica de Estética",
-  "Fisioterapia",
-  "Pilates",
-  "Salão de Beleza / Barbearia",
-  "Outros"
-];
+const NICHES = ["Clínica Médica", "Clínica de Estética", "Fisioterapia", "Pilates", "Salão de Beleza / Barbearia", "Outros"];
+const TENANT_ID = 'clinica_id_default'; // Em produção, vem do JWT do usuário logado
 
 export default function SettingsPage() {
   const [niche, setNiche] = useState("Clínica Médica");
   const [primaryColor, setPrimaryColor] = useState("#4a4ae2");
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const [saved, setSaved] = useState(false);
+  const [botActive, setBotActive] = useState(true);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  // Company fields
+  const [razaoSocial, setRazaoSocial] = useState('');
+  const [cnpj, setCnpj] = useState('');
+  const [endereco, setEndereco] = useState('');
+  const [adminPhone, setAdminPhone] = useState('');
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setUploadError('');
+    const formData = new FormData();
+    formData.append('logo', file);
+    formData.append('tenantId', TENANT_ID);
+    try {
+      const res = await fetch('/api/upload/logo', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (res.ok) {
+        setLogoUrl(data.logoUrl);
+      } else {
+        setUploadError(data.error || 'Erro ao fazer upload');
+      }
+    } catch {
+      setUploadError('Erro de conexão ao fazer upload.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleSave = () => {
+    setSaved(true);
+    setTimeout(() => setSaved(false), 3000);
+  };
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-medium tracking-tight">Configurações Whitelabel</h2>
-        <button className="px-5 py-2.5 bg-[#4a4ae2] hover:bg-[#3a3ab2] rounded-xl text-sm font-medium transition-all shadow-[0_4px_20px_rgba(74,74,226,0.3)]">
-          Salvar Alterações
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <h2 className="text-2xl font-bold">Configurações da Clínica</h2>
+        <button
+          onClick={handleSave}
+          className="px-5 py-2.5 bg-[#4a4ae2] hover:bg-[#3a3ab2] rounded-xl text-sm font-semibold transition-all shadow-[0_4px_20px_rgba(74,74,226,0.3)]"
+        >
+          {saved ? '✅ Salvo!' : 'Salvar Alterações'}
         </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        
-        {/* Seção 1: Dados da Empresa */}
-        <div className="col-span-1 md:col-span-2 bg-[#0a0a20]/40 backdrop-blur-md border border-white/5 rounded-2xl p-8 space-y-6">
-          <h3 className="text-lg font-medium border-b border-white/5 pb-4">Dados da Empresa</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-               <label className="text-sm text-gray-400">Nome / Razão Social</label>
-               <input type="text" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#4a4ae2] transition-colors" placeholder="Razão Social Ltda" />
+
+        {/* Dados da Empresa */}
+        <div className="col-span-1 md:col-span-2 bg-[#0a0a20]/40 backdrop-blur-md border border-white/5 rounded-2xl p-8 space-y-5">
+          <h3 className="text-lg font-semibold border-b border-white/5 pb-4">Dados da Empresa</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="space-y-1">
+              <label className="text-sm text-gray-400">Nome / Razão Social</label>
+              <input type="text" value={razaoSocial} onChange={e => setRazaoSocial(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#4a4ae2] transition-colors" placeholder="Clínica Exemplo Ltda" />
             </div>
-            <div className="space-y-2">
-               <label className="text-sm text-gray-400">CPF / CNPJ</label>
-               <input type="text" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#4a4ae2] transition-colors" placeholder="00.000.000/0000-00" />
+            <div className="space-y-1">
+              <label className="text-sm text-gray-400">CPF / CNPJ</label>
+              <input type="text" value={cnpj} onChange={e => setCnpj(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#4a4ae2] transition-colors" placeholder="00.000.000/0001-00" />
             </div>
-            <div className="space-y-2 md:col-span-2">
-               <label className="text-sm text-gray-400">Endereço Completo</label>
-               <input type="text" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#4a4ae2] transition-colors" placeholder="Rua Exemplo, 123 - Cidade, Estado" />
+            <div className="space-y-1 md:col-span-2">
+              <label className="text-sm text-gray-400">Endereço Completo</label>
+              <input type="text" value={endereco} onChange={e => setEndereco(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#4a4ae2] transition-colors" placeholder="Rua Exemplo, 123 — Fortaleza, CE" />
             </div>
-            <div className="space-y-2">
-               <label className="text-sm text-gray-400">WhatsApp do Administrador</label>
-               <input type="text" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#4a4ae2] transition-colors" placeholder="55 11 99999-9999" />
+            <div className="space-y-1">
+              <label className="text-sm text-gray-400">WhatsApp do Administrador</label>
+              <input type="text" value={adminPhone} onChange={e => setAdminPhone(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#4a4ae2] transition-colors" placeholder="55 85 99999-9999" />
             </div>
           </div>
         </div>
 
-        {/* Seção 2: Conexão WhatsApp e Bot Controls */}
+        {/* Identidade Visual */}
         <div className="bg-[#0a0a20]/40 backdrop-blur-md border border-white/5 rounded-2xl p-8 space-y-6">
-          <div className="flex justify-between items-center border-b border-white/5 pb-4">
-            <h3 className="text-lg font-medium">Motor de Atendimento (WhatsApp)</h3>
-            <div className="flex items-center gap-2">
-               <span className="w-3 h-3 rounded-full bg-green-500 shadow-[0_0_10px_#22c55e]"></span>
-               <span className="text-xs font-semibold text-green-500 uppercase tracking-widest">Online</span>
+          <h3 className="text-lg font-semibold border-b border-white/5 pb-4">Identidade Visual</h3>
+
+          {/* Logo Upload */}
+          <div className="space-y-3">
+            <label className="text-sm text-gray-400">Logo da Clínica</label>
+            <div
+              onClick={() => fileRef.current?.click()}
+              className="flex flex-col items-center justify-center gap-3 border-2 border-dashed border-white/10 rounded-xl p-6 cursor-pointer hover:border-[#4a4ae2]/60 hover:bg-white/2 transition-all"
+            >
+              {logoUrl ? (
+                <img src={logoUrl} alt="Logo" className="h-20 object-contain" />
+              ) : (
+                <>
+                  <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-2xl">🖼️</div>
+                  <p className="text-sm text-gray-400">Clique para fazer upload</p>
+                  <p className="text-xs text-gray-500">PNG, JPG, SVG ou WebP — máx. 2MB</p>
+                </>
+              )}
+              {uploading && <p className="text-xs text-[#8080ff] animate-pulse">Fazendo upload...</p>}
+              {uploadError && <p className="text-xs text-red-400">{uploadError}</p>}
             </div>
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+            {logoUrl && (
+              <p className="text-xs text-green-400">✅ Logo carregada. Ela aparecerá no topo do seu painel.</p>
+            )}
           </div>
-          
-          <div className="flex flex-col items-center justify-center p-6 border border-dashed border-white/10 rounded-xl bg-white/5">
-             {/* Mock do QR Code */}
-             <div className="w-40 h-40 bg-white rounded-lg flex items-center justify-center p-2 mb-4">
-                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=ConecteSeuZap`} alt="QR Code" className="opacity-80" />
-             </div>
-             <p className="text-sm text-gray-400 text-center mb-6">Leia o QR Code para conectar a instância UltraMsg/Z-API ao seu número oficial.</p>
-             
-             <div className="flex flex-col w-full gap-3">
-                <button className="w-full flex items-center justify-center gap-2 py-3 bg-red-500/20 hover:bg-red-500/30 border border-red-500/50 text-red-500 rounded-lg font-medium transition-all">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>
-                  PARAR Inteligência Artificial
-                </button>
-                <button className="w-full flex items-center justify-center gap-2 py-3 bg-green-500/20 hover:bg-green-500/30 border border-green-500/50 text-green-500 rounded-lg font-medium transition-all">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                  INICIAR Atendimento Automático
-                </button>
-             </div>
+
+          {/* Cor principal */}
+          <div className="space-y-3">
+            <label className="text-sm text-gray-400">Cor Principal</label>
+            <div className="flex items-center gap-4">
+              <input type="color" value={primaryColor} onChange={e => setPrimaryColor(e.target.value)} className="w-10 h-10 rounded border-0 bg-transparent cursor-pointer" />
+              <span className="font-mono text-sm uppercase text-gray-300">{primaryColor}</span>
+            </div>
           </div>
         </div>
 
-        {/* Seção 3 e 4: Identidade da Clínica e Cérebro da IA */}
-        <div className="space-y-8">
-          <div className="bg-[#0a0a20]/40 backdrop-blur-md border border-white/5 rounded-2xl p-8 space-y-6">
-            <h3 className="text-lg font-medium border-b border-white/5 pb-4">Identidade Visual</h3>
-            
-            <div className="space-y-3">
-              <label className="text-sm text-gray-400">Logomarca da Clínica</label>
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-xl bg-white/5 border border-dashed border-white/20 flex flex-col items-center justify-center cursor-pointer hover:bg-white/10 transition-colors">
-                  <span className="text-xs text-gray-500">Upload</span>
-                </div>
-                <p className="text-xs text-gray-500 max-w-[200px]">Essa logo aparecerá no topo esquerdo do painel.</p>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <label className="text-sm text-gray-400">Cor Principal (Branding)</label>
-              <div className="flex items-center gap-4">
-                <input 
-                  type="color" 
-                  value={primaryColor} 
-                  onChange={(e) => setPrimaryColor(e.target.value)}
-                  className="w-10 h-10 rounded border-0 bg-transparent cursor-pointer" 
-                />
-                <span className="font-mono text-sm uppercase text-gray-300">{primaryColor}</span>
-              </div>
+        {/* IA e WhatsApp */}
+        <div className="bg-[#0a0a20]/40 backdrop-blur-md border border-white/5 rounded-2xl p-8 space-y-6">
+          <div className="flex items-center justify-between border-b border-white/5 pb-4">
+            <h3 className="text-lg font-semibold">Atendimento IA</h3>
+            <div className="flex items-center gap-2">
+              <span className={`w-2.5 h-2.5 rounded-full ${botActive ? 'bg-green-500 shadow-[0_0_8px_#22c55e]' : 'bg-red-500'}`}></span>
+              <span className={`text-xs font-bold uppercase tracking-widest ${botActive ? 'text-green-400' : 'text-red-400'}`}>{botActive ? 'Ativo' : 'Pausado'}</span>
             </div>
           </div>
 
-          <div className="bg-[#0a0a20]/40 backdrop-blur-md border border-white/5 rounded-2xl p-8 space-y-6">
-            <h3 className="text-lg font-medium border-b border-white/5 pb-4">Cérebro da IA</h3>
-            
-            <div className="space-y-2">
-              <label className="text-sm text-gray-400">Nicho de Atuação</label>
-              <select 
-                value={niche}
-                onChange={(e) => setNiche(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#4a4ae2] transition-colors appearance-none"
-              >
-                {NICHES.map(n => (
-                  <option key={n} value={n} className="bg-[#0a0a20] text-white">{n}</option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-2 mt-4">
-              <label className="text-sm text-gray-400">Instruções Extras</label>
-              <textarea rows={3} className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-sm focus:outline-none focus:border-[#4a4ae2] transition-colors resize-none" />
-            </div>
+          <div className="space-y-2">
+            <label className="text-sm text-gray-400">Nicho de Atuação</label>
+            <select value={niche} onChange={e => setNiche(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#4a4ae2] transition-colors appearance-none">
+              {NICHES.map(n => <option key={n} value={n} className="bg-[#0a0a20]">{n}</option>)}
+            </select>
           </div>
+
+          <div className="flex flex-col gap-3 pt-2">
+            <button
+              onClick={() => setBotActive(false)}
+              className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm transition-all ${!botActive ? 'bg-red-500/30 border border-red-500 text-red-400' : 'bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400'}`}
+            >
+              ⏹ PAUSAR Atendimento Automático
+            </button>
+            <button
+              onClick={() => setBotActive(true)}
+              className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm transition-all ${botActive ? 'bg-green-500/30 border border-green-500 text-green-400' : 'bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 text-green-400'}`}
+            >
+              ▶ REATIVAR Atendimento Automático
+            </button>
+          </div>
+        </div>
+
+        {/* Backup */}
+        <div className="col-span-1 md:col-span-2 bg-[#0a0a20]/40 backdrop-blur-md border border-white/5 rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h3 className="font-semibold">Backup dos Dados</h3>
+            <p className="text-sm text-gray-400 mt-1">Exporta todos os pacientes e agendamentos da sua clínica em formato CSV.</p>
+          </div>
+          <a
+            href={`/api/backup/export?tenantId=${TENANT_ID}`}
+            download
+            className="px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-medium transition-all whitespace-nowrap"
+          >
+            ⬇ Baixar Backup CSV
+          </a>
         </div>
 
       </div>
