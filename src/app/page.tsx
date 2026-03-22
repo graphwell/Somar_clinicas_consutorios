@@ -25,13 +25,6 @@ export default function Home() {
           >
             Acessar o Painel
           </Link>
-          <a
-            href="https://n8n.somar.ia.br/" 
-            target="_blank"
-            className="px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-white font-medium transition-all w-full sm:w-auto text-center"
-          >
-            Ver Fluxos N8N
-          </a>
         </div>
       </main>
 
