@@ -5,9 +5,14 @@ import Link from 'next/link';
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isLogin && !acceptedTerms) {
+      alert('Você precisa aceitar os termos de uso e a política de privacidade.');
+      return;
+    }
     setLoading(true);
     await new Promise(r => setTimeout(r, 800));
     window.location.href = '/dashboard';
@@ -88,9 +93,24 @@ export default function LoginPage() {
                 placeholder="••••••••" />
             </div>
 
+            {/* LGPD Consent Checkbox */}
+            <div className="flex items-start gap-3 pt-2">
+              <input
+                id="lgpd"
+                type="checkbox"
+                required
+                checked={acceptedTerms}
+                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                className="mt-1 h-4 w-4 rounded border-gray-300 text-[#4a4ae2] focus:ring-[#4a4ae2]"
+              />
+              <label htmlFor="lgpd" className="text-xs text-gray-500 leading-relaxed">
+                Eu aceito os <Link href="/termos" className="text-[#4a4ae2] hover:underline">Termos de Uso</Link> e a <Link href="/privacidade" className="text-[#4a4ae2] hover:underline">Política de Privacidade (LGPD)</Link> da Synka.
+              </label>
+            </div>
+
             <button type="submit" disabled={loading}
               className="w-full py-3.5 bg-[#4a4ae2] hover:bg-[#3a3ab2] text-white rounded-xl font-semibold text-sm transition-all shadow-[0_4px_16px_rgba(74,74,226,0.3)] hover:shadow-[0_4px_24px_rgba(74,74,226,0.5)] disabled:opacity-60 mt-2">
-              {loading ? 'Entrando...' : isLogin ? 'Entrar' : 'Cadastrar Clínica'}
+              {loading ? 'Processando...' : isLogin ? 'Entrar' : 'Cadastrar Clínica'}
             </button>
           </form>
 
