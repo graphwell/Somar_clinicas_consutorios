@@ -61,13 +61,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Sidebar */}
       <nav className={`fixed left-0 top-0 h-full w-64 ${sidebarBg} backdrop-blur-xl border-r p-5 flex flex-col gap-3 z-40 transition-transform duration-300 ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
 
-        {/* Logo do Cliente — placeholder ou logo real */}
         <div className="w-full h-16 flex items-center gap-3 px-2 mb-2">
           {clientLogo ? (
             <img src={clientLogo} alt="Logo da clínica" className="h-10 max-w-[180px] object-contain" />
           ) : (
-            <div className="w-full h-12 flex items-center justify-center border border-dashed border-white/15 rounded-xl">
-              <span className="text-xs text-gray-500">Sua Logo Aqui</span>
+            <div className="w-full h-12 flex items-center gap-2 px-1">
+              <img src="/synka-icon.png" alt="Synka" className="h-9 w-9 object-contain flex-shrink-0" />
+              <div className="w-px h-6 bg-white/10" />
+              <span className="text-xs text-gray-500 leading-tight">Adicione sua logo<br />em Configurações</span>
             </div>
           )}
         </div>

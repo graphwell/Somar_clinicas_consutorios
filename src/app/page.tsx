@@ -68,7 +68,7 @@ export default function LandingPage() {
       <nav className="fixed top-0 w-full z-50 backdrop-blur-xl bg-[#050510]/80 border-b border-white/5">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img src="/synka-icon.png" alt="Synka" className="h-12 w-12 object-contain" style={{mixBlendMode:'screen', filter:'drop-shadow(0 0 6px rgba(0,180,216,0.5))'}} />
+            <img src="/synka-icon.png" alt="Synka" className="h-10 w-10 object-contain" />
             <span className="text-2xl font-extrabold tracking-tight bg-gradient-to-r from-[#00b4d8] to-[#8080ff] bg-clip-text text-transparent">synka</span>
           </div>
           <div className="flex items-center gap-3">
@@ -230,7 +230,7 @@ export default function LandingPage() {
       <footer className="border-t border-white/5 py-10 px-6">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6 text-xs text-gray-500">
           <div className="flex items-center gap-2">
-            <img src="/synka-icon.png" alt="Synka" className="h-8 w-8 object-contain" style={{mixBlendMode:'screen'}} />
+            <img src="/synka-icon.png" alt="Synka" className="h-7 w-7 object-contain" />
             <span className="font-bold text-gray-300">synka</span><span className="text-gray-500"> — um produto Somar.IA</span>
           </div>
           <div className="text-center">
