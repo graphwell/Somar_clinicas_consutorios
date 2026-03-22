@@ -23,15 +23,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const headerBg = isDark ? 'bg-[#050510]/80 border-white/5' : 'bg-white/80 border-gray-200';
   const textColor = isDark ? 'text-[#f0f0f5]' : 'text-gray-900';
 
-  // Load client logo and name from the database
+  // Load client logo: localStorage first (instant), then API (source of truth)
   useEffect(() => {
+    // 1. Show cached logo instantly
+    const cached = localStorage.getItem(`synka-logo-${TENANT_ID}`);
+    if (cached) setClientLogo(cached);
+
+    // 2. Fetch from API in background to get clinic name and validate
     fetch(`/api/upload/logo?tenantId=${TENANT_ID}`)
       .then(r => r.json())
       .then(data => {
-        if (data.logoUrl) setClientLogo(data.logoUrl);
+        if (data.logoUrl) {
+          setClientLogo(data.logoUrl);
+          localStorage.setItem(`synka-logo-${TENANT_ID}`, data.logoUrl);
+        }
         if (data.nome) setClientName(data.nome);
       })
       .catch(() => {});
+
+    // 3. Listen for real-time logo updates from the Settings page
+    const handleLogoUpdate = (e: Event) => {
+      const url = (e as CustomEvent<string>).detail;
+      setClientLogo(url);
+    };
+    window.addEventListener('synka-logo-updated', handleLogoUpdate);
+    return () => window.removeEventListener('synka-logo-updated', handleLogoUpdate);
   }, []);
 
   return (

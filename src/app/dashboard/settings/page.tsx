@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 const NICHES = ["Clínica Médica", "Clínica de Estética", "Fisioterapia", "Pilates", "Salão de Beleza / Barbearia", "Outros"];
 const TENANT_ID = 'clinica_id_default'; // Em produção, vem do JWT do usuário logado
@@ -20,6 +20,12 @@ export default function SettingsPage() {
   const [endereco, setEndereco] = useState('');
   const [adminPhone, setAdminPhone] = useState('');
 
+  // Load existing logo from localStorage on mount
+  useEffect(() => {
+    const cached = localStorage.getItem(`synka-logo-${TENANT_ID}`);
+    if (cached) setLogoUrl(cached);
+  }, []);
+
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -33,6 +39,9 @@ export default function SettingsPage() {
       const data = await res.json();
       if (res.ok) {
         setLogoUrl(data.logoUrl);
+        // ✅ Persist to localStorage and notify the sidebar instantly
+        localStorage.setItem(`synka-logo-${TENANT_ID}`, data.logoUrl);
+        window.dispatchEvent(new CustomEvent('synka-logo-updated', { detail: data.logoUrl }));
       } else {
         setUploadError(data.error || 'Erro ao fazer upload');
       }
