@@ -2,14 +2,13 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import prisma from '@/lib/prisma';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '');
-
 const PLANS: Record<string, string> = {
   starter: process.env.STRIPE_PRICE_STARTER || '',
   pro: process.env.STRIPE_PRICE_PRO || '',
 };
 
 export async function POST(request: Request) {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '');
   try {
     const { tenantId, plano, email } = await request.json();
     if (!tenantId || !plano || !PLANS[plano]) {
