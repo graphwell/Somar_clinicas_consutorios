@@ -8,17 +8,21 @@ datasource db {
 }
 
 model Clinica {
-  id              String        @id @default(uuid())
-  nome            String
-  slug            String        @unique
-  nicho           String        @default("Clínica Médica")
-  configBranding  Json?
-  tenantId        String        @unique @default(uuid())
-  usuarios        Usuario[]
-  pacientes       Paciente[]
-  agendamentos    Agendamento[]
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  id             String        @id @default(uuid())
+  tenantId       String        @unique
+  nome           String
+  nicho          String        @default("Clínica Médica")
+  configBranding Json?         // { logoUrl, primaryColor, etc }
+  razaoSocial    String?
+  cnpj           String?
+  endereco       String?
+  adminPhone     String?
+  botActive      Boolean       @default(true)
+  usuarios       Usuario[]
+  pacientes      Paciente[]
+  agendamentos   Agendamento[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   @@map("clinicas")
 }
