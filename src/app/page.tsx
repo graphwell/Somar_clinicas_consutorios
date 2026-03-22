@@ -66,15 +66,15 @@ export default function LandingPage() {
     <div className="min-h-screen bg-[#050510] text-white font-sans overflow-x-hidden">
 
       {/* ── Nav ── */}
-      <nav className="fixed top-0 w-full z-50 backdrop-blur-xl bg-[#050510]/80 border-b border-white/5">
+      <nav className="fixed top-0 w-full z-50 bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <SynkaLogo iconSize={34} nameSize="text-2xl" />
+          <img src="/synka-logo.png" alt="Synka" className="h-10 object-contain" />
           <div className="flex items-center gap-3">
-            <Link href="/auth/login" className="hidden sm:block text-sm text-gray-400 hover:text-white transition-colors">
+            <Link href="/auth/login" className="hidden sm:block text-sm text-gray-500 hover:text-gray-800 font-medium transition-colors">
               Entrar
             </Link>
             <Link href="/auth/login"
-              className="px-5 py-2 bg-[#4a4ae2] hover:bg-[#3a3ab2] rounded-xl text-sm font-semibold transition-all shadow-[0_4px_16px_rgba(74,74,226,0.4)] hover:shadow-[0_4px_24px_rgba(74,74,226,0.6)]">
+              className="px-5 py-2 bg-[#4a4ae2] hover:bg-[#3a3ab2] text-white rounded-xl text-sm font-semibold transition-all shadow-[0_4px_16px_rgba(74,74,226,0.35)]">
               Acessar minha conta
             </Link>
           </div>
@@ -225,19 +225,16 @@ export default function LandingPage() {
       </section>
 
       {/* ── Footer ── */}
-      <footer className="border-t border-white/5 py-10 px-6">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6 text-xs text-gray-500">
-          <div className="flex items-center gap-2">
-            <SynkaIcon size={26} />
-            <span className="font-bold text-gray-300">synka</span><span className="text-gray-500"> — um produto Somar.IA</span>
-          </div>
+      <footer className="bg-white border-t border-gray-100 py-10 px-6">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6 text-xs text-gray-400">
+          <img src="/synka-logo.png" alt="Synka" className="h-8 object-contain" />
           <div className="text-center">
             © 2025 SOMMAR SOLUÇÕES DIGITAIS — CNPJ: 65.771.133/0001-07
           </div>
           <div className="flex gap-5">
-            <a href="https://wa.me/5585991516106" className="hover:text-white transition-colors">WhatsApp</a>
-            <a href="mailto:somar.solucoes.suporte@gmail.com" className="hover:text-white transition-colors">Suporte</a>
-            <Link href="/auth/login" className="hover:text-white transition-colors">Login</Link>
+            <a href="https://wa.me/5585991516106" className="hover:text-gray-700 transition-colors">WhatsApp</a>
+            <a href="mailto:somar.solucoes.suporte@gmail.com" className="hover:text-gray-700 transition-colors">Suporte</a>
+            <Link href="/auth/login" className="hover:text-gray-700 transition-colors">Login</Link>
           </div>
         </div>
       </footer>
