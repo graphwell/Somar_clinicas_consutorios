@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Somar.IA — Agendamento Inteligente para Clínicas",
-  description: "Sistema de atendimento automatizado com IA nativa no WhatsApp. Escalone o atendimento da sua clínica em piloto automático.",
+  title: "Synka — Agendamento Inteligente para Clínicas",
+  description: "Synka é a plataforma de agendamento automático com IA nativa no WhatsApp, desenvolvida pela Somar. Escalone o atendimento da sua clínica em piloto automático.",
 };
 
 export default function RootLayout({

@@ -30,9 +30,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Sidebar */}
       <nav className={`fixed left-0 top-0 h-full w-64 ${sidebarBg} backdrop-blur-xl border-r p-5 flex flex-col gap-3 z-40 transition-transform duration-300 ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
         
-        {/* Logo Slot */}
-        <div className="w-full h-14 flex items-center justify-center bg-white/5 border border-white/10 rounded-xl mb-2">
-          <span className="text-sm font-medium text-gray-400">Sua Logo Aqui</span>
+        {/* Logo Synka */}
+        <div className="w-full h-16 flex items-center justify-center px-2 mb-2">
+           <img src="/synka-icon.png" alt="Synka" className="h-12 w-12 object-contain" />
+           <span className="ml-3 text-xl font-bold tracking-tight">Synka</span>
         </div>
 
         <div className="flex flex-col gap-1 flex-1">
