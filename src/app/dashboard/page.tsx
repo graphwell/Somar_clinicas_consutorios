@@ -20,7 +20,7 @@ export default function DashboardPage() {
   const today = new Date().toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
   useEffect(() => {
-    fetch('/api/bot/appointments?tenantId=clinica_id_default')
+    fetch('/api/appointments?tenantId=clinica_id_default')
       .then(r => r.json())
       .then(data => { if (Array.isArray(data)) setAppointments(data); })
       .catch(() => {})
