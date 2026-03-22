@@ -1,0 +1,205 @@
+{
+  "name": "Somar.IA SaaS - Agente Autônomo WhatsApp (Dinâmico)",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "whatsapp-agent-dynamic",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-evolution",
+      "name": "Webhook WhatsApp",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [ 100, 300 ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.somar.ia.br/api/bot/context?tenantId=clinica_id_default",
+        "options": {}
+      },
+      "id": "fetch-context",
+      "name": "Carregar Contexto Clínica",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [ 300, 300 ]
+    },
+    {
+      "parameters": {
+        "text": "={{ $('Webhook WhatsApp').item.json.body.message || $('Webhook WhatsApp').item.json.message }}",
+        "options": {
+          "systemMessage": "={{ $json.systemPrompt }}"
+        }
+      },
+      "id": "ai-agent-main",
+      "name": "Agente Autônomo Especializado",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1,
+      "position": [ 500, 300 ]
+    },
+    {
+      "parameters": {
+        "model": "gemini-pro",
+        "options": {}
+      },
+      "id": "gemini-model",
+      "name": "Google Gemini",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [ 450, 500 ]
+    },
+    {
+      "parameters": {
+        "sessionId": "={{ $('Webhook WhatsApp').item.json.sender_number }}",
+        "contextWindowLength": 10
+      },
+      "id": "buffer-memory",
+      "name": "Memória da Conversa",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1,
+      "position": [ 600, 500 ]
+    },
+    {
+      "parameters": {
+        "name": "consultar_horarios",
+        "description": "Retorna os horários disponíveis para uma data (GET). Parâmetros: date (YYYY-MM-DD)",
+        "method": "GET",
+        "url": "https://api.somar.ia.br/api/bot/availability",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "date", "value": "={{ $fromAI('date') }}" },
+            { "name": "tenantId", "value": "clinica_id_default" }
+          ]
+        }
+      },
+      "id": "tool-availability",
+      "name": "Ferramenta: Ver Horários",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1,
+      "position": [ 750, 400 ]
+    },
+    {
+      "parameters": {
+        "name": "consultar_meus_agendamentos",
+        "description": "Busca agendamentos atuais pelo telefone do paciente para ver o ID (GET). Exige: phone.",
+        "method": "GET",
+        "url": "https://api.somar.ia.br/api/bot/appointments",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "phone", "value": "={{ $fromAI('phone') }}" },
+            { "name": "tenantId", "value": "clinica_id_default" }
+          ]
+        }
+      },
+      "id": "tool-get-appointments",
+      "name": "Ferramenta: Consultar Meus Agendamentos",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1,
+      "position": [ 900, 450 ]
+    },
+    {
+      "parameters": {
+        "name": "novo_agendamento",
+        "description": "Cria um agendamento novo (POST). Requer: pacienteTelefone, pacienteNome, dataHora ISO.",
+        "method": "POST",
+        "url": "https://api.somar.ia.br/api/bot/appointments",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "pacienteTelefone", "value": "={{ $fromAI('pacienteTelefone') }}" },
+            { "name": "pacienteNome", "value": "={{ $fromAI('pacienteNome') }}" },
+            { "name": "dataHora", "value": "={{ $fromAI('dataHora') }}" },
+            { "name": "tenantId", "value": "clinica_id_default" }
+          ]
+        }
+      },
+      "id": "tool-schedule",
+      "name": "Ferramenta: Agendar Novo",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1,
+      "position": [ 1050, 500 ]
+    },
+    {
+      "parameters": {
+        "name": "atualizar_agendamento",
+        "description": "Remarca ou Cancela (PUT). Exige: id (obtido em consultar_meus_agendamentos), e OPCIONAL: status ('cancelado') OU dataHora (para remarcar).",
+        "method": "PUT",
+        "url": "https://api.somar.ia.br/api/bot/appointments/{{ $fromAI('id') }}",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "status", "value": "={{ $fromAI('status') }}" },
+            { "name": "dataHora", "value": "={{ $fromAI('dataHora') }}" },
+            { "name": "tenantId", "value": "clinica_id_default" }
+          ]
+        }
+      },
+      "id": "tool-update",
+      "name": "Ferramenta: Atualizar/Cancelar via ID",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1,
+      "position": [ 1200, 550 ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.ultramsg.com/instance156799/messages/chat",
+        "sendBody": true,
+        "contentType": "www-form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "token", "value": "nbk60ugo4t1craq9" },
+            { "name": "to", "value": "={{ $('Webhook WhatsApp').item.json.body.from || $('Webhook WhatsApp').item.json.sender_number }}" },
+            { "name": "body", "value": "={{ $json.output }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "send-wa",
+      "name": "Disparar Resposta UltraMsg",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [ 850, 300 ]
+    }
+  ],
+  "connections": {
+    "Webhook WhatsApp": {
+      "main": [
+        [ { "node": "Carregar Contexto Clínica", "type": "main", "index": 0 } ]
+      ]
+    },
+    "Carregar Contexto Clínica": {
+      "main": [
+        [ { "node": "Agente Autônomo Especializado", "type": "main", "index": 0 } ]
+      ]
+    },
+    "Agente Autônomo Especializado": {
+      "main": [
+        [ { "node": "Disparar Resposta WhatsApp", "type": "main", "index": 0 } ]
+      ]
+    },
+    "Google Gemini": {
+      "ai_languageModel": [
+        [ { "node": "Agente Autônomo Especializado", "type": "ai_languageModel", "index": 0 } ]
+      ]
+    },
+    "Memória da Conversa": {
+      "ai_memory": [
+        [ { "node": "Agente Autônomo Especializado", "type": "ai_memory", "index": 0 } ]
+      ]
+    },
+    "Ferramenta: Ver Horários": {
+      "ai_tool": [
+        [ { "node": "Agente Autônomo Especializado", "type": "ai_tool", "index": 0 } ]
+      ]
+    },
+    "Ferramenta: Gestão Agendamento": {
+      "ai_tool": [
+        [ { "node": "Agente Autônomo Especializado", "type": "ai_tool", "index": 0 } ]
+      ]
+    }
+  },
+  "settings": {}
+}

@@ -1,0 +1,49 @@
+{
+  "name": "Somar.IA SaaS Scheduler - Multi-Subflows",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "entrada-agendamentos",
+        "options": {},
+        "responseMode": "responseNode"
+      },
+      "name": "entrada-agendamentos",
+      "type": "n8n-nodes-base.webhook",
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"status\": \"queued\",\n  \"message\": \"Notificações de agendamento em processamento\"\n}",
+        "options": {}
+      },
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "properties": {
+          "values": [
+            { "name": "mensagem", "value": "Olá {{ $json[\"paciente\"][\"nome\"] }}, seu agendamento está confirmado para {{ $json[\"dataHora\"] }}." }
+          ]
+        }
+      },
+      "name": "Set WhatsApp Template",
+      "type": "n8n-nodes-base.set",
+      "position": [650, 300]
+    }
+  ],
+  "connections": {
+    "entrada-agendamentos": {
+      "main": [
+        [
+          { "node": "Respond to Webhook", "type": "main", "index": 0 },
+          { "node": "Set WhatsApp Template", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": {}
+}

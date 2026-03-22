@@ -1,0 +1,168 @@
+{
+  "name": "Somar.IA SaaS - Fluxo Avançado WhatsApp",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "saas-agendamentos",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "name": "Entrada Plataforma (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [100, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"status\": \"processando\",\n  \"message\": \"Agendamento recebido e enfileirado nas automações\"\n}",
+        "options": {}
+      },
+      "name": "Responder Plataforma",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [300, 150]
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.tipo }}",
+        "rules": {
+          "rules": [
+            { "value2": "NOVO_AGENDAMENTO", "output": 0 },
+            { "value2": "LEMBRETE", "output": 1 }
+          ]
+        }
+      },
+      "name": "Roteador (Switch)",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [300, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://sua-api-whatsapp.com.br/message/sendText/clinica_ID",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "SUA_CHAVE_AQUI" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "number", "value": "={{ $json.paciente.telefone }}" },
+            { "name": "options.delay", "value": "1200" },
+            { "name": "textMessage.text", "value": "Olá {{ $json.paciente.nome }}! Seu agendamento foi marcado para {{ $json.dataHora }}. Para confirmar responda *SIM*, ou *NAO* para cancelar." }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Disparar WhatsApp (Novo)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [550, 200]
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "path": "confirmar-agendamento",
+        "options": {}
+      },
+      "name": "Aguardar Resposta Paciente",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [750, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.somar.ia.br/appointments/confirm",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "eventoId", "value": "={{ $json.eventoId }}" },
+            { "name": "status", "value": "CONFIRMADO" }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Atualizar Status Backend",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [950, 200]
+    },
+    {
+      "parameters": {
+        "resume": "time",
+        "timeAmount": 1,
+        "timeUnit": "days"
+      },
+      "name": "Espera Inteligente (24h antes)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [550, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://sua-api-whatsapp.com.br/message/sendText/clinica_ID",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "textMessage.text", "value": "Passando para lembrar da sua consulta amanhã as {{ $json.dataHora }}. Nos vemos lá!" }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Disparar WhatsApp (Lembrete)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [750, 400]
+    }
+  ],
+  "connections": {
+    "Entrada Plataforma (Webhook)": {
+      "main": [
+        [
+          { "node": "Responder Plataforma", "type": "main", "index": 0 },
+          { "node": "Roteador (Switch)", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Roteador (Switch)": {
+      "main": [
+        [
+          { "node": "Disparar WhatsApp (Novo)", "type": "main", "index": 0 },
+          { "node": "Espera Inteligente (24h antes)", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Disparar WhatsApp (Lembrete)", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Disparar WhatsApp (Novo)": {
+      "main": [
+        [
+          { "node": "Aguardar Resposta Paciente", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Aguardar Resposta Paciente": {
+      "main": [
+        [
+          { "node": "Atualizar Status Backend", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Espera Inteligente (24h antes)": {
+      "main": [
+        [
+          { "node": "Disparar WhatsApp (Lembrete)", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": {}
+}

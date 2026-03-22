@@ -1,0 +1,154 @@
+{
+  "name": "Somar.IA SaaS - Orquestrador AI WhatsApp",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "whatsapp-webhook",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "name": "Recebe Msg WhatsApp",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [ 100, 300 ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer SUA_CHAVE_OPENAI" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "model", "value": "gpt-4" },
+            { 
+              "name": "messages", 
+              "value": "[{\"role\": \"system\", \"content\": \"Você é um classificador de intenção de uma clínica. As intenções são: AGENDAR, CANCELAR, REMARCAR, DUVIDA, OUTROS. Responda apenas com a intenção e possíveis datas/horários mencionados em JSON.\"}, {\"role\": \"user\", \"content\": \"{{ $json.message }}\"}]" 
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Classificar Intenção (OpenAI)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [ 350, 300 ]
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ JSON.parse($json.choices[0].message.content).intent }}",
+        "rules": {
+          "rules": [
+            { "value2": "AGENDAR", "output": 0 },
+            { "value2": "CANCELAR", "output": 1 },
+            { "value2": "DUVIDA", "output": 2 }
+          ]
+        }
+      },
+      "name": "Roteador (Switch)",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [ 600, 300 ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.somar.ia.br/api/bot/availability?date={{ new Date().toISOString().split('T')[0] }}&tenantId=clinica_id",
+        "options": {}
+      },
+      "name": "Consultar Disponibilidade API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [ 850, 150 ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://sua-api-whatsapp.com.br/message/sendText/clinica_ID",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "number", "value": "={{ $('Recebe Msg WhatsApp').item.json.sender_number }}" },
+            { "name": "textMessage.text", "value": "Temos os seguintes horários livres hoje: {{ $json.availableSlots.join(', ') }}. Qual você prefere?" }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Enviar Horários (WhatsApp)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [ 1100, 150 ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.somar.ia.br/api/bot/appointments?action=cancel",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "pacienteTelefone", "value": "={{ $('Recebe Msg WhatsApp').item.json.sender_number }}" },
+            { "name": "tenantId", "value": "clinica_id" }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Cancelar API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [ 850, 350 ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://sua-api-whatsapp.com.br/message/sendText/clinica_ID",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "number", "value": "={{ $('Recebe Msg WhatsApp').item.json.sender_number }}" },
+            { "name": "textMessage.text", "value": "Pronto! Sua consulta foi cancelada conforme solicitado. Se quiser remarcar, é só falar." }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Confirmar Cancelamento (WA)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [ 1100, 350 ]
+    }
+  ],
+  "connections": {
+    "Recebe Msg WhatsApp": {
+      "main": [
+        [ { "node": "Classificar Intenção (OpenAI)", "type": "main", "index": 0 } ]
+      ]
+    },
+    "Classificar Intenção (OpenAI)": {
+      "main": [
+        [ { "node": "Roteador (Switch)", "type": "main", "index": 0 } ]
+      ]
+    },
+    "Roteador (Switch)": {
+      "main": [
+        [ { "node": "Consultar Disponibilidade API", "type": "main", "index": 0 } ],
+        [ { "node": "Cancelar API", "type": "main", "index": 0 } ],
+        []
+      ]
+    },
+    "Consultar Disponibilidade API": {
+      "main": [
+        [ { "node": "Enviar Horários (WhatsApp)", "type": "main", "index": 0 } ]
+      ]
+    },
+    "Cancelar API": {
+      "main": [
+        [ { "node": "Confirmar Cancelamento (WA)", "type": "main", "index": 0 } ]
+      ]
+    }
+  },
+  "settings": {}
+}

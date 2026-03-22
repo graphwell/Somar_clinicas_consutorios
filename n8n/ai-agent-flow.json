@@ -1,0 +1,146 @@
+{
+  "name": "Somar.IA SaaS - Agente Autônomo WhatsApp (Gemini)",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "whatsapp-agent-webhook",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-evolution",
+      "name": "Webhook WhatsApp",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [ 100, 300 ]
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.body.message || $json.message }}",
+        "options": {
+          "systemMessage": "Você é a Maya, assistente virtual da Clínica. Seja prestativa e profissional.\n\nVocê pode: Consultar horários, Agendar, Remarcar e Cancelar consultas.\nUse as ferramentas fornecidas para acessar o sistema interno.\n\nSempre pergunte informações faltando (como nome e telefone) antes de agendar."
+        }
+      },
+      "id": "ai-agent-main",
+      "name": "Agente Autônomo",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1,
+      "position": [ 400, 300 ]
+    },
+    {
+      "parameters": {
+        "model": "gemini-pro",
+        "options": {}
+      },
+      "id": "gemini-model",
+      "name": "Google Gemini",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [ 350, 500 ]
+    },
+    {
+      "parameters": {
+        "sessionId": "={{ $('Webhook WhatsApp').item.json.sender_number }}",
+        "contextWindowLength": 10
+      },
+      "id": "buffer-memory",
+      "name": "Memória da Conversa",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1,
+      "position": [ 500, 500 ]
+    },
+    {
+      "parameters": {
+        "name": "consultar_horarios",
+        "description": "Retorna os horários disponíveis para agendamento. Passe a data desejada como YYYY-MM-DD.",
+        "method": "GET",
+        "url": "https://api.somar.ia.br/api/bot/availability",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "date", "value": "={{ $fromAI('date') }}" },
+            { "name": "tenantId", "value": "clinica_id_default" }
+          ]
+        }
+      },
+      "id": "tool-availability",
+      "name": "Ferramenta: Ver Horários",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1,
+      "position": [ 650, 500 ]
+    },
+    {
+      "parameters": {
+        "name": "agendar_ou_cancelar",
+        "description": "Cria ou cancela um agendamento no sistema. Ações suportadas: 'schedule' ou 'cancel'. Dados necessários: pacienteTelefone, pacienteNome, dataHora (ISO).",
+        "method": "POST",
+        "url": "https://api.somar.ia.br/api/bot/appointments?action={{ $fromAI('action') }}",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "pacienteTelefone", "value": "={{ $fromAI('pacienteTelefone') }}" },
+            { "name": "pacienteNome", "value": "={{ $fromAI('pacienteNome') }}" },
+            { "name": "dataHora", "value": "={{ $fromAI('dataHora') }}" },
+            { "name": "tenantId", "value": "clinica_id_default" }
+          ]
+        }
+      },
+      "id": "tool-appointments",
+      "name": "Ferramenta: Gestão de Agendamento",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1,
+      "position": [ 850, 500 ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://sua-api-whatsapp.com.br/message/sendText/clinica_ID",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "number", "value": "={{ $('Webhook WhatsApp').item.json.sender_number }}" },
+            { "name": "textMessage.text", "value": "={{ $json.output }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "send-wa",
+      "name": "Disparar Resposta WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [ 750, 300 ]
+    }
+  ],
+  "connections": {
+    "Webhook WhatsApp": {
+      "main": [
+        [ { "node": "Agente Autônomo", "type": "main", "index": 0 } ]
+      ]
+    },
+    "Agente Autônomo": {
+      "main": [
+        [ { "node": "Disparar Resposta WhatsApp", "type": "main", "index": 0 } ]
+      ]
+    },
+    "Google Gemini": {
+      "ai_languageModel": [
+        [ { "node": "Agente Autônomo", "type": "ai_languageModel", "index": 0 } ]
+      ]
+    },
+    "Memória da Conversa": {
+      "ai_memory": [
+        [ { "node": "Agente Autônomo", "type": "ai_memory", "index": 0 } ]
+      ]
+    },
+    "Ferramenta: Ver Horários": {
+      "ai_tool": [
+        [ { "node": "Agente Autônomo", "type": "ai_tool", "index": 0 } ]
+      ]
+    },
+    "Ferramenta: Gestão de Agendamento": {
+      "ai_tool": [
+        [ { "node": "Agente Autônomo", "type": "ai_tool", "index": 0 } ]
+      ]
+    }
+  },
+  "settings": {}
+}

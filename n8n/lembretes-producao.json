@@ -1,0 +1,94 @@
+{
+  "name": "Somar.IA SaaS - Lembretes 24h (Producao)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      },
+      "id": "cron-trigger",
+      "name": "Todos os Dias as 08:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [ 100, 300 ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.somar.ia.br/api/bot/appointments/reminders",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer CHAVE_SECRETA_N8N" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fetch-reminders",
+      "name": "Buscar Agendamentos de Amanhã",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [ 300, 300 ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "lembretes",
+        "options": {}
+      },
+      "id": "split-in-batches",
+      "name": "Para cada Agendamento",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 2,
+      "position": [ 500, 300 ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.ultramsg.com/instance156799/messages/chat",
+        "sendBody": true,
+        "contentType": "www-form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "token", "value": "nbk60ugo4t1craq9" },
+            { "name": "to", "value": "={{ $json.pacienteTelefone }}" },
+            { "name": "body", "value": "Olá {{ $json.pacienteNome }}! Passando para lembrar da sua consulta amanhã na {{ $json.clinicaNome }}.\n\nPara confirmar responda *SIM*. Se precisar remarcar ou cancelar, é só me responder aqui que eu ajusto na agenda para você!" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "send-wa-reminder",
+      "name": "Disparar UltraMsg Lembrete",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [ 750, 300 ]
+    }
+  ],
+  "connections": {
+    "Todos os Dias as 08:00": {
+      "main": [
+        [ { "node": "Buscar Agendamentos de Amanhã", "type": "main", "index": 0 } ]
+      ]
+    },
+    "Buscar Agendamentos de Amanhã": {
+      "main": [
+        [ { "node": "Para cada Agendamento", "type": "main", "index": 0 } ]
+      ]
+    },
+    "Para cada Agendamento": {
+      "main": [
+        [ { "node": "Disparar WhatsApp Lembrete", "type": "main", "index": 0 } ]
+      ]
+    },
+    "Disparar WhatsApp Lembrete": {
+      "main": [
+        [ { "node": "Para cada Agendamento", "type": "main", "index": 0 } ]
+      ]
+    }
+  },
+  "settings": {}
+}
