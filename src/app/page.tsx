@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { SynkaLogo, SynkaIcon } from '@/components/SynkaLogo';
 
 const ROTATING_PHRASES = [
   { pain: 'recepcionista esquece de ligar para lembrar consultas', fix: 'A IA lembra sozinha, 24h por dia.' },
@@ -67,10 +68,7 @@ export default function LandingPage() {
       {/* ── Nav ── */}
       <nav className="fixed top-0 w-full z-50 backdrop-blur-xl bg-[#050510]/80 border-b border-white/5">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <img src="/synka-icon.png" alt="Synka" className="h-10 w-10 object-contain" />
-            <span className="text-2xl font-extrabold tracking-tight bg-gradient-to-r from-[#00b4d8] to-[#8080ff] bg-clip-text text-transparent">synka</span>
-          </div>
+          <SynkaLogo iconSize={34} nameSize="text-2xl" />
           <div className="flex items-center gap-3">
             <Link href="/auth/login" className="hidden sm:block text-sm text-gray-400 hover:text-white transition-colors">
               Entrar
@@ -230,7 +228,7 @@ export default function LandingPage() {
       <footer className="border-t border-white/5 py-10 px-6">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6 text-xs text-gray-500">
           <div className="flex items-center gap-2">
-            <img src="/synka-icon.png" alt="Synka" className="h-7 w-7 object-contain" />
+            <SynkaIcon size={26} />
             <span className="font-bold text-gray-300">synka</span><span className="text-gray-500"> — um produto Somar.IA</span>
           </div>
           <div className="text-center">

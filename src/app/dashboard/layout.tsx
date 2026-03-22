@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useTheme } from '@/context/ThemeContext';
+import { SynkaIcon } from '@/components/SynkaLogo';
 
 const NavItem = ({ href, label }: { href: string; label: string }) => (
   <Link href={href} className="flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all text-sm font-medium text-gray-400 hover:bg-white/5 hover:text-white">
@@ -65,9 +66,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {clientLogo ? (
             <img src={clientLogo} alt="Logo da clínica" className="h-10 max-w-[180px] object-contain" />
           ) : (
-            <div className="w-full h-12 flex items-center gap-2 px-1">
-              <img src="/synka-icon.png" alt="Synka" className="h-9 w-9 object-contain flex-shrink-0" />
-              <div className="w-px h-6 bg-white/10" />
+            <div className="w-full h-12 flex items-center gap-3 px-1">
+              <SynkaIcon size={32} />
+              <div className="w-px h-5 bg-white/10" />
               <span className="text-xs text-gray-500 leading-tight">Adicione sua logo<br />em Configurações</span>
             </div>
           )}
