@@ -67,3 +67,30 @@ model Agendamento {
 
   @@map("agendamentos")
 }
+
+model InviteToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  email     String
+  role      String   @default("recepcao")
+  tenantId  String
+  used      Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@map("invite_tokens")
+}
+
+model Assinatura {
+  id                 String    @id @default(uuid())
+  tenantId           String    @unique
+  stripeCustomerId   String?
+  stripeSubId        String?
+  plano              String    @default("starter") // starter, pro, enterprise
+  status             String    @default("trial")   // trial, active, past_due, canceled
+  proximoVencimento  DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@map("assinaturas")
+}
