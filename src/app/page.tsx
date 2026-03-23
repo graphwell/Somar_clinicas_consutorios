@@ -67,8 +67,8 @@ export default function LandingPage() {
 
       {/* ── Nav ── */}
       <nav className="fixed top-0 w-full z-50 bg-white shadow-sm border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-6 h-56 flex items-center justify-between">
-          <img src="/synka-logo.png" alt="Synka" className="h-48 object-contain" />
+        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+          <img src="/synka-logo.png" alt="Synka" className="h-10 object-contain" />
           <div className="flex items-center gap-3">
             <Link href="/auth/login" className="hidden sm:block text-sm text-gray-500 hover:text-gray-800 font-medium transition-colors">
               Entrar
@@ -82,7 +82,7 @@ export default function LandingPage() {
       </nav>
 
       {/* ── Hero ── */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center text-center px-6 pt-24 pb-16 overflow-hidden">
+      <section className="relative min-h-screen flex flex-col items-center justify-center text-center px-6 pt-32 pb-16 overflow-hidden">
         {/* Background glow */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-[#4a4ae2]/12 rounded-full blur-[120px]" />

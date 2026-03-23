@@ -27,9 +27,9 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gray-50 font-sans flex flex-col">
       
       {/* White Header */}
-      <header className="bg-white border-b border-gray-100 h-48 flex items-center px-8">
+      <header className="bg-white border-b border-gray-100 h-20 flex items-center px-8">
         <Link href="/">
-          <img src="/synka-logo.png" alt="Synka" className="h-40 object-contain" />
+          <img src="/synka-logo.png" alt="Synka" className="h-10 object-contain" />
         </Link>
       </header>
 
@@ -37,8 +37,8 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-md bg-white border border-gray-200 rounded-3xl shadow-xl p-8">
 
-          <div className="text-center mb-10">
-            <img src="/synka-logo.png" alt="Synka" className="h-64 object-contain mx-auto mb-10" />
+          <div className="text-center mb-8">
+            <img src="/synka-logo.png" alt="Synka" className="h-16 object-contain mx-auto mb-6" />
             <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
               {isLogin ? 'Bem-vindo de volta' : 'Crie sua conta'}
             </h2>
