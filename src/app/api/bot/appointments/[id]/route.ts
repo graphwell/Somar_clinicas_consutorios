@@ -13,6 +13,8 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
   const status = searchParams.get('status') || body.status;
   const dataHora = searchParams.get('dataHora') || body.dataHora;
   const tenantId = searchParams.get('tenantId') || body.tenantId;
+  const servicoId = searchParams.get('servicoId') || body.servicoId;
+  const profissionalId = searchParams.get('profissionalId') || body.profissionalId;
 
   try {
     const agendamentoAtual = await prisma.agendamento.findFirst({
@@ -23,12 +25,20 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
       return NextResponse.json({ error: 'Agendamento não encontrado ou não pertence a esta clínica' }, { status: 404 });
     }
 
-    // Se for remarcação, precisa checar conflito novamente
+    const data: any = {};
+    if (status) data.status = status;
+    if (servicoId) data.servicoId = servicoId;
+    if (profissionalId) data.profissionalId = profissionalId;
+
+    // Se for remarcação (mudança de horário), precisa checar conflito novamente
     if (dataHora) {
       const newDate = new Date(dataHora);
+      data.dataHora = newDate;
+      data.status = 'remarcado';
       
-      const conflictWhere: any = { dataHora: newDate, tenantId, status: { not: 'cancelado' } };
-      if (agendamentoAtual.profissionalId) conflictWhere.profissionalId = agendamentoAtual.profissionalId;
+      const conflictWhere: any = { dataHora: newDate, tenantId, status: { not: 'cancelado' }, id: { not: id } };
+      const currentPrf = profissionalId || agendamentoAtual.profissionalId;
+      if (currentPrf) conflictWhere.profissionalId = currentPrf;
 
       const conflict = await prisma.agendamento.findFirst({
         where: conflictWhere
@@ -37,28 +47,21 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
       if (conflict) {
         return NextResponse.json({ success: false, error: 'O novo horário escolhido já está ocupado' }, { status: 409 });
       }
-
-      await prisma.agendamento.update({
-        where: { id },
-        data: { dataHora: newDate, status: 'remarcado' }
-      });
-
-      return NextResponse.json({ success: true, message: 'Remarcato com sucesso' });
     }
 
-    // Apenas mudança de status (ex: Cancelado, Confirmado)
-    if (status) {
-      await prisma.agendamento.update({
+    if (Object.keys(data).length > 0) {
+      // @ts-ignore
+      const updated = await prisma.agendamento.update({
         where: { id },
-        data: { status }
+        data
       });
-      return NextResponse.json({ success: true, message: `Status alterado para ${status}` });
+      return NextResponse.json({ success: true, message: 'Agendamento atualizado com sucesso', agendamento: updated });
     }
 
     return NextResponse.json({ error: 'Nenhuma ação válida fornecida' }, { status: 400 });
 
   } catch (error) {
-    console.error("Erro no PUT /api/appointments/:id", error);
+    console.error("Erro no PUT /api/bot/appointments/:id", error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

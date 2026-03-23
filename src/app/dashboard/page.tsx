@@ -5,12 +5,20 @@ import { useNicho } from '@/context/NichoContext';
 const TENANT_ID = 'clinica_id_default';
 const HOURS = ['08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00'];
 
+interface Service {
+  id: string;
+  nome: string;
+  preco: number;
+}
+
 interface Appointment {
   id: string;
   dataHora: string;
   status: string;
   paciente: { nome: string; telefone: string };
   profissional?: { id: string; nome: string };
+  servico?: Service | null;
+  servicoId?: string | null;
   tipoAtendimento?: string | null;
   convenio?: string | null;
 }
@@ -59,14 +67,15 @@ function isSameDay(a: Date, b: Date) {
 
 // ─── Modal de Novo/Editar Agendamento ─────────────────────────────────────
 function AppointmentModal({
-  onClose, onSave, initial, selectedDate, profissionais, conveniosAtivos
+  onClose, onSave, initial, selectedDate, profissionais, conveniosAtivos, services
 }: {
   onClose: () => void;
-  onSave: (data: { nome: string; telefone: string; dataHora: string; origem: string; profissionalId?: string; tipoAtendimento: string; convenio?: string }) => Promise<void>;
+  onSave: (data: { nome: string; telefone: string; dataHora: string; origem: string; profissionalId?: string; servicoId?: string; tipoAtendimento: string; convenio?: string }) => Promise<void>;
   initial?: Appointment | null;
   selectedDate?: Date;
   profissionais: Profissional[];
   conveniosAtivos: Convenio[];
+  services: Service[];
 }) {
   const { labels } = useNicho();
   const defaultDate = selectedDate || new Date();
@@ -79,6 +88,7 @@ function AppointmentModal({
   const [hour, setHour] = useState(initial ? formatTime(initial.dataHora) : '09:00');
   const [origem, setOrigem] = useState('manual');
   const [profissionalId, setProfissionalId] = useState(initial?.profissional?.id || '');
+  const [servicoId, setServicoId] = useState(initial?.servico?.id || initial?.servicoId || '');
   const [tipoAtendimento, setTipoAtendimento] = useState(initial?.tipoAtendimento || 'particular');
   const [convenio, setConvenio] = useState(initial?.convenio || '');
   const [saving, setSaving] = useState(false);
@@ -93,6 +103,7 @@ function AppointmentModal({
       await onSave({ 
         nome, telefone, dataHora, origem, 
         profissionalId: profissionalId || undefined,
+        servicoId: servicoId || undefined,
         tipoAtendimento,
         convenio: tipoAtendimento === 'convenio' ? convenio : undefined
       });
@@ -126,25 +137,29 @@ function AppointmentModal({
                 placeholder="55 85 99999-9999" />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-gray-400 uppercase tracking-widest">Origem</label>
-              <select value={origem} onChange={e => setOrigem(e.target.value)}
+              <label className="text-xs text-gray-400 uppercase tracking-widest">Tipo de Atendimento</label>
+              <select value={tipoAtendimento} onChange={e => setTipoAtendimento(e.target.value)}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#4a4ae2] transition-colors appearance-none">
-                <option value="manual" className="bg-[#0d0d22]">👤 Recepcionista</option>
-                <option value="ia" className="bg-[#0d0d22]">🤖 IA WhatsApp</option>
+                <option value="particular" className="bg-[#0d0d22]">💲 Particular</option>
+                <option value="convenio" className="bg-[#0d0d22]">🏥 Convênio/Plano</option>
               </select>
             </div>
-            {conveniosAtivos.length > 0 && (
-               <div className="space-y-1">
-                 <label className="text-xs text-gray-400 uppercase tracking-widest">Tipo de Atendimento</label>
-                 <select value={tipoAtendimento} onChange={e => setTipoAtendimento(e.target.value)}
-                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#4a4ae2] transition-colors appearance-none">
-                   <option value="particular" className="bg-[#0d0d22]">💲 Particular</option>
-                   <option value="convenio" className="bg-[#0d0d22]">🏥 Convênio/Plano</option>
-                 </select>
-               </div>
-            )}
+
+            <div className="space-y-1 sm:col-span-2">
+              <label className="text-xs text-gray-400 uppercase tracking-widest">{labels.servico}</label>
+              <select value={servicoId} onChange={e => setServicoId(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#4a4ae2] transition-colors appearance-none"
+                required={tipoAtendimento === 'particular'}
+              >
+                <option value="" className="bg-[#0d0d22]">Selecione o {labels.servico}...</option>
+                {services.map(s => (
+                  <option key={s.id} value={s.id} className="bg-[#0d0d22]">{s.nome} - R$ {s.preco.toFixed(2).replace('.',',')}</option>
+                ))}
+              </select>
+            </div>
+
             {tipoAtendimento === 'convenio' && conveniosAtivos.length > 0 && (
-              <div className="space-y-1">
+              <div className="space-y-1 sm:col-span-2">
                 <label className="text-xs text-gray-400 uppercase tracking-widest">Convênio</label>
                 <select value={convenio} onChange={e => setConvenio(e.target.value)} required={tipoAtendimento === 'convenio'}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#4a4ae2] transition-colors appearance-none">
@@ -153,18 +168,18 @@ function AppointmentModal({
                 </select>
               </div>
             )}
-            {profissionais.length > 0 && (
-              <div className="space-y-1 sm:col-span-2">
-                <label className="text-xs text-gray-400 uppercase tracking-widest">{labels.profissional}</label>
-                <select value={profissionalId} onChange={e => setProfissionalId(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#4a4ae2] transition-colors appearance-none">
-                  <option value="" className="bg-[#0d0d22]">Nenhum específico</option>
-                  {profissionais.map(p => (
-                    <option key={p.id} value={p.id} className="bg-[#0d0d22]">{p.nome}</option>
-                  ))}
-                </select>
-              </div>
-            )}
+            
+            <div className="space-y-1 sm:col-span-2">
+              <label className="text-xs text-gray-400 uppercase tracking-widest">{labels.profissional}</label>
+              <select value={profissionalId} onChange={e => setProfissionalId(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#4a4ae2] transition-colors appearance-none">
+                <option value="" className="bg-[#0d0d22]">Nenhum específico</option>
+                {profissionais.map(p => (
+                  <option key={p.id} value={p.id} className="bg-[#0d0d22]">{p.nome}</option>
+                ))}
+              </select>
+            </div>
+
             <div className="space-y-1">
               <label className="text-xs text-gray-400 uppercase tracking-widest">Data</label>
               <input required type="date" value={date} onChange={e => setDate(e.target.value)}
@@ -184,7 +199,7 @@ function AppointmentModal({
               Cancelar
             </button>
             <button type="submit" disabled={saving}
-              className="flex-1 py-3 bg-[#4a4ae2] hover:bg-[#3a3ab2] rounded-xl text-sm font-semibold transition-all disabled:opacity-50 shadow-[0_4px_20px_rgba(74,74,226,0.35)]">
+              className="flex-1 py-3 bg-[#4a4ae2] hover:bg-[#3a3ab2] rounded-xl text-sm font-semibold transition-all shadow-[0_4px_20px_rgba(74,74,226,0.35)]">
               {saving ? 'Salvando...' : initial ? 'Remarcar' : 'Agendar'}
             </button>
           </div>
@@ -212,7 +227,6 @@ function AppCard({ appt, onCancel, onReschedule }: {
         <p className="text-[10px] text-gray-500 uppercase">{formatDate(appt.dataHora)}</p>
       </div>
 
-      {/* Divider line */}
       <div className="hidden sm:flex flex-col items-center gap-1 w-4">
         <div className="w-px h-full bg-gradient-to-b from-[#4a4ae2]/60 to-transparent min-h-[32px]" />
       </div>
@@ -227,9 +241,14 @@ function AppCard({ appt, onCancel, onReschedule }: {
              </span>
           )}
         </div>
-        <p className="text-[10px] text-gray-400 mt-0.5">{appt.paciente?.telefone}</p>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
+          <p className="text-[10px] text-gray-500">{appt.paciente?.telefone}</p>
+          {appt.servico && (
+            <span className="text-[10px] font-bold text-[#4a4ae2]">🏷️ {appt.servico.nome} (R$ {appt.servico.preco.toFixed(2)})</span>
+          )}
+        </div>
         {appt.profissional && (
-          <p className="text-[10px] text-[#8080ff] mt-1 font-bold">👤 {labels.profissional}: {appt.profissional.nome}</p>
+          <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-tight">👤 {labels.profissional}: {appt.profissional.nome}</p>
         )}
       </div>
 
@@ -242,7 +261,7 @@ function AppCard({ appt, onCancel, onReschedule }: {
               ···
             </button>
             {menuOpen && (
-              <div className="absolute right-0 top-full mt-1 bg-[#0d0d22] border border-white/10 rounded-xl overflow-hidden z-10 shadow-2xl min-w-[160px]">
+              <div className="absolute right-0 top-full mt-1 bg-[#0d0d22] border border-white/10 rounded-xl overflow-hidden z-20 shadow-2xl min-w-[160px]">
                 <button
                   onClick={() => { onReschedule(appt); setMenuOpen(false); }}
                   className="w-full text-left px-4 py-3 text-sm hover:bg-white/5 transition-colors">
@@ -351,6 +370,7 @@ export default function AgendaPage() {
   const { labels } = useNicho();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [profissionais, setProfissionais] = useState<Profissional[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
   const [conveniosAtivos, setConveniosAtivos] = useState<Convenio[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -365,15 +385,20 @@ export default function AgendaPage() {
 
   const fetchAppointments = useCallback(() => {
     setLoading(true);
-    fetch(`/api/appointments?tenantId=${TENANT_ID}`) // <-- Needs to be updated to bot endpoint
+    fetch(`/api/appointments?tenantId=${TENANT_ID}`)
       .then(r => r.json())
-      .then(data => { if (Array.isArray(data.appointments || data)) setAppointments(data.appointments || data); })
+      .then(data => { if (Array.isArray(data || data.appointments)) setAppointments(data.appointments || data); })
       .catch(() => {})
       .finally(() => setLoading(false));
 
     fetch(`/api/team?tenantId=${TENANT_ID}`)
       .then(r => r.json())
       .then(data => { if (Array.isArray(data)) setProfissionais(data.filter((p: any) => p.ativo)); })
+      .catch(() => {});
+
+    fetch(`/api/services?tenantId=${TENANT_ID}`)
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data)) setServices(data); })
       .catch(() => {});
 
     fetch(`/api/settings/convenios?tenantId=${TENANT_ID}`)
@@ -384,7 +409,7 @@ export default function AgendaPage() {
 
   useEffect(() => { fetchAppointments(); }, [fetchAppointments]);
 
-  const handleCreate = async (data: { nome: string; telefone: string; dataHora: string; origem: string; profissionalId?: string; tipoAtendimento: string; convenio?: string }) => {
+  const handleCreate = async (data: any) => {
     const res = await fetch('/api/bot/appointments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -394,6 +419,7 @@ export default function AgendaPage() {
         dataHora: data.dataHora, 
         tenantId: TENANT_ID,
         profissionalId: data.profissionalId,
+        servicoId: data.servicoId,
         tipoAtendimento: data.tipoAtendimento,
         convenio: data.convenio
       }),
@@ -404,7 +430,7 @@ export default function AgendaPage() {
     showToast('✅ Agendamento criado com sucesso!');
   };
 
-  const handleReschedule = async (data: { nome: string; telefone: string; dataHora: string; origem: string; profissionalId?: string; tipoAtendimento?: string; convenio?: string }) => {
+  const handleReschedule = async (data: any) => {
     if (!rescheduleAppt) return;
     const res = await fetch(`/api/bot/appointments/${rescheduleAppt.id}`, {
       method: 'PUT',
@@ -413,6 +439,7 @@ export default function AgendaPage() {
         dataHora: data.dataHora, 
         tenantId: TENANT_ID,
         profissionalId: data.profissionalId,
+        servicoId: data.servicoId,
         tipoAtendimento: data.tipoAtendimento,
         convenio: data.convenio
       }),
@@ -437,9 +464,8 @@ export default function AgendaPage() {
   const onBookSlot = (hour: string) => { setPrefilledHour(hour); setShowModal(true); };
 
   // Stats
-  const todayAppts = appointments.filter(a => isSameDay(new Date(a.dataHora), new Date()));
-  const confirmados = appointments.filter(a => a.status === 'confirmado').length;
-  const pendentes = appointments.filter(a => a.status === 'pendente').length;
+  const todayAppts = appointments.filter(a => isSameDay(new Date(a.dataHora), new Date()) && a.status !== 'cancelado');
+  const prevCaixa = todayAppts.reduce((acc, a) => acc + (a.servico?.preco || 0), 0);
 
   // Filtered list
   const dayAppts = appointments
@@ -450,15 +476,12 @@ export default function AgendaPage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-
-      {/* Toast */}
       {toast && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-[#0d0d22] border border-[#4a4ae2]/30 text-white px-6 py-3 rounded-2xl shadow-2xl text-sm font-medium animate-pulse">
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-[#0d0d22] border border-[#4a4ae2]/30 text-white px-6 py-3 rounded-2xl shadow-2xl text-sm font-medium">
           {toast}
         </div>
       )}
 
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold">📅 Agenda</h2>
@@ -474,65 +497,38 @@ export default function AgendaPage() {
         </button>
       </div>
 
-      {/* Mobile-First 3 KPIs Row (Módulo 11.1) */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-2">
         {[
-          { 
-            label: 'Agendamentos Hoje', 
-            value: todayAppts.length, 
-            gradient: 'from-[#4a4ae2] to-[#8080ff]', 
-            icon: '📅' 
-          },
-          { 
-            label: 'Confirmados', 
-            value: todayAppts.filter(a => a.status === 'confirmado').length, 
-            gradient: 'from-green-500 to-emerald-400', 
-            icon: '✅' 
-          },
-          { 
-            label: 'Caixa Hoje (Previsto)', 
-            value: 'R$ --', // Placeholder until financial/service module is fully active
-            gradient: 'from-yellow-500 to-orange-400', 
-            icon: '💰' 
-          },
+          { label: 'Agendamentos Hoje', value: todayAppts.length, gradient: 'from-[#4a4ae2] to-[#8080ff]', icon: '📅' },
+          { label: 'Confirmados', value: todayAppts.filter(a => a.status === 'confirmado').length, gradient: 'from-green-500 to-emerald-400', icon: '✅' },
+          { label: 'Caixa Hoje (Previsto)', value: `R$ ${prevCaixa.toLocaleString('pt-BR', { minimumFractionDigits:2 })}`, gradient: 'from-yellow-500 to-orange-400', icon: '💰' },
         ].map((s, idx) => (
           <div key={idx} className="bg-gradient-to-br from-[#0d0d22] to-[#0a0a20] border border-white/10 rounded-3xl p-6 flex flex-col justify-between hover:border-white/20 transition-all shadow-xl relative overflow-hidden group">
             <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${s.gradient} opacity-5 blur-3xl rounded-full group-hover:opacity-10 transition-opacity`} />
             <div className="flex items-start justify-between mb-4 relative z-10">
               <p className="text-sm text-gray-400 uppercase tracking-widest font-bold">{s.label}</p>
-              <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center text-xl shadow-inner border border-white/5">
-                {s.icon}
-              </div>
+              <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center text-xl shadow-inner border border-white/5">{s.icon}</div>
             </div>
-            <p className={`text-5xl font-extrabold tracking-tight bg-gradient-to-r ${s.gradient} bg-clip-text text-transparent relative z-10 drop-shadow-sm`}>
-              {s.value}
-            </p>
+            <p className={`text-4xl font-extrabold tracking-tight bg-gradient-to-r ${s.gradient} bg-clip-text text-transparent relative z-10 drop-shadow-sm`}>{s.value}</p>
           </div>
         ))}
       </div>
 
-      {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        {/* Left: Calendar + Slots */}
         <div className="lg:col-span-1 space-y-4">
           <MiniCalendar selected={selectedDate} appointments={appointments} onSelect={setSelectedDate} />
           <SlotGrid date={selectedDate} appointments={appointments} onBook={onBookSlot} />
         </div>
 
-        {/* Right: Appointment List */}
         <div className="lg:col-span-2">
-          <div className="bg-[#0a0a20]/50 border border-white/5 rounded-2xl overflow-hidden">
-            {/* Tabs (Abas) Módulo 3 */}
+          <div className="bg-[#0a0a20]/50 border border-white/5 rounded-2xl overflow-hidden shadow-inner">
             <div className="flex border-b border-white/5">
               {(['pendente', 'confirmado', 'todos'] as const).map(f => (
                 <button
                   key={f}
                   onClick={() => setFilter(f)}
-                  className={`flex-1 py-4 text-sm font-bold uppercase tracking-wider transition-all border-b-2 ${
-                    filter === f 
-                      ? 'border-[#4a4ae2] text-[#8080ff] bg-[#4a4ae2]/5' 
-                      : 'border-transparent text-gray-500 hover:text-gray-300 hover:bg-white/5'
+                  className={`flex-1 py-4 text-xs font-bold uppercase tracking-wider transition-all border-b-2 ${
+                    filter === f ? 'border-[#4a4ae2] text-[#8080ff] bg-[#4a4ae2]/5' : 'border-transparent text-gray-500 hover:bg-white/5'
                   }`}
                 >
                   {f === 'pendente' ? '⏳ Pendentes' : f === 'confirmado' ? '✅ Confirmados' : '🗂️ Todos'}
@@ -540,44 +536,27 @@ export default function AgendaPage() {
               ))}
             </div>
 
-            {/* Toolbar */}
             <div className="p-5 border-b border-white/5 flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
-                <input
-                  value={search} onChange={e => setSearch(e.target.value)}
-                  placeholder={`Buscar ${labels.cliente.toLowerCase()} ou telefone...`}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:border-[#4a4ae2] transition-colors"
-                />
+                <input value={search} onChange={e => setSearch(e.target.value)} placeholder={`Buscar ${labels.cliente.toLowerCase()} ou telefone...`} className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:border-[#4a4ae2] transition-colors" />
                 <svg className="absolute left-3 top-3 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
               </div>
             </div>
 
-            {/* Date selector */}
-            <div className="px-5 pt-4 pb-2">
+            <div className="px-5 pt-4 pb-2 flex items-center justify-between">
               <h4 className="text-sm font-semibold text-gray-300">
-                {selectedDate.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}
-                <span className="ml-2 text-xs text-gray-500">({dayAppts.length} agendamento{dayAppts.length !== 1 ? 's' : ''})</span>
+                {selectedDate.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}
+                <span className="ml-2 text-xs text-gray-500">({dayAppts.length})</span>
               </h4>
             </div>
 
-            {/* List */}
             <div className="min-h-[300px]">
               {loading ? (
-                <div className="flex items-center justify-center p-16 text-gray-400">
-                  <div className="text-center space-y-2">
-                    <div className="w-8 h-8 border-2 border-[#4a4ae2] border-t-transparent rounded-full animate-spin mx-auto" />
-                    <p className="text-sm">Carregando...</p>
-                  </div>
-                </div>
+                <div className="flex items-center justify-center p-16"><div className="w-8 h-8 border-2 border-[#4a4ae2] border-t-transparent rounded-full animate-spin" /></div>
               ) : dayAppts.length === 0 ? (
-                <div className="flex flex-col items-center justify-center p-16 text-gray-400">
+                <div className="flex flex-col items-center justify-center p-16 text-gray-400 opacity-50">
                   <span className="text-5xl mb-4">📭</span>
-                  <p className="font-medium text-white">Nenhum agendamento nesta data</p>
-                  <p className="text-sm mt-1">Selecione outro dia ou crie um novo agendamento.</p>
-                  <button onClick={() => { setRescheduleAppt(null); setShowModal(true); }}
-                    className="mt-4 px-4 py-2 bg-[#4a4ae2]/20 hover:bg-[#4a4ae2]/30 border border-[#4a4ae2]/30 rounded-xl text-sm text-[#8080ff] transition-all">
-                    + Agendar nesta data
-                  </button>
+                  <p className="font-medium">Nenhum agendamento nesta data</p>
                 </div>
               ) : (
                 dayAppts.map(a => (
@@ -589,15 +568,15 @@ export default function AgendaPage() {
         </div>
       </div>
 
-      {/* Modals */}
       {showModal && (
         <AppointmentModal
           onClose={() => { setShowModal(false); setRescheduleAppt(null); }}
-          onSave={rescheduleAppt ? handleReschedule as any : handleCreate as any}
+          onSave={rescheduleAppt ? handleReschedule : handleCreate}
           initial={rescheduleAppt}
           selectedDate={selectedDate}
           profissionais={profissionais}
           conveniosAtivos={conveniosAtivos}
+          services={services}
         />
       )}
     </div>
