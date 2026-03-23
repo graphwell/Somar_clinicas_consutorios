@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useRef, useEffect } from 'react';
 
-const NICHES = ["Clínica Médica", "Clínica de Estética", "Fisioterapia", "Pilates", "Salão de Beleza / Barbearia", "Outros"];
+const NICHES = ["Clínica Médica", "Clínica de Estética", "Fisioterapia", "Pilates", "Nutricionista", "Psicólogo", "Salão de Beleza / Barbearia", "Outros"];
 const TENANT_ID = 'clinica_id_default'; // Em produção, vem do JWT do usuário logado
 
 export default function SettingsPage() {
@@ -169,24 +169,19 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* IA e WhatsApp */}
-        <div className="bg-[#0a0a20]/40 backdrop-blur-md border border-white/5 rounded-2xl p-8 space-y-6">
-          <div className="flex items-center justify-between border-b border-white/5 pb-4">
-            <h3 className="text-lg font-semibold">Atendimento IA</h3>
-            <div className="flex items-center gap-2">
-              <span className={`w-2.5 h-2.5 rounded-full ${botActive ? 'bg-green-500 shadow-[0_0_8px_#22c55e]' : 'bg-red-500'}`}></span>
-              <span className={`text-xs font-bold uppercase tracking-widest ${botActive ? 'text-green-400' : 'text-red-400'}`}>{botActive ? 'Ativo' : 'Pausado'}</span>
-            </div>
-          </div>
-
-          <div id="nicho" className="space-y-4 scroll-mt-20">
-            <label className="text-sm font-bold text-gray-500 uppercase tracking-widest pl-1">Nicho de Atuação (Dicionário Inteligente)</label>
+        {/* Segmento do Negócio */}
+        <div id="nicho" className="bg-[#0a0a20]/40 backdrop-blur-md border border-white/5 rounded-2xl p-8 space-y-6 scroll-mt-20">
+          <h3 className="text-lg font-semibold border-b border-white/5 pb-4">Segmento do Negócio</h3>
+          <div className="space-y-4">
+            <label className="text-sm font-bold text-gray-500 uppercase tracking-widest pl-1">Escolha seu Nicho (Dicionário Inteligente)</label>
             <div className="grid grid-cols-2 gap-3">
               {[
                 { id: "Clínica Médica", icon: "🩺", desc: "Médicos, Dentistas, Saúde" },
                 { id: "Clínica de Estética", icon: "✨", desc: "Beleza, Bem-estar" },
                 { id: "Fisioterapia", icon: "🧘", desc: "Reabilitação, Saúde" },
                 { id: "Pilates", icon: "🤸", desc: "Estúdios, Movimento" },
+                { id: "Nutricionista", icon: "🍏", desc: "Dieta, Nutrição, Saúde" },
+                { id: "Psicólogo", icon: "🧠", desc: "Terapia, Saúde Mental" },
                 { id: "Salão de Beleza / Barbearia", icon: "✂️", desc: "Cabelo, Barba, Unhas" },
                 { id: "Outros", icon: "🏢", desc: "Outros Serviços" }
               ].map((n) => (
@@ -205,12 +200,26 @@ export default function SettingsPage() {
                 </button>
               ))}
             </div>
-            <p className="text-[10px] text-[#a0a0ff] italic mt-2 animate-pulse">
-              * Ao mudar o nicho e salvar, todos os botões e nomes do sistema (ex: Pacientes/Clientes) serão atualizados automaticamente.
+            <p className="text-[10px] text-[#a0a0ff] italic mt-2">
+              * O sistema adapta nomes de tabelas e botões para o nicho escolhido.
             </p>
+          </div>
+        </div>
+
+        {/* IA e WhatsApp */}
+        <div className="bg-[#0a0a20]/40 backdrop-blur-md border border-white/5 rounded-2xl p-8 space-y-6">
+          <div className="flex items-center justify-between border-b border-white/5 pb-4">
+            <h3 className="text-lg font-semibold">Atendimento IA</h3>
+            <div className="flex items-center gap-2">
+              <span className={`w-2.5 h-2.5 rounded-full ${botActive ? 'bg-green-500 shadow-[0_0_8px_#22c55e]' : 'bg-red-500'}`}></span>
+              <span className={`text-xs font-bold uppercase tracking-widest ${botActive ? 'text-green-400' : 'text-red-400'}`}>{botActive ? 'Ativo' : 'Pausado'}</span>
+            </div>
           </div>
 
           <div className="flex flex-col gap-3 pt-2">
+            <p className="text-xs text-gray-500 leading-relaxed mb-2">
+              Controle o robô que atende seus clientes via WhatsApp. Quando pausado, ele não responderá novas mensagens.
+            </p>
             <button
               onClick={() => setBotActive(false)}
               className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm transition-all ${!botActive ? 'bg-red-500/30 border border-red-500 text-red-400' : 'bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400'}`}

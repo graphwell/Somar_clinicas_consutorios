@@ -24,10 +24,20 @@ export async function GET(request: Request) {
     });
 
     if (!config) {
-      // Fallback
+      // Fallback inteligente para novos nichos sem configuração no DB
+      let labels = { cliente: 'Cliente', servico: 'Serviço', profissional: 'Profissional' };
+      
+      if (clinica.nicho === 'Nutricionista') {
+        labels = { cliente: 'Paciente', servico: 'Consulta Nutricional', profissional: 'Nutricionista' };
+      } else if (clinica.nicho === 'Psicólogo') {
+        labels = { cliente: 'Paciente', servico: 'Sessão', profissional: 'Psicólogo' };
+      } else if (clinica.nicho.includes('Médica') || clinica.nicho.includes('Estética') || clinica.nicho.includes('Fisioterapia') || clinica.nicho.includes('Pilates')) {
+        labels = { cliente: 'Paciente', servico: 'Consulta', profissional: 'Profissional' };
+      }
+
       return NextResponse.json({
         nicho: clinica.nicho,
-        labels: { cliente: 'Cliente', servico: 'Serviço', profissional: 'Profissional' }
+        labels
       });
     }
 
