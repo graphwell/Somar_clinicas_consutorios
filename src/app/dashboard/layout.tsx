@@ -22,6 +22,7 @@ const NavigationLinks = () => {
       <NavItem href="/dashboard/reports" label="📊  Relatórios" />
       <div className="border-t border-white/5 my-2" />
       <NavItem href="/dashboard/team" label="🧑‍💼  Equipe" />
+      <NavItem href="/dashboard/campaigns" label="📢  Avisos e Lembretes" />
       <NavItem href="/dashboard/billing" label="💳  Financeiro" />
       <NavItem href="/dashboard/settings" label="⚙️  Configurações" />
     </div>
@@ -34,9 +35,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [clientLogo, setClientLogo] = useState<string | null>(null);
   const [clientName, setClientName] = useState<string | null>(null);
 
-  // Módulo 11.6: Notificações
+  // Módulos de UI
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const [notificacoes, setNotificacoes] = useState<any[]>([]);
 
   const isDark = theme === 'dark';
@@ -192,14 +194,46 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </div>
 
               {/* User Profile */}
-              <div className="flex items-center gap-2 border border-white/10 bg-white/5 px-3 py-1.5 rounded-full cursor-pointer hover:bg-white/10 transition-colors">
-                <div className="hidden sm:flex flex-col items-end">
-                  <span className="text-xs font-semibold leading-tight">Administrador</span>
-                  <span className="text-[10px] text-[#a0a0ff]">Admin</span>
+              <div className="relative">
+                <div 
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className="flex items-center gap-2 border border-white/10 bg-white/5 px-3 py-1.5 rounded-full cursor-pointer hover:bg-white/10 transition-colors"
+                >
+                  <div className="hidden sm:flex flex-col items-end">
+                    <span className="text-xs font-semibold leading-tight">Administrador</span>
+                    <span className="text-[10px] text-[#a0a0ff]">Admin</span>
+                  </div>
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#4a4ae2] to-[#8080ff] flex items-center justify-center text-white text-xs font-bold">
+                    A
+                  </div>
                 </div>
-                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#4a4ae2] to-[#8080ff] flex items-center justify-center text-white text-xs font-bold">
-                  A
-                </div>
+
+                {/* Dropdown Menu */}
+                {showUserMenu && (
+                  <div className="absolute right-0 mt-2 w-48 bg-[#0a0a20] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden py-1">
+                    <Link 
+                      href="/dashboard/settings" 
+                      onClick={() => setShowUserMenu(false)}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 transition-colors"
+                    >
+                      ⚙️ Configurações
+                    </Link>
+                    <Link 
+                      href="/dashboard/settings#nicho" 
+                      onClick={() => setShowUserMenu(false)}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 transition-colors"
+                    >
+                      🎯 Mudar Nicho
+                    </Link>
+                    <div className="border-t border-white/5 my-1" />
+                    <button 
+                      onClick={() => { setShowUserMenu(false); window.location.href = '/auth/login'; }}
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/5 transition-colors"
+                    >
+                      🚪 Sair do Sistema
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </header>

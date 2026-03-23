@@ -179,7 +179,7 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div className="space-y-2">
+          <div id="nicho" className="space-y-2 scroll-mt-20">
             <label className="text-sm text-gray-400">Nicho de Atuação</label>
             <select value={niche} onChange={e => setNiche(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#4a4ae2] transition-colors appearance-none">
               {NICHES.map(n => <option key={n} value={n} className="bg-[#0a0a20]">{n}</option>)}
