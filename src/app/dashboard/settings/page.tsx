@@ -179,11 +179,35 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div id="nicho" className="space-y-2 scroll-mt-20">
-            <label className="text-sm text-gray-400">Nicho de Atuação</label>
-            <select value={niche} onChange={e => setNiche(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#4a4ae2] transition-colors appearance-none">
-              {NICHES.map(n => <option key={n} value={n} className="bg-[#0a0a20]">{n}</option>)}
-            </select>
+          <div id="nicho" className="space-y-4 scroll-mt-20">
+            <label className="text-sm font-bold text-gray-500 uppercase tracking-widest pl-1">Nicho de Atuação (Dicionário Inteligente)</label>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { id: "Clínica Médica", icon: "🩺", desc: "Médicos, Dentistas, Saúde" },
+                { id: "Clínica de Estética", icon: "✨", desc: "Beleza, Bem-estar" },
+                { id: "Fisioterapia", icon: "🧘", desc: "Reabilitação, Saúde" },
+                { id: "Pilates", icon: "🤸", desc: "Estúdios, Movimento" },
+                { id: "Salão de Beleza / Barbearia", icon: "✂️", desc: "Cabelo, Barba, Unhas" },
+                { id: "Outros", icon: "🏢", desc: "Outros Serviços" }
+              ].map((n) => (
+                <button
+                  key={n.id}
+                  onClick={() => setNiche(n.id)}
+                  className={`flex flex-col items-start p-4 rounded-2xl border transition-all text-left group ${
+                    niche === n.id 
+                      ? 'border-[#4a4ae2] bg-[#4a4ae2]/10 ring-2 ring-[#4a4ae2]/20 shadow-lg shadow-[#4a4ae2]/5' 
+                      : 'border-white/5 bg-white/2 hover:border-white/20 hover:bg-white/5'
+                  }`}
+                >
+                  <span className={`text-2xl mb-2 transition-transform ${niche === n.id ? 'scale-110' : 'group-hover:scale-110'}`}>{n.icon}</span>
+                  <span className={`text-xs font-bold leading-tight ${niche === n.id ? 'text-white' : 'text-gray-300'}`}>{n.id}</span>
+                  <span className="text-[10px] text-gray-500 mt-1">{n.desc}</span>
+                </button>
+              ))}
+            </div>
+            <p className="text-[10px] text-[#a0a0ff] italic mt-2 animate-pulse">
+              * Ao mudar o nicho e salvar, todos os botões e nomes do sistema (ex: Pacientes/Clientes) serão atualizados automaticamente.
+            </p>
           </div>
 
           <div className="flex flex-col gap-3 pt-2">
