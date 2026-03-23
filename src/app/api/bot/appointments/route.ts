@@ -23,8 +23,20 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const body = await request.json();
-  const { pacienteTelefone, pacienteNome, dataHora, tenantId } = body;
+  const { searchParams } = new URL(request.url);
+  
+  // Accept params from both query string (n8n placeholders) and JSON body
+  let body: any = {};
+  try { body = await request.json(); } catch { /* body may be empty */ }
+
+  const pacienteTelefone = searchParams.get('pacienteTelefone') || body.pacienteTelefone;
+  const pacienteNome     = searchParams.get('nome') || searchParams.get('pacienteNome') || body.pacienteNome;
+  const dataHora         = searchParams.get('dataHora') || body.dataHora;
+  const tenantId         = searchParams.get('tenantId') || body.tenantId;
+
+  if (!pacienteTelefone || !dataHora || !tenantId) {
+    return NextResponse.json({ error: 'Faltam parametros obrigatorios: pacienteTelefone, dataHora, tenantId' }, { status: 400 });
+  }
 
   let paciente = await prisma.paciente.findFirst({
     where: { telefone: pacienteTelefone, tenantId }
