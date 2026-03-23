@@ -20,10 +20,25 @@ export default function SettingsPage() {
   const [endereco, setEndereco] = useState('');
   const [adminPhone, setAdminPhone] = useState('');
 
-  // Load existing logo from localStorage on mount
+  // Load existing data
   useEffect(() => {
     const cached = localStorage.getItem(`synka-logo-${TENANT_ID}`);
     if (cached) setLogoUrl(cached);
+
+    fetch(`/api/settings?tenantId=${TENANT_ID}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.clinica) {
+          setRazaoSocial(data.clinica.razaoSocial || '');
+          setCnpj(data.clinica.cnpj || '');
+          setEndereco(data.clinica.endereco || '');
+          setAdminPhone(data.clinica.adminPhone || '');
+          setNiche(data.clinica.nicho || 'Clínica Médica');
+          setBotActive(data.clinica.botActive ?? true);
+          if (data.clinica.primaryColor) setPrimaryColor(data.clinica.primaryColor);
+        }
+      })
+      .catch(console.error);
   }, []);
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -39,7 +54,6 @@ export default function SettingsPage() {
       const data = await res.json();
       if (res.ok) {
         setLogoUrl(data.logoUrl);
-        // ✅ Persist to localStorage and notify the sidebar instantly
         localStorage.setItem(`synka-logo-${TENANT_ID}`, data.logoUrl);
         window.dispatchEvent(new CustomEvent('synka-logo-updated', { detail: data.logoUrl }));
       } else {
@@ -52,9 +66,31 @@ export default function SettingsPage() {
     }
   };
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+  const handleSave = async () => {
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenantId: TENANT_ID,
+          razaoSocial,
+          cnpj,
+          endereco,
+          adminPhone,
+          nicho: niche,
+          botActive
+        })
+      });
+      if (res.ok) {
+        setSaved(true);
+        setTimeout(() => {
+          setSaved(false);
+          window.location.reload(); // Recarrega dicionários e layouts globais do novo Nicho
+        }, 1500);
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   return (

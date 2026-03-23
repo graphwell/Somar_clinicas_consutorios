@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useTheme } from '@/context/ThemeContext';
 import { SynkaIcon } from '@/components/SynkaLogo';
-import { NichoProvider } from '@/context/NichoContext';
+import { NichoProvider, useNicho } from '@/context/NichoContext';
 
 const NavItem = ({ href, label }: { href: string; label: string }) => (
   <Link href={href} className="flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all text-sm font-medium text-gray-400 hover:bg-white/5 hover:text-white">
@@ -12,6 +12,21 @@ const NavItem = ({ href, label }: { href: string; label: string }) => (
 );
 
 const TENANT_ID = 'clinica_id_default';
+
+const NavigationLinks = () => {
+  const { labels } = useNicho();
+  return (
+    <div className="flex flex-col gap-1 flex-1">
+      <NavItem href="/dashboard" label="📅  Agenda" />
+      <NavItem href="/dashboard/patients" label={`👥  ${labels.cliente}s`} />
+      <NavItem href="/dashboard/reports" label="📊  Relatórios" />
+      <div className="border-t border-white/5 my-2" />
+      <NavItem href="/dashboard/team" label="🧑‍💼  Equipe" />
+      <NavItem href="/dashboard/billing" label="💳  Financeiro" />
+      <NavItem href="/dashboard/settings" label="⚙️  Configurações" />
+    </div>
+  );
+};
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { theme, toggleTheme } = useTheme();
@@ -108,16 +123,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             )}
           </div>
 
-          <div className="flex flex-col gap-1 flex-1">
-            <NavItem href="/dashboard" label="📅  Agenda" />
-            <NavItem href="/dashboard/patients" label="👥  Pacientes/Clientes" />
-            <NavItem href="/dashboard/reports" label="📊  Relatórios" />
-            <div className="border-t border-white/5 my-2" />
-            <NavItem href="/dashboard/team" label="🧑‍💼  Equipe" />
-            <NavItem href="/dashboard/billing" label="💳  Financeiro" />
-            <NavItem href="/dashboard/settings" label="⚙️  Configurações" />
-          </div>
-
+          <NavigationLinks />
           <div className="p-3 bg-[#4a4ae2]/10 border border-[#4a4ae2]/20 rounded-xl text-center text-xs">
             <p className="text-[#a0a0ff] uppercase tracking-widest font-bold mb-0.5">🟢 Trial</p>
             <p className="text-gray-400">7 dias restantes</p>
