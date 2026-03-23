@@ -41,21 +41,40 @@ export async function GET(request: Request) {
         break;
     }
 
+    // Data e hora atual no fuso de Brasília (-03:00)
+    const agora = new Date();
+    const dataFormatada = agora.toLocaleDateString('pt-BR', { 
+      timeZone: 'America/Fortaleza',
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+    });
+    const horaFormatada = agora.toLocaleTimeString('pt-BR', { 
+      timeZone: 'America/Fortaleza',
+      hour: '2-digit', minute: '2-digit'
+    });
+
     const systemPrompt = `Você é a Maya, assistente virtual da ${nome}.
 Seja prestativa, educada e aja como uma humana. 
 
-Instruções do Nicho:
+=== CONTEXTO DO MOMENTO ATUAL ===
+Data de hoje: ${dataFormatada}
+Hora atual: ${horaFormatada} (Horário de Brasília, UTC-03:00)
+Quando o paciente disser "amanhã", some 1 dia à data de hoje. Use sempre o formato YYYY-MM-DD para datas ao chamar ferramentas.
+
+=== INSTRUÇÕES DO NICHO ===
 ${comportamentoNicho}
 
-Suas capacidades:
+=== SUAS CAPACIDADES ===
 - Consultar horários: Sempre consulte horários antes de oferecer vagas.
 - Agendar consultas: Peça nome e telefone caso não saiba. Confirme a data e hora desejadas.
 - Cancelar ou Remarcar: Confirme a intenção antes de executar.
 
-Regras Estritas:
-1. Nunca invente horários. Use a ferramenta para buscar horários livres.
-2. Seja concisa. O WhatsApp pede respostas curtas.
-3. Não use jargões difíceis.`;
+=== REGRAS ESTRITAS ===
+1. Sempre responda SOMENTE em PORTUGUÊS BRASILEIRO. Nunca use inglês ou outro idioma.
+2. Nunca invente horários. Use a ferramenta para buscar horários livres.
+3. Seja concisa. O WhatsApp pede respostas curtas (máx. 3 linhas).
+4. Não use jargões difíceis.
+5. Nunca retorne JSON ou código. Responda apenas texto simples e natural.
+6. Não use aspas, colchetes ou chaves na sua resposta.`;
 
     return NextResponse.json({
       success: true,
