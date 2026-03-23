@@ -4,8 +4,15 @@ import prisma from '@/lib/prisma';
 export async function PUT(request: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   const { id } = params;
-  const body = await request.json();
-  const { status, dataHora, tenantId } = body;
+  const { searchParams } = new URL(request.url);
+
+  // Accept params from both query string (n8n tool placeholder) and body
+  let body: any = {};
+  try { body = await request.json(); } catch { /* body may be empty */ }
+
+  const status = searchParams.get('status') || body.status;
+  const dataHora = searchParams.get('dataHora') || body.dataHora;
+  const tenantId = searchParams.get('tenantId') || body.tenantId;
 
   try {
     const agendamentoAtual = await prisma.agendamento.findFirst({
