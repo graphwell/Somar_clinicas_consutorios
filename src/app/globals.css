@@ -7,18 +7,28 @@
   --border: rgba(255,255,255,0.07);
 }
 
-html.light {
-  --background: #f4f4f8;
-  --foreground: #111118;
-  --card-bg: rgba(255,255,255,0.8);
-  --border: rgba(0,0,0,0.1);
+html.light-soft {
+  --background: #fdfdfd;
+  --foreground: #1a202c;
+  --card-bg: #ffffff;
+  --border: rgba(0,0,0,0.06);
+  --accent: #4a4ae2;
 }
 
-html.dark {
+html.modern-blue {
+  --background: #f0f7ff;
+  --foreground: #003366;
+  --card-bg: rgba(255,255,255,0.7);
+  --border: rgba(30,144,255,0.15);
+  --accent: #1e90ff;
+}
+
+html.dark-stellar {
   --background: #050510;
   --foreground: #f0f0f5;
   --card-bg: rgba(10,10,32,0.5);
   --border: rgba(255,255,255,0.07);
+  --accent: #4a4ae2;
 }
 
 @theme inline {

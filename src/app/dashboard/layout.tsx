@@ -30,7 +30,7 @@ const NavigationLinks = () => {
 };
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { theme, toggleTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [clientLogo, setClientLogo] = useState<string | null>(null);
   const [clientName, setClientName] = useState<string | null>(null);
@@ -41,11 +41,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [notificacoes, setNotificacoes] = useState<any[]>([]);
 
-  const isDark = theme === 'dark';
-  const bg = isDark ? 'bg-[#050510]' : 'bg-gray-100';
-  const sidebarBg = isDark ? 'bg-[#0a0a20]/80 border-white/5' : 'bg-white border-gray-200';
-  const headerBg = isDark ? 'bg-[#050510]/80 border-white/5' : 'bg-white/80 border-gray-200';
-  const textColor = isDark ? 'text-[#f0f0f5]' : 'text-gray-900';
+  const isDark = theme === 'dark-stellar';
+  const isModern = theme === 'modern-blue';
+  
+  // Cores dinâmicas baseadas no preset
+  const bg = theme === 'light-soft' ? 'bg-[#f8f9fc]' : theme === 'modern-blue' ? 'bg-[#eff6ff]' : 'bg-[#050510]';
+  const sidebarBg = theme === 'light-soft' ? 'bg-white border-gray-100' : theme === 'modern-blue' ? 'bg-white/70 backdrop-blur-md border-blue-100' : 'bg-[#0a0a20]/80 border-white/5';
+  const headerBg = theme === 'light-soft' ? 'bg-white/80 border-gray-100' : theme === 'modern-blue' ? 'bg-white/40 border-blue-100' : 'bg-[#050510]/80 border-white/5';
+  const textColor = theme === 'light-soft' ? 'text-gray-800' : theme === 'modern-blue' ? 'text-blue-900' : 'text-[#f0f0f5]';
+
+  const cycleTheme = () => {
+    const presets: ('dark-stellar' | 'light-soft' | 'modern-blue')[] = ['dark-stellar', 'light-soft', 'modern-blue'];
+    const idx = presets.indexOf(theme);
+    setTheme(presets[(idx + 1) % presets.length]);
+  };
 
   // Load client logo: localStorage first (instant), then API (source of truth)
   useEffect(() => {
@@ -149,8 +158,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
             <div className="flex items-center gap-3 ml-auto">
               {/* Theme Toggle */}
-              <button onClick={toggleTheme} className="p-2 rounded-lg border border-white/10 hover:bg-white/10 transition-colors text-sm" title="Trocar tema">
-                {isDark ? '☀️' : '🌙'}
+              <button onClick={cycleTheme} className="p-2 rounded-lg border border-white/10 hover:bg-white/10 transition-colors text-sm" title="Trocar tema">
+                {theme === 'dark-stellar' ? '🌙' : theme === 'light-soft' ? '☀️' : '🌊'}
               </button>
 
               {/* Notifications */}

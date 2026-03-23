@@ -1,10 +1,12 @@
 "use client";
 import React, { useState, useRef, useEffect } from 'react';
+import { useTheme } from '@/context/ThemeContext';
 
 const NICHES = ["Clínica Médica", "Clínica de Estética", "Fisioterapia", "Pilates", "Nutricionista", "Psicólogo", "Salão de Beleza / Barbearia", "Outros"];
 const TENANT_ID = 'clinica_id_default'; // Em produção, vem do JWT do usuário logado
 
 export default function SettingsPage() {
+  const { theme, setTheme: setAppTheme } = useTheme();
   const [niche, setNiche] = useState("Clínica Médica");
   const [primaryColor, setPrimaryColor] = useState("#4a4ae2");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
@@ -96,7 +98,10 @@ export default function SettingsPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <div className="flex items-center justify-between flex-wrap gap-4">
-        <h2 className="text-2xl font-bold">Configurações da Clínica</h2>
+        <div>
+           <h2 className="text-2xl font-bold">Configurações</h2>
+           <p className="text-sm text-gray-500">Personalize seu ambiente e dados da clínica.</p>
+        </div>
         <button
           onClick={handleSave}
           className="px-5 py-2.5 bg-[#4a4ae2] hover:bg-[#3a3ab2] rounded-xl text-sm font-semibold transition-all shadow-[0_4px_20px_rgba(74,74,226,0.3)]"
@@ -106,6 +111,36 @@ export default function SettingsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+        {/* Aparência do Sistema */}
+        <div className="col-span-1 md:col-span-2 bg-[#0a0a20]/40 backdrop-blur-md border border-white/5 rounded-2xl p-8 space-y-6">
+          <h3 className="text-lg font-semibold border-b border-white/5 pb-4">Aparência do Sistema</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            {[
+              { id: 'dark-stellar', label: 'Dark Estelar', colors: ['bg-[#050510]', 'bg-[#1a1a40]'], desc: 'Foco e profundidade' },
+              { id: 'light-soft', label: 'Light Soft', colors: ['bg-[#f4f4f8]', 'bg-white'], desc: 'Limpo e profissional' },
+              { id: 'modern-blue', label: 'Modern Blue', colors: ['bg-[#eff6ff]', 'bg-blue-600'], desc: 'Vibrante e moderno' }
+            ].map((p) => (
+              <button 
+                key={p.id}
+                onClick={() => setAppTheme(p.id as any)}
+                className={`group relative flex flex-col items-center p-4 rounded-3xl border transition-all text-left ${
+                  theme === p.id 
+                    ? 'border-[#4a4ae2] bg-[#4a4ae2]/10 ring-2 ring-[#4a4ae2]/20 shadow-lg shadow-[#4a4ae2]/5' 
+                    : 'border-white/5 bg-white/2 hover:border-white/20'
+                }`}
+              >
+                <div className={`w-full h-24 rounded-2xl ${p.colors[0]} border border-white/10 flex items-center justify-center relative overflow-hidden mb-3`}>
+                   <div className={`absolute top-2 left-2 w-8 h-8 rounded-lg ${p.colors[1]} shadow-lg`} />
+                   <div className="w-12 h-1 bg-white/20 rounded-full" />
+                </div>
+                <span className="text-sm font-bold">{p.label}</span>
+                <span className="text-[10px] text-gray-500 mt-1">{p.desc}</span>
+                {theme === p.id && <span className="absolute top-2 right-2 text-xs">✅</span>}
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* Dados da Empresa */}
         <div className="col-span-1 md:col-span-2 bg-[#0a0a20]/40 backdrop-blur-md border border-white/5 rounded-2xl p-8 space-y-5">
@@ -206,7 +241,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* IA e WhatsApp */}
+        {/* Atendimento IA */}
         <div className="bg-[#0a0a20]/40 backdrop-blur-md border border-white/5 rounded-2xl p-8 space-y-6">
           <div className="flex items-center justify-between border-b border-white/5 pb-4">
             <h3 className="text-lg font-semibold">Atendimento IA</h3>
