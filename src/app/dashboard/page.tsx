@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNicho } from '@/context/NichoContext';
 
 const TENANT_ID = 'clinica_id_default';
 const HOURS = ['08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00'];
@@ -9,6 +10,19 @@ interface Appointment {
   dataHora: string;
   status: string;
   paciente: { nome: string; telefone: string };
+  profissional?: { id: string; nome: string };
+  tipoAtendimento?: string | null;
+  convenio?: string | null;
+}
+
+interface Profissional {
+  id: string;
+  nome: string;
+}
+
+interface Convenio {
+  id: string;
+  nomeConvenio: string;
 }
 
 const STATUS_MAP: Record<string, { label: string; color: string; dot: string }> = {
@@ -45,13 +59,16 @@ function isSameDay(a: Date, b: Date) {
 
 // ─── Modal de Novo/Editar Agendamento ─────────────────────────────────────
 function AppointmentModal({
-  onClose, onSave, initial, selectedDate
+  onClose, onSave, initial, selectedDate, profissionais, conveniosAtivos
 }: {
   onClose: () => void;
-  onSave: (data: { nome: string; telefone: string; dataHora: string; origem: string }) => Promise<void>;
+  onSave: (data: { nome: string; telefone: string; dataHora: string; origem: string; profissionalId?: string; tipoAtendimento: string; convenio?: string }) => Promise<void>;
   initial?: Appointment | null;
   selectedDate?: Date;
+  profissionais: Profissional[];
+  conveniosAtivos: Convenio[];
 }) {
+  const { labels } = useNicho();
   const defaultDate = selectedDate || new Date();
   const pad = (n: number) => String(n).padStart(2, '0');
   const defaultDateStr = `${defaultDate.getFullYear()}-${pad(defaultDate.getMonth()+1)}-${pad(defaultDate.getDate())}`;
@@ -61,6 +78,9 @@ function AppointmentModal({
   const [date, setDate] = useState(defaultDateStr);
   const [hour, setHour] = useState(initial ? formatTime(initial.dataHora) : '09:00');
   const [origem, setOrigem] = useState('manual');
+  const [profissionalId, setProfissionalId] = useState(initial?.profissional?.id || '');
+  const [tipoAtendimento, setTipoAtendimento] = useState(initial?.tipoAtendimento || 'particular');
+  const [convenio, setConvenio] = useState(initial?.convenio || '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -70,7 +90,12 @@ function AppointmentModal({
     setError('');
     try {
       const dataHora = `${date}T${hour}:00`;
-      await onSave({ nome, telefone, dataHora, origem });
+      await onSave({ 
+        nome, telefone, dataHora, origem, 
+        profissionalId: profissionalId || undefined,
+        tipoAtendimento,
+        convenio: tipoAtendimento === 'convenio' ? convenio : undefined
+      });
       onClose();
     } catch (err: any) {
       setError(err.message || 'Erro ao salvar agendamento.');
@@ -89,7 +114,7 @@ function AppointmentModal({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1 sm:col-span-2">
-              <label className="text-xs text-gray-400 uppercase tracking-widest">Nome do Paciente</label>
+              <label className="text-xs text-gray-400 uppercase tracking-widest">Nome do {labels.cliente}</label>
               <input required type="text" value={nome} onChange={e => setNome(e.target.value)}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#4a4ae2] transition-colors"
                 placeholder="Maria da Silva" />
@@ -108,6 +133,38 @@ function AppointmentModal({
                 <option value="ia" className="bg-[#0d0d22]">🤖 IA WhatsApp</option>
               </select>
             </div>
+            {conveniosAtivos.length > 0 && (
+               <div className="space-y-1">
+                 <label className="text-xs text-gray-400 uppercase tracking-widest">Tipo de Atendimento</label>
+                 <select value={tipoAtendimento} onChange={e => setTipoAtendimento(e.target.value)}
+                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#4a4ae2] transition-colors appearance-none">
+                   <option value="particular" className="bg-[#0d0d22]">💲 Particular</option>
+                   <option value="convenio" className="bg-[#0d0d22]">🏥 Convênio/Plano</option>
+                 </select>
+               </div>
+            )}
+            {tipoAtendimento === 'convenio' && conveniosAtivos.length > 0 && (
+              <div className="space-y-1">
+                <label className="text-xs text-gray-400 uppercase tracking-widest">Convênio</label>
+                <select value={convenio} onChange={e => setConvenio(e.target.value)} required={tipoAtendimento === 'convenio'}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#4a4ae2] transition-colors appearance-none">
+                  <option value="" className="bg-[#0d0d22]">Selecione...</option>
+                  {conveniosAtivos.map(c => <option key={c.id} value={c.nomeConvenio} className="bg-[#0d0d22]">{c.nomeConvenio}</option>)}
+                </select>
+              </div>
+            )}
+            {profissionais.length > 0 && (
+              <div className="space-y-1 sm:col-span-2">
+                <label className="text-xs text-gray-400 uppercase tracking-widest">{labels.profissional}</label>
+                <select value={profissionalId} onChange={e => setProfissionalId(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#4a4ae2] transition-colors appearance-none">
+                  <option value="" className="bg-[#0d0d22]">Nenhum específico</option>
+                  {profissionais.map(p => (
+                    <option key={p.id} value={p.id} className="bg-[#0d0d22]">{p.nome}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div className="space-y-1">
               <label className="text-xs text-gray-400 uppercase tracking-widest">Data</label>
               <input required type="date" value={date} onChange={e => setDate(e.target.value)}
@@ -143,6 +200,7 @@ function AppCard({ appt, onCancel, onReschedule }: {
   onCancel: (id: string) => void;
   onReschedule: (appt: Appointment) => void;
 }) {
+  const { labels } = useNicho();
   const [menuOpen, setMenuOpen] = useState(false);
   const isPast = new Date(appt.dataHora) < new Date();
 
@@ -161,8 +219,18 @@ function AppCard({ appt, onCancel, onReschedule }: {
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <p className="font-semibold text-sm truncate">{appt.paciente?.nome}</p>
-        <p className="text-xs text-gray-400 mt-0.5">{appt.paciente?.telefone}</p>
+        <div className="flex items-center gap-2">
+          <p className="font-semibold text-sm truncate">{appt.paciente?.nome}</p>
+          {appt.tipoAtendimento === 'convenio' && appt.convenio && (
+             <span className="text-[9px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-500/30 uppercase tracking-wide">
+               {appt.convenio}
+             </span>
+          )}
+        </div>
+        <p className="text-[10px] text-gray-400 mt-0.5">{appt.paciente?.telefone}</p>
+        {appt.profissional && (
+          <p className="text-[10px] text-[#8080ff] mt-1 font-bold">👤 {labels.profissional}: {appt.profissional.nome}</p>
+        )}
       </div>
 
       {/* Status + Actions */}
@@ -280,7 +348,10 @@ function SlotGrid({ date, appointments, onBook }: {
 
 // ─── Página Principal ─────────────────────────────────────────────────────
 export default function AgendaPage() {
+  const { labels } = useNicho();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [profissionais, setProfissionais] = useState<Profissional[]>([]);
+  const [conveniosAtivos, setConveniosAtivos] = useState<Convenio[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showModal, setShowModal] = useState(false);
@@ -294,20 +365,38 @@ export default function AgendaPage() {
 
   const fetchAppointments = useCallback(() => {
     setLoading(true);
-    fetch(`/api/appointments?tenantId=${TENANT_ID}`)
+    fetch(`/api/appointments?tenantId=${TENANT_ID}`) // <-- Needs to be updated to bot endpoint
       .then(r => r.json())
-      .then(data => { if (Array.isArray(data)) setAppointments(data); })
+      .then(data => { if (Array.isArray(data.appointments || data)) setAppointments(data.appointments || data); })
       .catch(() => {})
       .finally(() => setLoading(false));
+
+    fetch(`/api/team?tenantId=${TENANT_ID}`)
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data)) setProfissionais(data.filter((p: any) => p.ativo)); })
+      .catch(() => {});
+
+    fetch(`/api/settings/convenios?tenantId=${TENANT_ID}`)
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data)) setConveniosAtivos(data.filter((c: any) => c.ativo)); })
+      .catch(() => {});
   }, []);
 
   useEffect(() => { fetchAppointments(); }, [fetchAppointments]);
 
-  const handleCreate = async (data: { nome: string; telefone: string; dataHora: string; origem: string }) => {
+  const handleCreate = async (data: { nome: string; telefone: string; dataHora: string; origem: string; profissionalId?: string; tipoAtendimento: string; convenio?: string }) => {
     const res = await fetch('/api/bot/appointments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pacienteTelefone: data.telefone, pacienteNome: data.nome, dataHora: data.dataHora, tenantId: TENANT_ID }),
+      body: JSON.stringify({ 
+        pacienteTelefone: data.telefone, 
+        pacienteNome: data.nome, 
+        dataHora: data.dataHora, 
+        tenantId: TENANT_ID,
+        profissionalId: data.profissionalId,
+        tipoAtendimento: data.tipoAtendimento,
+        convenio: data.convenio
+      }),
     });
     const json = await res.json();
     if (!res.ok) throw new Error(json.error || 'Erro ao criar agendamento');
@@ -315,12 +404,18 @@ export default function AgendaPage() {
     showToast('✅ Agendamento criado com sucesso!');
   };
 
-  const handleReschedule = async (data: { nome: string; telefone: string; dataHora: string; origem: string }) => {
+  const handleReschedule = async (data: { nome: string; telefone: string; dataHora: string; origem: string; profissionalId?: string; tipoAtendimento?: string; convenio?: string }) => {
     if (!rescheduleAppt) return;
     const res = await fetch(`/api/bot/appointments/${rescheduleAppt.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ dataHora: data.dataHora, tenantId: TENANT_ID }),
+      body: JSON.stringify({ 
+        dataHora: data.dataHora, 
+        tenantId: TENANT_ID,
+        profissionalId: data.profissionalId,
+        tipoAtendimento: data.tipoAtendimento,
+        convenio: data.convenio
+      }),
     });
     const json = await res.json();
     if (!res.ok) throw new Error(json.error || 'Erro ao remarcar');
@@ -379,20 +474,39 @@ export default function AgendaPage() {
         </button>
       </div>
 
-      {/* Stats Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Mobile-First 3 KPIs Row (Módulo 11.1) */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         {[
-          { label: 'Hoje', value: todayAppts.length, gradient: 'from-[#4a4ae2] to-[#8080ff]', icon: '📅' },
-          { label: 'Confirmados', value: confirmados, gradient: 'from-green-500 to-emerald-400', icon: '✅' },
-          { label: 'Pendentes', value: pendentes, gradient: 'from-yellow-500 to-orange-400', icon: '⏳' },
-          { label: 'Total', value: appointments.length, gradient: 'from-[#00b4d8] to-[#4a4ae2]', icon: '🗂️' },
-        ].map(s => (
-          <div key={s.label} className="bg-[#0a0a20]/50 border border-white/5 rounded-2xl p-5 flex items-start gap-4 hover:border-white/10 transition-all">
-            <span className="text-2xl">{s.icon}</span>
-            <div>
-              <p className="text-xs text-gray-400 uppercase tracking-wider">{s.label}</p>
-              <p className={`text-3xl font-bold mt-0.5 bg-gradient-to-r ${s.gradient} bg-clip-text text-transparent`}>{s.value}</p>
+          { 
+            label: 'Agendamentos Hoje', 
+            value: todayAppts.length, 
+            gradient: 'from-[#4a4ae2] to-[#8080ff]', 
+            icon: '📅' 
+          },
+          { 
+            label: 'Confirmados', 
+            value: todayAppts.filter(a => a.status === 'confirmado').length, 
+            gradient: 'from-green-500 to-emerald-400', 
+            icon: '✅' 
+          },
+          { 
+            label: 'Caixa Hoje (Previsto)', 
+            value: 'R$ --', // Placeholder until financial/service module is fully active
+            gradient: 'from-yellow-500 to-orange-400', 
+            icon: '💰' 
+          },
+        ].map((s, idx) => (
+          <div key={idx} className="bg-gradient-to-br from-[#0d0d22] to-[#0a0a20] border border-white/10 rounded-3xl p-6 flex flex-col justify-between hover:border-white/20 transition-all shadow-xl relative overflow-hidden group">
+            <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${s.gradient} opacity-5 blur-3xl rounded-full group-hover:opacity-10 transition-opacity`} />
+            <div className="flex items-start justify-between mb-4 relative z-10">
+              <p className="text-sm text-gray-400 uppercase tracking-widest font-bold">{s.label}</p>
+              <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center text-xl shadow-inner border border-white/5">
+                {s.icon}
+              </div>
             </div>
+            <p className={`text-5xl font-extrabold tracking-tight bg-gradient-to-r ${s.gradient} bg-clip-text text-transparent relative z-10 drop-shadow-sm`}>
+              {s.value}
+            </p>
           </div>
         ))}
       </div>
@@ -409,23 +523,32 @@ export default function AgendaPage() {
         {/* Right: Appointment List */}
         <div className="lg:col-span-2">
           <div className="bg-[#0a0a20]/50 border border-white/5 rounded-2xl overflow-hidden">
+            {/* Tabs (Abas) Módulo 3 */}
+            <div className="flex border-b border-white/5">
+              {(['pendente', 'confirmado', 'todos'] as const).map(f => (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  className={`flex-1 py-4 text-sm font-bold uppercase tracking-wider transition-all border-b-2 ${
+                    filter === f 
+                      ? 'border-[#4a4ae2] text-[#8080ff] bg-[#4a4ae2]/5' 
+                      : 'border-transparent text-gray-500 hover:text-gray-300 hover:bg-white/5'
+                  }`}
+                >
+                  {f === 'pendente' ? '⏳ Pendentes' : f === 'confirmado' ? '✅ Confirmados' : '🗂️ Todos'}
+                </button>
+              ))}
+            </div>
+
             {/* Toolbar */}
             <div className="p-5 border-b border-white/5 flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
                 <input
                   value={search} onChange={e => setSearch(e.target.value)}
-                  placeholder="Buscar paciente ou telefone..."
+                  placeholder={`Buscar ${labels.cliente.toLowerCase()} ou telefone...`}
                   className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:border-[#4a4ae2] transition-colors"
                 />
                 <svg className="absolute left-3 top-3 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-              </div>
-              <div className="flex gap-1 flex-wrap">
-                {(['todos','confirmado','pendente','cancelado'] as const).map(f => (
-                  <button key={f} onClick={() => setFilter(f)}
-                    className={`px-3 py-2 rounded-xl text-xs font-semibold capitalize transition-all border ${filter === f ? 'bg-[#4a4ae2] border-[#4a4ae2] text-white' : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'}`}>
-                    {f}
-                  </button>
-                ))}
               </div>
             </div>
 
@@ -470,9 +593,11 @@ export default function AgendaPage() {
       {showModal && (
         <AppointmentModal
           onClose={() => { setShowModal(false); setRescheduleAppt(null); }}
-          onSave={rescheduleAppt ? handleReschedule : handleCreate}
+          onSave={rescheduleAppt ? handleReschedule as any : handleCreate as any}
           initial={rescheduleAppt}
           selectedDate={selectedDate}
+          profissionais={profissionais}
+          conveniosAtivos={conveniosAtivos}
         />
       )}
     </div>

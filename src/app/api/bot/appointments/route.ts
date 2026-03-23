@@ -16,7 +16,7 @@ export async function GET(request: Request) {
       dataHora: { gte: new Date() },
       status: { not: 'cancelado' }
     },
-    include: { paciente: true }
+    include: { paciente: true, profissional: true }
   });
 
   return NextResponse.json({ success: true, appointments });
@@ -33,6 +33,7 @@ export async function POST(request: Request) {
   const pacienteNome     = searchParams.get('nome') || searchParams.get('pacienteNome') || body.pacienteNome;
   const dataHora         = searchParams.get('dataHora') || body.dataHora;
   const tenantId         = searchParams.get('tenantId') || body.tenantId;
+  const profissionalId   = searchParams.get('profissionalId') || body.profissionalId;
 
   if (!pacienteTelefone || !dataHora || !tenantId) {
     return NextResponse.json({ error: 'Faltam parametros obrigatorios: pacienteTelefone, dataHora, tenantId' }, { status: 400 });
@@ -49,10 +50,22 @@ export async function POST(request: Request) {
   }
 
   const date = new Date(dataHora);
-  const eventoId = generateEventoId(paciente.id, date, tenantId);
+  const eventoId = generateEventoId(paciente.id, date, tenantId, profissionalId);
+
+  // Anti-oscilação: Verifica se ESTE paciente já tem agendamento neste exato horário
+  const duplicado = await prisma.agendamento.findUnique({
+    where: { eventoId }
+  });
+  if (duplicado) {
+    return NextResponse.json({ success: true, agendamento: duplicado, message: 'Agendamento já existia' });
+  }
+
+  // Verifica se o horário está ocupado por OUTRA pessoa
+  const conflictWhere: any = { dataHora: date, tenantId, status: { not: 'cancelado' } };
+  if (profissionalId) conflictWhere.profissionalId = profissionalId;
 
   const conflict = await prisma.agendamento.findFirst({
-    where: { dataHora: date, tenantId, status: { not: 'cancelado' } }
+    where: conflictWhere
   });
 
   if (conflict) {
@@ -60,9 +73,36 @@ export async function POST(request: Request) {
   }
 
   const agendamento = await prisma.agendamento.create({
-    data: { pacienteId: paciente.id, dataHora: date, tenantId, eventoId, status: 'confirmado' }
+    data: { 
+      pacienteId: paciente.id, 
+      dataHora: date, 
+      tenantId, 
+      eventoId, 
+      status: 'pendente',
+      profissionalId: profissionalId || null
+    }
   });
 
-  return NextResponse.json({ success: true, agendamento });
+  // Módulo 8: Lógica Integrada de Upsell Automático
+  let upsellData = null;
+  const combosAtivos = await prisma.comboUpsell.findFirst({
+    where: { tenantId, ativo: true },
+    include: { oferta: true, gatilho: true }
+  });
+  
+  if (combosAtivos && combosAtivos.oferta) {
+    upsellData = {
+      oferecer: true,
+      texto: combosAtivos.descricaoOferta,
+      servicoId: combosAtivos.oferta.id,
+      desconto: combosAtivos.desconto
+    };
+  }
+
+  return NextResponse.json({ 
+    success: true, 
+    agendamento,
+    upsellSugestao: upsellData
+  });
 }
 

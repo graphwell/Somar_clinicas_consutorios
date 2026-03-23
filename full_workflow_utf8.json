@@ -1,0 +1,583 @@
+﻿{
+    "updatedAt":  "2026-03-23T17:10:32.511Z",
+    "createdAt":  "2026-03-22T19:10:25.649Z",
+    "id":  "NjYostwCx10tBvbz",
+    "name":  "Synka SaaS - Master Workflow (COMPLETO)",
+    "description":  null,
+    "active":  true,
+    "isArchived":  false,
+    "nodes":  [
+                  {
+                      "parameters":  {
+                                         "url":  "https://somar-clinicas-consutorios.vercel.app/api/bot/context",
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "context-node",
+                      "name":  "Carregar Contexto Clínica",
+                      "type":  "n8n-nodes-base.httpRequest",
+                      "typeVersion":  4.1,
+                      "position":  [
+                                       432,
+                                       304
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "text":  "={{ $json.data?.body || $json.body?.message || $json.message || $json.body }}",
+                                         "options":  {
+                                                         "systemMessage":  "={{ $node[\"Carregar Contexto Clínica\"].json.systemPrompt }}"
+                                                     }
+                                     },
+                      "id":  "agent-node",
+                      "name":  "Agente Autônomo Maya",
+                      "type":  "@n8n/n8n-nodes-langchain.agent",
+                      "typeVersion":  1,
+                      "position":  [
+                                       656,
+                                       304
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "modelName":  "models/gemini-1.5-flash",
+                                         "options":  {
+                                                         "temperature":  0.7
+                                                     }
+                                     },
+                      "id":  "gemini-node",
+                      "name":  "Google Gemini",
+                      "type":  "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+                      "typeVersion":  1,
+                      "position":  [
+                                       560,
+                                       528
+                                   ],
+                      "credentials":  {
+                                          "googlePalmApi":  {
+                                                                "id":  "GVUIrIdCYUNrieGQ",
+                                                                "name":  "Google Gemini(PaLM) Api account"
+                                                            }
+                                      }
+                  },
+                  {
+                      "parameters":  {
+                                         "url":  "https://somar-clinicas-consutorios.vercel.app/api/bot/availability"
+                                     },
+                      "id":  "tool-availability",
+                      "name":  "Tool: Ver Horários",
+                      "type":  "@n8n/n8n-nodes-langchain.toolHttpRequest",
+                      "typeVersion":  1,
+                      "position":  [
+                                       704,
+                                       528
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "url":  "https://somar-clinicas-consutorios.vercel.app/api/bot/appointments"
+                                     },
+                      "id":  "tool-list",
+                      "name":  "Tool: Consultar Agendamentos",
+                      "type":  "@n8n/n8n-nodes-langchain.toolHttpRequest",
+                      "typeVersion":  1,
+                      "position":  [
+                                       832,
+                                       528
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "method":  "POST",
+                                         "url":  "https://somar-clinicas-consutorios.vercel.app/api/bot/appointments",
+                                         "sendBody":  true,
+                                         "parametersBody":  {
+                                                                "values":  [
+                                                                               {
+
+                                                                               }
+                                                                           ]
+                                                            }
+                                     },
+                      "id":  "tool-book",
+                      "name":  "Tool: Agendar Novo",
+                      "type":  "@n8n/n8n-nodes-langchain.toolHttpRequest",
+                      "typeVersion":  1,
+                      "position":  [
+                                       960,
+                                       528
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "method":  "PUT",
+                                         "url":  "=https://somar-clinicas-consutorios.vercel.app/api/bot/appointments/{{ $parameter.id }}",
+                                         "sendBody":  true,
+                                         "parametersBody":  {
+                                                                "values":  [
+                                                                               {
+
+                                                                               }
+                                                                           ]
+                                                            }
+                                     },
+                      "id":  "tool-cancel",
+                      "name":  "Tool: Cancelar ou Remarcar",
+                      "type":  "@n8n/n8n-nodes-langchain.toolHttpRequest",
+                      "typeVersion":  1,
+                      "position":  [
+                                       1088,
+                                       528
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "method":  "POST",
+                                         "url":  "=https://api.ultramsg.com/{{ $node[\"Carregar Contexto Clínica\"].json.config.instanceId || \u0027instance156799\u0027 }}/messages/chat",
+                                         "sendBody":  true,
+                                         "bodyParameters":  {
+                                                                "parameters":  [
+                                                                                   {
+
+                                                                                   }
+                                                                               ]
+                                                            },
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "ultramsg-node",
+                      "name":  "Disparar Resposta UltraMsg",
+                      "type":  "n8n-nodes-base.httpRequest",
+                      "typeVersion":  4.1,
+                      "position":  [
+                                       960,
+                                       304
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "path":  "saas-agendamentos",
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "type":  "n8n-nodes-base.webhook",
+                      "typeVersion":  2.1,
+                      "position":  [
+                                       224,
+                                       304
+                                   ],
+                      "id":  "2e4850c7-e75c-4919-bd59-51dcb078acd2",
+                      "name":  "Webhook",
+                      "webhookId":  "83b700e1-1ed0-4c95-b9d5-51c3be91b1e8"
+                  }
+              ],
+    "connections":  {
+                        "Carregar Contexto Clínica":  {
+                                                          "main":  [
+                                                                       [
+                                                                           {
+                                                                               "node":  "Agente Autônomo Maya",
+                                                                               "type":  "main",
+                                                                               "index":  0
+                                                                           }
+                                                                       ]
+                                                                   ]
+                                                      },
+                        "Agente Autônomo Maya":  {
+                                                     "main":  [
+                                                                  [
+                                                                      {
+                                                                          "node":  "Disparar Resposta UltraMsg",
+                                                                          "type":  "main",
+                                                                          "index":  0
+                                                                      }
+                                                                  ]
+                                                              ]
+                                                 },
+                        "Google Gemini":  {
+                                              "ai_languageModel":  [
+                                                                       [
+                                                                           {
+                                                                               "node":  "Agente Autônomo Maya",
+                                                                               "type":  "ai_languageModel",
+                                                                               "index":  0
+                                                                           }
+                                                                       ]
+                                                                   ]
+                                          },
+                        "Tool: Ver Horários":  {
+                                                   "ai_tool":  [
+                                                                   [
+                                                                       {
+                                                                           "node":  "Agente Autônomo Maya",
+                                                                           "type":  "ai_tool",
+                                                                           "index":  0
+                                                                       }
+                                                                   ]
+                                                               ]
+                                               },
+                        "Tool: Consultar Agendamentos":  {
+                                                             "ai_tool":  [
+                                                                             [
+                                                                                 {
+                                                                                     "node":  "Agente Autônomo Maya",
+                                                                                     "type":  "ai_tool",
+                                                                                     "index":  0
+                                                                                 }
+                                                                             ]
+                                                                         ]
+                                                         },
+                        "Tool: Agendar Novo":  {
+                                                   "ai_tool":  [
+                                                                   [
+                                                                       {
+                                                                           "node":  "Agente Autônomo Maya",
+                                                                           "type":  "ai_tool",
+                                                                           "index":  0
+                                                                       }
+                                                                   ]
+                                                               ]
+                                               },
+                        "Tool: Cancelar ou Remarcar":  {
+                                                           "ai_tool":  [
+                                                                           [
+                                                                               {
+                                                                                   "node":  "Agente Autônomo Maya",
+                                                                                   "type":  "ai_tool",
+                                                                                   "index":  0
+                                                                               }
+                                                                           ]
+                                                                       ]
+                                                       },
+                        "Webhook":  {
+                                        "main":  [
+                                                     [
+                                                         {
+                                                             "node":  "Carregar Contexto Clínica",
+                                                             "type":  "main",
+                                                             "index":  0
+                                                         }
+                                                     ]
+                                                 ]
+                                    }
+                    },
+    "settings":  {
+                     "callerPolicy":  "workflowsFromSameOwner",
+                     "availableInMCP":  true,
+                     "executionOrder":  "v1",
+                     "binaryMode":  "separate",
+                     "timeSavedMode":  "fixed"
+                 },
+    "staticData":  null,
+    "meta":  null,
+    "pinData":  {
+
+                },
+    "versionId":  "7aad0384-8535-42a5-a5d0-b4ddcbf1e15f",
+    "activeVersionId":  "7aad0384-8535-42a5-a5d0-b4ddcbf1e15f",
+    "versionCounter":  96,
+    "triggerCount":  1,
+    "shared":  [
+                   {
+                       "updatedAt":  "2026-03-22T19:10:25.649Z",
+                       "createdAt":  "2026-03-22T19:10:25.649Z",
+                       "role":  "workflow:owner",
+                       "workflowId":  "NjYostwCx10tBvbz",
+                       "projectId":  "U0Cc0yzoZfSkcbLi",
+                       "project":  {
+                                       "updatedAt":  "2026-03-22T18:57:21.062Z",
+                                       "createdAt":  "2026-03-22T18:56:23.795Z",
+                                       "id":  "U0Cc0yzoZfSkcbLi",
+                                       "name":  "Barbosa somar.solucoes.suporte@gmail.com \u003csomar.solucoes.suporte@gmail.com\u003e",
+                                       "type":  "personal",
+                                       "icon":  null,
+                                       "description":  null,
+                                       "creatorId":  "a3a6fdbe-6d03-45f0-8c11-118eb7666e9a"
+                                   }
+                   }
+               ],
+    "tags":  [
+
+             ],
+    "activeVersion":  {
+                          "updatedAt":  "2026-03-23T17:10:33.855Z",
+                          "createdAt":  "2026-03-23T17:10:32.513Z",
+                          "versionId":  "7aad0384-8535-42a5-a5d0-b4ddcbf1e15f",
+                          "workflowId":  "NjYostwCx10tBvbz",
+                          "nodes":  [
+                                        {
+                                            "parameters":  {
+                                                               "url":  "https://somar-clinicas-consutorios.vercel.app/api/bot/context",
+                                                               "options":  {
+
+                                                                           }
+                                                           },
+                                            "id":  "context-node",
+                                            "name":  "Carregar Contexto Clínica",
+                                            "type":  "n8n-nodes-base.httpRequest",
+                                            "typeVersion":  4.1,
+                                            "position":  [
+                                                             432,
+                                                             304
+                                                         ]
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "text":  "={{ $json.data?.body || $json.body?.message || $json.message || $json.body }}",
+                                                               "options":  {
+                                                                               "systemMessage":  "={{ $node[\"Carregar Contexto Clínica\"].json.systemPrompt }}"
+                                                                           }
+                                                           },
+                                            "id":  "agent-node",
+                                            "name":  "Agente Autônomo Maya",
+                                            "type":  "@n8n/n8n-nodes-langchain.agent",
+                                            "typeVersion":  1,
+                                            "position":  [
+                                                             656,
+                                                             304
+                                                         ]
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "modelName":  "models/gemini-1.5-flash",
+                                                               "options":  {
+                                                                               "temperature":  0.7
+                                                                           }
+                                                           },
+                                            "id":  "gemini-node",
+                                            "name":  "Google Gemini",
+                                            "type":  "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+                                            "typeVersion":  1,
+                                            "position":  [
+                                                             560,
+                                                             528
+                                                         ],
+                                            "credentials":  {
+                                                                "googlePalmApi":  {
+                                                                                      "id":  "GVUIrIdCYUNrieGQ",
+                                                                                      "name":  "Google Gemini(PaLM) Api account"
+                                                                                  }
+                                                            }
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "url":  "https://somar-clinicas-consutorios.vercel.app/api/bot/availability"
+                                                           },
+                                            "id":  "tool-availability",
+                                            "name":  "Tool: Ver Horários",
+                                            "type":  "@n8n/n8n-nodes-langchain.toolHttpRequest",
+                                            "typeVersion":  1,
+                                            "position":  [
+                                                             704,
+                                                             528
+                                                         ]
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "url":  "https://somar-clinicas-consutorios.vercel.app/api/bot/appointments"
+                                                           },
+                                            "id":  "tool-list",
+                                            "name":  "Tool: Consultar Agendamentos",
+                                            "type":  "@n8n/n8n-nodes-langchain.toolHttpRequest",
+                                            "typeVersion":  1,
+                                            "position":  [
+                                                             832,
+                                                             528
+                                                         ]
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "method":  "POST",
+                                                               "url":  "https://somar-clinicas-consutorios.vercel.app/api/bot/appointments",
+                                                               "sendBody":  true,
+                                                               "parametersBody":  {
+                                                                                      "values":  [
+                                                                                                     {
+
+                                                                                                     }
+                                                                                                 ]
+                                                                                  }
+                                                           },
+                                            "id":  "tool-book",
+                                            "name":  "Tool: Agendar Novo",
+                                            "type":  "@n8n/n8n-nodes-langchain.toolHttpRequest",
+                                            "typeVersion":  1,
+                                            "position":  [
+                                                             960,
+                                                             528
+                                                         ]
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "method":  "PUT",
+                                                               "url":  "=https://somar-clinicas-consutorios.vercel.app/api/bot/appointments/{{ $parameter.id }}",
+                                                               "sendBody":  true,
+                                                               "parametersBody":  {
+                                                                                      "values":  [
+                                                                                                     {
+
+                                                                                                     }
+                                                                                                 ]
+                                                                                  }
+                                                           },
+                                            "id":  "tool-cancel",
+                                            "name":  "Tool: Cancelar ou Remarcar",
+                                            "type":  "@n8n/n8n-nodes-langchain.toolHttpRequest",
+                                            "typeVersion":  1,
+                                            "position":  [
+                                                             1088,
+                                                             528
+                                                         ]
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "method":  "POST",
+                                                               "url":  "=https://api.ultramsg.com/{{ $node[\"Carregar Contexto Clínica\"].json.config.instanceId || \u0027instance156799\u0027 }}/messages/chat",
+                                                               "sendBody":  true,
+                                                               "bodyParameters":  {
+                                                                                      "parameters":  [
+                                                                                                         {
+
+                                                                                                         }
+                                                                                                     ]
+                                                                                  },
+                                                               "options":  {
+
+                                                                           }
+                                                           },
+                                            "id":  "ultramsg-node",
+                                            "name":  "Disparar Resposta UltraMsg",
+                                            "type":  "n8n-nodes-base.httpRequest",
+                                            "typeVersion":  4.1,
+                                            "position":  [
+                                                             960,
+                                                             304
+                                                         ]
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "path":  "saas-agendamentos",
+                                                               "options":  {
+
+                                                                           }
+                                                           },
+                                            "type":  "n8n-nodes-base.webhook",
+                                            "typeVersion":  2.1,
+                                            "position":  [
+                                                             224,
+                                                             304
+                                                         ],
+                                            "id":  "2e4850c7-e75c-4919-bd59-51dcb078acd2",
+                                            "name":  "Webhook",
+                                            "webhookId":  "83b700e1-1ed0-4c95-b9d5-51c3be91b1e8"
+                                        }
+                                    ],
+                          "connections":  {
+                                              "Carregar Contexto Clínica":  {
+                                                                                "main":  [
+                                                                                             [
+                                                                                                 {
+                                                                                                     "node":  "Agente Autônomo Maya",
+                                                                                                     "type":  "main",
+                                                                                                     "index":  0
+                                                                                                 }
+                                                                                             ]
+                                                                                         ]
+                                                                            },
+                                              "Agente Autônomo Maya":  {
+                                                                           "main":  [
+                                                                                        [
+                                                                                            {
+                                                                                                "node":  "Disparar Resposta UltraMsg",
+                                                                                                "type":  "main",
+                                                                                                "index":  0
+                                                                                            }
+                                                                                        ]
+                                                                                    ]
+                                                                       },
+                                              "Google Gemini":  {
+                                                                    "ai_languageModel":  [
+                                                                                             [
+                                                                                                 {
+                                                                                                     "node":  "Agente Autônomo Maya",
+                                                                                                     "type":  "ai_languageModel",
+                                                                                                     "index":  0
+                                                                                                 }
+                                                                                             ]
+                                                                                         ]
+                                                                },
+                                              "Tool: Ver Horários":  {
+                                                                         "ai_tool":  [
+                                                                                         [
+                                                                                             {
+                                                                                                 "node":  "Agente Autônomo Maya",
+                                                                                                 "type":  "ai_tool",
+                                                                                                 "index":  0
+                                                                                             }
+                                                                                         ]
+                                                                                     ]
+                                                                     },
+                                              "Tool: Consultar Agendamentos":  {
+                                                                                   "ai_tool":  [
+                                                                                                   [
+                                                                                                       {
+                                                                                                           "node":  "Agente Autônomo Maya",
+                                                                                                           "type":  "ai_tool",
+                                                                                                           "index":  0
+                                                                                                       }
+                                                                                                   ]
+                                                                                               ]
+                                                                               },
+                                              "Tool: Agendar Novo":  {
+                                                                         "ai_tool":  [
+                                                                                         [
+                                                                                             {
+                                                                                                 "node":  "Agente Autônomo Maya",
+                                                                                                 "type":  "ai_tool",
+                                                                                                 "index":  0
+                                                                                             }
+                                                                                         ]
+                                                                                     ]
+                                                                     },
+                                              "Tool: Cancelar ou Remarcar":  {
+                                                                                 "ai_tool":  [
+                                                                                                 [
+                                                                                                     {
+                                                                                                         "node":  "Agente Autônomo Maya",
+                                                                                                         "type":  "ai_tool",
+                                                                                                         "index":  0
+                                                                                                     }
+                                                                                                 ]
+                                                                                             ]
+                                                                             },
+                                              "Webhook":  {
+                                                              "main":  [
+                                                                           [
+                                                                               {
+                                                                                   "node":  "Carregar Contexto Clínica",
+                                                                                   "type":  "main",
+                                                                                   "index":  0
+                                                                               }
+                                                                           ]
+                                                                       ]
+                                                          }
+                                          },
+                          "authors":  "Barbosa somar.solucoes.suporte@gmail.com",
+                          "name":  "Version 7aad0384",
+                          "description":  "",
+                          "autosaved":  false,
+                          "workflowPublishHistory":  [
+                                                         {
+                                                             "createdAt":  "2026-03-23T17:10:33.852Z",
+                                                             "id":  55,
+                                                             "workflowId":  "NjYostwCx10tBvbz",
+                                                             "versionId":  "7aad0384-8535-42a5-a5d0-b4ddcbf1e15f",
+                                                             "event":  "activated",
+                                                             "userId":  "a3a6fdbe-6d03-45f0-8c11-118eb7666e9a"
+                                                         }
+                                                     ]
+                      }
+}

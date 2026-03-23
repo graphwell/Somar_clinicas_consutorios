@@ -1,49 +1,341 @@
 {
-  "name": "Somar.IA Leads Workflow",
+  "name": "Synka SaaS - Master Workflow (COMPLETO)",
   "nodes": [
     {
       "parameters": {
-        "path": "entrada-leads",
-        "options": {},
-        "responseMode": "responseNode"
+        "httpMethod": "POST",
+        "path": "saas-agendamentos",
+        "responseMode": "onReceived",
+        "options": {}
       },
-      "name": "entrada-leads",
+      "id": "Webhook",
+      "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
-      "typeVersion": 1,
-      "position": [
-        250,
-        300
-      ]
+      "typeVersion": 2.1,
+      "position": [200, 300]
     },
     {
       "parameters": {
-        "respondWith": "json",
-        "responseBody": "{\n  \"status\": \"success\",\n  \"message\": \"Lead recebido com sucesso\"\n}",
+        "url": "https://somar-clinicas-consutorios.vercel.app/api/bot/context",
+        "method": "GET",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "tenantId",
+              "value": "={{ $node[\"Webhook\"].json.data?.from ? ($node[\"Webhook\"].json.query?.tenantId || $node[\"Webhook\"].json.body?.tenantId || $node[\"Webhook\"].json.instanceId || 'clinica_id_default') : ($node[\"Webhook\"].json.body?.tenantId || $node[\"Webhook\"].json.instanceId || 'clinica_id_default') }}"
+            }
+          ]
+        },
         "options": {}
       },
-      "name": "Respond to Webhook",
-      "type": "n8n-nodes-base.respondToWebhook",
+      "id": "Contexto",
+      "name": "Contexto",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const wh = $node['Webhook'].json; const rawFrom = wh?.data?.from || wh?.body?.data?.from || wh?.body?.from || wh?.from || wh?.sender_number || ''; const sessionId = rawFrom.split('@')[0] || 'default_session'; const message = wh?.data?.body || wh?.body?.data?.body || wh?.body?.message || wh?.body?.body || wh?.message || String(wh?.body || ''); const ctx = $node['Contexto'].json; return [{ json: { sessionId, from: rawFrom, message, systemPrompt: ctx.systemPrompt || '', tenantId: ctx.tenantId || 'clinica_id_default', instanceId: (ctx.config && ctx.config.instanceId) ? ctx.config.instanceId : 'instance156799', ultraMsgToken: (ctx.config && ctx.config.ultraMsgToken) ? ctx.config.ultraMsgToken : 'nbk60ugo4t1craq9' } }];"
+      },
+      "id": "PrepareData",
+      "name": "PrepareData",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [640, 300]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.message }}",
+        "options": {
+          "systemMessage": "={{ $json.systemPrompt }}"
+        }
+      },
+      "id": "Maya",
+      "name": "Maya",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [860, 300]
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.sessionId }}",
+        "contextWindowLength": 15
+      },
+      "id": "Memory",
+      "name": "Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [860, 520]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash",
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "credentials": {
+        "googlePalmApi": {
+          "id": "GVUIrIdCYUNrieGQ",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      },
+      "id": "Gemini",
+      "name": "Gemini",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
-      "position": [
-        450,
-        300
-      ]
+      "position": [760, 520]
+    },
+    {
+      "parameters": {
+        "name": "ver_horarios",
+        "description": "Busca horarios disponiveis no Synka para uma data. Parametro {date} em formato YYYY-MM-DD.",
+        "url": "https://somar-clinicas-consutorios.vercel.app/api/bot/availability?date={date}&tenantId={{ $json.tenantId }}",
+        "method": "GET",
+        "placeholderDefinitions": {
+          "values": [
+            {
+              "name": "date",
+              "description": "Data desejada no formato YYYY-MM-DD. Ex: 2026-03-24",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "tool_availability",
+      "name": "tool_availability",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1,
+      "position": [960, 520]
+    },
+    {
+      "parameters": {
+        "name": "consultar_agendamentos",
+        "description": "Lista agendamentos futuros do paciente no Synka. Parametro {phone} com apenas digitos do telefone.",
+        "url": "https://somar-clinicas-consutorios.vercel.app/api/bot/appointments?phone={phone}&tenantId={{ $json.tenantId }}",
+        "method": "GET",
+        "placeholderDefinitions": {
+          "values": [
+            {
+              "name": "phone",
+              "description": "Numero de telefone do paciente apenas com digitos. Ex: 5585999999999",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "tool_list",
+      "name": "tool_list",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1,
+      "position": [1080, 520]
+    },
+    {
+      "parameters": {
+        "name": "agendar_novo",
+        "description": "Cria um novo agendamento no Synka. Parametros: {nome} nome do paciente, {dataHora} data e hora no formato ISO 8601 (ex: 2026-03-24T15:00:00).",
+        "method": "POST",
+        "url": "https://somar-clinicas-consutorios.vercel.app/api/bot/appointments?nome={nome}&dataHora={dataHora}&pacienteTelefone={{ $json.sessionId }}&tenantId={{ $json.tenantId }}",
+        "placeholderDefinitions": {
+          "values": [
+            {
+              "name": "nome",
+              "description": "Nome completo do paciente",
+              "type": "string"
+            },
+            {
+              "name": "dataHora",
+              "description": "Data e hora do agendamento no formato ISO 8601. Ex: 2026-03-24T15:00:00",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "tool_book",
+      "name": "tool_book",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1,
+      "position": [1200, 520]
+    },
+    {
+      "parameters": {
+        "name": "cancelar_remarcar",
+        "description": "Cancela ou remarca um agendamento no Synka. Parametros: {id} ID do agendamento, {status} cancelado ou remarcado. Para remarcar inclua {dataHora} no formato ISO 8601.",
+        "method": "PUT",
+        "url": "https://somar-clinicas-consutorios.vercel.app/api/bot/appointments/{id}?status={status}&dataHora={dataHora}&tenantId={{ $json.tenantId }}",
+        "placeholderDefinitions": {
+          "values": [
+            {
+              "name": "id",
+              "description": "ID do agendamento",
+              "type": "string"
+            },
+            {
+              "name": "status",
+              "description": "Novo status: cancelado ou remarcado",
+              "type": "string"
+            },
+            {
+              "name": "dataHora",
+              "description": "Nova data/hora se for remarcar (ISO 8601). Deixar vazio se for cancelar.",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "tool_cancel",
+      "name": "tool_cancel",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1,
+      "position": [1320, 520]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.ultramsg.com/{{ $node[\"PrepareData\"].json.instanceId }}/messages/chat",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "token",
+              "value": "={{ $node[\"PrepareData\"].json.ultraMsgToken }}"
+            },
+            {
+              "name": "to",
+              "value": "={{ $node[\"PrepareData\"].json.from }}"
+            },
+            {
+              "name": "body",
+              "value": "={{ $json.output }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "UltraMsg",
+      "name": "UltraMsg",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1100, 300]
     }
   ],
   "connections": {
-    "entrada-leads": {
+    "Webhook": {
       "main": [
         [
           {
-            "node": "Respond to Webhook",
+            "node": "Contexto",
             "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contexto": {
+      "main": [
+        [
+          {
+            "node": "PrepareData",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PrepareData": {
+      "main": [
+        [
+          {
+            "node": "Maya",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Maya": {
+      "main": [
+        [
+          {
+            "node": "UltraMsg",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Maya",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Maya",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "tool_availability": {
+      "ai_tool": [
+        [
+          {
+            "node": "Maya",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "tool_list": {
+      "ai_tool": [
+        [
+          {
+            "node": "Maya",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "tool_book": {
+      "ai_tool": [
+        [
+          {
+            "node": "Maya",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "tool_cancel": {
+      "ai_tool": [
+        [
+          {
+            "node": "Maya",
+            "type": "ai_tool",
             "index": 0
           }
         ]
       ]
     }
   },
-  "active": false,
-  "settings": {},
-  "tags": []
+  "settings": {
+    "executionOrder": "v1"
+  }
 }

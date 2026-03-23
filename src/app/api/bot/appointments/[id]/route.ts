@@ -26,8 +26,12 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
     // Se for remarcação, precisa checar conflito novamente
     if (dataHora) {
       const newDate = new Date(dataHora);
+      
+      const conflictWhere: any = { dataHora: newDate, tenantId, status: { not: 'cancelado' } };
+      if (agendamentoAtual.profissionalId) conflictWhere.profissionalId = agendamentoAtual.profissionalId;
+
       const conflict = await prisma.agendamento.findFirst({
-        where: { dataHora: newDate, tenantId, status: { not: 'cancelado' } }
+        where: conflictWhere
       });
 
       if (conflict) {

@@ -50,5 +50,10 @@ export async function GET(request: Request) {
 
   const clinica = await prisma.clinica.findUnique({ where: { tenantId } });
   const branding = (clinica?.configBranding as Record<string, string>) || {};
-  return NextResponse.json({ logoUrl: branding.logoUrl || null, nome: clinica?.nome || null });
+  return NextResponse.json({ 
+    logoUrl: branding.logoUrl || null, 
+    nome: clinica?.nome || null,
+    nicho: clinica?.nicho || null,
+    onboardingCompleted: clinica?.onboardingCompleted || false
+  });
 }
