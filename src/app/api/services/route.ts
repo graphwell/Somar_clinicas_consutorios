@@ -24,24 +24,19 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { tenantId, nome, preco } = body;
+    const { nome, descricao, preco, duracaoMinutos, tenantId } = body;
 
-    if (!tenantId || !nome) {
-      return NextResponse.json({ error: 'Campos obrigatórios faltando' }, { status: 400 });
-    }
-
-    // @ts-ignore
     const novoServico = await prisma.servico.create({
       data: {
-        tenantId,
         nome,
-        preco: Number(preco) || 0,
-        duracaoMinutos: 30,
-        ativo: true
+        descricao,
+        preco: parseFloat(preco),
+        duracaoMinutos: parseInt(duracaoMinutos),
+        tenantId
       }
     });
 
-    return NextResponse.json(novoServico);
+    return NextResponse.json({ servico: novoServico });
   } catch (error) {
     console.error('Erro ao criar serviço:', error);
     return NextResponse.json({ error: 'Erro ao criar serviço' }, { status: 500 });

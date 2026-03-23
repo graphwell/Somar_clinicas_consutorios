@@ -22,7 +22,8 @@ const NavigationLinks = () => {
       <NavItem href="/dashboard/reports" label="📊  Relatórios" />
       <div className="border-t border-white/5 my-2" />
       <NavItem href="/dashboard/team" label="🧑‍💼  Equipe" />
-      <NavItem href="/dashboard/campaigns" label="📢  Avisos e Lembretes" />
+      <NavItem href="/dashboard/campaigns" label="📢  Marketing Hub" />
+      <NavItem href="/dashboard/services" label="📦  Serviços e Preços" />
       <NavItem href="/dashboard/billing" label="💳  Financeiro" />
       <NavItem href="/dashboard/settings" label="⚙️  Configurações" />
     </div>
