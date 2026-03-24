@@ -13,7 +13,8 @@ export function middleware(request: NextRequest) {
     '/api/campaigns',
     '/api/upload',
     '/api/export',
-    '/api/billing'
+    '/api/billing',
+    '/api/admin'
   ];
 
   if (protectedPrefixes.some(prefix => pathname.startsWith(prefix))) {
@@ -29,9 +30,15 @@ export function middleware(request: NextRequest) {
       return NextResponse.json({ error: 'Acesso negado: Tenant não identificado' }, { status: 403 });
     }
 
+    // Autorização para Admin
+    if (pathname.startsWith('/api/admin') && payload.role !== 'synka_admin') {
+      return NextResponse.json({ error: 'Acesso restrito: Apenas administradores Synka' }, { status: 403 });
+    }
+
     // Injetamos o tenantId verificado no header para que as rotas de API possam confiar
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set('x-tenant-id', payload.tenantId);
+    requestHeaders.set('x-user-role', payload.role);
 
     return NextResponse.next({
       request: {

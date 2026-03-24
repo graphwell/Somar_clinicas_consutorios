@@ -42,4 +42,8 @@ export function getTenantPrisma(tenantId: string) {
   return client;
 }
 
+export function getMasterPrisma() {
+  return prisma;
+}
+
 export default prisma;
