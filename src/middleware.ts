@@ -26,13 +26,26 @@ export function middleware(request: NextRequest) {
     }
 
     const payload = verifyToken(token);
-    if (!payload || !payload.tenantId) {
-      return NextResponse.json({ error: 'Acesso negado: Tenant não identificado' }, { status: 403 });
+    if (!payload) {
+      return NextResponse.json({ 
+        error: 'Acesso negado: Token inválido ou segredo divergente',
+        debug: { hasToken: !!token, tokenLength: token?.length }
+      }, { status: 403 });
+    }
+
+    if (!payload.tenantId) {
+      return NextResponse.json({ 
+        error: 'Acesso negado: Tenant não identificado no payload',
+        debug: { payload } 
+      }, { status: 403 });
     }
 
     // Autorização para Admin
     if (pathname.startsWith('/api/admin') && payload.role !== 'synka_admin') {
-      return NextResponse.json({ error: 'Acesso restrito: Apenas administradores Synka' }, { status: 403 });
+      return NextResponse.json({ 
+        error: 'Acesso restrito: Apenas administradores Synka',
+        role: payload.role 
+      }, { status: 403 });
     }
 
     // Injetamos o tenantId verificado no header para que as rotas de API possam confiar

@@ -69,7 +69,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     const token = getAuthToken();
     if (!token) {
-      window.location.href = '/auth/login';
+      console.warn('DEBUG: Token não encontrado no DashboardLayout');
+      // window.location.href = '/auth/login';
       return;
     }
 
