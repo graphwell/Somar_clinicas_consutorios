@@ -156,6 +156,8 @@ model TransacaoFinanceira {
   tipo           String       @default("income") // income, expense
   status         String       @default("pending") // pending, previsto, realizado, canceled
   valor          Float        @default(0.0)
+  descricao      String?
+  categoria      String?      @default("Geral")
   agendamentoId  String?      @unique
   
   clinica        Clinica      @relation(fields: [tenantId], references: [tenantId])

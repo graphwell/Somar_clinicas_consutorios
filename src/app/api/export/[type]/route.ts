@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { getAuthorizedTenantId } from '@/lib/auth-helpers';
+import { getTenantPrisma } from '@/lib/prisma';
 
 export async function GET(request: Request, props: { params: Promise<{ type: string }> }) {
   const params = await props.params;
   const { type } = params;
-  const { searchParams } = new URL(request.url);
-  const tenantId = searchParams.get('tenantId') || 'clinica_id_default';
 
   try {
+    const tenantId = await getAuthorizedTenantId();
+    const prisma = getTenantPrisma(tenantId);
     let data: any[] = [];
     let csvHeader = '';
     let csvRows: string[] = [];
@@ -31,6 +32,24 @@ export async function GET(request: Request, props: { params: Promise<{ type: str
       csvHeader = 'ID,Nome do Convenio,Status\n';
       csvRows = data.map(c => `"${c.id}","${c.nomeConvenio}","${c.ativo ? 'Ativo' : 'Inativo'}"`);
     }
+    else if (type === 'backup') {
+        const [pacientes, agendamentos, profissionais, servicos, transacoes] = await Promise.all([
+            prisma.paciente.findMany({ where: { tenantId } }),
+            prisma.agendamento.findMany({ where: { tenantId } }),
+            prisma.profissional.findMany({ where: { tenantId } }),
+            prisma.servico.findMany({ where: { tenantId } }),
+            prisma.transacaoFinanceira.findMany({ where: { tenantId } })
+        ]);
+        return NextResponse.json({
+            backupAt: new Date().toISOString(),
+            tenantId,
+            data: { pacientes, agendamentos, profissionais, servicos, transacoes }
+        }, {
+            headers: {
+                'Content-Disposition': `attachment; filename="synka_full_backup_${new Date().getTime()}.json"`
+            }
+        });
+    }
     else {
       return NextResponse.json({ error: 'Tipo inválido' }, { status: 400 });
     }
@@ -45,7 +64,7 @@ export async function GET(request: Request, props: { params: Promise<{ type: str
       }
     });
 
-  } catch (error) {
-    return NextResponse.json({ error: 'Erro ao gerar exportação' }, { status: 500 });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Erro ao gerar exportação' }, { status: 500 });
   }
 }

@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { getTenantPrisma } from '@/lib/prisma';
+import { getAuthorizedTenantId } from '@/lib/auth-helpers';
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const tenantId = searchParams.get('tenantId') || 'clinica_id_default';
-
   try {
-    // @ts-ignore
+    const tenantId = await getAuthorizedTenantId();
+    const prisma = getTenantPrisma(tenantId);
+
     const servicos = await prisma.servico.findMany({
       where: { 
         tenantId,
@@ -17,22 +17,23 @@ export async function GET(request: Request) {
     return NextResponse.json(servicos);
   } catch (error) {
     console.error('Erro ao buscar serviços:', error);
-    return NextResponse.json({ error: 'Erro ao buscar serviços' }, { status: 500 });
+    return NextResponse.json({ error: 'Erro ao buscar serviços' }, { status: 401 });
   }
 }
 
 export async function POST(request: Request) {
   try {
+    const tenantId = await getAuthorizedTenantId();
+    const prisma = getTenantPrisma(tenantId);
     const body = await request.json();
-    const { id, nome, descricao, preco, duracaoMinutos, tenantId, color } = body;
+    const { id, nome, descricao, preco, duracaoMinutos, color } = body;
 
     const parsedPreco = parseFloat(String(preco).replace(',', '.')) || 0;
     const parsedDuracao = parseInt(String(duracaoMinutos)) || 30;
 
     if (id) {
-       // @ts-ignore
        const updated = await prisma.servico.update({
-          where: { id },
+          where: { id, tenantId }, // Segurança extra
           data: { nome, descricao, preco: parsedPreco, duracaoMinutos: parsedDuracao, color }
        });
        return NextResponse.json({ servico: updated });

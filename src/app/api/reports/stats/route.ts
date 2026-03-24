@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { getAuthorizedTenantId } from '@/lib/auth-helpers';
+import { getTenantPrisma } from '@/lib/prisma';
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const tenantId = searchParams.get('tenantId');
-  if (!tenantId) return NextResponse.json({ error: 'tenantId obrigatório' }, { status: 400 });
-
+export async function GET() {
   try {
+    const tenantId = await getAuthorizedTenantId();
+    const prisma = getTenantPrisma(tenantId);
+    
     const agora = new Date();
     const primeiroDiaMes = new Date(agora.getFullYear(), agora.getMonth(), 1);
 
@@ -46,12 +46,14 @@ export async function GET(request: Request) {
     const servicosCount: Record<string, { nome: string; count: number; faturamento: number }> = {};
     
     agendamentosConfirmados.forEach(a => {
-      const s = a.servico!;
-      if (!servicosCount[s.id]) {
-        servicosCount[s.id] = { nome: s.nome, count: 0, faturamento: 0 };
+      if (a.servico) {
+        const s = a.servico;
+        if (!servicosCount[s.id]) {
+          servicosCount[s.id] = { nome: s.nome, count: 0, faturamento: 0 };
+        }
+        servicosCount[s.id].count++;
+        servicosCount[s.id].faturamento += s.preco;
       }
-      servicosCount[s.id].count++;
-      servicosCount[s.id].faturamento += s.preco;
     });
 
     const topServicos = Object.values(servicosCount).sort((a, b) => b.faturamento - a.faturamento).slice(0, 5);
@@ -68,8 +70,8 @@ export async function GET(request: Request) {
       topServicos
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Erro ao gerar estatísticas:", error);
-    return NextResponse.json({ error: 'Erro interno' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Erro interno' }, { status: 500 });
   }
 }

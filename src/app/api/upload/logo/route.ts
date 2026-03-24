@@ -1,15 +1,17 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { getAuthorizedTenantId } from '@/lib/auth-helpers';
+import { getTenantPrisma } from '@/lib/prisma';
 
 // Upload logo — saves as base64 inside Clinica.configBranding (works on Vercel, no filesystem)
 export async function POST(request: Request) {
   try {
+    const tenantId = await getAuthorizedTenantId();
+    const prisma = getTenantPrisma(tenantId);
     const formData = await request.formData();
     const file = formData.get('logo') as File;
-    const tenantId = formData.get('tenantId') as string;
 
-    if (!file || !tenantId) {
-      return NextResponse.json({ error: 'Arquivo e tenantId são obrigatórios.' }, { status: 400 });
+    if (!file) {
+      return NextResponse.json({ error: 'Arquivo é obrigatório.' }, { status: 400 });
     }
 
     const validTypes = ['image/png', 'image/jpeg', 'image/svg+xml', 'image/webp'];
@@ -34,26 +36,28 @@ export async function POST(request: Request) {
         data: { configBranding: { ...branding, logoUrl } },
       });
     }
-    // If clinica doesn't exist yet, just return the logoUrl so it can be previewed
     return NextResponse.json({ success: true, logoUrl });
-  } catch (error) {
+  } catch (error: any) {
     console.error('[UPLOAD_LOGO_ERROR]', error);
-    return NextResponse.json({ error: 'Erro interno ao fazer upload.' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Erro interno ao fazer upload.' }, { status: 500 });
   }
 }
 
 // Read the saved logo for a tenant
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const tenantId = searchParams.get('tenantId');
-  if (!tenantId) return NextResponse.json({ logoUrl: null });
+export async function GET() {
+  try {
+    const tenantId = await getAuthorizedTenantId();
+    const prisma = getTenantPrisma(tenantId);
 
-  const clinica = await prisma.clinica.findUnique({ where: { tenantId } });
-  const branding = (clinica?.configBranding as Record<string, string>) || {};
-  return NextResponse.json({ 
-    logoUrl: branding.logoUrl || null, 
-    nome: clinica?.nome || null,
-    nicho: clinica?.nicho || null,
-    onboardingCompleted: clinica?.onboardingCompleted || false
-  });
+    const clinica = await prisma.clinica.findUnique({ where: { tenantId } });
+    const branding = (clinica?.configBranding as Record<string, string>) || {};
+    return NextResponse.json({ 
+      logoUrl: branding.logoUrl || null, 
+      nome: clinica?.nome || null,
+      nicho: clinica?.nicho || null,
+      onboardingCompleted: clinica?.onboardingCompleted || false
+    });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 }

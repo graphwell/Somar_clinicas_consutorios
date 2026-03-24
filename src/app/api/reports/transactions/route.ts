@@ -1,20 +1,17 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { getTenantPrisma } from '@/lib/prisma';
+import { getAuthorizedTenantId } from '@/lib/auth-helpers';
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const tenantId = searchParams.get('tenantId');
-
-  if (!tenantId) {
-    return NextResponse.json({ error: 'TenantId required' }, { status: 400 });
-  }
-
   try {
+    const tenantId = await getAuthorizedTenantId();
+    const prisma = getTenantPrisma(tenantId);
+
     // Busca transações manuais e automáticas
     const transactions = await prisma.transacaoFinanceira.findMany({
-      where: { clinicaId: tenantId },
+      where: { tenantId },
       orderBy: { createdAt: 'desc' },
-      take: 50
+      take: 100
     });
 
     // Mapeia para o formato esperado pelo frontend
@@ -28,20 +25,22 @@ export async function GET(request: Request) {
     }));
 
     return NextResponse.json(mapped);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Finance API Error:', error);
-    return NextResponse.json([], { status: 500 });
+    return NextResponse.json([], { status: 401 });
   }
 }
 
 export async function POST(request: Request) {
   try {
+    const tenantId = await getAuthorizedTenantId();
+    const prisma = getTenantPrisma(tenantId);
     const body = await request.json();
-    const { tenantId, descricao, valor, tipo, categoria } = body;
+    const { descricao, valor, tipo, categoria } = body;
 
     const tx = await prisma.transacaoFinanceira.create({
       data: {
-        clinicaId: tenantId,
+        tenantId,
         descricao,
         valor: parseFloat(valor),
         tipo: tipo === 'entrada' ? 'revenue' : 'expense',

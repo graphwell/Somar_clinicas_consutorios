@@ -1,54 +1,111 @@
 @import "tailwindcss";
 
+@theme {
+  /* -- SYNKA V2.2 OFFICIAL COLORS -- */
+  --color-background: #F8FAFC;
+  --color-foreground: #1E293B;
+  
+  --color-card: #FFFFFF;
+  --color-card-border: #E2E8F0;
+  
+  --color-primary: #3B82F6;
+  --color-primary-hover: #2563EB;
+  --color-primary-soft: #DBEAFE;
+
+  --color-secondary: #10B981;
+  --color-secondary-soft: #D1FAE5;
+
+  /* Universal Status */
+  --color-status-success: #22C55E;
+  --color-status-success-bg: #DCFCE7;
+  
+  --color-status-pending: #F59E0B;
+  --color-status-pending-bg: #FEF3C7;
+  
+  --color-status-error: #EF4444;
+  --color-status-error-bg: #FEE2E2;
+  
+  --color-status-info: #3B82F6;
+  --color-status-info-bg: #DBEAFE;
+
+  /* Typography */
+  --color-text-main: #1E293B;
+  --color-text-muted: #64748B;
+  --color-text-placeholder: #94A3B8;
+
+  /* Effects */
+  --radius-premium: 18px;
+  --radius-ultra: 40px;
+  --shadow-soft: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  --shadow-premium: 0 10px 15px -3px rgb(0 0 0 / 0.03), 0 4px 6px -4px rgb(0 0 0 / 0.03);
+}
+
 :root {
-  --background: #050510;
-  --foreground: #f0f0f5;
-  --card-bg: rgba(10,10,32,0.5);
-  --border: rgba(255,255,255,0.07);
+  --background: #F8FAFC;
+  --foreground: #1E293B;
+  --accent: #3B82F6;
 }
 
-html.light-soft {
-  --background: #f8f9fc;
-  --foreground: #1e293b;
-  --card-bg: #ffffff;
-  --sidebar-bg: #ffffff;
-  --border: rgba(0,0,0,0.06);
-  --accent: #4a4ae2;
-  --text-muted: #64748b;
-  --header-bg: rgba(255,255,255,0.8);
+@layer base {
+  body {
+    @apply bg-background text-foreground antialiased transition-colors duration-500 selection:bg-primary/20;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
 }
 
-html.modern-blue {
-  --background: #eff6ff;
-  --foreground: #1e3a8a;
-  --card-bg: rgba(255,255,255,0.7);
-  --sidebar-bg: rgba(255,255,255,0.7);
-  --border: rgba(30,144,255,0.15);
-  --accent: #2563eb;
-  --text-muted: #60a5fa;
-  --header-bg: rgba(255,255,255,0.4);
+@layer components {
+  .premium-card {
+    @apply bg-card border border-card-border rounded-premium shadow-soft transition-all hover:shadow-premium;
+  }
+  
+  .glass-header {
+    @apply sticky top-0 z-30 backdrop-blur-md border-b border-card-border bg-white/80;
+  }
+
+  .btn-primary {
+    @apply bg-primary hover:bg-primary-hover text-white px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-primary/20;
+  }
+  
+  .btn-secondary {
+    @apply bg-slate-50 hover:bg-slate-100 text-text-main px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all border border-card-border;
+  }
+
+  .input-premium {
+    @apply bg-slate-50 border border-card-border rounded-xl px-5 py-3 text-sm focus:outline-none focus:border-primary focus:bg-white transition-all text-text-main placeholder:text-text-placeholder;
+  }
 }
 
-html.dark-stellar {
-  --background: #050510;
-  --foreground: #f0f0f5;
-  --card-bg: rgba(10,10,32,0.5);
-  --sidebar-bg: rgba(10,10,32,0.8);
-  --border: rgba(255,255,255,0.07);
-  --accent: #4a4ae2;
-  --text-muted: #8888b0;
-  --header-bg: rgba(5, 5, 16, 0.8);
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #E2E8F0;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #CBD5E1;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* Animations V2.2 */
+@keyframes premiumFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  transition: background 0.3s ease, color 0.3s ease;
+.animate-premium {
+  animation: premiumFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Agenda Card Accents */
+.professional-accent {
+  width: 5px;
+  height: 100%;
+  position: absolute;
+  left: 0;
+  top: 0;
+  border-radius: 4px 0 0 4px;
 }

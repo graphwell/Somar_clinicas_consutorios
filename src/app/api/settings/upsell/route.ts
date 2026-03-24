@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { getAuthorizedTenantId } from '@/lib/auth-helpers';
+import { getTenantPrisma } from '@/lib/prisma';
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const tenantId = searchParams.get('tenantId') || 'clinica_id_default';
-
+export async function GET() {
   try {
+    const tenantId = await getAuthorizedTenantId();
+    const prisma = getTenantPrisma(tenantId);
     const combos = await prisma.comboUpsell.findMany({
       where: { tenantId },
       include: {
@@ -14,16 +14,18 @@ export async function GET(request: Request) {
       }
     });
     return NextResponse.json(combos);
-  } catch (error) {
-    return NextResponse.json({ error: 'Erro ao buscar combos de Upsell' }, { status: 500 });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Erro ao buscar combos de Upsell' }, { status: 500 });
   }
 }
 
 export async function POST(request: Request) {
-  const body = await request.json();
-  const { tenantId, servicoGatilhoId, servicoOferecidoId, descricaoOferta, desconto, ativo } = body;
-
   try {
+    const tenantId = await getAuthorizedTenantId();
+    const prisma = getTenantPrisma(tenantId);
+    const body = await request.json();
+    const { servicoGatilhoId, servicoOferecidoId, descricaoOferta, desconto, ativo } = body;
+
     const combo = await prisma.comboUpsell.create({
       data: {
         tenantId,
@@ -35,7 +37,7 @@ export async function POST(request: Request) {
       }
     });
     return NextResponse.json(combo);
-  } catch (error) {
-    return NextResponse.json({ error: 'Erro ao criar combo de Upsell' }, { status: 500 });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Erro ao criar combo de Upsell' }, { status: 500 });
   }
 }

@@ -1,21 +1,50 @@
 "use client";
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { setAuthSession } from '@/lib/api-utils';
 
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [email, setEmail] = useState('');
+  const [senha, setSenha] = useState('');
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+
     if (!isLogin && !acceptedTerms) {
       alert('Você precisa aceitar os termos de uso e a política de privacidade.');
       return;
     }
+
     setLoading(true);
-    await new Promise(r => setTimeout(r, 800));
-    window.location.href = '/dashboard';
+    
+    try {
+      if (isLogin) {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, senha })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Erro ao realizar login');
+
+        // Persistência real Multi-Tenant
+        setAuthSession(data.token, data.user);
+        window.location.href = '/dashboard';
+      } else {
+        // Redireciona para o onboarding de nova clínica
+        window.location.href = '/onboarding';
+      }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleGoogle = () => {
@@ -77,20 +106,36 @@ export default function LoginPage() {
                   placeholder="Dr. João Silva" />
               </div>
             )}
+            {error && (
+              <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-red-600 text-xs font-bold animate-premium text-center">
+                ⚠️ {error}
+              </div>
+            )}
+            
             <div className="space-y-1">
               <label className="text-sm font-medium text-gray-600">E-mail</label>
-              <input type="email" required
+              <input 
+                type="email" 
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#4a4ae2] focus:ring-1 focus:ring-[#4a4ae2] transition-all"
-                placeholder="seu@email.com" />
+                placeholder="seu@email.com" 
+              />
             </div>
             <div className="space-y-1">
               <div className="flex justify-between items-center">
                 <label className="text-sm font-medium text-gray-600">Senha</label>
                 {isLogin && <button type="button" className="text-xs text-[#4a4ae2] hover:underline">Esqueceu?</button>}
               </div>
-              <input type="password" required
+              <input 
+                type="password" 
+                required
+                value={senha}
+                onChange={(e) => setSenha(e.target.value)}
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#4a4ae2] focus:ring-1 focus:ring-[#4a4ae2] transition-all"
-                placeholder="••••••••" />
+                placeholder="••••••••" 
+              />
             </div>
 
             {/* LGPD Consent Checkbox */}

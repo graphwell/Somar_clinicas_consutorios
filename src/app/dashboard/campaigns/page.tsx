@@ -1,8 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { useNicho } from '@/context/NichoContext';
-
-const TENANT_ID = 'clinica_id_default';
+import { fetchWithAuth } from '@/lib/api-utils';
 
 type Service = { id: string; nome: string; preco: number };
 
@@ -28,9 +27,9 @@ export default function MarketingHubPage() {
   useEffect(() => {
     setLoading(true);
     Promise.all([
-      fetch(`/api/services?tenantId=${TENANT_ID}`).then(res => res.json()),
-      fetch(`/api/campaigns?tenantId=${TENANT_ID}`).then(res => res.json()),
-      fetch(`/api/settings/upsell?tenantId=${TENANT_ID}`).then(res => res.json())
+      fetchWithAuth('/api/services').then(res => res.json()),
+      fetchWithAuth('/api/campaigns').then(res => res.json()),
+      fetchWithAuth('/api/settings/upsell').then(res => res.json())
     ]).then(([svcs, camps, cmbs]) => {
       if (Array.isArray(svcs)) setServices(svcs);
       if (Array.isArray(camps)) setCampaigns(camps);
@@ -45,11 +44,9 @@ export default function MarketingHubPage() {
 
   const handleSaveCombo = async () => {
     if (!selectedMain || !selectedUpsell) return;
-    const res = await fetch('/api/settings/upsell', {
+    const res = await fetchWithAuth('/api/settings/upsell', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        tenantId: TENANT_ID,
         servicoGatilhoId: selectedMain,
         servicoOferecidoId: selectedUpsell,
         descricaoOferta: `Aproveite! Adicione ${upsellService?.nome} por apenas R$ ${(upsellService!.preco - savings).toFixed(2)}`,
@@ -65,10 +62,9 @@ export default function MarketingHubPage() {
 
   const handleAddService = async () => {
     if (!newServiceName) return;
-    const res = await fetch('/api/services', {
+    const res = await fetchWithAuth('/api/services', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tenantId: TENANT_ID, nome: newServiceName, preco: Number(newServicePrice) })
+      body: JSON.stringify({ nome: newServiceName, preco: Number(newServicePrice) })
     });
     if (res.ok) {
         const created = await res.json();

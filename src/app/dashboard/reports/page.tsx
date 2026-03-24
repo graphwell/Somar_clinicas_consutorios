@@ -1,8 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { useNicho } from '@/context/NichoContext';
-
-const TENANT_ID = 'clinica_id_default';
+import { fetchWithAuth } from '@/lib/api-utils';
 
 type Stats = {
   totalFaturado: number;
@@ -19,7 +18,7 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`/api/reports/stats?tenantId=${TENANT_ID}`)
+    fetchWithAuth('/api/reports/stats')
       .then(res => res.json())
       .then(data => {
         if (!data.error) setStats(data);
@@ -130,7 +129,7 @@ export default function ReportsPage() {
                  { label: 'Ranking de Convênios', desc: 'Desempenho por plano', api: '/api/export/convenios', color: 'bg-orange-500/10 text-orange-400' },
                  { label: 'Exportação Financeira', desc: 'Totais faturados por dia', api: '/api/export/financeiro', color: 'bg-rose-500/10 text-rose-400' },
                ].map((exp, i) => (
-                 <a key={i} href={`${exp.api}?tenantId=${TENANT_ID}`} className="p-4 border border-white/5 bg-white/2 rounded-2xl hover:bg-white/5 transition-all group">
+                 <a key={i} href={exp.api} className="p-4 border border-white/5 bg-white/2 rounded-2xl hover:bg-white/5 transition-all group">
                    <div className="flex items-center justify-between mb-2">
                      <span className={`text-[10px] uppercase font-black px-2 py-0.5 rounded ${exp.color}`}>{exp.label}</span>
                      <span className="opacity-0 group-hover:opacity-100 transition-opacity">⬇</span>

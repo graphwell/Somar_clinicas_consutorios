@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { getAuthorizedTenantId } from '@/lib/auth-helpers';
+import { getTenantPrisma } from '@/lib/prisma';
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const tenantId = searchParams.get('tenantId');
-
-  if (!tenantId) return NextResponse.json({ error: 'tenantId obrigatorio' }, { status: 400 });
-
+export async function GET() {
   try {
+    const tenantId = await getAuthorizedTenantId();
+    const prisma = getTenantPrisma(tenantId);
+    
     const clinica = await prisma.clinica.findUnique({
       where: { tenantId }
     });
@@ -19,10 +18,10 @@ export async function GET(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    const tenantId = await getAuthorizedTenantId();
+    const prisma = getTenantPrisma(tenantId);
     const data = await request.json();
-    const { tenantId, razaoSocial, cnpj, endereco, adminPhone, nicho, botActive } = data;
-
-    if (!tenantId) return NextResponse.json({ error: 'tenantId obrigatorio' }, { status: 400 });
+    const { razaoSocial, cnpj, endereco, adminPhone, nicho, botActive } = data;
 
     const clinica = await prisma.clinica.update({
       where: { tenantId },

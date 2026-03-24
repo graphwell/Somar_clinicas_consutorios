@@ -1,5 +1,6 @@
 "use client";
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { fetchWithAuth } from '@/lib/api-utils';
 
 type NichoLabels = {
   cliente: string;
@@ -13,7 +14,6 @@ type NichoContextType = {
   loading: boolean;
 };
 
-// Termos Padrão (Fallback) se a clínica não tiver um nicho que bate explícito, ou durante o load
 const defaultLabels: NichoLabels = {
   cliente: 'Paciente',
   servico: 'Consulta',
@@ -26,21 +26,24 @@ const NichoContext = createContext<NichoContextType>({
   loading: true
 });
 
-export function NichoProvider({ children, tenantId }: { children: React.ReactNode, tenantId: string }) {
+export function NichoProvider({ children }: { children: React.ReactNode }) {
   const [nicho, setNicho] = useState('Clínica Médica');
   const [labels, setLabels] = useState<NichoLabels>(defaultLabels);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`/api/tenant/nicho-config?tenantId=${tenantId}`)
+    // Busca a configuração do nicho da empresa logada (O Middleware injeta o tenantId)
+    fetchWithAuth('/api/tenant/nicho-config')
       .then(r => r.json())
       .then(data => {
         if (data.nicho) setNicho(data.nicho);
         if (data.labels) setLabels(data.labels);
       })
-      .catch(console.error)
+      .catch(err => {
+        console.error('Falha ao carregar NichoConfig:', err);
+      })
       .finally(() => setLoading(false));
-  }, [tenantId]);
+  }, []);
 
   return (
     <NichoContext.Provider value={{ nicho, labels, loading }}>

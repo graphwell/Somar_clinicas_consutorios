@@ -1,33 +1,27 @@
 "use client";
 import React, { useState, useRef, useEffect } from 'react';
 import { useTheme } from '@/context/ThemeContext';
+import { fetchWithAuth } from '@/lib/api-utils';
 
 const NICHES = ["Clínica Médica", "Clínica de Estética", "Fisioterapia", "Pilates", "Nutricionista", "Psicólogo", "Salão de Beleza / Barbearia", "Outros"];
-const TENANT_ID = 'clinica_id_default'; // Em produção, vem do JWT do usuário logado
 
 export default function SettingsPage() {
   const { theme, setTheme: setAppTheme } = useTheme();
   const [niche, setNiche] = useState("Clínica Médica");
-  const [primaryColor, setPrimaryColor] = useState("#4a4ae2");
+  const [primaryColor, setPrimaryColor] = useState("#3B82F6");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState('');
   const [saved, setSaved] = useState(false);
   const [botActive, setBotActive] = useState(true);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // Company fields
   const [razaoSocial, setRazaoSocial] = useState('');
   const [cnpj, setCnpj] = useState('');
   const [endereco, setEndereco] = useState('');
   const [adminPhone, setAdminPhone] = useState('');
 
-  // Load existing data
   useEffect(() => {
-    const cached = localStorage.getItem(`synka-logo-${TENANT_ID}`);
-    if (cached) setLogoUrl(cached);
-
-    fetch(`/api/settings?tenantId=${TENANT_ID}`)
+    fetchWithAuth('/api/settings')
       .then(res => res.json())
       .then(data => {
         if (data.clinica) {
@@ -38,258 +32,210 @@ export default function SettingsPage() {
           setNiche(data.clinica.nicho || 'Clínica Médica');
           setBotActive(data.clinica.botActive ?? true);
           if (data.clinica.primaryColor) setPrimaryColor(data.clinica.primaryColor);
+          if (data.clinica.logoUrl) setLogoUrl(data.clinica.logoUrl);
         }
-      })
-      .catch(console.error);
+      });
   }, []);
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
-    setUploadError('');
     const formData = new FormData();
     formData.append('logo', file);
-    formData.append('tenantId', TENANT_ID);
     try {
-      const res = await fetch('/api/upload/logo', { method: 'POST', body: formData });
+      const res = await fetchWithAuth('/api/upload/logo', { method: 'POST', body: formData });
       const data = await res.json();
       if (res.ok) {
         setLogoUrl(data.logoUrl);
-        localStorage.setItem(`synka-logo-${TENANT_ID}`, data.logoUrl);
-        window.dispatchEvent(new CustomEvent('synka-logo-updated', { detail: data.logoUrl }));
-      } else {
-        setUploadError(data.error || 'Erro ao fazer upload');
+        window.location.reload(); 
       }
-    } catch {
-      setUploadError('Erro de conexão ao fazer upload.');
-    } finally {
-      setUploading(false);
-    }
+    } finally { setUploading(false); }
   };
 
   const handleSave = async () => {
     try {
-      const res = await fetch('/api/settings', {
+      const res = await fetchWithAuth('/api/settings', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tenantId: TENANT_ID,
-          razaoSocial,
-          cnpj,
-          endereco,
-          adminPhone,
-          nicho: niche,
-          botActive
-        })
+        body: JSON.stringify({ razaoSocial, cnpj, endereco, adminPhone, nicho: niche, botActive })
       });
       if (res.ok) {
         setSaved(true);
-        setTimeout(() => {
-          setSaved(false);
-          window.location.reload(); // Recarrega dicionários e layouts globais do novo Nicho
-        }, 1500);
+        setTimeout(() => setSaved(false), 2000);
       }
-    } catch (err) {
-      console.error(err);
-    }
+    } catch {}
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
-      <div className="flex items-center justify-between flex-wrap gap-4 bg-[var(--card-bg)] backdrop-blur-md border border-[var(--border)] p-6 rounded-3xl shadow-sm">
-        <div>
-           <h2 className="text-2xl font-black tracking-tight text-[var(--foreground)]">Configurações</h2>
-           <p className="text-sm text-[var(--text-muted)] mt-1">Personalize seu ambiente e dados da clínica.</p>
+    <div className="max-w-7xl mx-auto space-y-12 pb-40 animate-premium">
+      
+      {/* Header Premium V2.2 */}
+      <div className="bg-white border border-card-border p-10 rounded-[3rem] shadow-sm flex flex-col md:flex-row justify-between items-center gap-8">
+        <div className="flex items-center gap-6">
+           <div className="w-14 h-14 rounded-3xl bg-primary text-white flex items-center justify-center text-3xl shadow-xl shadow-primary/20 italic font-black">C</div>
+           <div>
+              <h2 className="text-2xl font-black italic uppercase tracking-tighter text-text-main">Ajustes de <span className="text-primary">Sistema</span></h2>
+              <p className="text-[10px] font-black text-text-placeholder uppercase tracking-[0.25em] mt-1 opacity-60">Configuração Estrutural • V2.2 Official</p>
+           </div>
         </div>
-        <button
-          onClick={handleSave}
-          className="px-8 py-3 bg-[var(--accent)] hover:opacity-90 text-white rounded-2xl text-sm font-bold transition-all shadow-xl shadow-[var(--accent)]/20 hover:scale-[1.02] active:scale-95"
-        >
-          {saved ? '✨ Dados Salvos!' : 'Salvar Alterações'}
+        <button onClick={handleSave} className="btn-primary flex items-center justify-center gap-3">
+           {saved ? '✨ Sincronizado' : 'Salvar Alterações'}
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        
+        {/* Identidade Corporativa */}
+        <div className="lg:col-span-12 space-y-10">
+           
+           <div className="premium-card p-12 bg-white space-y-10">
+              <div className="border-b border-slate-50 pb-6">
+                <h3 className="text-xl font-black text-text-main italic uppercase tracking-tighter">1. Identidade de Marca</h3>
+                <p className="text-[10px] font-black text-text-placeholder uppercase tracking-widest mt-1 opacity-60">Logotipo e Presença Visual</p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                 <div className="space-y-4">
+                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-2">Logo da Unidade</label>
+                    <div onClick={() => fileRef.current?.click()} className="w-full aspect-video rounded-[2.5rem] bg-slate-50 border-2 border-dashed border-card-border flex flex-col items-center justify-center cursor-pointer hover:border-primary/30 transition-all overflow-hidden relative group">
+                       {logoUrl ? (
+                         <>
+                           <img src={logoUrl} className="h-24 object-contain animate-premium" />
+                           <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                              <span className="text-[10px] font-black text-white uppercase tracking-widest">Atualizar Marca</span>
+                           </div>
+                         </>
+                       ) : (
+                         <div className="text-center italic opacity-30 group-hover:opacity-60 transition-opacity">
+                            <span className="text-4xl mb-2 block">🖼️</span>
+                            <span className="text-[10px] font-black uppercase text-text-placeholder">Upload (PNG/SVG)</span>
+                         </div>
+                       )}
+                       {uploading && <div className="absolute inset-0 bg-white/90 flex items-center justify-center font-black text-[10px] uppercase text-primary animate-pulse">Processando...</div>}
+                    </div>
+                    <input ref={fileRef} type="file" className="hidden" onChange={handleLogoUpload} />
+                 </div>
+                 <div className="space-y-4">
+                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-2">Cor Institucional (Foco)</label>
+                    <div className="flex items-center gap-8 p-10 bg-slate-50 border border-card-border rounded-[2.5rem] h-full">
+                       <input type="color" value={primaryColor} disabled className="w-20 h-20 rounded-2xl border-0 bg-transparent cursor-not-allowed opacity-50 shadow-inner" />
+                       <div>
+                          <p className="text-2xl font-black text-text-main uppercase tracking-tighter font-mono italic">{primaryColor}</p>
+                          <p className="text-[9px] font-black text-primary uppercase tracking-widest mt-2">{theme === 'light-soft' ? 'Premium Light Active' : 'Custom Palette'}</p>
+                       </div>
+                    </div>
+                 </div>
+              </div>
+           </div>
 
-        {/* Aparência do Sistema */}
-        <div className="col-span-1 md:col-span-2 bg-[var(--card-bg)] backdrop-blur-md border border-[var(--border)] rounded-3xl p-8 space-y-8 shadow-sm">
-          <div>
-            <h3 className="text-lg font-bold text-[var(--foreground)]">Aparência do Sistema</h3>
-            <p className="text-xs text-[var(--text-muted)] mt-1">Escolha o estilo que melhor se adapta ao seu fluxo de trabalho.</p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            {[
-              { id: 'dark-stellar', label: 'Dark Estelar', colors: ['bg-[#050510]', 'bg-[#4a4ae2]'], desc: 'Foco e profundidade' },
-              { id: 'light-soft', label: 'Light Soft', colors: ['bg-[#f8f9fc]', 'bg-[#4a4ae2]'], desc: 'Limpo e profissional' },
-              { id: 'modern-blue', label: 'Modern Blue', colors: ['bg-[#eff6ff]', 'bg-blue-600'], desc: 'Vibrante e moderno' }
-            ].map((p) => (
-              <button 
-                key={p.id}
-                onClick={() => setAppTheme(p.id as any)}
-                className={`group relative flex flex-col items-center p-5 rounded-[2rem] border transition-all text-left ${
-                  theme === p.id 
-                    ? 'border-[var(--accent)] bg-[var(--accent)]/5 ring-4 ring-[var(--accent)]/10' 
-                    : 'border-[var(--border)] bg-white/2 hover:border-[var(--accent)]/30'
-                }`}
-              >
-                <div className={`w-full h-32 rounded-2xl ${p.colors[0]} border border-[var(--border)] flex items-center justify-center relative overflow-hidden mb-4 shadow-inner`}>
-                   <div className={`absolute top-3 left-3 w-10 h-10 rounded-xl ${p.colors[1]} shadow-lg`} />
-                   <div className="w-16 h-1.5 bg-[var(--text-muted)]/20 rounded-full" />
-                </div>
-                <span className={`text-sm font-black ${theme === p.id ? 'text-[var(--foreground)]' : 'text-[var(--text-muted)]'}`}>{p.label}</span>
-                <span className="text-[10px] text-[var(--text-muted)] mt-1 font-medium">{p.desc}</span>
-                {theme === p.id && (
-                  <div className="absolute top-3 right-3 w-6 h-6 bg-[var(--accent)] rounded-full flex items-center justify-center text-white text-[10px] shadow-lg animate-in zoom-in">
-                    ✓
-                  </div>
-                )}
-              </button>
-            ))}
-          </div>
+           {/* Ambientes Disponíveis */}
+           <div className="premium-card p-12 bg-white space-y-10 shadow-lg">
+              <div className="border-b border-slate-50 pb-6">
+                <h3 className="text-xl font-black text-text-main italic uppercase tracking-tighter">2. Universo de Trabalho</h3>
+                <p className="text-[10px] font-black text-text-placeholder uppercase tracking-widest mt-1 opacity-60">Escolha a experiência visual do Synka</p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-10">
+                {[
+                  { id: 'light-soft', label: 'Premium Light', colors: ['bg-[#F8FAFC]', 'bg-[#3B82F6]'], emoji: '✨', desc: 'Foco e Clareza Profissional' },
+                  { id: 'dark-stellar', label: 'Dark Stellar', colors: ['bg-[#0F172A]', 'bg-[#6366F1]'], emoji: '🌑', desc: 'Alto Contraste Tecnológico' },
+                  { id: 'modern-blue', label: 'Classic Blue', colors: ['bg-[#EFF6FF]', 'bg-[#2563EB]'], emoji: '🔹', desc: 'Equilíbrio e Tradição' }
+                ].map((p) => (
+                  <button key={p.id} onClick={() => setAppTheme(p.id as any)} className={`p-8 rounded-[3rem] border-2 transition-all text-center group relative overflow-hidden ${theme === p.id ? 'border-primary bg-primary-soft shadow-xl' : 'border-slate-50 hover:border-card-border opacity-60 hover:opacity-100'}`}>
+                    <div className={`w-full h-32 rounded-[2rem] ${p.colors[0]} border border-card-border flex items-center justify-center mb-6 shadow-inner relative`}>
+                       <span className="text-4xl group-hover:scale-125 transition-transform duration-500">{p.emoji}</span>
+                       <div className={`absolute bottom-4 right-4 w-8 h-8 rounded-xl ${p.colors[1]} border-2 border-white shadow-lg shadow-black/5`} />
+                    </div>
+                    <p className={`text-[11px] font-black uppercase tracking-widest ${theme === p.id ? 'text-primary' : 'text-text-placeholder'}`}>{p.label}</p>
+                    <p className="text-[8px] font-bold text-text-muted uppercase mt-2 opacity-50">{p.desc}</p>
+                  </button>
+                ))}
+              </div>
+           </div>
         </div>
 
-        {/* Dados da Empresa */}
-        <div className="col-span-1 md:col-span-2 bg-[#0a0a20]/40 backdrop-blur-md border border-white/5 rounded-2xl p-8 space-y-5">
-          <h3 className="text-lg font-semibold border-b border-white/5 pb-4">Dados da Empresa</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div className="space-y-1">
-              <label className="text-sm text-gray-400">Nome / Razão Social</label>
-              <input type="text" value={razaoSocial} onChange={e => setRazaoSocial(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#4a4ae2] transition-colors" placeholder="Clínica Exemplo Ltda" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-sm text-gray-400">CPF / CNPJ</label>
-              <input type="text" value={cnpj} onChange={e => setCnpj(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#4a4ae2] transition-colors" placeholder="00.000.000/0001-00" />
-            </div>
-            <div className="space-y-1 md:col-span-2">
-              <label className="text-sm text-gray-400">Endereço Completo</label>
-              <input type="text" value={endereco} onChange={e => setEndereco(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#4a4ae2] transition-colors" placeholder="Rua Exemplo, 123 — Fortaleza, CE" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-sm text-gray-400">WhatsApp do Administrador</label>
-              <input type="text" value={adminPhone} onChange={e => setAdminPhone(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#4a4ae2] transition-colors" placeholder="55 85 99999-9999" />
-            </div>
-          </div>
+        {/* Informações de Cadastro */}
+        <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-10">
+           
+           <div className="premium-card p-12 bg-white space-y-10 shadow-md">
+              <h3 className="text-xl font-black text-text-main italic uppercase tracking-tighter border-b border-slate-50 pb-6">3. Dados da Operação</h3>
+              <div className="space-y-6">
+                 <div className="space-y-2">
+                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-2">Razão Social / Fantasia</label>
+                    <input value={razaoSocial} onChange={e => setRazaoSocial(e.target.value)} className="input-premium w-full py-5 text-base" />
+                 </div>
+                 <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                       <label className="text-[9px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-2">CNPJ / CPF</label>
+                       <input value={cnpj} onChange={e => setCnpj(e.target.value)} className="input-premium w-full" placeholder="00.000.000/0001-00" />
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-[9px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-2">Telefone Admin</label>
+                       <input value={adminPhone} onChange={e => setAdminPhone(e.target.value)} className="input-premium w-full" placeholder="55 85 9..." />
+                    </div>
+                 </div>
+                 <div className="space-y-2">
+                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-2">Endereço da Unidade</label>
+                    <input value={endereco} onChange={e => setEndereco(e.target.value)} className="input-premium w-full" />
+                 </div>
+              </div>
+           </div>
+
+           <div className="premium-card p-12 bg-white space-y-10 shadow-md">
+              <h3 className="text-xl font-black text-text-main italic uppercase tracking-tighter border-b border-slate-50 pb-6">4. Segmento Inteligente</h3>
+              <div className="grid grid-cols-2 gap-4">
+                 {[
+                   { id: "Clínica Médica", icon: "🩺" },
+                   { id: "Clínica de Estética", icon: "✨" },
+                   { id: "Fisioterapia", icon: "🧘" },
+                   { id: "Pilates", icon: "🤸" },
+                   { id: "Nutricionista", icon: "🍏" },
+                   { id: "Psicólogo", icon: "🧠" },
+                   { id: "Beleza / Barbearia", icon: "✂️" },
+                   { id: "Outros", icon: "🏢" }
+                 ].map((n) => (
+                   <button key={n.id} onClick={() => setNiche(n.id)} className={`flex flex-col items-center p-6 rounded-[2rem] border transition-all text-center ${niche === n.id ? 'border-primary bg-primary-soft shadow-sm ring-4 ring-primary/5' : 'border-slate-50 hover:border-card-border opacity-40 hover:opacity-100'}`}>
+                     <span className="text-2xl mb-2 grayscale group-hover:grayscale-0">{n.icon}</span>
+                     <span className="text-[9px] font-black uppercase text-text-main tracking-tighter leading-tight italic">{n.id}</span>
+                   </button>
+                 ))}
+              </div>
+              <div className="p-6 bg-primary-soft/50 border border-primary/20 rounded-[2rem] flex items-center gap-4">
+                 <span className="text-xl shrink-0">🤖</span>
+                 <p className="text-[9px] text-primary font-black uppercase leading-relaxed tracking-wider">
+                    O sistema adapta automaticamente labels e fluxos para {niche.toUpperCase()}.
+                 </p>
+              </div>
+           </div>
         </div>
 
-        {/* Identidade Visual */}
-        <div className="bg-[#0a0a20]/40 backdrop-blur-md border border-white/5 rounded-2xl p-8 space-y-6">
-          <h3 className="text-lg font-semibold border-b border-white/5 pb-4">Identidade Visual</h3>
+        {/* IA e Segurança */}
+        <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-10">
+           
+           <div className="premium-card p-12 bg-white space-y-8 shadow-lg">
+              <div className="flex items-center justify-between border-b border-slate-50 pb-6">
+                 <h3 className="text-xl font-black text-text-main italic uppercase tracking-tighter">5. Maya IA (Concierge WhatsApp)</h3>
+                 <span className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border ${botActive ? 'bg-status-success-bg text-status-success border-status-success/20' : 'bg-status-error-bg text-status-error border-status-error/20'}`}>
+                    {botActive ? 'ACTIVE' : 'IDLE'}
+                 </span>
+              </div>
+              <p className="text-[11px] text-text-muted font-medium leading-relaxed italic opacity-80">
+                 A Maya IA gerencia agendamentos, resolve dúvidas e qualifica leads 24h por dia via WhatsApp oficial.
+              </p>
+              <div className="flex gap-4">
+                 <button onClick={() => setBotActive(true)} className={`flex-1 py-5 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all ${botActive ? 'bg-primary text-white shadow-xl shadow-primary/20' : 'bg-slate-50 text-text-placeholder border border-card-border'}`}>Habilitar IA</button>
+                 <button onClick={() => setBotActive(false)} className={`flex-1 py-5 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all ${!botActive ? 'bg-status-error text-white shadow-xl shadow-status-error/20' : 'bg-slate-50 text-text-placeholder border border-card-border'}`}>Suspender</button>
+              </div>
+           </div>
 
-          {/* Logo Upload */}
-          <div className="space-y-3">
-            <label className="text-sm text-gray-400">Logo da Clínica</label>
-            <div
-              onClick={() => fileRef.current?.click()}
-              className="flex flex-col items-center justify-center gap-3 border-2 border-dashed border-white/10 rounded-xl p-6 cursor-pointer hover:border-[#4a4ae2]/60 hover:bg-white/2 transition-all"
-            >
-              {logoUrl ? (
-                <img src={logoUrl} alt="Logo" className="h-20 object-contain" />
-              ) : (
-                <>
-                  <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-2xl">🖼️</div>
-                  <p className="text-sm text-gray-400">Clique para fazer upload</p>
-                  <p className="text-xs text-gray-500">PNG, JPG, SVG ou WebP — máx. 2MB</p>
-                </>
-              )}
-              {uploading && <p className="text-xs text-[#8080ff] animate-pulse">Fazendo upload...</p>}
-              {uploadError && <p className="text-xs text-red-400">{uploadError}</p>}
-            </div>
-            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
-            {logoUrl && (
-              <p className="text-xs text-green-400">✅ Logo carregada. Ela aparecerá no topo do seu painel.</p>
-            )}
-          </div>
+           <div className="premium-card p-12 bg-white space-y-8 flex flex-col justify-between shadow-lg">
+              <div>
+                 <h3 className="text-xl font-black text-text-main italic uppercase tracking-tighter border-b border-slate-50 pb-6">6. Compliance & Backup</h3>
+                 <p className="text-[11px] text-text-muted font-medium mt-4 leading-relaxed opacity-70 italic">Gerencia o banco de dados e exporta prontuários e transações em formato estruturado auditável.</p>
+              </div>
+              <a href={`/api/export/backup`} download className="btn-secondary w-full py-5 flex items-center justify-center gap-3 text-[10px] shadow-sm hover:border-primary/40 transition-all font-black">
+                <span>📦 Exportar todos os dados (Synka Cloud Backup)</span>
+              </a>
+           </div>
 
-          {/* Cor principal */}
-          <div className="space-y-3">
-            <label className="text-sm text-gray-400">Cor Principal</label>
-            <div className="flex items-center gap-4">
-              <input type="color" value={primaryColor} onChange={e => setPrimaryColor(e.target.value)} className="w-10 h-10 rounded border-0 bg-transparent cursor-pointer" />
-              <span className="font-mono text-sm uppercase text-gray-300">{primaryColor}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Segmento do Negócio */}
-        <div id="nicho" className="bg-[#0a0a20]/40 backdrop-blur-md border border-white/5 rounded-2xl p-8 space-y-6 scroll-mt-20">
-          <h3 className="text-lg font-semibold border-b border-white/5 pb-4">Segmento do Negócio</h3>
-          <div className="space-y-4">
-            <label className="text-sm font-bold text-gray-500 uppercase tracking-widest pl-1">Escolha seu Nicho (Dicionário Inteligente)</label>
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { id: "Clínica Médica", icon: "🩺", desc: "Médicos, Dentistas, Saúde" },
-                { id: "Clínica de Estética", icon: "✨", desc: "Beleza, Bem-estar" },
-                { id: "Fisioterapia", icon: "🧘", desc: "Reabilitação, Saúde" },
-                { id: "Pilates", icon: "🤸", desc: "Estúdios, Movimento" },
-                { id: "Nutricionista", icon: "🍏", desc: "Dieta, Nutrição, Saúde" },
-                { id: "Psicólogo", icon: "🧠", desc: "Terapia, Saúde Mental" },
-                { id: "Salão de Beleza / Barbearia", icon: "✂️", desc: "Cabelo, Barba, Unhas" },
-                { id: "Outros", icon: "🏢", desc: "Outros Serviços" }
-              ].map((n) => (
-                <button
-                  key={n.id}
-                  onClick={() => setNiche(n.id)}
-                  className={`flex flex-col items-start p-4 rounded-2xl border transition-all text-left group ${
-                    niche === n.id 
-                      ? 'border-[#4a4ae2] bg-[#4a4ae2]/10 ring-2 ring-[#4a4ae2]/20 shadow-lg shadow-[#4a4ae2]/5' 
-                      : 'border-white/5 bg-white/2 hover:border-white/20 hover:bg-white/5'
-                  }`}
-                >
-                  <span className={`text-2xl mb-2 transition-transform ${niche === n.id ? 'scale-110' : 'group-hover:scale-110'}`}>{n.icon}</span>
-                  <span className={`text-xs font-bold leading-tight ${niche === n.id ? 'text-white' : 'text-gray-300'}`}>{n.id}</span>
-                  <span className="text-[10px] text-gray-500 mt-1">{n.desc}</span>
-                </button>
-              ))}
-            </div>
-            <p className="text-[10px] text-[#a0a0ff] italic mt-2">
-              * O sistema adapta nomes de tabelas e botões para o nicho escolhido.
-            </p>
-          </div>
-        </div>
-
-        {/* Atendimento IA */}
-        <div className="bg-[#0a0a20]/40 backdrop-blur-md border border-white/5 rounded-2xl p-8 space-y-6">
-          <div className="flex items-center justify-between border-b border-white/5 pb-4">
-            <h3 className="text-lg font-semibold">Atendimento IA</h3>
-            <div className="flex items-center gap-2">
-              <span className={`w-2.5 h-2.5 rounded-full ${botActive ? 'bg-green-500 shadow-[0_0_8px_#22c55e]' : 'bg-red-500'}`}></span>
-              <span className={`text-xs font-bold uppercase tracking-widest ${botActive ? 'text-green-400' : 'text-red-400'}`}>{botActive ? 'Ativo' : 'Pausado'}</span>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-3 pt-2">
-            <p className="text-xs text-gray-500 leading-relaxed mb-2">
-              Controle o robô que atende seus clientes via WhatsApp. Quando pausado, ele não responderá novas mensagens.
-            </p>
-            <button
-              onClick={() => setBotActive(false)}
-              className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm transition-all ${!botActive ? 'bg-red-500/30 border border-red-500 text-red-400' : 'bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400'}`}
-            >
-              ⏹ PAUSAR Atendimento Automático
-            </button>
-            <button
-              onClick={() => setBotActive(true)}
-              className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm transition-all ${botActive ? 'bg-green-500/30 border border-green-500 text-green-400' : 'bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 text-green-400'}`}
-            >
-              ▶ REATIVAR Atendimento Automático
-            </button>
-          </div>
-        </div>
-
-        {/* Backup */}
-        <div className="col-span-1 md:col-span-2 bg-[#0a0a20]/40 backdrop-blur-md border border-white/5 rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <h3 className="font-semibold">Backup dos Dados</h3>
-            <p className="text-sm text-gray-400 mt-1">Exporta todos os pacientes e agendamentos da sua clínica em formato CSV.</p>
-          </div>
-          <a
-            href={`/api/backup/export?tenantId=${TENANT_ID}`}
-            download
-            className="px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-medium transition-all whitespace-nowrap"
-          >
-            ⬇ Baixar Backup CSV
-          </a>
         </div>
 
       </div>

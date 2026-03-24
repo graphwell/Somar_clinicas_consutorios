@@ -14,7 +14,7 @@ const ThemeContext = createContext<ThemeContextType>({
 });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setPreset] = useState<AppearancePreset>('dark-stellar');
+  const [theme, setPreset] = useState<AppearancePreset>('light-soft');
 
   useEffect(() => {
     const stored = localStorage.getItem('somar-theme') as AppearancePreset | null;

@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from 'react';
+import { fetchWithAuth } from '@/lib/api-utils';
 
 const StatusBadge = ({ status }: { status: string }) => {
   const colors: Record<string, string> = {
@@ -77,13 +78,12 @@ export default function BillingPage() {
     if (plano === 'trial') return;
     setLoading(plano);
     try {
-      const res = await fetch('/api/billing/checkout', {
+      const res = await fetchWithAuth('/api/billing/checkout', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tenantId: 'clinica_id_default', plano, email: 'admin@clinica.com' }),
+        body: JSON.stringify({ plano }),
       });
-      const { url } = await res.json();
-      if (url) window.location.href = url;
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
     } finally { setLoading(null); }
   };
 

@@ -1,24 +1,12 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
-import { verifyToken } from '@/lib/auth';
-
-// Helper: Extrair Tenant da Header (Auth Token) ou Query (MVP fallbak)
-async function getTenant(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const queryTenant = searchParams.get('tenantId');
-  if (queryTenant) return queryTenant;
-
-  const token = request.headers.get('authorization')?.split(' ')[1];
-  if (!token) return null;
-  const decoded = verifyToken(token);
-  return decoded?.tenantId || null;
-}
+import { getTenantPrisma } from '@/lib/prisma';
+import { getAuthorizedTenantId } from '@/lib/auth-helpers';
 
 export async function GET(request: Request) {
-  const tenantId = await getTenant(request);
-  if (!tenantId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
-
   try {
+    const tenantId = await getAuthorizedTenantId();
+    const prisma = getTenantPrisma(tenantId);
+
     const pacientes = await prisma.paciente.findMany({
       where: { tenantId },
       include: {
@@ -27,7 +15,8 @@ export async function GET(request: Request) {
         },
         agendamentos: {
           orderBy: { dataHora: 'desc' },
-          take: 1
+          take: 1,
+          include: { servico: true }
         }
       },
       orderBy: { createdAt: 'desc' }
@@ -35,16 +24,20 @@ export async function GET(request: Request) {
 
     return NextResponse.json(pacientes);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('[PATIENTS_GET_ERROR]', error);
+    return NextResponse.json({ error: error.message }, { status: 401 });
   }
 }
 
 export async function POST(request: Request) {
-  const tenantId = await getTenant(request);
-  if (!tenantId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
-
   try {
+    const tenantId = await getAuthorizedTenantId();
+    const prisma = getTenantPrisma(tenantId);
     const { nome, telefone } = await request.json();
+
+    if (!nome || !telefone) {
+      return NextResponse.json({ error: 'Nome e telefone são obrigatórios' }, { status: 400 });
+    }
 
     const paciente = await prisma.paciente.create({
       data: {
@@ -55,7 +48,8 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json(paciente);
-  } catch (error) {
+  } catch (error: any) {
+    console.error('[PATIENTS_POST_ERROR]', error);
     return NextResponse.json({ error: 'Erro ao criar paciente' }, { status: 500 });
   }
 }

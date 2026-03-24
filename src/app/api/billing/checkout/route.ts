@@ -1,19 +1,30 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import prisma from '@/lib/prisma';
+import { getAuthorizedTenantId } from '@/lib/auth-helpers';
+import { getTenantPrisma } from '@/lib/prisma';
 
 const PLANS: Record<string, string> = {
   starter: process.env.STRIPE_PRICE_STARTER || '',
   pro: process.env.STRIPE_PRICE_PRO || '',
+  max: process.env.STRIPE_PRICE_MAX || '',
 };
 
 export async function POST(request: Request) {
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '');
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2024-06-20' as any });
   try {
-    const { tenantId, plano, email } = await request.json();
-    if (!tenantId || !plano || !PLANS[plano]) {
+    const tenantId = await getAuthorizedTenantId();
+    const prisma = getTenantPrisma(tenantId);
+    const { plano } = await request.json();
+
+    if (!plano || !PLANS[plano]) {
       return NextResponse.json({ error: 'Parâmetros inválidos.' }, { status: 400 });
     }
+
+    // Buscar Clínica para pegar email admin
+    const clinica = await prisma.clinica.findUnique({ where: { tenantId } });
+    if (!clinica) return NextResponse.json({ error: 'Clínica não encontrada.' }, { status: 404 });
+
+    const email = clinica.adminPhone + "@synka.io"; // Fallback email pattern or use a real field if exists
 
     // Buscar ou criar customer no Stripe
     let assinatura = await prisma.assinatura.findUnique({ where: { tenantId } });
@@ -41,8 +52,8 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({ url: session.url });
-  } catch (error) {
+  } catch (error: any) {
     console.error('[BILLING_CHECKOUT_ERROR]', error);
-    return NextResponse.json({ error: 'Erro ao criar sessão de pagamento.' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Erro ao criar sessão de pagamento.' }, { status: 500 });
   }
 }
