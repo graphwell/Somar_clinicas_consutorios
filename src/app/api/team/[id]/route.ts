@@ -5,13 +5,13 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
   const params = await props.params;
   const { id } = params;
   const body = await request.json();
-  const { tenantId, nome, especialidade, bio, fotoUrl, color, horariosJson, ativo } = body;
+  const { tenantId, nome, especialidade, registroProfissional, bio, fotoUrl, color, horariosJson, ativo } = body;
 
   try {
     // @ts-ignore
     const prof = await prisma.profissional.update({
       where: { id, tenantId }, // tenantId garante que só a clinica dona altera
-      data: { nome, especialidade, bio, fotoUrl, color, horariosJson, ativo }
+      data: { nome, especialidade, registroProfissional, bio, fotoUrl, color, horariosJson, ativo }
     });
     return NextResponse.json(prof);
   } catch (error) {

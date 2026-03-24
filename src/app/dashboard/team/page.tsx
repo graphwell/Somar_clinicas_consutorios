@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNicho } from '@/context/NichoContext';
 
 const TENANT_ID = 'clinica_id_default';
@@ -16,6 +16,7 @@ interface Profissional {
   id: string;
   nome: string;
   especialidade: string | null;
+  registroProfissional: string | null;
   bio: string | null;
   fotoUrl: string | null;
   color: string | null;
@@ -51,16 +52,20 @@ export default function TeamPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Profissional | null>(null);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form
   const [nome, setNome] = useState('');
   const [especialidade, setEspecialidade] = useState('');
+  const [registroProfissional, setRegistroProfissional] = useState('');
   const [bio, setBio] = useState('');
   const [fotoUrl, setFotoUrl] = useState('');
   const [color, setColor] = useState('#4a4ae2');
   const [horarios, setHorarios] = useState<HorariosSemana>(DEFAULT_HORARIOS);
   const [ativo, setAtivo] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const fetchTeam = useCallback(() => {
     setLoading(true);
@@ -76,6 +81,7 @@ export default function TeamPage() {
     setEditing(null);
     setNome('');
     setEspecialidade('');
+    setRegistroProfissional('');
     setBio('');
     setFotoUrl('');
     setColor('#4a4ae2');
@@ -88,6 +94,7 @@ export default function TeamPage() {
     setEditing(p);
     setNome(p.nome);
     setEspecialidade(p.especialidade || '');
+    setRegistroProfissional(p.registroProfissional || '');
     setBio(p.bio || '');
     setFotoUrl(p.fotoUrl || '');
     setColor(p.color || '#4a4ae2');
@@ -106,6 +113,7 @@ export default function TeamPage() {
         tenantId: TENANT_ID, 
         nome, 
         especialidade, 
+        registroProfissional,
         bio,
         fotoUrl: fotoUrl || null,
         color,
@@ -126,6 +134,23 @@ export default function TeamPage() {
     }
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFotoUrl(reader.result as string);
+      setUploading(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const triggerUpload = () => {
+    fileInputRef.current?.click();
+  };
+
   const updateHorario = (dia: string, field: string, value: any) => {
     setHorarios(prev => ({
       ...prev,
@@ -142,7 +167,7 @@ export default function TeamPage() {
           <h2 className="text-3xl font-black tracking-tight text-[var(--foreground)] uppercase italic">
             🧑‍💼 Minha Equipe <span className="text-[var(--accent)] text-lg">2.0</span>
           </h2>
-          <p className="text-[10px] text-[var(--text-muted)] mt-1 font-black uppercase tracking-widest opacity-60">Gestão avançada de perfis, agendas e identidade visual.</p>
+          <p className="text-[10px] text-[var(--text-muted)] mt-1 font-black uppercase tracking-widest opacity-60">Gestão avançada de perfis, registros e fotos.</p>
         </div>
         <button onClick={openAdd} className="px-8 py-4 bg-[var(--accent)] hover:opacity-90 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white transition-all shadow-xl shadow-[var(--accent)]/20 active:scale-95">+ Adicionar {labels.profissional}</button>
       </div>
@@ -173,7 +198,10 @@ export default function TeamPage() {
               </div>
 
               <h3 className="text-xl font-black text-[var(--foreground)] tracking-tight mb-1 uppercase italic">{p.nome}</h3>
-              <p className="text-[9px] font-black text-[var(--accent)] uppercase tracking-widest mb-4" style={{ color: p.color || 'var(--accent)' }}>{p.especialidade || labels.profissional}</p>
+              <p className="text-[9px] font-black text-[var(--accent)] uppercase tracking-widest mb-2" style={{ color: p.color || 'var(--accent)' }}>{p.especialidade || labels.profissional}</p>
+              {p.registroProfissional && (
+                <p className="text-[8px] font-black text-[var(--text-muted)] border border-[var(--border)] px-2 py-0.5 rounded-md uppercase tracking-[0.2em] mb-4 opacity-60">{p.registroProfissional}</p>
+              )}
               
               <p className="text-[11px] text-[var(--text-muted)] font-medium italic mb-6 line-clamp-2 h-8 opacity-70">
                 {p.bio || 'Sem biografia disponível.'}
@@ -202,9 +230,15 @@ export default function TeamPage() {
                     <label className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">Nome Completo</label>
                     <input required type="text" value={nome} onChange={e => setNome(e.target.value)} className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-6 py-4 text-sm focus:outline-none focus:border-[var(--accent)] font-medium" />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">Especialidade</label>
-                    <input type="text" value={especialidade} onChange={e => setEspecialidade(e.target.value)} className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-6 py-4 text-sm focus:outline-none focus:border-[var(--accent)] font-medium" />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">Especialidade</label>
+                      <input type="text" value={especialidade} onChange={e => setEspecialidade(e.target.value)} className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-6 py-4 text-sm focus:outline-none focus:border-[var(--accent)] font-medium" placeholder="Ex: Médico" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">Reg. Profissional</label>
+                      <input type="text" value={registroProfissional} onChange={e => setRegistroProfissional(e.target.value)} className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-6 py-4 text-sm focus:outline-none focus:border-[var(--accent)] font-medium" placeholder="Ex: CRM 12345" />
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <label className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">Biografia Curta</label>
@@ -222,23 +256,46 @@ export default function TeamPage() {
 
                <div className="space-y-6">
                   <div className="space-y-2">
-                    <label className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">Foto (URL)</label>
-                    <input type="text" value={fotoUrl} onChange={e => setFotoUrl(e.target.value)} className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-6 py-4 text-sm focus:outline-none" placeholder="https://..." />
+                    <label className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">Foto do Profissional</label>
+                    <div className="relative group cursor-pointer" onClick={triggerUpload}>
+                       <div className="w-full aspect-square rounded-[2rem] bg-[var(--foreground)]/5 border-2 border-dashed border-[var(--border)] group-hover:border-[var(--accent)]/40 transition-all flex flex-col items-center justify-center overflow-hidden">
+                          {uploading ? (
+                             <div className="w-8 h-8 border-2 border-[var(--accent)]/20 border-t-[var(--accent)] rounded-full animate-spin" />
+                          ) : fotoUrl ? (
+                             <>
+                               <img src={fotoUrl} alt="Preview" className="w-full h-full object-cover" />
+                               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                  <span className="text-[10px] font-black uppercase tracking-widest text-white">Trocar Foto</span>
+                               </div>
+                             </>
+                          ) : (
+                             <>
+                               <span className="text-3xl mb-2">📸</span>
+                               <span className="text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)]">Tirar Foto ou Upload</span>
+                             </>
+                          )}
+                       </div>
+                       <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" capture="environment" className="hidden" />
+                    </div>
+                    {fotoUrl && (
+                       <button type="button" onClick={(e) => { e.stopPropagation(); setFotoUrl(''); }} className="text-[8px] font-black uppercase tracking-widest text-red-500 mt-2 hover:underline">Remover Foto</button>
+                    )}
                   </div>
+
                   <div className="space-y-2">
                     <label className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">Agenda Semanal</label>
                     <div className="bg-[var(--foreground)]/[0.02] border border-[var(--border)] p-4 rounded-3xl space-y-2">
                       {DIAS_SEMANA.map(dia => (
                         <div key={dia.id} className="flex items-center justify-between text-[10px] py-1">
                           <div className="flex items-center gap-2">
-                            <input type="checkbox" checked={horarios[dia.id]?.ativo} onChange={e => updateHorario(dia.id, 'ativo', e.target.checked)} className="w-4 h-4 rounded border-[var(--border)]" />
+                            <input type="checkbox" checked={horarios[dia.id]?.ativo} onChange={e => updateHorario(dia.id, 'ativo', e.target.checked)} className="w-4 h-4 rounded border-[var(--border)] text-[var(--accent)]" />
                             <span className="font-black uppercase">{dia.label}</span>
                           </div>
                           {horarios[dia.id]?.ativo && (
                             <div className="flex gap-2">
-                              <input type="time" value={horarios[dia.id]?.inicio} onChange={e => updateHorario(dia.id, 'inicio', e.target.value)} className="bg-transparent font-black" />
+                              <input type="time" value={horarios[dia.id]?.inicio} onChange={e => updateHorario(dia.id, 'inicio', e.target.value)} className="bg-transparent font-black focus:outline-none" />
                               <span>-</span>
-                              <input type="time" value={horarios[dia.id]?.fim} onChange={e => updateHorario(dia.id, 'fim', e.target.value)} className="bg-transparent font-black" />
+                              <input type="time" value={horarios[dia.id]?.fim} onChange={e => updateHorario(dia.id, 'fim', e.target.value)} className="bg-transparent font-black focus:outline-none" />
                             </div>
                           )}
                         </div>
@@ -249,7 +306,7 @@ export default function TeamPage() {
 
                <div className="col-span-full flex gap-4 mt-4">
                   <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-5 bg-[var(--foreground)]/5 rounded-2xl text-[10px] font-black uppercase tracking-widest">Cancelar</button>
-                  <button type="submit" disabled={saving} className="flex-2 py-5 bg-[var(--accent)] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-[var(--accent)]/20">
+                  <button type="submit" disabled={saving || uploading} className="flex-2 py-5 bg-[var(--accent)] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-[var(--accent)]/20">
                     {saving ? 'SALVANDO...' : 'CONFIRMAR ALTERAÇÕES'}
                   </button>
                </div>

@@ -21,7 +21,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const { tenantId, nome, especialidade, bio, fotoUrl, color, horariosJson, ativo } = body;
+  const { tenantId, nome, especialidade, registroProfissional, bio, fotoUrl, color, horariosJson, ativo } = body;
   
     if (!tenantId || !nome) return NextResponse.json({ error: 'Campos obrigatórios faltando' }, { status: 400 });
   
@@ -32,6 +32,7 @@ export async function POST(request: Request) {
           tenantId,
           nome,
           especialidade: especialidade || null,
+          registroProfissional: registroProfissional || null,
           bio: bio || null,
           fotoUrl: fotoUrl || null,
           color: color || '#4a4ae2',

@@ -75,6 +75,7 @@ model Profissional {
   id           String        @id @default(uuid())
   nome         String
   especialidade String?
+  registroProfissional String?
   bio          String?
   fotoUrl      String?
   color        String?       @default("#4a4ae2")
