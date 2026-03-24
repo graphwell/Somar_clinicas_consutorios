@@ -15,29 +15,30 @@
   --color-secondary: #10B981;
   --color-secondary-soft: #D1FAE5;
 
-  /* Universal Status */
-  --color-status-success: #22C55E;
-  --color-status-success-bg: #DCFCE7;
+  /* Universal Status - High Contrast V2.3 */
+  --color-status-success: #10B981;
+  --color-status-success-bg: #E1F9EF;
   
   --color-status-pending: #F59E0B;
-  --color-status-pending-bg: #FEF3C7;
+  --color-status-pending-bg: #FFF7E6;
   
-  --color-status-error: #EF4444;
-  --color-status-error-bg: #FEE2E2;
+  --color-status-error: #F43F5E;
+  --color-status-error-bg: #FFF1F2;
   
-  --color-status-info: #3B82F6;
-  --color-status-info-bg: #DBEAFE;
+  --color-status-info: #0EA5E9;
+  --color-status-info-bg: #F0F9FF;
 
   /* Typography */
   --color-text-main: #1E293B;
   --color-text-muted: #64748B;
   --color-text-placeholder: #94A3B8;
 
-  /* Effects */
+  /* Premium Elevations */
   --radius-premium: 18px;
   --radius-ultra: 40px;
   --shadow-soft: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-  --shadow-premium: 0 10px 15px -3px rgb(0 0 0 / 0.03), 0 4px 6px -4px rgb(0 0 0 / 0.03);
+  --shadow-premium: 0 20px 25px -5px rgb(0 0 0 / 0.05), 0 8px 10px -6px rgb(0 0 0 / 0.05);
+  --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
 }
 
 :root {
