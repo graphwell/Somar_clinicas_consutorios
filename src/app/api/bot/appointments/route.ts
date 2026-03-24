@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { generateEventoId } from '@/lib/utils-saas';
+import { createFinancialTransaction } from '@/lib/financial-automation';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -114,6 +115,15 @@ export async function POST(request: Request) {
     }
   } catch (e) {
     console.error('Erro ao buscar upsell:', e);
+  }
+
+  // V2: Automação Financeira
+  if (servicoId) {
+    // @ts-ignore
+    const s = await prisma.servico.findUnique({ where: { id: servicoId } });
+    if (s && s.preco > 0) {
+      await createFinancialTransaction(agendamento.id, tenantId, s.preco);
+    }
   }
 
   return NextResponse.json({ 

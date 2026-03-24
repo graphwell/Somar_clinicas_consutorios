@@ -5,12 +5,13 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
   const params = await props.params;
   const { id } = params;
   const body = await request.json();
-  const { tenantId, nome, especialidade, ativo } = body;
+  const { tenantId, nome, especialidade, bio, fotoUrl, color, horariosJson, ativo } = body;
 
   try {
+    // @ts-ignore
     const prof = await prisma.profissional.update({
       where: { id, tenantId }, // tenantId garante que só a clinica dona altera
-      data: { nome, especialidade, ativo }
+      data: { nome, especialidade, bio, fotoUrl, color, horariosJson, ativo }
     });
     return NextResponse.json(prof);
   } catch (error) {
@@ -29,6 +30,7 @@ export async function DELETE(request: Request, props: { params: Promise<{ id: st
   try {
     // Soft delete ou Hard delete? Se tiver agendamentos ligados, hard delete falhará
     // Vamos fazer soft delete:
+    // @ts-ignore
     const prof = await prisma.profissional.update({
       where: { id, tenantId },
       data: { ativo: false }

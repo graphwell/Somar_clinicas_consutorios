@@ -30,6 +30,7 @@ model Clinica {
   servicos       Servico[]
   combosUpsell   ComboUpsell[]
   campanhasAviso CampanhaAviso[]
+  transacoes     TransacaoFinanceira[]
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
@@ -55,6 +56,12 @@ model Paciente {
   telefone        String
   convenio        String?
   tipoAtendimento String        @default("particular")
+  
+  // Stats V2
+  totalGasto      Float         @default(0.0)
+  ultimaVisita    DateTime?
+  contagemVisitas Int           @default(0)
+
   tenantId        String
   clinica         Clinica       @relation(fields: [tenantId], references: [tenantId])
   agendamentos    Agendamento[]
@@ -68,16 +75,31 @@ model Profissional {
   id           String        @id @default(uuid())
   nome         String
   especialidade String?
+  bio          String?
   fotoUrl      String?
-  horariosJson Json?
+  color        String?       @default("#4a4ae2")
+  horariosJson Json?         // Legacy (keep for compatibility if needed)
   ativo        Boolean       @default(true)
   tenantId     String
   clinica      Clinica       @relation(fields: [tenantId], references: [tenantId])
   agendamentos Agendamento[]
+  escalas      ProfessionalSchedule[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
   @@map("profissionais")
+}
+
+model ProfessionalSchedule {
+  id             String       @id @default(uuid())
+  profissionalId String
+  diaSemana      Int          // 0-6
+  horaInicio     String       // "08:00"
+  horaFim        String       // "18:00"
+  ativo          Boolean      @default(true)
+  profissional   Profissional @relation(fields: [profissionalId], references: [id])
+
+  @@map("professional_schedules")
 }
 
 model ConvenioEmpresa {
@@ -108,8 +130,8 @@ model Agendamento {
   pacienteId      String
   profissionalId  String?
   dataHora        DateTime
-  status          String        @default("pendente") // confirmado, pendente, cancelado, remarcado
-  eventoId        String        @unique // Híbrido: hash(pacienteId + dataHora + tenantId + profissionalId)
+  status          String        @default("pendente") // confirmado, pendente, cancelado, done
+  eventoId        String        @unique 
   convenio        String?
   tipoAtendimento String        @default("particular")
   tenantId        String
@@ -118,10 +140,38 @@ model Agendamento {
   profissional    Profissional? @relation(fields: [profissionalId], references: [id])
   servicoId       String?
   servico         Servico?      @relation(fields: [servicoId], references: [id])
+  
+  transacao       TransacaoFinanceira?
+
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
   @@map("agendamentos")
+}
+
+model TransacaoFinanceira {
+  id             String       @id @default(uuid())
+  tenantId       String
+  tipo           String       @default("income") // income, expense
+  status         String       @default("pending") // pending, previsto, realizado, canceled
+  valor          Float        @default(0.0)
+  agendamentoId  String?      @unique
+  
+  clinica        Clinica      @relation(fields: [tenantId], references: [tenantId])
+  agendamento    Agendamento? @relation(fields: [agendamentoId], references: [id])
+  
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@map("transacoes_financeiras")
+}
+
+model AiLog {
+  id        String   @id @default(uuid())
+  mensagem  String
+  createdAt DateTime @default(now())
+
+  @@map("ai_logs")
 }
 
 model InviteToken {
@@ -155,6 +205,7 @@ model Servico {
   descricao        String?
   duracaoMinutos   Int      @default(30)
   preco            Float    @default(0.0)
+  color            String?  @default("#3B82F6")
   nicho            String?
   ativo            Boolean  @default(true)
   tenantId         String
@@ -170,7 +221,7 @@ model Servico {
 }
 
 model ComboUpsell {
-  id                   String   @id @default(uuid())
+  idItem               String   @id @default(uuid()) @map("id")
   tenantId             String
   servicoGatilhoId     String
   servicoOferecidoId   String
@@ -214,4 +265,3 @@ model Notificacao {
 
   @@map("notificacoes")
 }
-

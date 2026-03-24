@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { updateFinancialAndClientStats } from '@/lib/financial-automation';
 
 export async function PUT(request: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -55,6 +56,12 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
         where: { id },
         data
       });
+
+      // V2: Automação Financeira & Estatísticas
+      if (status || dataHora) {
+        await updateFinancialAndClientStats(id, tenantId, status || 'remarcado');
+      }
+
       return NextResponse.json({ success: true, message: 'Agendamento atualizado com sucesso', agendamento: updated });
     }
 

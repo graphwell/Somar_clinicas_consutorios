@@ -6,7 +6,7 @@ export async function GET(request: Request) {
   const tenantId = searchParams.get('tenantId') || 'clinica_id_default';
 
   try {
-    // @ts-ignore - Prisma Client might not have refreshed in the IDE even after generate
+    // @ts-ignore
     const servicos = await prisma.servico.findMany({
       where: { 
         tenantId,
@@ -24,10 +24,19 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { nome, descricao, preco, duracaoMinutos, tenantId } = body;
+    const { id, nome, descricao, preco, duracaoMinutos, tenantId, color } = body;
 
     const parsedPreco = parseFloat(String(preco).replace(',', '.')) || 0;
     const parsedDuracao = parseInt(String(duracaoMinutos)) || 30;
+
+    if (id) {
+       // @ts-ignore
+       const updated = await prisma.servico.update({
+          where: { id },
+          data: { nome, descricao, preco: parsedPreco, duracaoMinutos: parsedDuracao, color }
+       });
+       return NextResponse.json({ servico: updated });
+    }
 
     const novoServico = await prisma.servico.create({
       data: {
@@ -35,13 +44,14 @@ export async function POST(request: Request) {
         descricao,
         preco: parsedPreco,
         duracaoMinutos: parsedDuracao,
-        tenantId
+        tenantId,
+        color: color || '#3B82F6'
       }
     });
 
     return NextResponse.json({ servico: novoServico });
   } catch (error) {
-    console.error('Erro ao criar serviço:', error);
-    return NextResponse.json({ error: 'Erro ao criar serviço' }, { status: 500 });
+    console.error('Erro ao processar serviço:', error);
+    return NextResponse.json({ error: 'Erro ao processar serviço' }, { status: 500 });
   }
 }

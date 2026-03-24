@@ -35,60 +35,60 @@ export default function PatientsPage() {
   );
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="max-w-6xl mx-auto space-y-8 pb-10">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 bg-[var(--card-bg)] border border-[var(--border)] p-8 rounded-[2.5rem] shadow-sm">
         <div>
-          <h2 className="text-2xl font-bold">{labels.cliente}s</h2>
-          <p className="text-gray-400 text-sm mt-1">Histórico e cadastro de {labels.cliente.toLowerCase()}s da clínica.</p>
+          <h2 className="text-3xl font-black tracking-tight text-[var(--foreground)]">{labels.cliente}s</h2>
+          <p className="text-[var(--text-muted)] text-sm mt-1 font-medium italic">Histórico e cadastro de {labels.cliente.toLowerCase()}s da clínica.</p>
         </div>
-        <a href="/dashboard" className="px-5 py-2.5 bg-[#4a4ae2] hover:bg-[#3a3ab2] rounded-xl text-sm font-semibold transition-all shadow-[0_4px_20px_rgba(74,74,226,0.3)] inline-block">
-          + Novo {labels.cliente} via Agenda
+        <a href="/dashboard" className="px-8 py-4 bg-[var(--accent)] hover:opacity-90 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-xl shadow-[var(--accent)]/20 active:scale-95 inline-block text-center">
+          <span>➕ Novo {labels.cliente} via Agenda</span>
         </a>
       </div>
 
-      <div className="relative">
+      <div className="relative group">
         <input
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder={`Buscar por nome ou telefone...`}
-          className="w-full bg-[#0a0a20]/40 border border-white/10 rounded-xl px-5 py-3 text-sm focus:outline-none focus:border-[#4a4ae2] transition-colors pl-10"
+          className="w-full bg-[var(--card-bg)] border border-[var(--border)] rounded-2xl px-6 py-4 text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent)]/10 transition-all pl-12 font-medium"
         />
-        <svg className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <svg className="absolute left-4 top-4.5 w-5 h-5 text-[var(--text-muted)] opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
       </div>
 
       {loading ? (
-        <div className="flex justify-center p-12">
-          <div className="w-8 h-8 border-2 border-[#4a4ae2] border-t-transparent rounded-full animate-spin"></div>
+        <div className="flex justify-center p-20 animate-pulse text-[var(--text-muted)] font-black uppercase tracking-widest text-xs">
+          Carregando Clientes...
         </div>
       ) : pacientes.length === 0 ? (
-        <div className="bg-[#0a0a20]/40 border border-white/5 rounded-2xl p-8 text-center text-gray-400">
-          <p className="text-4xl mb-3">👥</p>
-          <p className="font-medium text-white">Nenhum {labels.cliente.toLowerCase()} cadastrado ainda.</p>
-          <p className="text-sm mt-1">Os {labels.cliente.toLowerCase()}s aparecem automaticamente quando a IA registra um agendamento via WhatsApp.</p>
+        <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] p-16 text-center text-[var(--text-muted)] shadow-sm">
+          <p className="text-7xl mb-6 opacity-30">👥</p>
+          <p className="font-black text-[var(--foreground)] text-lg uppercase tracking-tight">Nenhum {labels.cliente.toLowerCase()} cadastrado</p>
+          <p className="text-xs mt-2 font-medium">Os {labels.cliente.toLowerCase()}s aparecem automaticamente quando a IA registra um agendamento.</p>
         </div>
       ) : (
-        <div className="bg-[#0a0a20]/40 border border-white/5 rounded-2xl overflow-hidden shadow-xl">
+        <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm whitespace-nowrap">
-              <thead className="bg-[#ffffff05] text-gray-400 border-b border-white/10 uppercase text-xs tracking-wider">
+              <thead className="bg-[var(--foreground)]/[0.02] text-[var(--text-muted)] border-b border-[var(--border)] uppercase text-[10px] font-black tracking-widest">
                 <tr>
-                  <th className="px-6 py-4 font-semibold">Nome</th>
-                  <th className="px-6 py-4 font-semibold">Telefone</th>
-                  <th className="px-6 py-4 font-semibold">Cadastrado em</th>
-                  <th className="px-6 py-4 font-semibold text-center">Agendamentos</th>
-                  <th className="px-6 py-4 font-semibold">Última Visita</th>
+                  <th className="px-8 py-6">Nome</th>
+                  <th className="px-8 py-6">Telefone</th>
+                  <th className="px-8 py-6">Cadastro</th>
+                  <th className="px-8 py-6 text-center">Agendamentos</th>
+                  <th className="px-8 py-6">Última Visita</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5">
+              <tbody className="divide-y divide-[var(--border)]">
                 {filtered.map(p => (
-                  <tr key={p.id} className="hover:bg-white/5 transition-colors">
-                    <td className="px-6 py-4 font-medium text-white">{p.nome}</td>
-                    <td className="px-6 py-4 text-gray-300">{p.telefone}</td>
-                    <td className="px-6 py-4 text-gray-400">{new Date(p.createdAt).toLocaleDateString('pt-BR')}</td>
-                    <td className="px-6 py-4 text-center">
-                      <span className="bg-white/10 text-white px-2.5 py-1 rounded-lg font-mono text-xs">{p._count.agendamentos}</span>
+                  <tr key={p.id} className="hover:bg-[var(--foreground)]/[0.01] transition-colors group">
+                    <td className="px-8 py-5 font-black text-[var(--foreground)] tracking-tight group-hover:text-[var(--accent)] transition-colors">{p.nome}</td>
+                    <td className="px-8 py-5 text-[var(--text-muted)] font-bold">{p.telefone}</td>
+                    <td className="px-8 py-5 text-[var(--text-muted)] font-medium">{new Date(p.createdAt).toLocaleDateString('pt-BR')}</td>
+                    <td className="px-8 py-5 text-center">
+                      <span className="bg-[var(--accent)]/10 text-[var(--accent)] px-3 py-1 rounded-lg font-black text-[10px] shadow-inner">{p._count.agendamentos}</span>
                     </td>
-                    <td className="px-6 py-4 text-gray-400">
+                    <td className="px-8 py-5 text-[var(--text-muted)] font-bold">
                       {p.agendamentos && p.agendamentos.length > 0 
                         ? new Date(p.agendamentos[0].dataHora).toLocaleDateString('pt-BR') 
                         : '--'}
@@ -97,8 +97,8 @@ export default function PatientsPage() {
                 ))}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
-                      Nenhum resultado encontrado para "{search}"
+                    <td colSpan={5} className="px-8 py-16 text-center text-[var(--text-muted)] font-black uppercase tracking-widest text-xs opacity-50">
+                      Nenhum resultado para "{search}"
                     </td>
                   </tr>
                 )}

@@ -4,12 +4,46 @@ import { useNicho } from '@/context/NichoContext';
 
 const TENANT_ID = 'clinica_id_default';
 
+interface HorariosSemana {
+  [key: string]: {
+    ativo: boolean;
+    inicio: string;
+    fim: string;
+  };
+}
+
 interface Profissional {
   id: string;
   nome: string;
   especialidade: string | null;
+  bio: string | null;
+  fotoUrl: string | null;
+  color: string | null;
+  horariosJson: any; 
   ativo: boolean;
 }
+
+const DIAS_SEMANA = [
+  { id: 'seg', label: 'Segunda' },
+  { id: 'ter', label: 'Terça' },
+  { id: 'qua', label: 'Quarta' },
+  { id: 'qui', label: 'Quinta' },
+  { id: 'sex', label: 'Sexta' },
+  { id: 'sab', label: 'Sábado' },
+  { id: 'dom', label: 'Domingo' },
+];
+
+const DEFAULT_HORARIOS: HorariosSemana = {
+  seg: { ativo: true, inicio: '08:00', fim: '18:00' },
+  ter: { ativo: true, inicio: '08:00', fim: '18:00' },
+  qua: { ativo: true, inicio: '08:00', fim: '18:00' },
+  qui: { ativo: true, inicio: '08:00', fim: '18:00' },
+  sex: { ativo: true, inicio: '08:00', fim: '18:00' },
+  sab: { ativo: false, inicio: '08:00', fim: '12:00' },
+  dom: { ativo: false, inicio: '08:00', fim: '12:00' },
+};
+
+const PRESET_COLORS = ['#4a4ae2', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#3B82F6', '#14B8A6'];
 
 export default function TeamPage() {
   const { labels } = useNicho();
@@ -21,6 +55,10 @@ export default function TeamPage() {
   // Form
   const [nome, setNome] = useState('');
   const [especialidade, setEspecialidade] = useState('');
+  const [bio, setBio] = useState('');
+  const [fotoUrl, setFotoUrl] = useState('');
+  const [color, setColor] = useState('#4a4ae2');
+  const [horarios, setHorarios] = useState<HorariosSemana>(DEFAULT_HORARIOS);
   const [ativo, setAtivo] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -38,6 +76,10 @@ export default function TeamPage() {
     setEditing(null);
     setNome('');
     setEspecialidade('');
+    setBio('');
+    setFotoUrl('');
+    setColor('#4a4ae2');
+    setHorarios(DEFAULT_HORARIOS);
     setAtivo(true);
     setShowModal(true);
   };
@@ -46,6 +88,10 @@ export default function TeamPage() {
     setEditing(p);
     setNome(p.nome);
     setEspecialidade(p.especialidade || '');
+    setBio(p.bio || '');
+    setFotoUrl(p.fotoUrl || '');
+    setColor(p.color || '#4a4ae2');
+    setHorarios(p.horariosJson ? (p.horariosJson as HorariosSemana) : DEFAULT_HORARIOS);
     setAtivo(p.ativo);
     setShowModal(true);
   };
@@ -56,7 +102,16 @@ export default function TeamPage() {
     try {
       const url = editing ? `/api/team/${editing.id}` : '/api/team';
       const method = editing ? 'PUT' : 'POST';
-      const body = { tenantId: TENANT_ID, nome, especialidade, ativo };
+      const body = { 
+        tenantId: TENANT_ID, 
+        nome, 
+        especialidade, 
+        bio,
+        fotoUrl: fotoUrl || null,
+        color,
+        horariosJson: horarios,
+        ativo 
+      };
 
       const res = await fetch(url, {
         method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
@@ -71,82 +126,133 @@ export default function TeamPage() {
     }
   };
 
+  const updateHorario = (dia: string, field: string, value: any) => {
+    setHorarios(prev => ({
+      ...prev,
+      [dia]: { ...prev[dia], [field]: value }
+    }));
+  };
+
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="max-w-7xl mx-auto space-y-10 pb-20 animate-in fade-in duration-500">
+      
+      {/* Header Premium */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 bg-[var(--card-bg)] border border-[var(--border)] p-8 rounded-[3rem] shadow-sm">
         <div>
-          <h2 className="text-2xl font-bold">🧑‍💼 Minha Equipe</h2>
-          <p className="text-gray-400 text-sm mt-1">Gerencie os {labels.profissional.toLowerCase()}s e suas agendas.</p>
+          <h2 className="text-3xl font-black tracking-tight text-[var(--foreground)] uppercase italic">
+            🧑‍💼 Minha Equipe <span className="text-[var(--accent)] text-lg">2.0</span>
+          </h2>
+          <p className="text-[10px] text-[var(--text-muted)] mt-1 font-black uppercase tracking-widest opacity-60">Gestão avançada de perfis, agendas e identidade visual.</p>
         </div>
-        <button
-          onClick={openAdd}
-          className="px-5 py-2.5 bg-[#4a4ae2] hover:bg-[#3a3ab2] rounded-xl text-sm font-semibold transition-all shadow-[0_4px_20px_rgba(74,74,226,0.35)]"
-        >
-          + Adicionar {labels.profissional}
-        </button>
+        <button onClick={openAdd} className="px-8 py-4 bg-[var(--accent)] hover:opacity-90 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white transition-all shadow-xl shadow-[var(--accent)]/20 active:scale-95">+ Adicionar {labels.profissional}</button>
       </div>
 
-      <div className="bg-[#0a0a20]/50 border border-white/5 rounded-2xl overflow-hidden min-h-[400px]">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
         {loading ? (
-          <div className="flex items-center justify-center p-16 text-gray-400">Carregando...</div>
+          <div className="col-span-full py-20 text-center font-black uppercase tracking-widest text-[10px] opacity-40 animate-pulse">Carregando Time...</div>
         ) : profissionais.length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-16 text-gray-400">
-            <span className="text-5xl mb-4">🙌</span>
-            <p className="font-medium text-white">Nenhum membro cadastrado</p>
-            <p className="text-sm mt-1">Sua clínica opera apenas com uma pessoa ou você ainda não os adicionou.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
-            {profissionais.map(p => (
-              <div key={p.id} className="bg-white/5 border border-white/10 rounded-2xl p-5 hover:border-white/20 transition-all flex flex-col">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-[#4a4ae2] to-[#8080ff] flex items-center justify-center text-white font-bold text-lg shadow-inner">
-                    {p.nome.charAt(0).toUpperCase()}
-                  </div>
-                  <span className={`px-2 py-1 rounded-lg text-xs font-bold ${p.ativo ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                    {p.ativo ? 'Ativo' : 'Inativo'}
-                  </span>
-                </div>
-                <h3 className="text-lg font-bold text-white mb-1">{p.nome}</h3>
-                <p className="text-sm text-gray-400 mb-6">{p.especialidade || 'Geral'}</p>
-                
-                <button 
-                  onClick={() => openEdit(p)}
-                  className="mt-auto w-full py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm transition-all text-white font-medium"
-                >
-                  Editar
-                </button>
+          <div className="col-span-full py-20 text-center border-2 border-dashed border-[var(--border)] rounded-[3rem] text-[var(--text-muted)] uppercase font-black text-xs tracking-widest">Nenhum profissional cadastrado</div>
+        ) : profissionais.map(p => (
+            <div key={p.id} className="group relative bg-[var(--card-bg)] border border-[var(--border)] rounded-[3rem] p-8 hover:border-[var(--accent)]/40 transition-all shadow-sm flex flex-col items-center text-center overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-2" style={{ backgroundColor: p.color || 'var(--accent)' }} />
+              
+              <div className={`absolute top-6 right-6 px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${p.ativo ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
+                {p.ativo ? 'Ativo' : 'Inativo'}
               </div>
-            ))}
-          </div>
-        )}
+              
+              <div className="relative mt-4 mb-6">
+                <div className="w-28 h-28 rounded-[2rem] p-1 shadow-2xl overflow-hidden group-hover:scale-105 transition-transform duration-500" style={{ backgroundColor: p.color || 'var(--accent)' }}>
+                  {p.fotoUrl ? (
+                    <img src={p.fotoUrl} alt={p.nome} className="w-full h-full object-cover rounded-[1.8rem] bg-[var(--card-bg)]" />
+                  ) : (
+                    <div className="w-full h-full bg-[var(--card-bg)] rounded-[1.8rem] flex items-center justify-center text-3xl font-black" style={{ color: p.color || 'var(--accent)' }}>
+                      {p.nome.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <h3 className="text-xl font-black text-[var(--foreground)] tracking-tight mb-1 uppercase italic">{p.nome}</h3>
+              <p className="text-[9px] font-black text-[var(--accent)] uppercase tracking-widest mb-4" style={{ color: p.color || 'var(--accent)' }}>{p.especialidade || labels.profissional}</p>
+              
+              <p className="text-[11px] text-[var(--text-muted)] font-medium italic mb-6 line-clamp-2 h-8 opacity-70">
+                {p.bio || 'Sem biografia disponível.'}
+              </p>
+
+              <button onClick={() => openEdit(p)} className="w-full py-4 bg-[var(--foreground)]/5 hover:bg-[var(--accent)]/10 rounded-2xl text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)] border border-[var(--border)] transition-all">Configurar Perfil</button>
+            </div>
+        ))}
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
-          <div className="bg-[#0d0d22] border border-white/10 rounded-2xl p-8 w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-bold mb-6">{editing ? `Editar ${labels.profissional}` : `Novo ${labels.profissional}`}</h3>
-            <form onSubmit={handleSave} className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-xs text-gray-400 uppercase tracking-widest">Nome</label>
-                <input required type="text" value={nome} onChange={e => setNome(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#4a4ae2]" />
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowModal(false)} />
+          <div className="relative w-full max-w-2xl bg-[var(--card-bg)] border border-[var(--border)] rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="p-8 border-b border-[var(--border)] flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-black text-[var(--foreground)] tracking-tight uppercase italic">{editing ? `Editar Perfil` : `Novo Registro`}</h3>
+                <p className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-widest mt-1">Dados oficiais e identidade visual</p>
               </div>
-              <div className="space-y-1">
-                <label className="text-xs text-gray-400 uppercase tracking-widest">Especialidade (Opcional)</label>
-                <input type="text" value={especialidade} onChange={e => setEspecialidade(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#4a4ae2]" />
-              </div>
-              <div className="flex items-center gap-3 pt-2">
-                <input type="checkbox" checked={ativo} onChange={e => setAtivo(e.target.checked)} className="w-5 h-5 rounded border-white/20 bg-[#050510] text-[#4a4ae2]" id="ativo-chk" />
-                <label htmlFor="ativo-chk" className="text-sm text-white font-medium cursor-pointer">Profissional Ativo (Recebe agenda)</label>
-              </div>
-              <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-3 bg-white/5 hover:bg-white/10 rounded-xl text-sm transition-all">Cancelar</button>
-                <button type="submit" disabled={saving} className="flex-1 py-3 bg-[#4a4ae2] hover:bg-[#3a3ab2] rounded-xl text-sm font-semibold transition-all">
-                  {saving ? 'Salvando...' : 'Salvar'}
-                </button>
-              </div>
+              <button onClick={() => setShowModal(false)} className="text-[var(--text-muted)] p-3 hover:bg-[var(--foreground)]/5 rounded-2xl">✕</button>
+            </div>
+
+            <form onSubmit={handleSave} className="p-8 max-h-[70vh] overflow-y-auto custom-scrollbar grid grid-cols-1 md:grid-cols-2 gap-8">
+               <div className="space-y-6">
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">Nome Completo</label>
+                    <input required type="text" value={nome} onChange={e => setNome(e.target.value)} className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-6 py-4 text-sm focus:outline-none focus:border-[var(--accent)] font-medium" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">Especialidade</label>
+                    <input type="text" value={especialidade} onChange={e => setEspecialidade(e.target.value)} className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-6 py-4 text-sm focus:outline-none focus:border-[var(--accent)] font-medium" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">Biografia Curta</label>
+                    <textarea rows={3} value={bio} onChange={e => setBio(e.target.value)} className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-6 py-4 text-sm focus:outline-none resize-none" placeholder="Conte um pouco sobre a experiência..." />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">Cor de Identificação</label>
+                    <div className="flex flex-wrap gap-2">
+                      {PRESET_COLORS.map(c => (
+                        <button key={c} type="button" onClick={() => setColor(c)} className={`w-8 h-8 rounded-lg transition-all ${color === c ? 'ring-4 ring-[var(--accent)]/30 scale-110' : 'opacity-40 hover:opacity-100'}`} style={{ backgroundColor: c }} />
+                      ))}
+                    </div>
+                  </div>
+               </div>
+
+               <div className="space-y-6">
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">Foto (URL)</label>
+                    <input type="text" value={fotoUrl} onChange={e => setFotoUrl(e.target.value)} className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-6 py-4 text-sm focus:outline-none" placeholder="https://..." />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">Agenda Semanal</label>
+                    <div className="bg-[var(--foreground)]/[0.02] border border-[var(--border)] p-4 rounded-3xl space-y-2">
+                      {DIAS_SEMANA.map(dia => (
+                        <div key={dia.id} className="flex items-center justify-between text-[10px] py-1">
+                          <div className="flex items-center gap-2">
+                            <input type="checkbox" checked={horarios[dia.id]?.ativo} onChange={e => updateHorario(dia.id, 'ativo', e.target.checked)} className="w-4 h-4 rounded border-[var(--border)]" />
+                            <span className="font-black uppercase">{dia.label}</span>
+                          </div>
+                          {horarios[dia.id]?.ativo && (
+                            <div className="flex gap-2">
+                              <input type="time" value={horarios[dia.id]?.inicio} onChange={e => updateHorario(dia.id, 'inicio', e.target.value)} className="bg-transparent font-black" />
+                              <span>-</span>
+                              <input type="time" value={horarios[dia.id]?.fim} onChange={e => updateHorario(dia.id, 'fim', e.target.value)} className="bg-transparent font-black" />
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+               </div>
+
+               <div className="col-span-full flex gap-4 mt-4">
+                  <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-5 bg-[var(--foreground)]/5 rounded-2xl text-[10px] font-black uppercase tracking-widest">Cancelar</button>
+                  <button type="submit" disabled={saving} className="flex-2 py-5 bg-[var(--accent)] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-[var(--accent)]/20">
+                    {saving ? 'SALVANDO...' : 'CONFIRMAR ALTERAÇÕES'}
+                  </button>
+               </div>
             </form>
           </div>
         </div>
