@@ -155,9 +155,9 @@ export default function PublicBookingPage() {
                 className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-sm font-black uppercase tracking-widest focus:outline-none focus:border-blue-500 transition-all mb-8" />
               
               <div className="grid grid-cols-3 gap-3">
-                {['08:00', '09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00'].map(h => (
+                {['08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00'].map(h => (
                   <button key={h} onClick={() => { setSelectedTime(h); setStep(4); }}
-                    className="py-3 bg-white/[0.02] hover:bg-blue-500 border border-white/5 hover:border-blue-500 rounded-xl text-xs font-black transition-all hover:scale-105 active:scale-95">
+                    className="py-3 bg-white/[0.02] hover:bg-blue-500 border border-white/5 hover:border-blue-500 rounded-xl text-[10px] font-black transition-all hover:scale-105 active:scale-95">
                     {h}
                   </button>
                 ))}
