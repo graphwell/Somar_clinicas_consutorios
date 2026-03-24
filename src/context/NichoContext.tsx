@@ -32,7 +32,13 @@ export function NichoProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Busca a configuração do nicho da empresa logada (O Middleware injeta o tenantId)
+    // Só busca se houver sessão ativa
+    const token = typeof window !== 'undefined' ? localStorage.getItem('synka-token') : null;
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
     fetchWithAuth('/api/tenant/nicho-config')
       .then(r => r.json())
       .then(data => {

@@ -19,8 +19,11 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({ success: true, onboardingCompleted: updated.onboardingCompleted });
-  } catch (error) {
-    console.error('Erro no Onboarding:', error);
-    return NextResponse.json({ error: 'Erro interno ao salvar configurações' }, { status: 500 });
+  } catch (error: any) {
+    console.error('[API_ONBOARDING_ERROR]', error);
+    return NextResponse.json({ 
+      error: 'Erro interno ao salvar configurações', 
+      details: error.message 
+    }, { status: 500 });
   }
 }
