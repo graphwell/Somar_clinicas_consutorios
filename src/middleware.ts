@@ -15,7 +15,10 @@ export async function middleware(request: NextRequest) {
     '/api/export',
     '/api/billing',
     '/api/admin',
-    '/api/tenant'
+    '/api/tenant',
+    '/api/appointments',
+    '/api/team',
+    '/api/patients'
   ];
 
   if (protectedPrefixes.some(prefix => pathname.startsWith(prefix))) {
