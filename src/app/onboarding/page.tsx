@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { SynkaLogo } from '@/components/SynkaLogo';
 
@@ -24,9 +24,19 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // We are currently using a hardcoded tenantId in the MVP.
-  // In a real session-based auth, we'd get this from session.
-  const TENANT_ID = 'clinica_id_default';
+  const [tenantId, setTenantId] = useState('');
+
+  useEffect(() => {
+    const userStr = localStorage.getItem('synka-user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        if (user.tenantId) setTenantId(user.tenantId);
+      } catch (e) {
+        console.error('Erro ao recuperar tenant da sessão:', e);
+      }
+    }
+  }, []);
 
   const showMultiProfissionalCheck = nicho && nicho !== 'Outro' && !nicho.includes('Monoespecialidade');
 
@@ -46,7 +56,7 @@ export default function OnboardingPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          tenantId: TENANT_ID,
+          tenantId: tenantId,
           nicho: finalNicho,
           multiProfissional
         }),

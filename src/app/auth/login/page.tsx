@@ -9,6 +9,7 @@ export default function LoginPage() {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
+  const [nomeClinica, setNomeClinica] = useState('');
   const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -33,11 +34,20 @@ export default function LoginPage() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Erro ao realizar login');
 
-        // Persistência real Multi-Tenant
         setAuthSession(data.token, data.user);
         window.location.href = '/dashboard';
       } else {
-        // Redireciona para o onboarding de nova clínica
+        // Fluxo de Cadastro Real
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, senha, nomeClinica })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Erro ao criar conta');
+
+        setAuthSession(data.token, data.user);
         window.location.href = '/onboarding';
       }
     } catch (err: any) {
@@ -99,12 +109,22 @@ export default function LoginPage() {
 
           <form className="space-y-4" onSubmit={handleSubmit}>
             {!isLogin && (
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-gray-600">Nome Completo</label>
-                <input type="text" required
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#4a4ae2] focus:ring-1 focus:ring-[#4a4ae2] transition-all"
-                  placeholder="Dr. João Silva" />
-              </div>
+              <>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-gray-600">Nome da Clínica</label>
+                  <input type="text" required
+                    value={nomeClinica}
+                    onChange={(e) => setNomeClinica(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#4a4ae2] focus:ring-1 focus:ring-[#4a4ae2] transition-all"
+                    placeholder="Ex: Clínica Sorriso" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-gray-600">Nome Completo (Responsável)</label>
+                  <input type="text" required
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#4a4ae2] focus:ring-1 focus:ring-[#4a4ae2] transition-all"
+                    placeholder="Dr. João Silva" />
+                </div>
+              </>
             )}
             {error && (
               <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-red-600 text-xs font-bold animate-premium text-center">
