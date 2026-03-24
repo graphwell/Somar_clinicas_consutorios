@@ -111,6 +111,7 @@
             { "name": "pacienteTelefone", "value": "={{ $fromAI('pacienteTelefone') }}" },
             { "name": "pacienteNome", "value": "={{ $fromAI('pacienteNome') }}" },
             { "name": "dataHora", "value": "={{ $fromAI('dataHora') }}" },
+            { "name": "servicoId", "value": "={{ $fromAI('servicoId') }}" },
             { "name": "tenantId", "value": "clinica_id_default" }
           ]
         }
@@ -132,6 +133,7 @@
           "parameters": [
             { "name": "status", "value": "={{ $fromAI('status') }}" },
             { "name": "dataHora", "value": "={{ $fromAI('dataHora') }}" },
+            { "name": "servicoId", "value": "={{ $fromAI('servicoId') }}" },
             { "name": "tenantId", "value": "clinica_id_default" }
           ]
         }

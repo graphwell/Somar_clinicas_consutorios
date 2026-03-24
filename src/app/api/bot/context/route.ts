@@ -52,13 +52,23 @@ export async function GET(request: Request) {
       hour: '2-digit', minute: '2-digit'
     });
 
+    const services = await prisma.servico.findMany({
+      where: { tenantId }
+    });
+    const servicesList = services.map(s => `- ${s.nome}: R$ ${s.preco.toFixed(2)} (${s.id})`).join('\n');
+
     const systemPrompt = `Você é a Maya, assistente virtual da ${nome}.
 Seja prestativa, educada e aja como uma humana. 
+
+=== CATÁLOGO DE SERVIÇOS ===
+${servicesList || 'Nenhum serviço cadastrado no momento.'}
 
 === CONTEXTO DO MOMENTO ATUAL ===
 Data de hoje: ${dataFormatada}
 Hora atual: ${horaFormatada} (Horário de Brasília, UTC-03:00)
 Quando o paciente disser "amanhã", some 1 dia à data de hoje. Use sempre o formato YYYY-MM-DD para datas ao chamar ferramentas.
+
+Se o cliente quiser um serviço específico do catálogo acima, você DEVE passar o servicoId (o código entre parênteses) ao chamar a ferramenta de agendamento.
 
 === INSTRUÇÕES DO NICHO ===
 ${comportamentoNicho}

@@ -311,17 +311,30 @@ export default function MarketingHubPage() {
 
             <div className="space-y-4">
               <div className="bg-white/5 p-4 rounded-2xl text-xs text-gray-300 border border-white/5 italic line-clamp-4">
-                "Olá! Analisei seu nicho de <strong>{labels.cliente}s</strong>. Percebi que terças e quartas são dias mais parados. Que tal criarmos um combo agressivo (30% OFF) de <strong>{services[0]?.nome || 'Novos Serviços'}</strong> para esses dias?"
+                "Olá! Analisei seu nicho de <strong>{labels.cliente}s</strong>. Percebi que as conversas no WhatsApp estão aumentando. Que tal criarmos um combo agressivo (30% OFF) de <strong>{services[0]?.nome || 'Novos Serviços'}</strong> para converter mais?"
               </div>
               
               <div className="space-y-2">
                 <p className="text-[10px] font-black uppercase text-gray-500 tracking-widest px-1">Sugestões Rápidas:</p>
-                <button className="w-full p-3 bg-white/5 hover:bg-white/10 text-left rounded-xl text-xs text-gray-400 transition-colors border border-white/5">
-                  ✨ Criar combo "Pé + Mão"
-                </button>
-                <button className="w-full p-3 bg-white/5 hover:bg-white/10 text-left rounded-xl text-xs text-gray-400 transition-colors border border-white/5">
-                  📩 Reativar 50 clientes do mês passado
-                </button>
+                {services.length > 1 ? (
+                  <>
+                    <button onClick={() => { setSelectedMain(services[0].id); setSelectedUpsell(services[1].id); setStep(3); setActiveTab('combos'); }} className="w-full p-3 bg-white/5 hover:bg-white/10 text-left rounded-xl text-xs text-gray-400 transition-colors border border-white/5">
+                      ✨ Criar combo "{services[0].nome} + {services[1].nome}"
+                    </button>
+                    <button className="w-full p-3 bg-white/5 hover:bg-white/10 text-left rounded-xl text-xs text-gray-400 transition-colors border border-white/5">
+                      📩 Reativar {labels.cliente.toLowerCase()}s de {services[0].nome}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button onClick={() => setActiveTab('combos')} className="w-full p-3 bg-white/5 hover:bg-white/10 text-left rounded-xl text-xs text-gray-400 transition-colors border border-white/5">
+                      ✨ Criar seu primeiro Combo
+                    </button>
+                    <button className="w-full p-3 bg-white/5 hover:bg-white/10 text-left rounded-xl text-xs text-gray-400 transition-colors border border-white/5">
+                      📩 Reativar {labels.cliente.toLowerCase()}s inativos
+                    </button>
+                  </>
+                )}
                 <button 
                   onClick={() => setShowIAPanel(true)}
                   className="w-full p-3 bg-[#4a4ae2]/20 hover:bg-[#4a4ae2]/30 text-left rounded-xl text-xs text-[#a0a0ff] font-bold transition-all border border-[#4a4ae2]/30"
