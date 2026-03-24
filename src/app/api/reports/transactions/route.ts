@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import prisma from '@/lib/prisma';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -18,7 +18,7 @@ export async function GET(request: Request) {
     });
 
     // Mapeia para o formato esperado pelo frontend
-    const mapped = transactions.map(t => ({
+    const mapped = transactions.map((t: any) => ({
       id: t.id,
       descricao: t.descricao || 'Transação sem descrição',
       valor: t.valor,
