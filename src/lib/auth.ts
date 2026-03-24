@@ -2,7 +2,8 @@ import jwt from 'jsonwebtoken';
 // @ts-ignore
 import bcrypt from 'bcryptjs';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'somar-ia-super-secret-key-mudar-em-producao';
+// Segredo fixo para garantir consistência entre Node.js e Edge Runtime
+const JWT_SECRET = 'somar-ia-super-secret-key-mudar-em-producao';
 
 export interface AuthPayload {
   userId: string;
