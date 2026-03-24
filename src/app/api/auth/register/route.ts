@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { hashPassword, generateToken } from '@/lib/auth';
+import { hashPassword, signToken } from '@/lib/auth';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(request: Request) {
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
       return { usuario, clinica };
     });
 
-    const token = generateToken({
+    const token = await signToken({
       userId: result.usuario.id,
       email: result.usuario.email,
       role: result.usuario.role,

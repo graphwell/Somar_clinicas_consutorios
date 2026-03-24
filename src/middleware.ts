@@ -1,7 +1,7 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { verifyToken } from './lib/auth';
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Lista de prefixos de API que exigem proteção Multi-Tenant
@@ -25,7 +25,7 @@ export function middleware(request: NextRequest) {
       return NextResponse.json({ error: 'Sessão expirada ou inválida' }, { status: 401 });
     }
 
-    const payload = verifyToken(token);
+    const payload = await verifyToken(token);
     if (!payload) {
       return NextResponse.json({ 
         error: 'Acesso negado: Token inválido ou segredo divergente',
