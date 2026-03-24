@@ -69,8 +69,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     const token = getAuthToken();
     if (!token) {
-      console.warn('DEBUG: Token não encontrado no DashboardLayout');
-      // window.location.href = '/auth/login';
+      window.location.href = '/auth/login';
       return;
     }
 
@@ -79,10 +78,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     // Busca branding dinâmico baseado no token
     fetchWithAuth('/api/upload/logo')
-      .then(r => r.json())
+      .then(response => {
+        if (response.status === 401 || response.status === 403) {
+          // Sessão expirada ou acesso negado entre tenants
+          clearAuthSession();
+          window.location.href = '/auth/login';
+          return; // Stop further processing
+        }
+        return response.json();
+      })
       .then(data => {
         if (data.logoUrl) setClientLogo(data.logoUrl);
         if (data.nome) setClientName(data.nome);
+      })
+      .catch(error => {
+        // Log error for debugging, but avoid exposing detailed error to user
+        console.error("Failed to fetch client branding:", error);
       })
       .finally(() => setLoading(false));
   }, []);

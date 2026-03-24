@@ -31,10 +31,9 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
   const response = await fetch(url, { ...options, headers });
   
   if (response.status === 401 || response.status === 403) {
-    // Para depuração: não redirecionar automaticamente
-    console.error('DEBUG: Erro de Autenticação detectado!', response.status);
-    // clearAuthSession();
-    // throw new Error('Sessão expirada. Redirecionando...');
+    // Sessão expirada ou acesso negado entre tenants
+    clearAuthSession();
+    throw new Error('Sessão expirada. Redirecionando...');
   }
 
   return response;
