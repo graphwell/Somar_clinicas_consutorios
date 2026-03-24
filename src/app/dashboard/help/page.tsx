@@ -68,7 +68,7 @@ export default function HelpCenterPage() {
                  <p className="text-xs font-medium leading-relaxed">Como altero a cor da minha logo no dashboard?</p>
               </div>
               <div className="bg-white border border-card-border p-6 rounded-[1.5rem] rounded-tl-none shadow-sm max-w-[90%]">
-                 <p className="text-xs text-text-main font-medium leading-relaxed italic font-black">Vá em Configurações > DNA do Sistema. Lá você pode subir uma nova logo e o sistema adaptará a paleta automaticamente. ✨</p>
+                 <p className="text-xs text-text-main font-medium leading-relaxed italic font-black">Vá em Configurações &gt; DNA do Sistema. Lá você pode subir uma nova logo e o sistema adaptará a paleta automaticamente. ✨</p>
               </div>
            </div>
 
