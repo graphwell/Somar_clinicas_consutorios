@@ -16,6 +16,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Synka — Agendamento Inteligente para Clínicas",
   description: "Synka é a plataforma de agendamento automático com IA nativa no WhatsApp, desenvolvida pela Somar. Escalone o atendimento da sua clínica em piloto automático.",
+  manifest: "/manifest.json",
+  icons: {
+    icon: "/icon-192.png",
+    apple: "/icon-192.png",
+  }
 };
 
 export default function RootLayout({

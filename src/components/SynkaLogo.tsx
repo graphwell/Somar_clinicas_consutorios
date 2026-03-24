@@ -8,7 +8,10 @@ interface SynkaLogoProps {
 }
 
 /** Pure SVG Synka icon — transparent background, works on any surface */
-export function SynkaIcon({ size = 36, className = '' }: { size?: number; className?: string }) {
+export function SynkaIcon({ size = 36, className = '', useImage = false }: { size?: number; className?: string; useImage?: boolean }) {
+  if (useImage) {
+    return <img src="/icon-192.png" alt="Synka" width={size} height={size} className={className} />;
+  }
   const id = `synka-grad-${size}`;
   return (
     <svg

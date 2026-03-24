@@ -128,7 +128,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <img src={clientLogo} alt="Logo da clínica" className="h-20 max-w-[220px] object-contain" />
             ) : (
               <div className="w-full h-16 flex items-center gap-3 px-1">
-                <SynkaIcon size={48} />
+                <img src="/icon-192.png" alt="Synka Logo" className="h-12 w-12 object-contain" />
                 <div className="w-px h-8 bg-white/10" />
                 <span className="text-xs text-gray-500 leading-tight">Adicione sua logo<br />em Configurações</span>
               </div>

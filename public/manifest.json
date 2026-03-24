@@ -1,0 +1,16 @@
+{
+  "name": "Synka — Agendamento Inteligente",
+  "short_name": "Synka",
+  "description": "Plataforma de agendamento automático com IA nativa no WhatsApp.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050510",
+  "theme_color": "#4a4ae2",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
