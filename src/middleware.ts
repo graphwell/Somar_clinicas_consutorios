@@ -14,50 +14,57 @@ export async function middleware(request: NextRequest) {
     '/api/upload',
     '/api/export',
     '/api/billing',
-    '/api/admin'
+    '/api/admin',
+    '/api/tenant'
   ];
 
   if (protectedPrefixes.some(prefix => pathname.startsWith(prefix))) {
-    const authHeader = request.headers.get('authorization');
-    const token = authHeader?.split(' ')[1];
+    try {
+      const authHeader = request.headers.get('authorization');
+      const token = authHeader?.split(' ')[1];
 
-    if (!token) {
-      return NextResponse.json({ error: 'Sessão expirada ou inválida' }, { status: 401 });
+      if (!token) {
+        return NextResponse.json({ error: 'Sessão expirada ou inválida' }, { status: 401 });
+      }
+
+      const payload = await verifyToken(token);
+      if (!payload) {
+        return NextResponse.json({ 
+          error: 'Acesso negado: Token inválido ou segredo divergente',
+          debug: { hasToken: !!token, tokenLength: token?.length }
+        }, { status: 403 });
+      }
+
+      if (!payload.tenantId) {
+        return NextResponse.json({ 
+          error: 'Acesso negado: Tenant não identificado no payload',
+          debug: { payload } 
+        }, { status: 403 });
+      }
+
+      // Autorização para Admin Synka
+      if (pathname.startsWith('/api/admin') && payload.role !== 'synka_admin') {
+        return NextResponse.json({ 
+          error: 'Acesso restrito: Apenas administradores Synka',
+          role: payload.role 
+        }, { status: 403 });
+      }
+
+      // Injetamos o tenantId verificado no header da REQUISIÇÃO para que as rotas de API recebam
+      const requestHeaders = new Headers(request.headers);
+      requestHeaders.set('x-tenant-id', payload.tenantId);
+      requestHeaders.set('x-user-id', payload.userId);
+      requestHeaders.set('x-user-role', payload.role);
+
+      return NextResponse.next({
+        request: {
+          headers: requestHeaders,
+        },
+      });
+    } catch (error) {
+      console.error('Middleware Error:', error);
+      return NextResponse.json({ error: 'Erro interno no Middleware' }, { status: 500 });
     }
-
-    const payload = await verifyToken(token);
-    if (!payload) {
-      return NextResponse.json({ 
-        error: 'Acesso negado: Token inválido ou segredo divergente',
-        debug: { hasToken: !!token, tokenLength: token?.length }
-      }, { status: 403 });
-    }
-
-    if (!payload.tenantId) {
-      return NextResponse.json({ 
-        error: 'Acesso negado: Tenant não identificado no payload',
-        debug: { payload } 
-      }, { status: 403 });
-    }
-
-    // Autorização para Admin
-    if (pathname.startsWith('/api/admin') && payload.role !== 'synka_admin') {
-      return NextResponse.json({ 
-        error: 'Acesso restrito: Apenas administradores Synka',
-        role: payload.role 
-      }, { status: 403 });
-    }
-
-    // Injetamos o tenantId verificado no header para que as rotas de API possam confiar
-    const requestHeaders = new Headers(request.headers);
-    requestHeaders.set('x-tenant-id', payload.tenantId);
-    requestHeaders.set('x-user-role', payload.role);
-
-    return NextResponse.next({
-      request: {
-        headers: requestHeaders,
-      },
-    });
   }
 
   return NextResponse.next();
@@ -72,6 +79,7 @@ export const config = {
     '/api/campaigns/:path*',
     '/api/upload/:path*',
     '/api/export/:path*',
-    '/api/billing/:path*'
+    '/api/billing/:path*',
+    '/api/tenant/:path*'
   ],
 };

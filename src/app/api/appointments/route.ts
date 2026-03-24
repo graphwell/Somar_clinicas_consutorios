@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { getTenantPrisma } from '@/lib/prisma';
+import { getAuthorizedTenantId } from '@/lib/auth-helpers';
 
-// GET /api/appointments?tenantId=xxx  — dashboard listing (no phone required)
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const tenantId = searchParams.get('tenantId');
-  if (!tenantId) return NextResponse.json({ error: 'tenantId é obrigatório.' }, { status: 400 });
+  try {
+    const tenantId = await getAuthorizedTenantId();
+    const prisma = getTenantPrisma();
 
-    // @ts-ignore
     const appointments = await prisma.agendamento.findMany({
       where: { tenantId },
       include: { 
@@ -19,5 +18,9 @@ export async function GET(request: Request) {
       take: 100,
     });
 
-  return NextResponse.json(appointments);
+    return NextResponse.json(appointments);
+  } catch (error) {
+    console.error('Erro ao buscar agendamentos:', error);
+    return NextResponse.json({ error: 'Erro ao buscar agendamentos' }, { status: 500 });
+  }
 }

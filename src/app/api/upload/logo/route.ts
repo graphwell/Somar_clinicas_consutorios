@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAuthorizedTenantId } from '@/lib/auth-helpers';
-import { getTenantPrisma } from '@/lib/prisma';
+import { getTenantPrisma, getMasterPrisma } from '@/lib/prisma';
 
 // Upload logo — saves as base64 inside Clinica.configBranding (works on Vercel, no filesystem)
 export async function POST(request: Request) {
@@ -28,10 +28,11 @@ export async function POST(request: Request) {
     const logoUrl = `data:${file.type};base64,${base64}`;
 
     // Upsert into Clinica.configBranding
-    const existing = await prisma.clinica.findUnique({ where: { tenantId } });
+    const masterPrisma = getMasterPrisma();
+    const existing = await masterPrisma.clinica.findUnique({ where: { tenantId } });
     if (existing) {
       const branding = (existing.configBranding as Record<string, string>) || {};
-      await prisma.clinica.update({
+      await masterPrisma.clinica.update({
         where: { tenantId },
         data: { configBranding: { ...branding, logoUrl } },
       });
