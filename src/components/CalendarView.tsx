@@ -8,18 +8,18 @@ export default function CalendarView() {
   const [selectedDay, setSelectedDay] = useState('Seg');
 
   return (
-    <div className="bg-[#0a0a20]/40 backdrop-blur-md border border-white/5 rounded-2xl overflow-hidden">
-      <div className="p-6 border-b border-white/5 flex items-center justify-between">
-        <h3 className="text-lg font-medium">Agenda Semanal</h3>
+    <div className="bg-[var(--card-bg)] backdrop-blur-md border border-[var(--border)] rounded-3xl overflow-hidden shadow-sm">
+      <div className="p-6 border-b border-[var(--border)] flex items-center justify-between">
+        <h3 className="text-lg font-bold text-[var(--foreground)]">Agenda Semanal</h3>
         <div className="flex gap-2">
           {DAYS.map(day => (
             <button
               key={day}
               onClick={() => setSelectedDay(day)}
-              className={`px-4 py-1.5 rounded-lg text-sm transition-all ${
+              className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${
                 selectedDay === day 
-                ? 'bg-[#4a4ae2] text-white shadow-[0_0_15px_rgba(74,74,226,0.3)]' 
-                : 'hover:bg-white/5 text-gray-400'
+                ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/30' 
+                : 'hover:bg-white/5 text-[var(--text-muted)]'
               }`}
             >
               {day}
@@ -28,25 +28,25 @@ export default function CalendarView() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 divide-y divide-white/5">
+      <div className="grid grid-cols-1 divide-y divide-[var(--border)]">
         {HOURS.map(hour => (
-          <div key={hour} className="flex min-h-[80px] hover:bg-white/[0.02] transition-colors">
-            <div className="w-20 p-4 text-xs text-gray-500 border-r border-white/5 text-right font-mono">
+          <div key={hour} className="flex min-h-[90px] hover:bg-white/[0.01] transition-colors group">
+            <div className="w-20 p-4 text-[10px] text-[var(--text-muted)] border-r border-[var(--border)] text-right font-mono font-bold">
               {hour}:00
             </div>
             <div className="flex-1 p-4 relative">
               {/* Slot Interativo */}
-              <div className="absolute inset-2 rounded-xl group cursor-pointer border border-dashed border-white/10 hover:border-[#4a4ae2]/50 hover:bg-[#4a4ae2]/5 flex items-center justify-center transition-all">
-                <span className="text-[10px] text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="absolute inset-2 rounded-2xl border border-dashed border-[var(--border)] group-hover:border-[var(--accent)]/40 hover:bg-[var(--accent)]/5 flex items-center justify-center transition-all">
+                <span className="text-[10px] text-[var(--text-muted)] opacity-0 group-hover:opacity-100 transition-opacity font-bold">
                   + Novo Agendamento
                 </span>
               </div>
               
               {/* Exemplo de agendamento fixo */}
               {hour === 10 && (
-                <div className="absolute inset-2 rounded-xl bg-gradient-to-r from-[#4a4ae2]/20 to-[#4a4ae2]/10 border border-[#4a4ae2]/30 p-3 shadow-lg backdrop-blur-sm z-[1]">
-                  <p className="text-xs font-bold text-[#4a4ae2]">Alan Santos</p>
-                  <p className="text-[10px] text-gray-400">Consulta de Rotina</p>
+                <div className="absolute inset-2 rounded-2xl bg-gradient-to-r from-[var(--accent)]/20 to-[var(--accent)]/10 border border-[var(--accent)]/30 p-4 shadow-xl backdrop-blur-md z-[1] animate-in fade-in slide-in-from-left-2">
+                  <p className="text-xs font-black text-[var(--accent)]">Alan Santos</p>
+                  <p className="text-[10px] text-[var(--text-muted)] font-bold mt-0.5">Consulta de Rotina</p>
                 </div>
               )}
             </div>

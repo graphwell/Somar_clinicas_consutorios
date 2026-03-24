@@ -26,12 +26,15 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { nome, descricao, preco, duracaoMinutos, tenantId } = body;
 
+    const parsedPreco = parseFloat(String(preco).replace(',', '.')) || 0;
+    const parsedDuracao = parseInt(String(duracaoMinutos)) || 30;
+
     const novoServico = await prisma.servico.create({
       data: {
         nome,
         descricao,
-        preco: parseFloat(preco),
-        duracaoMinutos: parseInt(duracaoMinutos),
+        preco: parsedPreco,
+        duracaoMinutos: parsedDuracao,
         tenantId
       }
     });

@@ -97,46 +97,53 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
-      <div className="flex items-center justify-between flex-wrap gap-4">
+      <div className="flex items-center justify-between flex-wrap gap-4 bg-[var(--card-bg)] backdrop-blur-md border border-[var(--border)] p-6 rounded-3xl shadow-sm">
         <div>
-           <h2 className="text-2xl font-bold">Configurações</h2>
-           <p className="text-sm text-gray-500">Personalize seu ambiente e dados da clínica.</p>
+           <h2 className="text-2xl font-black tracking-tight text-[var(--foreground)]">Configurações</h2>
+           <p className="text-sm text-[var(--text-muted)] mt-1">Personalize seu ambiente e dados da clínica.</p>
         </div>
         <button
           onClick={handleSave}
-          className="px-5 py-2.5 bg-[#4a4ae2] hover:bg-[#3a3ab2] rounded-xl text-sm font-semibold transition-all shadow-[0_4px_20px_rgba(74,74,226,0.3)]"
+          className="px-8 py-3 bg-[var(--accent)] hover:opacity-90 text-white rounded-2xl text-sm font-bold transition-all shadow-xl shadow-[var(--accent)]/20 hover:scale-[1.02] active:scale-95"
         >
-          {saved ? '✅ Salvo!' : 'Salvar Alterações'}
+          {saved ? '✨ Dados Salvos!' : 'Salvar Alterações'}
         </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
         {/* Aparência do Sistema */}
-        <div className="col-span-1 md:col-span-2 bg-[#0a0a20]/40 backdrop-blur-md border border-white/5 rounded-2xl p-8 space-y-6">
-          <h3 className="text-lg font-semibold border-b border-white/5 pb-4">Aparência do Sistema</h3>
+        <div className="col-span-1 md:col-span-2 bg-[var(--card-bg)] backdrop-blur-md border border-[var(--border)] rounded-3xl p-8 space-y-8 shadow-sm">
+          <div>
+            <h3 className="text-lg font-bold text-[var(--foreground)]">Aparência do Sistema</h3>
+            <p className="text-xs text-[var(--text-muted)] mt-1">Escolha o estilo que melhor se adapta ao seu fluxo de trabalho.</p>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             {[
-              { id: 'dark-stellar', label: 'Dark Estelar', colors: ['bg-[#050510]', 'bg-[#1a1a40]'], desc: 'Foco e profundidade' },
-              { id: 'light-soft', label: 'Light Soft', colors: ['bg-[#f4f4f8]', 'bg-white'], desc: 'Limpo e profissional' },
+              { id: 'dark-stellar', label: 'Dark Estelar', colors: ['bg-[#050510]', 'bg-[#4a4ae2]'], desc: 'Foco e profundidade' },
+              { id: 'light-soft', label: 'Light Soft', colors: ['bg-[#f8f9fc]', 'bg-[#4a4ae2]'], desc: 'Limpo e profissional' },
               { id: 'modern-blue', label: 'Modern Blue', colors: ['bg-[#eff6ff]', 'bg-blue-600'], desc: 'Vibrante e moderno' }
             ].map((p) => (
               <button 
                 key={p.id}
                 onClick={() => setAppTheme(p.id as any)}
-                className={`group relative flex flex-col items-center p-4 rounded-3xl border transition-all text-left ${
+                className={`group relative flex flex-col items-center p-5 rounded-[2rem] border transition-all text-left ${
                   theme === p.id 
-                    ? 'border-[#4a4ae2] bg-[#4a4ae2]/10 ring-2 ring-[#4a4ae2]/20 shadow-lg shadow-[#4a4ae2]/5' 
-                    : 'border-white/5 bg-white/2 hover:border-white/20'
+                    ? 'border-[var(--accent)] bg-[var(--accent)]/5 ring-4 ring-[var(--accent)]/10' 
+                    : 'border-[var(--border)] bg-white/2 hover:border-[var(--accent)]/30'
                 }`}
               >
-                <div className={`w-full h-24 rounded-2xl ${p.colors[0]} border border-white/10 flex items-center justify-center relative overflow-hidden mb-3`}>
-                   <div className={`absolute top-2 left-2 w-8 h-8 rounded-lg ${p.colors[1]} shadow-lg`} />
-                   <div className="w-12 h-1 bg-white/20 rounded-full" />
+                <div className={`w-full h-32 rounded-2xl ${p.colors[0]} border border-[var(--border)] flex items-center justify-center relative overflow-hidden mb-4 shadow-inner`}>
+                   <div className={`absolute top-3 left-3 w-10 h-10 rounded-xl ${p.colors[1]} shadow-lg`} />
+                   <div className="w-16 h-1.5 bg-[var(--text-muted)]/20 rounded-full" />
                 </div>
-                <span className="text-sm font-bold">{p.label}</span>
-                <span className="text-[10px] text-gray-500 mt-1">{p.desc}</span>
-                {theme === p.id && <span className="absolute top-2 right-2 text-xs">✅</span>}
+                <span className={`text-sm font-black ${theme === p.id ? 'text-[var(--foreground)]' : 'text-[var(--text-muted)]'}`}>{p.label}</span>
+                <span className="text-[10px] text-[var(--text-muted)] mt-1 font-medium">{p.desc}</span>
+                {theme === p.id && (
+                  <div className="absolute top-3 right-3 w-6 h-6 bg-[var(--accent)] rounded-full flex items-center justify-center text-white text-[10px] shadow-lg animate-in zoom-in">
+                    ✓
+                  </div>
+                )}
               </button>
             ))}
           </div>

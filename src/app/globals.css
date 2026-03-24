@@ -8,27 +8,36 @@
 }
 
 html.light-soft {
-  --background: #fdfdfd;
-  --foreground: #1a202c;
+  --background: #f8f9fc;
+  --foreground: #1e293b;
   --card-bg: #ffffff;
+  --sidebar-bg: #ffffff;
   --border: rgba(0,0,0,0.06);
   --accent: #4a4ae2;
+  --text-muted: #64748b;
+  --header-bg: rgba(255,255,255,0.8);
 }
 
 html.modern-blue {
-  --background: #f0f7ff;
-  --foreground: #003366;
+  --background: #eff6ff;
+  --foreground: #1e3a8a;
   --card-bg: rgba(255,255,255,0.7);
+  --sidebar-bg: rgba(255,255,255,0.7);
   --border: rgba(30,144,255,0.15);
-  --accent: #1e90ff;
+  --accent: #2563eb;
+  --text-muted: #60a5fa;
+  --header-bg: rgba(255,255,255,0.4);
 }
 
 html.dark-stellar {
   --background: #050510;
   --foreground: #f0f0f5;
   --card-bg: rgba(10,10,32,0.5);
+  --sidebar-bg: rgba(10,10,32,0.8);
   --border: rgba(255,255,255,0.07);
   --accent: #4a4ae2;
+  --text-muted: #8888b0;
+  --header-bg: rgba(5, 5, 16, 0.8);
 }
 
 @theme inline {

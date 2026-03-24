@@ -45,6 +45,12 @@ export default function ServicesPage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
+    if (!nome || !preco) {
+      alert('Por favor, preencha o nome e o preço.');
+      setSaving(false);
+      return;
+    }
+
     try {
       const res = await fetch('/api/services', {
         method: 'POST',
@@ -53,7 +59,7 @@ export default function ServicesPage() {
           tenantId: TENANT_ID,
           nome,
           descricao,
-          preco: preco.replace(',', '.'),
+          preco: preco.toString().replace(',', '.'),
           duracaoMinutos: duracao
         })
       });
@@ -61,9 +67,13 @@ export default function ServicesPage() {
         setShowModal(false);
         resetForm();
         fetchServices();
+      } else {
+        const errData = await res.json();
+        alert('Erro ao salvar: ' + (errData.error || 'Erro desconhecido'));
       }
     } catch (error) {
       console.error(error);
+      alert('Erro de conexão ao salvar serviço.');
     } finally {
       setSaving(false);
     }
@@ -94,28 +104,28 @@ export default function ServicesPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {loading ? (
-          <div className="col-span-full py-20 text-center animate-pulse text-gray-400">Carregando catálogo...</div>
+          <div className="col-span-full py-20 text-center animate-pulse text-[var(--text-muted)]">Carregando catálogo...</div>
         ) : services.length === 0 ? (
-          <div className="col-span-full py-20 bg-white/5 border border-dashed border-white/10 rounded-2xl text-center">
-            <p className="text-gray-500">Nenhum {labels.servico.toLowerCase()} cadastrado ainda.</p>
+          <div className="col-span-full py-20 bg-[var(--card-bg)] border border-dashed border-[var(--border)] rounded-[2rem] text-center">
+            <p className="text-[var(--text-muted)] font-medium">Nenhum {labels.servico.toLowerCase()} cadastrado ainda.</p>
           </div>
         ) : (
           services.map((s) => (
-            <div key={s.id} className="bg-[#0a0a20]/40 backdrop-blur-md border border-white/5 rounded-2xl p-6 space-y-4 group hover:border-[#4a4ae2]/40 transition-all">
+            <div key={s.id} className="bg-[var(--card-bg)] backdrop-blur-md border border-[var(--border)] rounded-[2rem] p-7 space-y-5 group hover:border-[var(--accent)]/40 transition-all shadow-sm">
               <div className="flex justify-between items-start">
-                <div className="w-10 h-10 rounded-xl bg-[#4a4ae2]/10 flex items-center justify-center text-xl">📦</div>
+                <div className="w-12 h-12 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-2xl shadow-inner">📦</div>
                 <div className="text-right">
-                  <span className="text-sm text-gray-500 block">Valor</span>
-                  <span className="text-lg font-bold text-[#f0f0f5]">R$ {s.preco.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                  <span className="text-[10px] text-[var(--text-muted)] block font-black uppercase tracking-widest">Valor</span>
+                  <span className="text-xl font-black text-[var(--foreground)]">R$ {s.preco.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                 </div>
               </div>
               <div>
-                <h3 className="font-bold text-[#f0f0f5] group-hover:text-[#4a4ae2] transition-colors">{s.nome}</h3>
-                <p className="text-xs text-gray-500 mt-1 line-clamp-2 h-8">{s.descricao || 'Sem descrição.'}</p>
+                <h3 className="font-black text-[var(--foreground)] group-hover:text-[var(--accent)] transition-colors tracking-tight text-lg">{s.nome}</h3>
+                <p className="text-xs text-[var(--text-muted)] mt-1 line-clamp-2 h-8 font-medium">{s.descricao || 'Sem descrição.'}</p>
               </div>
-              <div className="flex items-center gap-4 text-[10px] text-gray-500 uppercase tracking-widest border-t border-white/5 pt-4">
-                <span>⏱ {s.duracaoMinutos} min</span>
-                <span>ID: {s.id.slice(0,8)}</span>
+              <div className="flex items-center gap-4 text-[9px] text-[var(--text-muted)] uppercase tracking-widest border-t border-[var(--border)] pt-5 font-bold">
+                <span className="bg-white/5 px-2 py-1 rounded-md">⏱ {s.duracaoMinutos} min</span>
+                <span className="opacity-50">ID: {s.id.slice(0,8)}</span>
               </div>
             </div>
           ))
