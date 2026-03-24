@@ -12,9 +12,9 @@ export async function GET(request: Request) {
       orderBy: { nome: 'asc' }
     });
     return NextResponse.json(profs);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao buscar profissionais:', error);
-    return NextResponse.json({ error: 'Erro ao buscar profissionais' }, { status: 500 });
+    return NextResponse.json({ error: 'Erro ao buscar profissionais', details: error.message }, { status: 500 });
   }
 }
 
@@ -41,8 +41,8 @@ export async function POST(request: Request) {
       }
     });
     return NextResponse.json(prof);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao criar profissional:', error);
-    return NextResponse.json({ error: 'Erro ao criar profissional' }, { status: 500 });
+    return NextResponse.json({ error: 'Erro ao criar profissional', details: error.message }, { status: 500 });
   }
 }

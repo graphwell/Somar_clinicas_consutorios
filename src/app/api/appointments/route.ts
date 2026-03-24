@@ -19,8 +19,8 @@ export async function GET(request: Request) {
     });
 
     return NextResponse.json(appointments);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao buscar agendamentos:', error);
-    return NextResponse.json({ error: 'Erro ao buscar agendamentos' }, { status: 500 });
+    return NextResponse.json({ error: 'Erro ao buscar agendamentos', details: error.message }, { status: 500 });
   }
 }
