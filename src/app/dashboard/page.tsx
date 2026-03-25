@@ -236,7 +236,13 @@ export default function AgendaPage() {
                     // Duração real ou fallback para 30min
                     const dur = a.durationMinutes || (a.servico?.duracaoMinutos ?? 30);
                     const end = a.fimDataHora ? new Date(a.fimDataHora) : new Date(start.getTime() + dur * 60000);
-                    return slotDate >= start && slotDate < end;
+                    
+                    // Comparação via timestamp para ignorar variações de objeto Date e fuso
+                    const sT = slotDate.getTime();
+                    const aT = start.getTime();
+                    const eT = end.getTime();
+                    
+                    return sT >= aT && sT < eT;
                   });
 
                   return (
@@ -392,13 +398,17 @@ export default function AgendaPage() {
                   e.preventDefault(); 
                   const d = new FormData(e.currentTarget); 
                   setLoading(true);
+                  // Converte data/hora local para ISO com offset correto
+                  const localDateStr = `${d.get('date')}T${d.get('hour')}:00`;
+                  const localDateObj = new Date(localDateStr);
+                  
                   await fetchWithAuth('/api/bot/appointments', { 
                     method: 'POST', 
                     body: JSON.stringify({ 
                       nome: d.get('nome'),
                       pacienteTelefone: d.get('telefone'),
                       pacienteNome: d.get('nome'),
-                      dataHora: `${d.get('date')}T${d.get('hour')}:00`, 
+                      dataHora: localDateObj.toISOString(), // Envia como UTC para o banco
                       servicoId: d.get('serv'), 
                       profissionalId: d.get('prof'),
                       tipoAtendimento: tipoAtendimento,

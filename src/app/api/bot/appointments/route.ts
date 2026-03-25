@@ -89,17 +89,25 @@ export async function POST(request: Request) {
       });
     }
 
-    const date = new Date(dataHora);
+    // Parse robusto da data
+    let date = new Date(dataHora);
+    if (isNaN(date.getTime())) {
+      throw new Error('Formato de data inválido: ' + dataHora);
+    }
+    
     const eventoId = generateEventoId(paciente.id, date, tenantId, profissionalId);
 
     // Busca o serviço para pegar duração e buffer
     let duration = 30;
     let buffer = 0;
     if (servicoId) {
-      const s = await prisma.servico.findUnique({ where: { id: servicoId } });
-      if (s) {
-        duration = s.duracaoMinutos || 30;
-        buffer = s.bufferTimeMinutes || 0;
+      // Validação rápida de UUID para evitar erro de tipo no Prisma
+      if (servicoId.length > 10) { 
+        const s = await prisma.servico.findUnique({ where: { id: servicoId } });
+        if (s) {
+          duration = s.duracaoMinutos || 30;
+          buffer = s.bufferTimeMinutes || 0;
+        }
       }
     }
 
