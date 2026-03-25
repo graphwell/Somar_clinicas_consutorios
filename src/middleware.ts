@@ -18,7 +18,9 @@ export async function middleware(request: NextRequest) {
     '/api/tenant',
     '/api/appointments',
     '/api/team',
-    '/api/patients'
+    '/api/patients',
+    '/api/bot',
+    '/api/convenios'
   ];
 
   if (protectedPrefixes.some(prefix => pathname.startsWith(prefix))) {
