@@ -1,0 +1,275 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Clinica {
+  id                  String                @id @default(uuid())
+  tenantId            String                @unique
+  slug                String                @unique @default("clinica-default")
+  nome                String
+  nicho               String                @default("Clínica Médica")
+  configBranding      Json? // { logoUrl, primaryColor, etc }
+  razaoSocial         String?
+  cnpj                String?
+  endereco            String?
+  adminPhone          String?
+  botActive           Boolean               @default(true)
+  onboardingCompleted Boolean               @default(false)
+  multiProfissional   Boolean               @default(false)
+  usuarios            Usuario[]
+  pacientes           Paciente[]
+  agendamentos        Agendamento[]
+  profissionais       Profissional[]
+  convenios           ConvenioEmpresa[]
+  notificacoes        Notificacao[]
+  servicos            Servico[]
+  combosUpsell        ComboUpsell[]
+  campanhasAviso      CampanhaAviso[]
+  transacoes          TransacaoFinanceira[]
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  @@map("clinicas")
+}
+
+model Usuario {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  senhaHash String
+  role      String   @default("recepcao") // admin, recepcao
+  tenantId  String
+  clinica   Clinica  @relation(fields: [tenantId], references: [tenantId])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("usuarios")
+}
+
+model Paciente {
+  id              String  @id @default(uuid())
+  nome            String
+  telefone        String
+  convenio        String?
+  tipoAtendimento String  @default("particular")
+
+  // Stats V2
+  totalGasto      Float     @default(0.0)
+  ultimaVisita    DateTime?
+  contagemVisitas Int       @default(0)
+
+  tenantId     String
+  clinica      Clinica       @relation(fields: [tenantId], references: [tenantId])
+  agendamentos Agendamento[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@map("pacientes")
+}
+
+model Profissional {
+  id                   String                 @id @default(uuid())
+  nome                 String
+  especialidade        String?
+  registroProfissional String?
+  bio                  String?
+  fotoUrl              String?
+  color                String?                @default("#4a4ae2")
+  horariosJson         Json? // Legacy (keep for compatibility if needed)
+  ativo                Boolean                @default(true)
+  tenantId             String
+  clinica              Clinica                @relation(fields: [tenantId], references: [tenantId])
+  agendamentos         Agendamento[]
+  escalas              ProfessionalSchedule[]
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+
+  @@map("profissionais")
+}
+
+model ProfessionalSchedule {
+  id             String       @id @default(uuid())
+  profissionalId String
+  diaSemana      Int // 0-6
+  horaInicio     String // "08:00"
+  horaFim        String // "18:00"
+  ativo          Boolean      @default(true)
+  profissional   Profissional @relation(fields: [profissionalId], references: [id])
+
+  @@map("professional_schedules")
+}
+
+model ConvenioEmpresa {
+  id           String   @id @default(uuid())
+  nomeConvenio String
+  ativo        Boolean  @default(true)
+  tenantId     String
+  clinica      Clinica  @relation(fields: [tenantId], references: [tenantId])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("convenios_empresa")
+}
+
+model NichoConfig {
+  id                 String @id @default(uuid())
+  nomeNicho          String @unique
+  labelCliente       String @default("Cliente")
+  labelServico       String @default("Serviço")
+  labelProfissional  String @default("Profissional")
+  servicosPadraoJson Json? // Array of default services
+
+  @@map("nichos_config")
+}
+
+model Agendamento {
+  id              String        @id @default(uuid())
+  pacienteId      String
+  profissionalId  String?
+  dataHora        DateTime // Início
+  fimDataHora     DateTime // Fim (Início + duration)
+  durationMinutes Int           @default(30)
+  status          String        @default("pendente") // confirmado, pendente, cancelado, done
+  eventoId        String        @unique
+  convenio        String?
+  tipoAtendimento String        @default("particular")
+  tenantId        String
+  clinica         Clinica       @relation(fields: [tenantId], references: [tenantId])
+  paciente        Paciente      @relation(fields: [pacienteId], references: [id])
+  profissional    Profissional? @relation(fields: [profissionalId], references: [id])
+  servicoId       String?
+  servico         Servico?      @relation(fields: [servicoId], references: [id])
+
+  observacoes String?
+  transacao   TransacaoFinanceira?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("agendamentos")
+}
+
+model TransacaoFinanceira {
+  id            String  @id @default(uuid())
+  tenantId      String
+  tipo          String  @default("income") // income, expense
+  status        String  @default("pending") // pending, previsto, realizado, canceled
+  valor         Float   @default(0.0)
+  descricao     String?
+  categoria     String? @default("Geral")
+  agendamentoId String? @unique
+
+  clinica     Clinica      @relation(fields: [tenantId], references: [tenantId])
+  agendamento Agendamento? @relation(fields: [agendamentoId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("transacoes_financeiras")
+}
+
+model AiLog {
+  id        String   @id @default(uuid())
+  mensagem  String
+  createdAt DateTime @default(now())
+
+  @@map("ai_logs")
+}
+
+model InviteToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  email     String
+  role      String   @default("recepcao")
+  tenantId  String
+  used      Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@map("invite_tokens")
+}
+
+model Assinatura {
+  id               String   @id @default(uuid())
+  tenantId         String   @unique
+  stripeCustomerId String?
+  stripeSubId      String?
+  plano            String   @default("starter") // starter, pro, enterprise
+  status           String   @default("trial") // trial, active, past_due, canceled
+  updatedAt        DateTime @updatedAt
+
+  @@map("assinaturas")
+}
+
+model Servico {
+  id                String   @id @default(uuid())
+  nome              String
+  descricao         String?
+  duracaoMinutos    Int      @default(30)
+  bufferTimeMinutes Int      @default(0)
+  preco             Float    @default(0.0)
+  color             String?  @default("#3B82F6")
+  nicho             String?
+  ativo             Boolean  @default(true)
+  tenantId          String
+  clinica           Clinica  @relation(fields: [tenantId], references: [tenantId])
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  gatilhosUpsell ComboUpsell[] @relation("GatilhoUpsell")
+  ofertasUpsell  ComboUpsell[] @relation("OfertaUpsell")
+  agendamentos   Agendamento[]
+
+  @@map("servicos")
+}
+
+model ComboUpsell {
+  idItem             String  @id @default(uuid()) @map("id")
+  tenantId           String
+  servicoGatilhoId   String
+  servicoOferecidoId String
+  descricaoOferta    String
+  desconto           Float   @default(0.0)
+  ativo              Boolean @default(true)
+
+  clinica   Clinica  @relation(fields: [tenantId], references: [tenantId])
+  gatilho   Servico  @relation("GatilhoUpsell", fields: [servicoGatilhoId], references: [id])
+  oferta    Servico  @relation("OfertaUpsell", fields: [servicoOferecidoId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@map("combos_upsell")
+}
+
+model CampanhaAviso {
+  id                  String    @id @default(uuid())
+  tenantId            String
+  titulo              String
+  mensagem            String
+  segmentoFiltrosJson String? // JSON string
+  dataEnvio           DateTime?
+  status              String    @default("pendente") // pendente, enviado, cancelado
+  totalEnviado        Int       @default(0)
+
+  clinica   Clinica  @relation(fields: [tenantId], references: [tenantId])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("campanhas_aviso")
+}
+
+model Notificacao {
+  id        String   @id @default(uuid())
+  tenantId  String
+  titulo    String
+  mensagem  String
+  lida      Boolean  @default(false)
+  clinica   Clinica  @relation(fields: [tenantId], references: [tenantId])
+  createdAt DateTime @default(now())
+
+  @@map("notificacoes")
+}

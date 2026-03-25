@@ -17,7 +17,9 @@ export const setAuthSession = (token: string, user: any) => {
 export const clearAuthSession = () => {
   localStorage.removeItem('synka-token');
   localStorage.removeItem('synka-user');
-  window.location.href = '/auth/login';
+  if (typeof window !== 'undefined' && window.location.pathname !== '/auth/login') {
+    window.location.href = '/auth/login';
+  }
 };
 
 export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {

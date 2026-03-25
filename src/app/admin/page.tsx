@@ -6,7 +6,10 @@ export default function AdminSynkaPage() {
   const [authenticated, setAuthenticated] = useState(false);
   const [metrics, setMetrics] = useState<any>(null);
   const [clinicas, setClinicas] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [editingNicho, setEditingNicho] = useState<any>(null);
+  const [newNicho, setNewNicho] = useState('');
+  const [newLabels, setNewLabels] = useState<any>({});
 
   // Authenticate
   const handleAuth = async (e: React.FormEvent) => {
@@ -49,6 +52,35 @@ export default function AdminSynkaPage() {
     } catch(e) {
       alert("Erro ao alterar status");
     }
+  };
+
+  const saveNicho = async () => {
+    try {
+      await fetch(`/api/admin/tenants/${editingNicho.tenantId}?secret=${secret}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          nicho: newNicho,
+          labels: newLabels
+        })
+      });
+      setEditingNicho(null);
+      fetchClinicas();
+    } catch(e) {
+      alert("Erro ao salvar nicho");
+    }
+  };
+
+  const openNichoModal = (c: any) => {
+    setEditingNicho(c);
+    setNewNicho(c.nicho || 'Clínica Médica — Monoespecialidade');
+    setNewLabels({
+       cliente: 'Paciente',
+       servico: 'Consulta',
+       profissional: 'Médico',
+       atendimento: 'Consulta',
+       prontuario: 'Prontuário'
+    });
   };
 
   if (!authenticated) {
@@ -168,16 +200,24 @@ export default function AdminSynkaPage() {
                       )}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button
-                        onClick={() => toggleStatus(c.tenantId, c.statusBot)}
-                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                          c.statusBot === 'ativo' 
-                            ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20' 
-                            : 'bg-green-500/10 text-green-400 hover:bg-green-500/20'
-                        }`}
-                      >
-                        {c.statusBot === 'ativo' ? 'Suspender' : 'Reativar'}
-                      </button>
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => openNichoModal(c)}
+                          className="px-3 py-2 rounded-lg bg-white/5 text-xs text-white hover:bg-white/10"
+                        >
+                          Configurar Nicho
+                        </button>
+                        <button
+                          onClick={() => toggleStatus(c.tenantId, c.statusBot)}
+                          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                            c.statusBot === 'ativo' 
+                              ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20' 
+                              : 'bg-green-500/10 text-green-400 hover:bg-green-500/20'
+                          }`}
+                        >
+                          {c.statusBot === 'ativo' ? 'Suspender' : 'Reativar'}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -192,6 +232,40 @@ export default function AdminSynkaPage() {
             </table>
           </div>
         </div>
+
+        {/* Modal Nicho */}
+        {editingNicho && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+             <div className="bg-[#0a0a20] border border-white/10 p-8 rounded-3xl w-full max-w-md">
+                <h3 className="text-xl font-bold mb-6 italic uppercase">Ajustar Nicho: {editingNicho.nome}</h3>
+                
+                <div className="space-y-4">
+                   <div className="space-y-1">
+                      <label className="text-xs text-gray-400 uppercase font-black">Nicho Principal</label>
+                      <select 
+                        value={newNicho} 
+                        onChange={(e) => setNewNicho(e.target.value)}
+                        className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm"
+                      >
+                        <option value="Clínica Médica — Monoespecialidade">Clínica Médica</option>
+                        <option value="Salão de Beleza">Salão de Beleza</option>
+                        <option value="Barbearia">Barbearia</option>
+                        <option value="Odontologia">Odontologia</option>
+                      </select>
+                   </div>
+                   
+                   <p className="text-[10px] text-gray-500 italic mt-4">
+                     As labels (Paciente, Consulta, etc.) são ajustadas automaticamente baseadas no nicho selecionado, mas podem ser sobrescritas via banco de dados.
+                   </p>
+
+                   <div className="flex gap-3 mt-8">
+                      <button onClick={() => setEditingNicho(null)} className="flex-1 py-3 bg-white/5 rounded-xl text-sm font-bold">Cancelar</button>
+                      <button onClick={saveNicho} className="flex-1 py-3 bg-[#4a4ae2] rounded-xl text-sm font-bold">Salvar Alterações</button>
+                   </div>
+                </div>
+             </div>
+          </div>
+        )}
       </div>
     </div>
   );

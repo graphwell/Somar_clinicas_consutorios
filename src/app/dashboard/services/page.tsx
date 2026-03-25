@@ -9,6 +9,7 @@ interface Service {
   descricao?: string;
   preco: number;
   duracaoMinutos: number;
+  bufferTimeMinutes: number;
   color?: string;
 }
 
@@ -32,6 +33,7 @@ export default function ServicesPage() {
   const [descricao, setDescricao] = useState('');
   const [preco, setPreco] = useState('');
   const [duracao, setDuracao] = useState('30');
+  const [buffer, setBuffer] = useState('0');
   const [color, setColor] = useState('#3B82F6');
   const [saving, setSaving] = useState(false);
 
@@ -50,18 +52,39 @@ export default function ServicesPage() {
     try {
       await fetchWithAuth('/api/services', {
         method: 'POST',
-        body: JSON.stringify({ id: editingId || undefined, nome, descricao, preco: Number(preco.toString().replace(',', '.')), duracaoMinutos: Number(duracao), color })
+        body: JSON.stringify({ 
+          id: editingId || undefined, 
+          nome, 
+          descricao, 
+          preco: Number(preco.toString().replace(',', '.')), 
+          duracaoMinutos: Number(duracao), 
+          bufferTimeMinutes: Number(buffer),
+          color 
+        })
       });
       setShowModal(false); resetForm(); fetchServices();
     } catch { } finally { setSaving(false); }
   };
 
   const handleEdit = (s: Service) => {
-    setEditingId(s.id); setNome(s.nome); setDescricao(s.descricao || ''); setPreco(s.preco.toString()); setDuracao(s.duracaoMinutos.toString()); setColor(s.color || '#3B82F6'); setShowModal(true);
+    setEditingId(s.id); 
+    setNome(s.nome); 
+    setDescricao(s.descricao || ''); 
+    setPreco(s.preco.toString()); 
+    setDuracao(s.duracaoMinutos.toString()); 
+    setBuffer((s.bufferTimeMinutes || 0).toString());
+    setColor(s.color || '#3B82F6'); 
+    setShowModal(true);
   };
 
   const resetForm = () => {
-    setEditingId(null); setNome(''); setDescricao(''); setPreco(''); setDuracao('30'); setColor('#3B82F6');
+    setEditingId(null); 
+    setNome(''); 
+    setDescricao(''); 
+    setPreco(''); 
+    setDuracao('30'); 
+    setBuffer('0');
+    setColor('#3B82F6');
   };
 
   return (
@@ -72,8 +95,8 @@ export default function ServicesPage() {
         <div className="flex items-center gap-6">
            <div className="w-14 h-14 rounded-3xl bg-primary text-white flex items-center justify-center text-3xl shadow-xl shadow-primary/20 italic font-black">S</div>
            <div>
-              <h2 className="text-2xl font-black italic uppercase tracking-tighter text-text-main">Catálogo de <span className="text-primary">{labels.servico}s</span></h2>
-              <p className="text-[10px] font-black text-text-placeholder uppercase tracking-[0.25em] mt-1 opacity-60">Visualização V2.2 Official Design</p>
+               <h2 className="text-2xl font-black italic uppercase tracking-tighter text-text-main">Catálogo de <span className="text-primary">{labels.servico}s</span></h2>
+               <p className="text-[10px] font-black text-text-placeholder uppercase tracking-[0.25em] mt-1 opacity-60">Visualização V2.6 Expert Design</p>
            </div>
         </div>
         <button onClick={() => { resetForm(); setShowModal(true); }} className="btn-primary flex items-center justify-center gap-3">
@@ -110,7 +133,10 @@ export default function ServicesPage() {
                      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: s.color || '#3B82F6' }} />
                      <span className="text-[10px] font-black text-text-placeholder uppercase tracking-widest">Ativo</span>
                   </div>
-                  <span className="bg-slate-50 text-text-main border border-card-border px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-inner">⏱ {s.duracaoMinutos} min</span>
+                   <div className="flex flex-col items-end gap-1">
+                      <span className="bg-slate-50 text-text-main border border-card-border px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-inner">⏱ {s.duracaoMinutos} min</span>
+                      <span className="bg-amber-50 text-amber-600 border border-amber-100 px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-inner">☕ {s.bufferTimeMinutes || 0} min buffer</span>
+                   </div>
                </div>
             </div>
           ))
@@ -126,8 +152,8 @@ export default function ServicesPage() {
           <div className="bg-white border border-card-border rounded-[3.5rem] p-12 w-full max-w-xl shadow-2xl scale-in" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-10 pb-8 border-b border-slate-50">
               <div>
-                 <h3 className="text-2xl font-black italic uppercase tracking-tighter text-text-main">📌 Definir Procedimento</h3>
-                 <p className="text-[10px] font-black text-text-placeholder uppercase tracking-widest mt-1 opacity-60">Configurações técnicas e comerciais V2.2</p>
+                  <h3 className="text-2xl font-black italic uppercase tracking-tighter text-text-main">📌 Definir Procedimento</h3>
+                  <p className="text-[10px] font-black text-text-placeholder uppercase tracking-widest mt-1 opacity-60">Configurações técnicas e comerciais V2.6 EXPERT</p>
               </div>
               <button onClick={() => setShowModal(false)} className="w-10 h-10 rounded-xl hover:bg-slate-50 flex items-center justify-center text-text-placeholder transition-colors italic font-black">✕</button>
             </div>
@@ -149,14 +175,18 @@ export default function ServicesPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-8">
+              <div className="grid grid-cols-3 gap-6">
                 <div className="space-y-2">
-                  <label className="text-[9px] text-text-placeholder font-black uppercase tracking-[0.25em] ml-2">Preço de Venda (R$)</label>
-                  <input required value={preco} onChange={e => setPreco(e.target.value)} className="input-premium w-full text-lg font-black italic" placeholder="0,00" />
+                  <label className="text-[9px] text-text-placeholder font-black uppercase tracking-[0.25em] ml-2">Preço (R$)</label>
+                  <input required value={preco} onChange={e => setPreco(e.target.value)} className="input-premium w-full text-base font-black italic" placeholder="0,00" />
                 </div>
-                <div className="space-y-2 text-left">
-                  <label className="text-[9px] text-text-placeholder font-black uppercase tracking-[0.25em] ml-2">Ciclo de Tempo (Minutos)</label>
-                  <input required type="number" value={duracao} onChange={e => setDuracao(e.target.value)} className="input-premium w-full text-lg font-black italic" />
+                <div className="space-y-2">
+                  <label className="text-[9px] text-text-placeholder font-black uppercase tracking-[0.25em] ml-2">Duração (Min)</label>
+                  <input required type="number" value={duracao} onChange={e => setDuracao(e.target.value)} className="input-premium w-full text-base font-black italic" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[9px] text-text-placeholder font-black uppercase tracking-[0.25em] ml-2">Intervalo (Min)</label>
+                  <input required type="number" value={buffer} onChange={e => setBuffer(e.target.value)} className="input-premium w-full text-base font-black italic border-amber-200" />
                 </div>
               </div>
 

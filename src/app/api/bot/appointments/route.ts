@@ -45,6 +45,9 @@ export async function POST(request: Request) {
   const tenantId         = searchParams.get('tenantId') || body.tenantId;
   const profissionalId   = searchParams.get('profissionalId') || body.profissionalId;
   const servicoId        = searchParams.get('servicoId') || body.servicoId;
+  const tipoAtendimento   = searchParams.get('tipoAtendimento') || body.tipoAtendimento || 'particular';
+  const convenio         = searchParams.get('convenio') || body.convenio;
+  const observacoes      = searchParams.get('observacoes') || body.observacoes;
 
   if (!pacienteTelefone || !dataHora || !tenantId) {
     return NextResponse.json({ error: 'Faltam parametros obrigatorios: pacienteTelefone, dataHora, tenantId' }, { status: 400 });
@@ -63,24 +66,66 @@ export async function POST(request: Request) {
   const date = new Date(dataHora);
   const eventoId = generateEventoId(paciente.id, date, tenantId, profissionalId);
 
+  // Busca o serviço para pegar duração e buffer
+  let duration = 30;
+  let buffer = 0;
+  if (servicoId) {
+    const s = await prisma.servico.findUnique({ where: { id: servicoId } });
+    if (s) {
+      duration = s.duracaoMinutos || 30;
+      buffer = s.bufferTimeMinutes || 0;
+    }
+  }
+
+  const fimDataHora = new Date(date.getTime() + duration * 60000);
+
   // Anti-oscilação: Verifica se ESTE paciente já tem agendamento neste exato horário
   const duplicado = await prisma.agendamento.findUnique({
     where: { eventoId }
   });
   if (duplicado) {
-    return NextResponse.json({ success: true, agendamento: duplicado, message: 'Agendamento já existia' });
+    if (duplicado.status !== 'cancelado') {
+      return NextResponse.json({ success: true, agendamento: duplicado, message: 'Agendamento já existia' });
+    }
   }
 
-  // Verifica se o horário está ocupado por OUTRA pessoa
-  const conflictWhere: any = { dataHora: date, tenantId, status: { not: 'cancelado' } };
-  if (profissionalId) conflictWhere.profissionalId = profissionalId;
-
-  const conflict = await prisma.agendamento.findFirst({
-    where: conflictWhere
+  // VALIDAÇÃO DE CONFLITO EXPERT (V2.6)
+  // Regra: novo_inicio NÃO pode estar entre [inicio_existente, fim_existente + buffer]
+  const conflictingAppts = await prisma.agendamento.findMany({
+    where: { 
+      tenantId, 
+      status: { in: ['confirmado', 'pendente'] },
+      profissionalId: profissionalId || null,
+      dataHora: {
+        gte: new Date(date.getTime() - 240 * 60000), // Olhar 4 horas atrás
+        lte: new Date(date.getTime() + 240 * 60000)  // Olhar 4 horas à frente
+      }
+    },
+    include: { servico: true }
   });
 
-  if (conflict) {
-    return NextResponse.json({ success: false, error: 'Horário já ocupado' }, { status: 409 });
+  for (const a of conflictingAppts) {
+    const aStart = new Date(a.dataHora);
+    const aDuration = a.durationMinutes || (a.servico?.duracaoMinutos ?? 30);
+    const aBuffer = a.servico?.bufferTimeMinutes ?? 0;
+    const aEndWithBuffer = new Date(aStart.getTime() + (aDuration + aBuffer) * 60000);
+
+    // Se o novo início estiver dentro do bloco [existente_inicio, existente_fim + buffer]
+    if (date >= aStart && date < aEndWithBuffer) {
+      await prisma.notificacao.create({
+        data: {
+          tenantId,
+          titulo: '⚠️ Conflito de Agendamento',
+          mensagem: `Conflito (Buffer): ${pacienteNome} às ${date.toLocaleTimeString()}. O horário está bloqueado pelo agendamento de ${aStart.toLocaleTimeString()} (+${aDuration}m +${aBuffer}m buffer).`
+        }
+      });
+      return NextResponse.json({ success: false, error: 'Horário bloqueado por agendamento ou intervalo (buffer)' }, { status: 409 });
+    }
+    
+    // Check if new appointment ends after an existing one starts
+    if (fimDataHora > aStart && date < aStart) {
+        return NextResponse.json({ success: false, error: 'O agendamento invade o próximo horário ocupado.' }, { status: 409 });
+    }
   }
 
   // @ts-ignore
@@ -88,11 +133,16 @@ export async function POST(request: Request) {
     data: { 
       pacienteId: paciente.id, 
       dataHora: date, 
+      fimDataHora,
+      durationMinutes: duration,
       tenantId, 
       eventoId, 
       status: 'pendente',
       profissionalId: profissionalId || null,
-      servicoId: servicoId || null
+      servicoId: servicoId || null,
+      tipoAtendimento,
+      convenio,
+      observacoes
     }
   });
 

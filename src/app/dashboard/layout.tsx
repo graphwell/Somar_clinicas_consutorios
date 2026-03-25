@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useTheme } from '@/context/ThemeContext';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { NichoProvider, useNicho } from '@/context/NichoContext';
 import { fetchWithAuth, getAuthToken, clearAuthSession } from '@/lib/api-utils';
 
@@ -58,13 +58,23 @@ const NavigationLinks = ({ isCollapsed }: { isCollapsed: boolean }) => {
   );
 };
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+function DashboardContent({ children }: { children: React.ReactNode }) {
   const { theme } = useTheme();
+  const { onboardingCompleted, loading: nichoLoading } = useNicho();
+  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [clientLogo, setClientLogo] = useState<string | null>(null);
   const [clientName, setClientName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Redireciona para onboarding se não concluído
+    if (!nichoLoading && onboardingCompleted === false) {
+      window.location.href = '/onboarding';
+      return;
+    }
+  }, [onboardingCompleted, nichoLoading]);
 
   useEffect(() => {
     const token = getAuthToken();
@@ -107,84 +117,90 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (loading && !getAuthToken()) return null; // Prevenção de flash de conteúdo não autorizado
 
   return (
-    <NichoProvider>
-      <div className={`min-h-screen bg-background text-text-main flex`}>
-        
-        {mobileOpen && <div className="fixed inset-0 bg-slate-900/10 backdrop-blur-sm z-30 md:hidden animate-in fade-in" onClick={() => setMobileOpen(false)} />}
+    <div className={`min-h-screen bg-background text-text-main flex`}>
+      
+      {mobileOpen && <div className="fixed inset-0 bg-slate-900/10 backdrop-blur-sm z-30 md:hidden animate-in fade-in" onClick={() => setMobileOpen(false)} />}
 
-        <nav className={`fixed left-0 top-0 h-full bg-white border-r border-card-border p-6 flex flex-col z-40 transition-all duration-500 shadow-sm ${isCollapsed ? 'w-24' : 'w-72'} ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
-          <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} h-12 mb-10 transition-all`}>
-            <div className="flex items-center gap-3 overflow-hidden">
-               <img src="/icon-192.png" alt="Logo" className="h-10 w-10 shrink-0" />
-               {!isCollapsed && <span className="font-black text-2xl tracking-tighter text-text-main">synka<span className="text-primary">.</span></span>}
-            </div>
+      <nav className={`fixed left-0 top-0 h-full bg-white border-r border-card-border p-6 flex flex-col z-40 transition-all duration-500 shadow-sm ${isCollapsed ? 'w-24' : 'w-72'} ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+        <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} h-12 mb-10 transition-all`}>
+          <div className="flex items-center gap-3 overflow-hidden">
+             <img src="/icon-192.png" alt="Logo" className="h-10 w-10 shrink-0" />
+             {!isCollapsed && <span className="font-black text-2xl tracking-tighter text-text-main">synka<span className="text-primary">.</span></span>}
           </div>
-
-          <NavigationLinks isCollapsed={isCollapsed} />
-          
-          <div className="mt-6 space-y-4 pt-6 border-t border-slate-50">
-            <button onClick={toggleSidebar} className="w-full h-12 flex items-center justify-center rounded-2xl bg-slate-50 hover:bg-slate-100 text-text-placeholder transition-all font-black text-xs border border-card-border">
-              {isCollapsed ? '→' : '←'}
-            </button>
-            <button onClick={() => clearAuthSession()} className="w-full h-12 flex items-center justify-center rounded-2xl bg-red-50 hover:bg-red-100 text-red-500 transition-all font-black text-xs border border-red-100">
-               {isCollapsed ? '🚪' : 'SAIR DO CONSOLE'}
-            </button>
-          </div>
-        </nav>
-
-        <div className={`flex-1 flex flex-col min-h-screen transition-all duration-500 ${isCollapsed ? 'md:ml-24' : 'md:ml-72'}`}>
-          <header className="h-[76px] glass-header flex items-center px-6 md:px-12 justify-between">
-            <div className="flex items-center gap-6">
-              <button onClick={() => setMobileOpen(!mobileOpen)} className="md:hidden p-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-card-border">
-                 <span className="block w-5 h-0.5 bg-text-muted mb-1"></span>
-                 <span className="block w-5 h-0.5 bg-text-muted mb-1"></span>
-                 <span className="block w-5 h-0.5 bg-text-muted"></span>
-              </button>
-              
-              <div className="flex items-center h-full min-h-[40px]">
-                {clientLogo ? (
-                  <img src={clientLogo} alt="Logo" className="max-h-[40px] w-auto object-contain animate-premium" />
-                ) : (
-                  <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-text-placeholder italic">
-                    {clientName || 'Console Clinical OS'}
-                  </h2>
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4">
-              <div className="hidden lg:flex items-center gap-2 px-4 py-2 bg-status-success-bg rounded-full border border-status-success/10 text-[9px] font-black text-status-success uppercase tracking-[0.2em]">
-                <span className="w-1.5 h-1.5 bg-status-success rounded-full animate-pulse shadow-[0_0_8px_var(--color-status-success)]"></span> Ativo
-              </div>
-
-              <div className="w-px h-6 bg-card-border mx-2 hidden md:block" />
-
-              <div className="flex items-center gap-3">
-                 <button className="w-11 h-11 rounded-xl flex items-center justify-center bg-white border border-card-border hover:bg-slate-50 transition-all relative shadow-sm">
-                    🔔 <span className="absolute top-3 right-3 w-2 h-2 bg-status-error rounded-full border-2 border-white"></span>
-                 </button>
-                 <div className="flex items-center gap-4 pl-4 border-l border-card-border ml-2">
-                    <div className="text-right hidden sm:block">
-                       <p className="text-[10px] font-black text-text-main uppercase tracking-tighter">Administrador</p>
-                       <p className="text-[8px] font-black text-primary uppercase tracking-widest opacity-60">V2.3 SaaS</p>
-                    </div>
-                    <div className="w-11 h-11 rounded-2xl bg-primary-soft flex items-center justify-center font-black text-primary border border-primary/20 shadow-sm text-sm">A</div>
-                 </div>
-              </div>
-            </div>
-          </header>
-
-          <main className="flex-1 p-6 md:p-14 animate-premium">
-            <div className="max-w-7xl mx-auto">
-              {children}
-            </div>
-          </main>
-
-          <footer className="py-12 text-[9px] font-black text-text-placeholder uppercase tracking-[0.5em] bg-white border-t border-slate-50 text-center">
-            © 2025 SYNKA CLINICAL OS — V2.3 MULTI-TENANT REAL
-          </footer>
         </div>
+
+        <NavigationLinks isCollapsed={isCollapsed} />
+        
+        <div className="mt-6 space-y-4 pt-6 border-t border-slate-50">
+          <button onClick={toggleSidebar} className="w-full h-12 flex items-center justify-center rounded-2xl bg-slate-50 hover:bg-slate-100 text-text-placeholder transition-all font-black text-xs border border-card-border">
+            {isCollapsed ? '→' : '←'}
+          </button>
+          <button onClick={() => clearAuthSession()} className="w-full h-12 flex items-center justify-center rounded-2xl bg-red-50 hover:bg-red-100 text-red-500 transition-all font-black text-xs border border-red-100">
+             {isCollapsed ? '🚪' : 'SAIR DO CONSOLE'}
+          </button>
+        </div>
+      </nav>
+
+      <div className={`flex-1 flex flex-col min-h-screen transition-all duration-500 ${isCollapsed ? 'md:ml-24' : 'md:ml-72'}`}>
+        <header className="h-[76px] glass-header flex items-center px-6 md:px-12 justify-between">
+          <div className="flex items-center gap-6">
+            <button onClick={() => setMobileOpen(!mobileOpen)} className="md:hidden p-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-card-border">
+               <span className="block w-5 h-0.5 bg-text-muted mb-1"></span>
+               <span className="block w-5 h-0.5 bg-text-muted mb-1"></span>
+               <span className="block w-5 h-0.5 bg-text-muted"></span>
+            </button>
+            
+            <div className="flex items-center h-full min-h-[40px]">
+              {clientLogo ? (
+                <img src={clientLogo} alt="Logo" className="max-h-[40px] w-auto object-contain animate-premium" />
+              ) : (
+                <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-text-placeholder italic">
+                  {clientName || 'Console Clinical OS'}
+                </h2>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <div className="hidden lg:flex items-center gap-2 px-4 py-2 bg-status-success-bg rounded-full border border-status-success/10 text-[9px] font-black text-status-success uppercase tracking-[0.2em]">
+              <span className="w-1.5 h-1.5 bg-status-success rounded-full animate-pulse shadow-[0_0_8px_var(--color-status-success)]"></span> Ativo
+            </div>
+
+            <div className="w-px h-6 bg-card-border mx-2 hidden md:block" />
+
+            <div className="flex items-center gap-3">
+               <button className="w-11 h-11 rounded-xl flex items-center justify-center bg-white border border-card-border hover:bg-slate-50 transition-all relative shadow-sm">
+                  🔔 <span className="absolute top-3 right-3 w-2 h-2 bg-status-error rounded-full border-2 border-white"></span>
+               </button>
+               <div className="flex items-center gap-4 pl-4 border-l border-card-border ml-2">
+                  <div className="text-right hidden sm:block">
+                     <p className="text-[10px] font-black text-text-main uppercase tracking-tighter">Administrador</p>
+                     <p className="text-[8px] font-black text-primary uppercase tracking-widest opacity-60">V2.3 SaaS</p>
+                  </div>
+                  <div className="w-11 h-11 rounded-2xl bg-primary-soft flex items-center justify-center font-black text-primary border border-primary/20 shadow-sm text-sm">A</div>
+               </div>
+            </div>
+          </div>
+        </header>
+
+        <main className="flex-1 p-6 md:p-14 animate-premium">
+          <div className="max-w-7xl mx-auto">
+            {children}
+          </div>
+        </main>
+
+        <footer className="py-12 text-[9px] font-black text-text-placeholder uppercase tracking-[0.5em] bg-white border-t border-slate-50 text-center">
+          © 2025 SYNKA CLINICAL OS — V2.3 MULTI-TENANT REAL
+        </footer>
       </div>
+    </div>
+  );
+}
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <NichoProvider>
+       <DashboardContent>{children}</DashboardContent>
     </NichoProvider>
   );
 }

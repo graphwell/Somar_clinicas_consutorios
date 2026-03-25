@@ -10,12 +10,15 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
   if (secret !== 'synka-master-2026') return NextResponse.json({ error: 'Unauthorized '}, { status: 401 });
 
   const body = await request.json();
-  const { statusBot } = body;
+  const { statusBot, nicho } = body;
 
   try {
     const clinica = await prisma.clinica.update({
       where: { tenantId: id },
-      data: { statusBot }
+      data: { 
+        ...(statusBot && { statusBot }),
+        ...(nicho && { nicho })
+      }
     });
     return NextResponse.json({ success: true, clinica });
   } catch (error: any) {

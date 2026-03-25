@@ -9,7 +9,7 @@ export async function GET(request: Request) {
     // Consultamos o banco MASTER para metadados da clínica
     const clinica = await prisma.clinica.findUnique({
       where: { tenantId },
-      select: { nicho: true }
+      select: { nicho: true, onboardingCompleted: true }
     });
 
     if (!clinica) {
@@ -23,28 +23,42 @@ export async function GET(request: Request) {
 
     if (!config) {
       // Fallback inteligente para nichos básicos
-      let labels = { cliente: 'Cliente', servico: 'Serviço', profissional: 'Profissional' };
+      let labels = { 
+        cliente: 'Cliente', 
+        servico: 'Serviço', 
+        profissional: 'Profissional',
+        atendimento: 'Atendimento',
+        prontuario: 'Ficha'
+      };
       
-      if (clinica.nicho === 'Nutricionista') {
-        labels = { cliente: 'Paciente', servico: 'Consulta', profissional: 'Nutricionista' };
+      if (clinica.nicho.includes('Médica')) {
+        labels = { cliente: 'Paciente', servico: 'Consulta', profissional: 'Médico', atendimento: 'Consulta', prontuario: 'Prontuário' };
+      } else if (clinica.nicho === 'Nutricionista') {
+        labels = { cliente: 'Paciente', servico: 'Consulta', profissional: 'Nutricionista', atendimento: 'Consulta', prontuario: 'Prontuário' };
       } else if (clinica.nicho === 'Psicólogo') {
-        labels = { cliente: 'Paciente', servico: 'Sessão', profissional: 'Psicólogo' };
+        labels = { cliente: 'Paciente', servico: 'Sessão', profissional: 'Psicólogo', atendimento: 'Sessão', prontuario: 'Prontuário' };
+      } else if (clinica.nicho === 'Barbearia' || clinica.nicho === 'Salão de Beleza') {
+        labels = { cliente: 'Cliente', servico: 'Corte/Serviço', profissional: 'Barbeiro/Profissional', atendimento: 'Atendimento', prontuario: 'Histórico' };
       }
 
       return NextResponse.json({
         nicho: clinica.nicho,
+        onboardingCompleted: clinica.onboardingCompleted,
         labels
       });
     }
 
-    return NextResponse.json({
-      nicho: clinica.nicho,
-      labels: {
-        cliente: config.labelCliente,
-        servico: config.labelServico,
-        profissional: config.labelProfissional
-      }
-    });
+      return NextResponse.json({
+        nicho: clinica.nicho,
+        onboardingCompleted: clinica.onboardingCompleted,
+        labels: {
+          cliente: config.labelCliente,
+          servico: config.labelServico,
+          profissional: config.labelProfissional,
+          atendimento: (config as any).labelAtendimento || 'Atendimento',
+          prontuario: (config as any).labelProntuario || 'Prontuário'
+        }
+      });
 
   } catch (error) {
     console.error('Erro ao buscar nicho-config:', error);

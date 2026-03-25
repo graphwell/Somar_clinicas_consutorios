@@ -26,15 +26,23 @@ export async function POST(request: Request) {
     const tenantId = await getAuthorizedTenantId();
     const prisma = getTenantPrisma(tenantId);
     const body = await request.json();
-    const { id, nome, descricao, preco, duracaoMinutos, color } = body;
+    const { id, nome, descricao, preco, duracaoMinutos, bufferTimeMinutes, color } = body;
 
     const parsedPreco = parseFloat(String(preco).replace(',', '.')) || 0;
     const parsedDuracao = parseInt(String(duracaoMinutos)) || 30;
+    const parsedBuffer = parseInt(String(bufferTimeMinutes)) || 0;
 
     if (id) {
        const updated = await prisma.servico.update({
           where: { id, tenantId }, // Segurança extra
-          data: { nome, descricao, preco: parsedPreco, duracaoMinutos: parsedDuracao, color }
+          data: { 
+            nome, 
+            descricao, 
+            preco: parsedPreco, 
+            duracaoMinutos: parsedDuracao, 
+            bufferTimeMinutes: parsedBuffer,
+            color 
+          }
        });
        return NextResponse.json({ servico: updated });
     }
@@ -45,6 +53,7 @@ export async function POST(request: Request) {
         descricao,
         preco: parsedPreco,
         duracaoMinutos: parsedDuracao,
+        bufferTimeMinutes: parsedBuffer,
         tenantId,
         color: color || '#3B82F6'
       }

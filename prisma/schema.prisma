@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/generated/client"
 }
 
 datasource db {
@@ -130,7 +131,9 @@ model Agendamento {
   id              String        @id @default(uuid())
   pacienteId      String
   profissionalId  String?
-  dataHora        DateTime
+  dataHora        DateTime      // Início
+  fimDataHora     DateTime      // Fim (Início + duration)
+  durationMinutes Int           @default(30)
   status          String        @default("pendente") // confirmado, pendente, cancelado, done
   eventoId        String        @unique 
   convenio        String?
@@ -142,6 +145,7 @@ model Agendamento {
   servicoId       String?
   servico         Servico?      @relation(fields: [servicoId], references: [id])
   
+  observacoes     String?
   transacao       TransacaoFinanceira?
 
   createdAt       DateTime      @default(now())
@@ -207,6 +211,7 @@ model Servico {
   nome             String
   descricao        String?
   duracaoMinutos   Int      @default(30)
+  bufferTimeMinutes Int     @default(0)
   preco            Float    @default(0.0)
   color            String?  @default("#3B82F6")
   nicho            String?

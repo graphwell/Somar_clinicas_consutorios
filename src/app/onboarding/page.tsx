@@ -11,6 +11,7 @@ const NICHOS = [
   'Clínica Médica — Monoespecialidade',
   'Clínica Médica — Multiespecialidades',
   'Clínica de Fisioterapia',
+  'Odontologia',
   'Nutricionista',
   'Psicólogo',
   'Outro',

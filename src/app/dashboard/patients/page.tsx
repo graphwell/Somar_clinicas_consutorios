@@ -29,7 +29,7 @@ function PatientChart({ patient, onClose }: { patient: Paciente; onClose: () => 
               </div>
               <div>
                  <h3 className="text-2xl font-black italic uppercase tracking-tighter text-text-main">{patient.nome}</h3>
-                 <p className="text-[10px] font-black text-text-muted uppercase tracking-widest mt-1 opacity-60">🩺 Prontuário Clínico Digital V2.2</p>
+                 <p className="text-[10px] font-black text-text-muted uppercase tracking-widest mt-1 opacity-60">🩺 {labels.prontuario} Digital V2.2</p>
               </div>
            </div>
            <button onClick={onClose} className="w-11 h-11 rounded-xl hover:bg-slate-100 flex items-center justify-center text-text-placeholder transition-colors italic font-black">✕</button>
@@ -67,9 +67,9 @@ function PatientChart({ patient, onClose }: { patient: Paciente; onClose: () => 
                              <span className="text-[10px] font-black text-text-muted bg-slate-50 px-4 py-1.5 rounded-full uppercase tracking-wider">{new Date(a.dataHora).toLocaleDateString('pt-BR')}</span>
                              <span className={`text-[9px] font-black uppercase px-3 py-1 rounded-lg ${a.status === 'done' ? 'bg-status-success-bg text-status-success' : 'bg-slate-50 text-text-placeholder'}`}>{a.status}</span>
                           </div>
-                          <p className="text-base font-black text-text-main uppercase tracking-tight italic mb-4 underline underline-offset-4 decoration-primary/5">{a.servico?.nome || 'Procedimento Clínico'}</p>
+                          <p className="text-base font-black text-text-main uppercase tracking-tight italic mb-4 underline underline-offset-4 decoration-primary/5">{a.servico?.nome || labels.atendimento}</p>
                           <div className="p-6 bg-slate-50/50 rounded-2xl border border-card-border/50 italic text-xs text-text-muted leading-relaxed font-medium">
-                             Histórico de atendimento: O {labels.cliente.toLowerCase()} compareceu para realizar {a.servico?.nome || 'o procedimento'}. Evolução clínica registrada como estável. Sistema aguarda notas complementares.
+                             Histórico de {labels.atendimento.toLowerCase()}: O {labels.cliente.toLowerCase()} compareceu para realizar {a.servico?.nome || 'o procedimento'}. Evolução registrada como estável.
                           </div>
                        </div>
                     </div>
@@ -161,7 +161,7 @@ export default function PatientsPage() {
                       {p.agendamentos?.[0] ? new Date(p.agendamentos[0].dataHora).toLocaleDateString('pt-BR') : 'Sem Visitas'}
                     </td>
                     <td className="px-12 py-10 text-right">
-                       <button onClick={() => setSelectedPatient(p)} className="btn-secondary py-3 px-8 text-[9px]">🩺 Prontuário</button>
+                       <button onClick={() => setSelectedPatient(p)} className="btn-secondary py-3 px-8 text-[9px]">🩺 {labels.prontuario}</button>
                     </td>
                   </tr>
                 ))}

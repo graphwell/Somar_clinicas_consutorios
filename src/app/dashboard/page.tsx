@@ -3,7 +3,20 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNicho } from '@/context/NichoContext';
 import { fetchWithAuth } from '@/lib/api-utils';
 
-const HOURS = ['08:00','08:30', '09:00','09:30', '10:00','10:30', '11:00','11:30', '12:00','12:30', '13:00','13:30', '14:00','14:30', '15:00','15:30', '16:00','16:30', '17:00','17:30', '18:00', '18:30', '19:00', '19:30', '20:00'];
+const SLOT_INTERVAL = 10;
+const getTimesForDay = () => {
+  const times = [];
+  const startHour = 8;
+  const endHour = 20;
+  for (let h = startHour; h <= endHour; h++) {
+    for (let m = 0; m < 60; m += SLOT_INTERVAL) {
+      if (h === endHour && m > 0) break;
+      times.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
+    }
+  }
+  return times;
+};
+const HOURS = getTimesForDay();
 const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const WEEKDAYS_SHORT = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
 
@@ -11,15 +24,22 @@ interface Service {
   id: string;
   nome: string;
   preco: number;
+  duracaoMinutos: number;
+  bufferTimeMinutes: number;
 }
 
 interface Appointment {
   id: string;
   dataHora: string;
+  fimDataHora?: string;
+  durationMinutes?: number;
   status: string;
   paciente: { nome: string; telefone: string };
   profissional?: { id: string; nome: string; color?: string };
   servico?: Service | null;
+  tipoAtendimento?: string;
+  convenio?: string;
+  observacoes?: string;
 }
 
 interface Profissional {
@@ -30,10 +50,12 @@ interface Profissional {
 }
 
 const STATUS_MAP: Record<string, { label: string; bg: string; text: string }> = {
-  confirmado: { label: 'Confirmado', bg: 'bg-[#10B981]', text: 'text-white' },
-  pendente:   { label: 'Pendente',   bg: 'bg-[#F59E0B]', text: 'text-white' },
-  cancelado:  { label: 'Cancelado',  bg: 'bg-[#F43F5E]', text: 'text-white' },
-  done:       { label: 'Concluído',  bg: 'bg-slate-500', text: 'text-white' },
+  confirmado: { label: 'Confirmado', bg: '#22C55E', text: 'white' },
+  pendente:   { label: 'Pendente',   bg: '#F59E0B', text: 'white' },
+  cancelado:  { label: 'Cancelado',  bg: '#EF4444', text: 'white' },
+  available:  { label: 'Livre',      bg: '#FFFFFF', text: '#1E293B' },
+  done:       { label: 'Concluído',  bg: '#1E293B', text: 'white' },
+  reagendado: { label: 'Reagendado', bg: '#6366F1', text: 'white' },
 };
 
 function formatTime(iso: string) { return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); }
@@ -42,25 +64,30 @@ function isSameDay(a: Date, b: Date) { return a.getFullYear() === b.getFullYear(
 
 // Componente de Célula (Hoje - Grade de Botões)
 function HourCell({ hour, appt, onClick, onAction }: { hour: string, appt?: Appointment, onClick: () => void, onAction: (id: string, s: string) => void }) {
-  if (appt) {
-    const s = STATUS_MAP[appt.status] || { label: appt.status, bg: 'bg-slate-400', text: 'text-white' };
-    return (
-      <div className={`relative group p-4 rounded-2xl ${s.bg} ${s.text} shadow-lg transition-all hover:scale-[1.03] cursor-pointer border border-white/10 min-h-[90px]`}>
-        <div className="flex flex-col h-full justify-between">
-          <div className="flex justify-between items-start">
-            <span className="text-[13px] font-black italic">{hour}</span>
-            <button onClick={(e) => { e.stopPropagation(); onAction(appt.id, 'done'); }} className="opacity-0 group-hover:opacity-100 w-6 h-6 rounded-lg bg-white/20 hover:bg-white/40 flex items-center justify-center text-[10px] transition-all">✓</button>
-          </div>
-          <p className="text-[11px] font-black uppercase truncate mt-2 leading-none tracking-tighter">{appt.paciente.nome}</p>
-          <p className="text-[8px] font-bold opacity-70 uppercase tracking-widest mt-1 truncate">{appt.servico?.nome}</p>
-        </div>
-      </div>
-    );
-  }
+  const status = appt ? appt.status : 'available';
+  const config = STATUS_MAP[status] || STATUS_MAP.available;
+
   return (
-    <button onClick={onClick} className="p-5 rounded-2xl bg-white border border-card-border shadow-sm hover:border-primary hover:shadow-premium transition-all group flex flex-col items-center justify-center gap-1 min-h-[90px]">
-      <span className="text-lg font-black text-text-main group-hover:text-primary transition-colors">{hour}</span>
-      <span className="text-[8px] font-black text-text-placeholder uppercase tracking-[0.2em] group-hover:text-primary/50 transition-colors">Disponível</span>
+    <button 
+      onClick={onClick} 
+      className={`relative group transition-all duration-300 rounded-xl border flex flex-col items-center justify-center gap-1 overflow-hidden h-[54px] w-full
+        ${appt ? 'shadow-md scale-[0.98]' : 'hover:border-primary/30 hover:bg-slate-50 border-slate-100'}
+      `}
+      style={{ backgroundColor: config.bg, color: config.text }}
+    >
+      <span className="text-[10px] font-black opacity-40 group-hover:opacity-100 transition-opacity uppercase tracking-tighter">
+        {hour}
+      </span>
+      {appt ? (
+        <div className="flex flex-col h-full justify-between items-center py-1">
+          <p className="text-[9px] font-black uppercase truncate max-w-[80px] leading-none tracking-tighter">{appt.paciente.nome.split(' ')[0]}</p>
+          <div className="flex gap-1 items-center">
+             <span className="text-[8px]">{appt.tipoAtendimento === 'convenio' ? '🏥' : '💎'}</span>
+          </div>
+        </div>
+      ) : (
+        <span className="text-[8px] font-black opacity-0 group-hover:opacity-20 uppercase tracking-[0.2em] mt-1">Livre</span>
+      )}
     </button>
   );
 }
@@ -71,21 +98,25 @@ export default function AgendaPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [profissionais, setProfissionais] = useState<Profissional[]>([]);
   const [services, setServices] = useState<Service[]>([]);
+  const [convenios, setConvenios] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showModal, setShowModal] = useState(false);
   const [selectedHour, setSelectedHour] = useState('');
+  const [tipoAtendimento, setTipoAtendimento] = useState<'particular' | 'convenio'>('particular');
 
   const fetchAll = useCallback(async () => {
     try {
-      const [apptsRes, teamRes, servRes] = await Promise.all([
+      const [apptsRes, teamRes, servRes, convRes] = await Promise.all([
         fetchWithAuth('/api/appointments'),
         fetchWithAuth('/api/team'),
-        fetchWithAuth('/api/services')
+        fetchWithAuth('/api/services'),
+        fetchWithAuth('/api/convenios')
       ]);
       const appts = await apptsRes.json(); setAppointments(Array.isArray(appts) ? appts : appts.appointments || []);
       const team = await teamRes.json(); setProfissionais(Array.isArray(team) ? team : []);
       const servs = await servRes.json(); setServices(Array.isArray(servs) ? servs : []);
+      const convs = await convRes.json(); setConvenios(Array.isArray(convs) ? convs : []);
     } catch (e) {
       console.error("Error fetching agenda data:", e);
     } finally { setLoading(false); }
@@ -131,13 +162,10 @@ export default function AgendaPage() {
       
       {/* Header Premium - Estilo Google Pro */}
       <div className="bg-white border border-card-border p-6 rounded-[2rem] shadow-premium flex flex-col xl:flex-row justify-between items-center gap-6 sticky top-4 z-[50] backdrop-blur-xl bg-white/90">
-        <div className="flex items-center gap-5">
-           <div className="w-12 h-12 rounded-2xl bg-primary text-white flex items-center justify-center text-2xl shadow-xl shadow-primary/20 transition-transform hover:rotate-6">⚡</div>
-           <div>
-              <h2 className="text-xl font-black italic uppercase tracking-tighter text-text-main leading-tight">Synka <span className="text-primary">Agenda</span></h2>
-              <p className="text-[10px] font-black text-text-placeholder uppercase tracking-[0.2em] mt-1">{labels.profissional} • V2.5 PRO</p>
-           </div>
-        </div>
+            <div className="flex items-center gap-4">
+               <div className="w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center text-xl shadow-lg italic font-black">A</div>
+               <h2 className="text-xl font-black italic uppercase tracking-tighter text-text-main">Agenda</h2>
+            </div>
 
         {/* Tab Switcher Google Style */}
         <div className="bg-slate-100 p-1.5 rounded-[1.5rem] flex gap-1 border border-slate-200 shadow-inner">
@@ -191,16 +219,36 @@ export default function AgendaPage() {
         {activeTab === 'dia' && (
           <div className="bg-white border border-card-border rounded-[3rem] p-10 shadow-premium space-y-10">
              <div className="flex justify-between items-center border-b border-slate-50 pb-6">
-                <h3 className="text-xl font-black italic uppercase tracking-tighter text-text-main">Agenda do <span className="text-primary italic">Dia</span></h3>
+                <h3 className="text-xl font-black italic uppercase tracking-tighter text-text-main">Grade <span className="text-primary italic">10 min</span></h3>
                 <div className="flex gap-2">
                    <div className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
                    <div className="w-2.5 h-2.5 rounded-full bg-slate-200" />
                 </div>
              </div>
-             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5">
-                {HOURS.map(h => (
-                  <HourCell key={h} hour={h} appt={dayAppts.find(a => formatTime(a.dataHora) === h)} onAction={handleAction} onClick={() => { setSelectedHour(h); setShowModal(true); }} />
-                ))}
+             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-2">
+                {HOURS.map(h => {
+                  const [hH, hM] = h.split(':').map(Number);
+                  const slotDate = new Date(selectedDate);
+                  slotDate.setHours(hH, hM, 0, 0);
+
+                  const appt = dayAppts.find(a => {
+                    const start = new Date(a.dataHora);
+                    // Duração real ou fallback para 30min
+                    const dur = a.durationMinutes || (a.servico?.duracaoMinutos ?? 30);
+                    const end = a.fimDataHora ? new Date(a.fimDataHora) : new Date(start.getTime() + dur * 60000);
+                    return slotDate >= start && slotDate < end;
+                  });
+
+                  return (
+                    <HourCell 
+                      key={h} 
+                      hour={h} 
+                      appt={appt} 
+                      onAction={handleAction} 
+                      onClick={() => { setSelectedHour(h); setShowModal(true); }} 
+                    />
+                  );
+                })}
              </div>
           </div>
         )}
@@ -352,8 +400,11 @@ export default function AgendaPage() {
                       pacienteNome: d.get('nome'),
                       dataHora: `${d.get('date')}T${d.get('hour')}:00`, 
                       servicoId: d.get('serv'), 
-                      profissionalId: d.get('prof') 
-                    }) 
+                      profissionalId: d.get('prof'),
+                      tipoAtendimento: tipoAtendimento,
+                      convenio: d.get('convenio'),
+                      observacoes: d.get('observacoes')
+                     }) 
                   }); 
                   fetchAll();
                   setLoading(false);
@@ -361,7 +412,7 @@ export default function AgendaPage() {
                 }} className="space-y-6">
                 
                 <div className="space-y-4">
-                  <input name="nome" required placeholder="Nome Completo do Cliente" className="input-premium w-full bg-slate-50 py-5 px-8 rounded-2xl" />
+                  <input name="nome" required placeholder={`Nome Completo do ${labels.cliente}`} className="input-premium w-full bg-slate-50 py-5 px-8 rounded-2xl" />
                   <input name="telefone" required placeholder="WhatsApp (00) 00000-0000" className="input-premium w-full bg-slate-50 py-5 px-8 rounded-2xl" />
                 </div>
 
@@ -372,17 +423,31 @@ export default function AgendaPage() {
                   </select>
                 </div>
 
-                <div className="space-y-4 pt-2">
-                  <select name="serv" required className="input-premium w-full py-5 px-8 rounded-2xl appearance-none bg-slate-50 cursor-pointer">
-                    <option value="">Selecione o Serviço...</option>
-                    {services.map(s => <option key={s.id} value={s.id}>{s.nome} — R$ {s.preco}</option>)}
-                  </select>
+                 <div className="space-y-4 pt-2">
+                   <div className="flex gap-4 p-1 bg-slate-50 rounded-2xl border border-slate-100 mb-2">
+                      <button type="button" onClick={() => setTipoAtendimento('particular')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase transition-all ${tipoAtendimento === 'particular' ? 'bg-white shadow-sm text-primary' : 'text-text-placeholder'}`}>💎 PARTICULAR</button>
+                      <button type="button" onClick={() => setTipoAtendimento('convenio')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase transition-all ${tipoAtendimento === 'convenio' ? 'bg-white shadow-sm text-primary' : 'text-text-placeholder'}`}>🏥 CONVÊNIO</button>
+                   </div>
 
-                  <select name="prof" className="input-premium w-full py-5 px-8 rounded-2xl appearance-none bg-slate-50 cursor-pointer">
-                    <option value="">Profissional: Automático / Livre</option>
-                    {profissionais.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
-                  </select>
-                </div>
+                   {tipoAtendimento === 'convenio' && (
+                     <select name="convenio" required className="input-premium w-full py-5 px-8 rounded-2xl appearance-none bg-slate-50 cursor-pointer animate-in fade-in slide-in-from-top-2 border-primary/20">
+                       <option value="">Escolha o Convênio...</option>
+                       {convenios.map(c => <option key={c.id} value={c.nomeConvenio}>{c.nomeConvenio}</option>)}
+                     </select>
+                   )}
+
+                   <select name="serv" required className="input-premium w-full py-5 px-8 rounded-2xl appearance-none bg-slate-50 cursor-pointer">
+                     <option value="">Selecione o Serviço...</option>
+                     {services.map(s => <option key={s.id} value={s.id}>{s.nome} — R$ {s.preco}</option>)}
+                   </select>
+
+                   <select name="prof" className="input-premium w-full py-5 px-8 rounded-2xl appearance-none bg-slate-50 cursor-pointer">
+                     <option value="">{labels.profissional}: Automático / Livre</option>
+                     {profissionais.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
+                   </select>
+
+                   <textarea name="observacoes" placeholder="Observações e notas adicionais..." className="input-premium w-full bg-slate-50 py-5 px-8 rounded-2xl min-h-[100px] resize-none"></textarea>
+                 </div>
 
                 <button type="submit" disabled={loading} className="btn-primary w-full py-6 text-[10px] mt-6 shadow-2xl shadow-primary/30 rounded-[2rem] hover:scale-[1.02] transition-all">
                   {loading ? 'PROCESSANDO...' : 'CONFIRMAR AGENDAMENTO PREMIUM'}

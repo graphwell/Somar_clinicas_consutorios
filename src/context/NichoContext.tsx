@@ -6,29 +6,36 @@ type NichoLabels = {
   cliente: string;
   servico: string;
   profissional: string;
+  atendimento: string;
+  prontuario: string;
 };
 
 type NichoContextType = {
   nicho: string;
   labels: NichoLabels;
+  onboardingCompleted: boolean;
   loading: boolean;
 };
 
 const defaultLabels: NichoLabels = {
   cliente: 'Paciente',
-  servico: 'Consulta',
-  profissional: 'Profissional'
+  servico: 'Serviço',
+  profissional: 'Profissional',
+  atendimento: 'Consulta',
+  prontuario: 'Prontuário'
 };
 
 const NichoContext = createContext<NichoContextType>({
   nicho: 'Clínica Médica',
   labels: defaultLabels,
+  onboardingCompleted: true, // Defaulting to true to avoid flash on public pages
   loading: true
 });
 
 export function NichoProvider({ children }: { children: React.ReactNode }) {
   const [nicho, setNicho] = useState('Clínica Médica');
   const [labels, setLabels] = useState<NichoLabels>(defaultLabels);
+  const [onboardingCompleted, setOnboardingCompleted] = useState(true);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -44,6 +51,9 @@ export function NichoProvider({ children }: { children: React.ReactNode }) {
       .then(data => {
         if (data.nicho) setNicho(data.nicho);
         if (data.labels) setLabels(data.labels);
+        if (data.hasOwnProperty('onboardingCompleted')) {
+          setOnboardingCompleted(data.onboardingCompleted);
+        }
       })
       .catch(err => {
         console.error('Falha ao carregar NichoConfig:', err);
@@ -52,7 +62,7 @@ export function NichoProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <NichoContext.Provider value={{ nicho, labels, loading }}>
+    <NichoContext.Provider value={{ nicho, labels, onboardingCompleted, loading }}>
         {children}
     </NichoContext.Provider>
   );

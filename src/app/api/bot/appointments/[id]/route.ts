@@ -35,9 +35,9 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
     if (dataHora) {
       const newDate = new Date(dataHora);
       data.dataHora = newDate;
-      data.status = 'remarcado';
+      data.status = 'pendente'; // Remarcação entra como pendente para confirmação dupla (Módulo 3.3/3.4)
       
-      const conflictWhere: any = { dataHora: newDate, tenantId, status: { not: 'cancelado' }, id: { not: id } };
+      const conflictWhere: any = { dataHora: newDate, tenantId, status: { in: ['confirmado', 'pendente'] }, id: { not: id } };
       const currentPrf = profissionalId || agendamentoAtual.profissionalId;
       if (currentPrf) conflictWhere.profissionalId = currentPrf;
 
@@ -46,6 +46,14 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
       });
 
       if (conflict) {
+        // Registro de conflito para o atendente
+        await prisma.notificacao.create({
+          data: {
+            tenantId,
+            titulo: '⚠️ Conflito na Remarcação',
+            mensagem: `Tentativa de remarcação conflitante detectada. O horário ${newDate.toLocaleString()} já está ocupado.`
+          }
+        });
         return NextResponse.json({ success: false, error: 'O novo horário escolhido já está ocupado' }, { status: 409 });
       }
     }
