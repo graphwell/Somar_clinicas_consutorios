@@ -15,9 +15,9 @@ export async function GET(request: Request) {
       orderBy: { nome: 'asc' }
     });
     return NextResponse.json(servicos);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao buscar serviços:', error);
-    return NextResponse.json({ error: 'Erro ao buscar serviços' }, { status: 401 });
+    return NextResponse.json({ error: 'Erro ao buscar serviços', details: error.message, stack: error.stack }, { status: 500 });
   }
 }
 
