@@ -13,7 +13,10 @@ export async function GET(request: Request) {
     });
 
     if (!clinica) {
-      return NextResponse.json({ error: 'Empresa não identificada no Master DB' }, { status: 404 });
+      return NextResponse.json({ 
+        error: 'Empresa não identificada no Master DB', 
+        debug: { resolvedTenantId: tenantId } 
+      }, { status: 404 });
     }
 
     // O NichoConfig também reside no Master para padronização global
@@ -60,8 +63,8 @@ export async function GET(request: Request) {
         }
       });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao buscar nicho-config:', error);
-    return NextResponse.json({ error: 'Erro de Autorização' }, { status: 401 });
+    return NextResponse.json({ error: 'Erro de Autorização', details: error.message }, { status: 500 });
   }
 }
