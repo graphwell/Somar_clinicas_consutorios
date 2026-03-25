@@ -27,6 +27,10 @@ export async function middleware(request: NextRequest) {
       const token = authHeader?.split(' ')[1];
 
       if (!token) {
+        // Rotas de bot podem não ter token (usam query params ou apiKey)
+        if (pathname.startsWith('/api/bot')) {
+          return NextResponse.next();
+        }
         return NextResponse.json({ error: 'Sessão expirada ou inválida' }, { status: 401 });
       }
 
@@ -83,6 +87,11 @@ export const config = {
     '/api/upload/:path*',
     '/api/export/:path*',
     '/api/billing/:path*',
-    '/api/tenant/:path*'
+    '/api/tenant/:path*',
+    '/api/appointments/:path*',
+    '/api/team/:path*',
+    '/api/patients/:path*',
+    '/api/convenios/:path*',
+    '/api/bot/:path*'
   ],
 };
