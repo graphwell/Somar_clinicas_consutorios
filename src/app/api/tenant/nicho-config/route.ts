@@ -72,6 +72,6 @@ export async function GET(request: Request) {
 
   } catch (error: any) {
     console.error('Erro ao buscar nicho-config:', error);
-    return NextResponse.json({ error: 'Erro de Autorização', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Erro de Autorização' }, { status: 401 });
   }
 }
