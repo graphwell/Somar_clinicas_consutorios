@@ -9,6 +9,7 @@ export async function GET(request: Request) {
 
     const profs = await prisma.profissional.findMany({
       where: { tenantId },
+      include: { escalas: true },
       orderBy: { nome: 'asc' }
     });
     return NextResponse.json(profs);

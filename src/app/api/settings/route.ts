@@ -5,7 +5,7 @@ import { getTenantPrisma } from '@/lib/prisma';
 export async function GET() {
   try {
     const tenantId = await getAuthorizedTenantId();
-    const prisma = getTenantPrisma(tenantId);
+    const prisma = getTenantPrisma();
     
     const clinica = await prisma.clinica.findUnique({
       where: { tenantId }
@@ -19,9 +19,9 @@ export async function GET() {
 export async function PUT(request: Request) {
   try {
     const tenantId = await getAuthorizedTenantId();
-    const prisma = getTenantPrisma(tenantId);
+    const prisma = getTenantPrisma();
     const data = await request.json();
-    const { razaoSocial, cnpj, endereco, adminPhone, nicho, botActive } = data;
+    const { razaoSocial, cnpj, endereco, adminPhone, nicho, botActive, openingTime, closingTime } = data;
 
     const clinica = await prisma.clinica.update({
       where: { tenantId },
@@ -31,7 +31,9 @@ export async function PUT(request: Request) {
         endereco,
         adminPhone,
         nicho,
-        botActive
+        botActive,
+        openingTime,
+        closingTime
       }
     });
 

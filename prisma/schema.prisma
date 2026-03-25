@@ -21,6 +21,8 @@ model Clinica {
   botActive      Boolean       @default(true)
   onboardingCompleted Boolean  @default(false)
   multiProfissional   Boolean  @default(false)
+  openingTime         String   @default("08:00")
+  closingTime         String   @default("18:00")
   usuarios       Usuario[]
   pacientes      Paciente[]
   agendamentos   Agendamento[]

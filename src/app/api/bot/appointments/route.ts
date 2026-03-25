@@ -14,14 +14,14 @@ export async function GET(request: Request) {
   try {
     // @ts-ignore
     const appointments = await prisma.agendamento.findMany({
-      where: { 
-        tenantId, 
+      where: {
+        tenantId,
         paciente: { telefone: phone },
         dataHora: { gte: new Date() },
         status: { not: 'cancelado' }
       },
-      include: { 
-        paciente: true, 
+      include: {
+        paciente: true,
         profissional: true,
         servico: true
       }
@@ -36,7 +36,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    
+
     // Tenta ler o corpo da requisição (JSON)
     let body: any = {};
     try {
@@ -47,16 +47,16 @@ export async function POST(request: Request) {
     }
 
     const pacienteTelefone = body.pacienteTelefone || searchParams.get('pacienteTelefone');
-    const pacienteNome     = body.pacienteNome     || body.nome || searchParams.get('pacienteNome') || searchParams.get('nome');
-    const dataHora         = body.dataHora         || searchParams.get('dataHora');
-    const profissionalId   = body.profissionalId   || searchParams.get('profissionalId');
-    const servicoId        = body.servicoId        || searchParams.get('servicoId');
-    const tipoAtendimento  = body.tipoAtendimento  || searchParams.get('tipoAtendimento') || 'particular';
-    const convenio         = body.convenio         || searchParams.get('convenio');
-    const observacoes      = body.observacoes      || searchParams.get('observacoes');
+    const pacienteNome = body.pacienteNome || body.nome || searchParams.get('pacienteNome') || searchParams.get('nome');
+    const dataHora = body.dataHora || searchParams.get('dataHora');
+    const profissionalId = body.profissionalId || searchParams.get('profissionalId');
+    const servicoId = body.servicoId || searchParams.get('servicoId');
+    const tipoAtendimento = body.tipoAtendimento || searchParams.get('tipoAtendimento') || 'particular';
+    const convenio = body.convenio || searchParams.get('convenio');
+    const observacoes = body.observacoes || searchParams.get('observacoes');
 
     let tenantId = body.tenantId || searchParams.get('tenantId');
-    
+
     // Bios-healing: se não veio no body/query, busca da sessão
     if (!tenantId) {
       try {
@@ -73,7 +73,7 @@ export async function POST(request: Request) {
     console.log('-------------------------');
 
     if (!pacienteTelefone || !dataHora || !tenantId) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: 'Faltam parametros obrigatorios: pacienteTelefone, dataHora, tenantId',
         debug: { hasPhone: !!pacienteTelefone, hasDate: !!dataHora, hasTenant: !!tenantId }
       }, { status: 400 });
@@ -89,77 +89,97 @@ export async function POST(request: Request) {
       });
     }
 
-    // Parse robusto da data
-    let date = new Date(dataHora);
-    if (isNaN(date.getTime())) {
-      throw new Error('Formato de data inválido: ' + dataHora);
+    const date = new Date(dataHora);
+    const dayOfWeek = date.getDay();
+    const reqHour = date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
+
+    // 1. Validar Horário da Empresa
+    const clinica = await prisma.clinica.findUnique({ where: { tenantId } });
+    if (clinica) {
+      if (reqHour < (clinica.openingTime || "08:00") || reqHour > (clinica.closingTime || "18:00")) {
+        return NextResponse.json({ success: false, error: `Horário fora do funcionamento da clínica (${clinica.openingTime} - ${clinica.closingTime})` }, { status: 400 });
+      }
     }
-    
+
+    // 2. Validar Escala do Profissional
+    if (profissionalId) {
+      const escala = await prisma.professionalSchedule.findFirst({
+        where: { profissionalId, diaSemana: dayOfWeek, ativo: true }
+      });
+      if (!escala) {
+        return NextResponse.json({ success: false, error: 'O profissional não atende neste dia da semana.' }, { status: 400 });
+      }
+      if (reqHour < escala.horaInicio || reqHour > escala.horaFim) {
+        return NextResponse.json({ success: false, error: `Horário fora da escala do profissional (${escala.horaInicio} - ${escala.horaFim})` }, { status: 400 });
+      }
+    }
+
     const eventoId = generateEventoId(paciente.id, date, tenantId, profissionalId);
 
     // Busca o serviço para pegar duração e buffer
     let duration = 30;
     let buffer = 0;
     if (servicoId) {
-      // Validação rápida de UUID para evitar erro de tipo no Prisma
-      if (servicoId.length > 10) { 
-        const s = await prisma.servico.findUnique({ where: { id: servicoId } });
-        if (s) {
-          duration = s.duracaoMinutos || 30;
-          buffer = s.bufferTimeMinutes || 0;
-        }
+      const s = await prisma.servico.findUnique({ where: { id: servicoId } });
+      if (s) {
+        duration = s.duracaoMinutos || 30;
+        buffer = s.bufferTimeMinutes || 0;
       }
     }
 
     const fimDataHora = new Date(date.getTime() + duration * 60000);
 
-    // Anti-oscilação: Verifica se ESTE paciente já tem agendamento neste exato horário
+    // Anti-oscilação
     const duplicado = await prisma.agendamento.findUnique({
       where: { eventoId }
     });
-    if (duplicado) {
-      if (duplicado.status !== 'cancelado') {
-        return NextResponse.json({ success: true, agendamento: duplicado, message: 'Agendamento já existia' });
-      }
+    if (duplicado && duplicado.status !== 'cancelado') {
+      return NextResponse.json({ success: true, agendamento: duplicado, message: 'Agendamento já existia' });
     }
 
-    // VALIDAÇÃO DE CONFLITO EXPERT (V2.6)
+    // VALIDAÇÃO DE CONFLITO EXPERT (V2.7)
+    // Busca agendamentos do profissional no mesmo dia
+    const startOfDay = new Date(date); startOfDay.setHours(0,0,0,0);
+    const endOfDay = new Date(date); endOfDay.setHours(23,59,59,999);
+
     const conflictingAppts = await prisma.agendamento.findMany({
-      where: { 
-        tenantId, 
+      where: {
+        tenantId,
         status: { in: ['confirmado', 'pendente'] },
         profissionalId: profissionalId || null,
-        dataHora: {
-          gte: new Date(date.getTime() - 240 * 60000), 
-          lte: new Date(date.getTime() + 240 * 60000)
-        }
+        dataHora: { gte: startOfDay, lte: endOfDay }
       },
       include: { servico: true }
     });
 
     for (const a of conflictingAppts) {
-      const aStart = new Date(a.dataHora);
-      const aDuration = a.durationMinutes || (a.servico?.duracaoMinutos ?? 30);
-      const aBuffer = a.servico?.bufferTimeMinutes ?? 0;
-      const aEndWithBuffer = new Date(aStart.getTime() + (aDuration + aBuffer) * 60000);
+      const aStart = new Date(a.dataHora).getTime();
+      const aDur = a.durationMinutes || (a.servico?.duracaoMinutos ?? 30);
+      const aBuf = a.servico?.bufferTimeMinutes ?? 0;
+      const aEndWithBuffer = aStart + (aDur + aBuf) * 60000;
 
-      if (date >= aStart && date < aEndWithBuffer) {
+      const newStart = date.getTime();
+      const newEnd = fimDataHora.getTime();
+
+      // Se o novo início estiver dentro de um agendamento existente + buffer
+      if (newStart >= aStart && newStart < aEndWithBuffer) {
         return NextResponse.json({ success: false, error: 'Horário bloqueado por agendamento ou intervalo (buffer)' }, { status: 409 });
       }
-      
-      if (fimDataHora > aStart && date < aStart) {
-          return NextResponse.json({ success: false, error: 'O agendamento invade o próximo horário ocupado.' }, { status: 409 });
+
+      // Se o novo agendamento trespassar o início de um existente
+      if (newEnd > aStart && newStart < aStart) {
+        return NextResponse.json({ success: false, error: 'O agendamento invade o próximo horário ocupado.' }, { status: 409 });
       }
     }
 
     const agendamento = await prisma.agendamento.create({
-      data: { 
-        pacienteId: paciente.id, 
-        dataHora: date, 
+      data: {
+        pacienteId: paciente.id,
+        dataHora: date,
         fimDataHora,
         durationMinutes: duration,
-        tenantId, 
-        eventoId, 
+        tenantId,
+        eventoId,
         status: 'pendente',
         profissionalId: profissionalId || null,
         servicoId: servicoId || null,
@@ -179,7 +199,7 @@ export async function POST(request: Request) {
       if (combosAtivos && combosAtivos.oferta) {
         upsellData = { oferecer: true, texto: combosAtivos.descricaoOferta, servicoId: combosAtivos.oferta.id };
       }
-    } catch (e) {}
+    } catch (e) { }
 
     // Automação Financeira
     if (servicoId) {
@@ -189,17 +209,17 @@ export async function POST(request: Request) {
       }
     }
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       agendamento,
       upsellSugestao: upsellData
     });
 
   } catch (err: any) {
     console.error('Erro ao criar agendamento:', err);
-    return NextResponse.json({ 
-      error: 'Erro interno ao criar agendamento', 
-      details: err.message 
+    return NextResponse.json({
+      error: 'Erro interno ao criar agendamento',
+      details: err.message
     }, { status: 500 });
   }
 }
