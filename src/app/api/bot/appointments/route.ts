@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { getAuthorizedTenantId } from '@/lib/auth-helpers';
 import { generateEventoId } from '@/lib/utils-saas';
 import { createFinancialTransaction } from '@/lib/financial-automation';
 
@@ -33,16 +34,25 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const { searchParams } = new URL(request.url);
-  
-  // Accept params from both query string (n8n placeholders) and JSON body
-  let body: any = {};
-  try { body = await request.json(); } catch { /* body may be empty */ }
+  try {
+    const { searchParams } = new URL(request.url);
+    
+    // Accept params from both query string (n8n placeholders) and JSON body
+    let body: any = {};
+    try { body = await request.json(); } catch { /* body may be empty */ }
 
   const pacienteTelefone = searchParams.get('pacienteTelefone') || body.pacienteTelefone;
   const pacienteNome     = searchParams.get('nome') || searchParams.get('pacienteNome') || body.pacienteNome;
   const dataHora         = searchParams.get('dataHora') || body.dataHora;
-  const tenantId         = searchParams.get('tenantId') || body.tenantId;
+  let tenantId = searchParams.get('tenantId') || body.tenantId;
+  
+  if (!tenantId) {
+    try {
+      tenantId = await getAuthorizedTenantId();
+    } catch (e) {
+      // Se não houver session (ex: bot n8n), o tenantId deve vir via param
+    }
+  }
   const profissionalId   = searchParams.get('profissionalId') || body.profissionalId;
   const servicoId        = searchParams.get('servicoId') || body.servicoId;
   const tipoAtendimento   = searchParams.get('tipoAtendimento') || body.tipoAtendimento || 'particular';
@@ -176,9 +186,12 @@ export async function POST(request: Request) {
     }
   }
 
-  return NextResponse.json({ 
-    success: true, 
-    agendamento,
-    upsellSugestao: upsellData
-  });
+  } catch (err: any) {
+    console.error('Erro ao criar agendamento:', err);
+    return NextResponse.json({ 
+      error: 'Erro ao criar agendamento', 
+      details: err.message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    }, { status: 500 });
+  }
 }
