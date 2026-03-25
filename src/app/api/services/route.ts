@@ -5,7 +5,7 @@ import { getAuthorizedTenantId } from '@/lib/auth-helpers';
 export async function GET(request: Request) {
   try {
     const tenantId = await getAuthorizedTenantId();
-    const prisma = getTenantPrisma(tenantId);
+    const prisma = getTenantPrisma();
 
     const servicos = await prisma.servico.findMany({
       where: { 
