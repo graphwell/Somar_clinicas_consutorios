@@ -60,8 +60,8 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({ servico: novoServico });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao processar serviço:', error);
-    return NextResponse.json({ error: 'Erro ao processar serviço' }, { status: 500 });
+    return NextResponse.json({ error: 'Erro ao processar serviço', details: error.message }, { status: 500 });
   }
 }
