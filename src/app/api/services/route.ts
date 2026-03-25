@@ -24,7 +24,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const tenantId = await getAuthorizedTenantId();
-    const prisma = getTenantPrisma(tenantId);
+    const prisma = getTenantPrisma();
     const body = await request.json();
     const { id, nome, descricao, preco, duracaoMinutos, bufferTimeMinutes, color } = body;
 
