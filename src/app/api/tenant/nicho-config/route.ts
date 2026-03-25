@@ -7,16 +7,23 @@ export async function GET(request: Request) {
     const tenantId = await getAuthorizedTenantId();
 
     // Consultamos o banco MASTER para metadados da clínica
-    const clinica = await prisma.clinica.findUnique({
+    let clinica = await prisma.clinica.findUnique({
       where: { tenantId },
       select: { nicho: true, onboardingCompleted: true }
     });
 
     if (!clinica) {
-      return NextResponse.json({ 
-        error: 'Empresa não identificada no Master DB', 
-        debug: { resolvedTenantId: tenantId } 
-      }, { status: 404 });
+      clinica = await prisma.clinica.create({
+        data: {
+          tenantId,
+          nome: 'Auto-Clínica Synka',
+          nicho: 'Estética',
+          onboardingCompleted: false,
+          slug: `auto-${tenantId.slice(-4)}-${Math.floor(Math.random() * 1000)}`
+        },
+        select: { nicho: true, onboardingCompleted: true }
+      });
+      console.log('✅ Auto-Healing: Clínica registrada para o tenant:', tenantId);
     }
 
     // O NichoConfig também reside no Master para padronização global
