@@ -112,6 +112,17 @@ export default function DashboardPage() {
     // Sincronização Estrita: Se profissional selecionado NÃO tem escala ativa neste dia, não mostramos slots
     if (selectedProfId && !escala) return [];
 
+    // Sincronização Estrita V5.5: Profissional deve estar dentro do horário da clínica
+    const clinicStart = clinica?.openingTime || "08:00";
+    const clinicEnd = clinica?.closingTime || "18:00";
+    
+    let finalStart = escala?.horaInicio || clinicStart;
+    let finalEnd = escala?.horaFim || clinicEnd;
+
+    // Garante que o profissional não comece antes ou termine depois da clínica
+    if (finalStart < clinicStart) finalStart = clinicStart;
+    if (finalEnd > clinicEnd) finalEnd = clinicEnd;
+
     const targetServ = services.find((s: Service) => s.id === selectedServId) || services[0];
     const currentDayAppts = appointments.filter((a: Appointment) => isSameDay(new Date(a.dataHora), selectedDate));
     
@@ -119,8 +130,8 @@ export default function DashboardPage() {
     const metadata = targetProf?.horariosJson as any;
 
     return generateSmartSlots(
-      escala?.horaInicio || "08:00", 
-      escala?.horaFim || "18:00", 
+      finalStart, 
+      finalEnd, 
       targetServ,
       currentDayAppts,
       selectedDate,
