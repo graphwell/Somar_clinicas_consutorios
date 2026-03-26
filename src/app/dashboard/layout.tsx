@@ -111,7 +111,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       })
       .then(data => {
         if (data.logoUrl) setClientLogo(data.logoUrl);
-        if (data.nomeClinica) setClientName(data.nomeClinica);
+        if (data.nome) setClientName(data.nome);
       })
       .catch(() => {})
       .finally(() => setLoading(false));

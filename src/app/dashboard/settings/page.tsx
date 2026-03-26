@@ -37,8 +37,11 @@ export default function SettingsPage() {
           setOpeningTime(data.clinica.openingTime || '08:00');
           setClosingTime(data.clinica.closingTime || '18:00');
           setWorkingDays(data.clinica.workingDays || '1,2,3,4,5');
-          if (data.clinica.primaryColor) setPrimaryColor(data.clinica.primaryColor);
-          if (data.clinica.logoUrl) setLogoUrl(data.clinica.logoUrl);
+          if (data.clinica.configBranding) {
+            const branding = data.clinica.configBranding as any;
+            if (branding.logoUrl) setLogoUrl(branding.logoUrl);
+            if (branding.primaryColor) setPrimaryColor(branding.primaryColor);
+          }
         }
       });
   }, []);
