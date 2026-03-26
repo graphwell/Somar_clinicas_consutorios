@@ -24,11 +24,18 @@ export const clearAuthSession = () => {
 
 export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
   const token = getAuthToken();
-  const headers = {
+  const isFormData = options.body instanceof FormData;
+  
+  const headers: any = {
     ...options.headers,
     'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json',
   };
+
+  // Se for FormData, o browser cuida do Content-Type (multipart/form-data + boundary). 
+  // Senão, assumimos JSON por padrão do Synka.
+  if (!isFormData && !headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json';
+  }
 
   const response = await fetch(url, { ...options, headers });
   
