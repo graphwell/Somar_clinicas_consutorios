@@ -107,21 +107,18 @@ export default function DashboardPage() {
     if (!targetProf && !isGeneralView) return []; // Não gera slots se não houver prof ou visão geral
     
     const dayOfWeek = selectedDate.getDay();
-    const escala = targetProf?.escalas?.find((e: any) => e.diaSemana === dayOfWeek && e.ativo);
+    // Busca escala considerando JS (0-6) ou Prisma (pode estar como 1-7 em alguns contextos se não mapeado)
+    const escala = targetProf?.escalas?.find((e: any) => (e.diaSemana === dayOfWeek) && e.ativo);
     
-    // Se profissional selecionado NÃO atende neste dia, não mostramos slots da clínica
-    if (selectedProfId && !escala) return [];
+    // Se não tem escala no dia, mas o profissional está selecionado, voltamos aos horários da clínica 
+    // mas garantimos que start/end existam.
+    const start = escala?.horaInicio || clinica.openingTime || "08:00";
+    const end = escala?.horaFim || clinica.closingTime || "18:00";
 
     const targetServ = services.find((s: Service) => s.id === selectedServId) || services[0];
     const currentDayAppts = appointments.filter((a: Appointment) => isSameDay(new Date(a.dataHora), selectedDate));
     
-    return generateSmartSlots(
-      escala?.horaInicio || clinica.openingTime, 
-      escala?.horaFim || clinica.closingTime, 
-      targetServ,
-      currentDayAppts,
-      selectedDate
-    );
+    return generateSmartSlots(start, end, targetServ, currentDayAppts, selectedDate);
   }, [clinica, profissionais, services, appointments, selectedDate, selectedProfId, selectedServId, isGeneralView]);
 
   return (
