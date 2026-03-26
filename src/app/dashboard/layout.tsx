@@ -146,22 +146,10 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       <nav className={`fixed left-0 top-0 h-full bg-white border-r border-card-border p-6 flex flex-col z-40 transition-all duration-500 shadow-sm ${isCollapsed ? 'w-24' : 'w-72'} ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
         <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-start'} h-12 mb-10 transition-all`}>
           {/* Brand Logo Section */}
-          {/* Sidebar Header Branding - White-label Focus */}
+          {/* Sidebar Header Branding - Clean Minimalist Mode */}
           <div className="flex items-center gap-3 overflow-hidden min-h-[48px]">
             {clientLogo ? (
-              <div className="flex items-center gap-3">
-                 <img src={clientLogo} alt="Project Logo" className="h-10 w-auto shrink-0 object-contain rounded-lg animate-premium" />
-                 {!isCollapsed && (
-                   <div className="flex flex-col">
-                      <span className="text-[11px] font-black uppercase tracking-tighter text-text-main line-clamp-1 italic">
-                         {clientName}
-                      </span>
-                      <span className="text-[7px] font-black uppercase tracking-widest text-status-success">
-                         Sistema Ativo
-                      </span>
-                   </div>
-                 )}
-              </div>
+               <img src={clientLogo} alt="Project Logo" className="h-10 w-auto shrink-0 object-contain rounded-lg animate-premium mx-auto" />
             ) : (
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-[8px] font-black text-slate-400 uppercase italic border border-slate-200">
@@ -204,13 +192,9 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             </button>
             
             <div className="flex items-center h-full min-h-[40px]">
-              {clientLogo ? (
-                <img src={clientLogo} alt="Logo" className="max-h-[40px] w-auto object-contain animate-premium" />
-              ) : (
-                <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-text-placeholder italic">
+               <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-text-placeholder italic">
                   {clientName || 'Console Clinical OS'}
-                </h2>
-              )}
+               </h2>
             </div>
           </div>
 
