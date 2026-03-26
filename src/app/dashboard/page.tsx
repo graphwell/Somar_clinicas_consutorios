@@ -108,6 +108,10 @@ export default function DashboardPage() {
     
     const dayOfWeek = selectedDate.getDay();
     const escala = targetProf?.escalas?.find((e: any) => e.diaSemana === dayOfWeek && e.ativo);
+    
+    // Se profissional selecionado NÃO atende neste dia, não mostramos slots da clínica
+    if (selectedProfId && !escala) return [];
+
     const targetServ = services.find((s: Service) => s.id === selectedServId) || services[0];
     const currentDayAppts = appointments.filter((a: Appointment) => isSameDay(new Date(a.dataHora), selectedDate));
     
@@ -280,7 +284,7 @@ export default function DashboardPage() {
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
                 {smartSlots.map((h: string) => {
                   const [hH, hM] = h.split(':').map(Number);
                   const slotTime = new Date(selectedDate);
