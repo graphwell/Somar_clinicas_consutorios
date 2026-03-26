@@ -158,16 +158,23 @@ export default function SettingsPage() {
                      </div>
                      <input ref={fileRef} type="file" className="hidden" onChange={handleLogoUpload} />
                  </div>
-                 <div className="space-y-3">
-                    <label className="text-[8px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-2">Cor Institucional (Foco)</label>
-                    <div className="flex items-center gap-4 p-6 bg-slate-50 border border-card-border rounded-2xl h-32">
-                       <input type="color" value={primaryColor} disabled className="w-12 h-12 rounded-xl border-0 bg-transparent cursor-not-allowed opacity-50 shadow-inner" />
-                       <div>
-                          <p className="text-xl font-black text-text-main uppercase tracking-tighter font-mono italic">{primaryColor}</p>
-                          <p className="text-[8px] font-black text-primary uppercase tracking-widest mt-1">Light Active</p>
-                       </div>
-                    </div>
-                 </div>
+                  <div className="space-y-3">
+                     <label className="text-[8px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-2">Diretrizes de Upload</label>
+                     <div className="flex flex-col justify-center p-6 bg-slate-50 border border-card-border rounded-2xl h-32 space-y-2">
+                        <div className="flex items-center gap-2">
+                           <span className="text-[10px]">📐</span>
+                           <p className="text-[9px] font-black text-text-main uppercase tracking-tighter italic">Proporção: <span className="text-primary font-bold">1:1 (Quadrada)</span> ou Horizontal</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                           <span className="text-[10px]">🖼️</span>
+                           <p className="text-[9px] font-black text-text-main uppercase tracking-tighter italic">Formato: <span className="text-primary font-bold">PNG (Transparente)</span> ou SVG</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                           <span className="text-[10px]">✨</span>
+                           <p className="text-[9px] font-black text-text-main uppercase tracking-tighter italic">Qualidade: Mínimo <span className="text-primary font-bold">512x512px</span></p>
+                        </div>
+                     </div>
+                  </div>
               </div>
            </div>
 
