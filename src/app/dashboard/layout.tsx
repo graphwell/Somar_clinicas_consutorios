@@ -10,7 +10,7 @@ import SynkaChatModal from '@/components/dashboard/SynkaChatModal';
 const NavItem = ({ href, label, icon, isCollapsed, active }: { href: string; label: string; icon: string; isCollapsed: boolean; active: boolean }) => (
   <Link 
     href={href} 
-    className={`flex items-center gap-2 px-3 py-2.5 rounded-2xl transition-all text-xs font-bold group relative
+    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all text-[11px] font-bold group relative
       ${active ? 'bg-primary-soft text-primary shadow-sm border border-primary/10' : 'text-text-muted hover:bg-slate-50 hover:text-text-main'}`}
     title={isCollapsed ? label : ''}
   >
@@ -29,7 +29,7 @@ const NavigationLinks = ({ isCollapsed }: { isCollapsed: boolean }) => {
   const pathname = usePathname();
   
   return (
-    <div className="flex flex-col gap-5 flex-1 overflow-y-auto no-scrollbar py-2">
+    <div className="flex flex-col gap-3 flex-1 overflow-y-auto no-scrollbar py-1">
       <section className="space-y-1.5">
         <p className={`text-[9px] font-black uppercase tracking-[0.2em] text-text-placeholder mb-3 px-4 ${isCollapsed ? 'hidden' : 'block'}`}>Principal</p>
         <NavItem href="/dashboard" label={labels.termoAgenda} icon="📅" isCollapsed={isCollapsed} active={pathname === '/dashboard'} />
@@ -144,7 +144,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       {mobileOpen && <div className="fixed inset-0 bg-slate-900/10 backdrop-blur-sm z-30 md:hidden animate-in fade-in" onClick={() => setMobileOpen(false)} />}
 
       <nav className={`fixed left-0 top-0 h-full bg-white border-r border-card-border px-3 py-6 flex flex-col z-40 transition-all duration-500 shadow-sm ${isCollapsed ? 'w-24' : 'w-60'} ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
-        <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-start'} h-24 mb-6 transition-all`}>
+        <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-start'} h-20 mb-4 transition-all border-b border-slate-50 pb-4`}>
           {/* Sidebar Header Branding - Clean Minimalist Mode - Increased 200% */}
           <div className="flex items-center gap-3 overflow-hidden min-h-[80px] w-full">
             {clientLogo ? (
