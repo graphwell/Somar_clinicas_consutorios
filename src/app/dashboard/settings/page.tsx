@@ -43,10 +43,13 @@ export default function SettingsPage() {
       });
   }, []);
 
+  const [uploadSuccess, setUploadSuccess] = useState(false);
+ 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
+    setUploadSuccess(false);
     const formData = new FormData();
     formData.append('logo', file);
     try {
@@ -54,7 +57,10 @@ export default function SettingsPage() {
       const data = await res.json();
       if (res.ok) {
         setLogoUrl(data.logoUrl);
-        window.location.reload(); 
+        setUploadSuccess(true);
+        setTimeout(() => {
+          window.location.reload(); 
+        }, 1500);
       } else {
         alert(data.error || 'Erro ao subir logo. Verifique se o arquivo tem menos de 2MB.');
       }
@@ -125,23 +131,30 @@ export default function SettingsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                  <div className="space-y-4">
                     <label className="text-[9px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-2">Logo da Unidade</label>
-                    <div onClick={() => fileRef.current?.click()} className="w-full aspect-video rounded-[2.5rem] bg-slate-50 border-2 border-dashed border-card-border flex flex-col items-center justify-center cursor-pointer hover:border-primary/30 transition-all overflow-hidden relative group">
-                       {logoUrl ? (
-                         <>
-                           <img src={logoUrl} className="h-24 object-contain animate-premium" />
-                           <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                              <span className="text-[10px] font-black text-white uppercase tracking-widest">Atualizar Marca</span>
-                           </div>
-                         </>
-                       ) : (
-                         <div className="text-center italic opacity-30 group-hover:opacity-60 transition-opacity">
-                            <span className="text-4xl mb-2 block">🖼️</span>
-                            <span className="text-[10px] font-black uppercase text-text-placeholder">Upload (PNG/SVG)</span>
-                         </div>
-                       )}
-                       {uploading && <div className="absolute inset-0 bg-white/90 flex items-center justify-center font-black text-[10px] uppercase text-primary animate-pulse">Processando...</div>}
-                    </div>
-                    <input ref={fileRef} type="file" className="hidden" onChange={handleLogoUpload} />
+                     <div onClick={() => fileRef.current?.click()} className="w-full aspect-video rounded-[2.5rem] bg-slate-50 border-2 border-dashed border-card-border flex flex-col items-center justify-center cursor-pointer hover:border-primary/30 transition-all overflow-hidden relative group">
+                        {logoUrl ? (
+                          <>
+                            <img src={logoUrl} className="h-24 object-contain animate-premium" />
+                            <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                               <span className="text-[10px] font-black text-white uppercase tracking-widest">Atualizar Marca</span>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="text-center italic opacity-30 group-hover:opacity-60 transition-opacity">
+                             <span className="text-4xl mb-2 block">🖼️</span>
+                             <span className="text-[10px] font-black uppercase text-text-placeholder">Upload (PNG/SVG)</span>
+                          </div>
+                        )}
+                        {uploading && <div className="absolute inset-0 bg-white/90 flex items-center justify-center font-black text-[10px] uppercase text-primary animate-pulse">Processando...</div>}
+                        {uploadSuccess && (
+                          <div className="absolute inset-0 bg-status-success flex flex-col items-center justify-center text-white animate-in zoom-in duration-300">
+                             <span className="text-4xl mb-2">✅</span>
+                             <span className="text-[12px] font-black uppercase tracking-widest">Upload concluído com sucesso!</span>
+                             <span className="text-[8px] mt-2 opacity-80">Sincronizando Sidebar...</span>
+                          </div>
+                        )}
+                     </div>
+                     <input ref={fileRef} type="file" className="hidden" onChange={handleLogoUpload} />
                  </div>
                  <div className="space-y-4">
                     <label className="text-[9px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-2">Cor Institucional (Foco)</label>
