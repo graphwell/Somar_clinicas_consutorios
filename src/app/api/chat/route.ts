@@ -21,7 +21,8 @@ export async function POST(request: Request) {
     const servicesList = services.map(s => `- ${s.nome}: R$ ${s.preco.toFixed(2)}`).join('\n');
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const modelName = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+    const model = genAI.getGenerativeModel({ model: modelName });
 
     const systemPrompt = `Você é a Synka IA, a inteligência operacional da plataforma Synka para a clínica ${clinica.razaoSocial}.
 Sua missão é ajudar o usuário administrador a gerenciar a clínica.

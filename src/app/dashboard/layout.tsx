@@ -5,6 +5,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { usePathname, useRouter } from 'next/navigation';
 import { NichoProvider, useNicho } from '@/context/NichoContext';
 import { fetchWithAuth, getAuthToken, clearAuthSession } from '@/lib/api-utils';
+import SynkaChatModal from '@/components/dashboard/SynkaChatModal';
 
 const NavItem = ({ href, label, icon, isCollapsed, active }: { href: string; label: string; icon: string; isCollapsed: boolean; active: boolean }) => (
   <Link 
