@@ -52,15 +52,15 @@ const NavigationLinks = ({ isCollapsed }: { isCollapsed: boolean }) => {
         <NavItem href="/dashboard/reports" label="Relatórios" icon="📊" isCollapsed={isCollapsed} active={pathname === '/dashboard/reports'} />
       </section>
 
-      <section className="space-y-1.5">
-        <p className={`text-[9px] font-black uppercase tracking-[0.2em] text-text-placeholder mb-3 px-4 ${isCollapsed ? 'hidden' : 'block'}`}>Marketing & IA</p>
+      <section className="space-y-1 border-t border-slate-50 pt-2">
+        <p className={`text-[8px] font-black uppercase tracking-[0.2em] text-text-placeholder mb-1 px-3 ${isCollapsed ? 'hidden' : 'block'}`}>Marketing & IA</p>
         <NavItem href="/dashboard/help" label="Central de Ajuda" icon="🧠" isCollapsed={isCollapsed} active={pathname === '/dashboard/help'} />
-        <NavItem href="/dashboard/marketing" label="Campanhas" icon="📢" isCollapsed={isCollapsed} active={pathname === '/dashboard/marketing'} />
-        <NavItem href="/dashboard/integrations" label="Integrações" icon="🔗" isCollapsed={isCollapsed} active={pathname === '/dashboard/integrations'} />
+        <NavItem href="/dashboard/marketing/campaigns" label="Campanhas" icon="📢" isCollapsed={isCollapsed} active={pathname === '/dashboard/marketing/campaigns'} />
+        <NavItem href="/dashboard/marketing/integrations" label="Integrações" icon="🔗" isCollapsed={isCollapsed} active={pathname === '/dashboard/marketing/integrations'} />
       </section>
 
-      <section className="space-y-1.5 mt-auto border-t border-slate-50 pt-6">
-        <p className={`text-[9px] font-black uppercase tracking-[0.2em] text-text-placeholder mb-3 px-4 ${isCollapsed ? 'hidden' : 'block'}`}>Gestão</p>
+      <section className="space-y-1 border-t border-slate-50 pt-2">
+        <p className={`text-[8px] font-black uppercase tracking-[0.2em] text-text-placeholder mb-1 px-3 ${isCollapsed ? 'hidden' : 'block'}`}>Gestão</p>
         <NavItem href="/dashboard/finance" label="Financeiro" icon="🏦" isCollapsed={isCollapsed} active={pathname === '/dashboard/finance'} />
         <NavItem href="/dashboard/settings" label="Configurações" icon="⚙️" isCollapsed={isCollapsed} active={pathname === '/dashboard/settings'} />
       </section>
