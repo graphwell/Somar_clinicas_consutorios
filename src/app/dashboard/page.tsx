@@ -107,18 +107,21 @@ export default function DashboardPage() {
     if (!targetProf && !isGeneralView) return []; // Não gera slots se não houver prof ou visão geral
     
     const dayOfWeek = selectedDate.getDay();
-    // Busca escala considerando JS (0-6) ou Prisma (pode estar como 1-7 em alguns contextos se não mapeado)
-    const escala = targetProf?.escalas?.find((e: any) => (e.diaSemana === dayOfWeek) && e.ativo);
+    const escala = targetProf?.escalas?.find((e: any) => e.diaSemana === dayOfWeek && e.ativo);
     
-    // Se não tem escala no dia, mas o profissional está selecionado, voltamos aos horários da clínica 
-    // mas garantimos que start/end existam.
-    const start = escala?.horaInicio || clinica.openingTime || "08:00";
-    const end = escala?.horaFim || clinica.closingTime || "18:00";
+    // Sincronização Estrita: Se profissional selecionado NÃO tem escala ativa neste dia, não mostramos slots
+    if (selectedProfId && !escala) return [];
 
     const targetServ = services.find((s: Service) => s.id === selectedServId) || services[0];
     const currentDayAppts = appointments.filter((a: Appointment) => isSameDay(new Date(a.dataHora), selectedDate));
     
-    return generateSmartSlots(start, end, targetServ, currentDayAppts, selectedDate);
+    return generateSmartSlots(
+      escala?.horaInicio || "08:00", 
+      escala?.horaFim || "18:00", 
+      targetServ,
+      currentDayAppts,
+      selectedDate
+    );
   }, [clinica, profissionais, services, appointments, selectedDate, selectedProfId, selectedServId, isGeneralView]);
 
   return (
@@ -281,23 +284,32 @@ export default function DashboardPage() {
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
-                {smartSlots.map((h: string) => {
-                  const [hH, hM] = h.split(':').map(Number);
-                  const slotTime = new Date(selectedDate);
-                  slotTime.setHours(hH, hM, 0, 0);
-                  
-                  // Find appointment that COVERS this slot
-                  const appt = appointments.find((a: Appointment) => {
-                    if (selectedProfId && a.profissional?.id !== selectedProfId) return false;
-                    const aStart = new Date(a.dataHora).getTime();
-                    const aEnd = aStart + (a.durationMinutes || 30) * 60000;
-                    return slotTime.getTime() >= aStart && slotTime.getTime() < aEnd;
-                  });
+              {smartSlots.length > 0 ? (
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
+                  {smartSlots.map((h: string) => {
+                    const [hH, hM] = h.split(':').map(Number);
+                    const slotTime = new Date(selectedDate);
+                    slotTime.setHours(hH, hM, 0, 0);
+                    
+                    // Find appointment that COVERS this slot
+                    const appt = appointments.find((a: Appointment) => {
+                      if (selectedProfId && a.profissional?.id !== selectedProfId) return false;
+                      const aStart = new Date(a.dataHora).getTime();
+                      const aEnd = aStart + (a.durationMinutes || 30) * 60000;
+                      return slotTime.getTime() >= aStart && slotTime.getTime() < aEnd;
+                    });
 
-                  return <HourCell key={h} hour={h} appt={appt} onClick={() => { setSelectedHour(h); setShowModal(true); }} />;
-                })}
-              </div>
+                    return <HourCell key={h} hour={h} appt={appt} onClick={() => { setSelectedHour(h); setShowModal(true); }} />;
+                  })}
+                </div>
+              ) : (
+                <div className="py-24 text-center bg-slate-50/50 rounded-[3rem] border-2 border-dashed border-slate-100 flex flex-col items-center justify-center space-y-4">
+                   <div className="text-4xl opacity-20">📅</div>
+                   <p className="text-[10px] font-black text-text-placeholder uppercase tracking-[0.3em] opacity-60 italic">
+                      Este {labels.termoProfissional} não possui horários configurados para este dia
+                   </p>
+                </div>
+              )}
             </div>
           )
         )}
