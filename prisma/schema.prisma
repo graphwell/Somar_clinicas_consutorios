@@ -12,7 +12,7 @@ model Clinica {
   tenantId       String        @unique
   slug           String        @unique @default("clinica-default")
   nome           String
-  nicho          String        @default("Clínica Médica")
+  nicho          NichoType     @default(CLINICA_MEDICA)
   configBranding Json?         // { logoUrl, primaryColor, etc }
   razaoSocial    String?
   cnpj           String?
@@ -37,10 +37,24 @@ model Clinica {
   updatedAt      DateTime      @updatedAt
 
   @@map("clinicas")
+  planosAssinatura PlanoAssinatura[]
+  integracoes      ClinicIntegration[]
+}
+
+enum NichoType {
+  CLINICA_MEDICA
+  CLINICA_MULTI
+  CLINICA_ESTETICA
+  SALAO_BELEZA
+  BARBEARIA
+  FISIOTERAPIA
+  ODONTOLOGIA
+  OUTRO
 }
 
 model Usuario {
   id        String   @id @default(uuid())
+  nome      String?
   email     String   @unique
   senhaHash String
   role      String   @default("recepcao") // admin, recepcao
@@ -64,9 +78,14 @@ model Paciente {
   ultimaVisita    DateTime?
   contagemVisitas Int           @default(0)
 
+  isSubscriber          Boolean  @default(false)
+  profissionalPreferidoId String?
+  deletedAt             DateTime?
+
   tenantId        String
   clinica         Clinica       @relation(fields: [tenantId], references: [tenantId])
   agendamentos    Agendamento[]
+  assinaturas     AssinaturaCliente[]
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
@@ -273,4 +292,52 @@ model Notificacao {
   createdAt DateTime @default(now())
 
   @@map("notificacoes")
+}
+
+model PlanoAssinatura {
+  id          String   @id @default(cuid())
+  empresaId   String
+  nome        String   // ex: "Corte + Barba"
+  descricao   String?
+  valor       Float    // Usando Float para consistência com o restante do projeto
+  periodicidade String // "mensal" | "trimestral"
+  servicos    Json     // lista de serviços incluídos
+  ativo       Boolean  @default(true)
+  tenantId    String
+  clinica     Clinica  @relation(fields: [tenantId], references: [tenantId])
+  assinantes  AssinaturaCliente[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("planos_assinatura")
+}
+
+model AssinaturaCliente {
+  id          String   @id @default(cuid())
+  pacienteId  String   
+  planoId     String
+  dataInicio  DateTime @default(now())
+  dataFim     DateTime?
+  status      String   @default("ativo") // "ativo" | "cancelado" | "vencido"
+  valorPago   Float
+  paciente    Paciente @relation(fields: [pacienteId], references: [id])
+  plano       PlanoAssinatura @relation(fields: [planoId], references: [id])
+  tenantId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("assinaturas_cliente")
+}
+
+model ClinicIntegration {
+  id        String   @id @default(cuid())
+  tenantId  String
+  type      String   // "whatsapp", "stripe", "mercadopago", "n8n"
+  status    String   @default("inactive") // "active", "inactive", "error"
+  config    Json?    // API keys, Webhook URLs, etc.
+  clinica   Clinica  @relation(fields: [tenantId], references: [tenantId])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("clinic_integrations")
 }

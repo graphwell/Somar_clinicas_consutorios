@@ -2,13 +2,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { fetchWithAuth } from '@/lib/api-utils';
 
-type NichoLabels = {
-  cliente: string;
-  servico: string;
-  profissional: string;
-  atendimento: string;
-  prontuario: string;
-};
+import { getNomenclature, NichoLabels } from '@/lib/nomenclatures';
 
 type NichoContextType = {
   nicho: string;
@@ -17,29 +11,20 @@ type NichoContextType = {
   loading: boolean;
 };
 
-const defaultLabels: NichoLabels = {
-  cliente: 'Paciente',
-  servico: 'Serviço',
-  profissional: 'Profissional',
-  atendimento: 'Consulta',
-  prontuario: 'Prontuário'
-};
-
 const NichoContext = createContext<NichoContextType>({
-  nicho: 'Clínica Médica',
-  labels: defaultLabels,
-  onboardingCompleted: true, // Defaulting to true to avoid flash on public pages
+  nicho: 'CLINICA_MEDICA',
+  labels: getNomenclature('CLINICA_MEDICA'),
+  onboardingCompleted: true,
   loading: true
 });
 
 export function NichoProvider({ children }: { children: React.ReactNode }) {
-  const [nicho, setNicho] = useState('Clínica Médica');
-  const [labels, setLabels] = useState<NichoLabels>(defaultLabels);
+  const [nicho, setNicho] = useState('CLINICA_MEDICA');
+  const [labels, setLabels] = useState<NichoLabels>(getNomenclature('CLINICA_MEDICA'));
   const [onboardingCompleted, setOnboardingCompleted] = useState(true);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Só busca se houver sessão ativa
     const token = typeof window !== 'undefined' ? localStorage.getItem('synka-token') : null;
     if (!token) {
       setLoading(false);
@@ -49,8 +34,10 @@ export function NichoProvider({ children }: { children: React.ReactNode }) {
     fetchWithAuth('/api/tenant/nicho-config')
       .then(r => r.json())
       .then(data => {
-        if (data.nicho) setNicho(data.nicho);
-        if (data.labels) setLabels(data.labels);
+        if (data.nicho) {
+          setNicho(data.nicho);
+          setLabels(getNomenclature(data.nicho));
+        }
         if (data.hasOwnProperty('onboardingCompleted')) {
           setOnboardingCompleted(data.onboardingCompleted);
         }

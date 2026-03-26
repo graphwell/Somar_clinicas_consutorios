@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { hashPassword, signToken } from '@/lib/auth';
-import { v4 as uuidv4 } from 'uuid';
+import crypto from 'crypto';
 
 export async function POST(request: Request) {
   try {
-    const { email, senha, nomeClinica } = await request.json();
+    const { email, senha, nomeClinica, nomeResponsavel } = await request.json();
 
     if (!email || !senha || !nomeClinica) {
       return NextResponse.json({ error: 'Todos os campos são obrigatórios' }, { status: 400 });
@@ -17,8 +17,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Este e-mail já está cadastrado' }, { status: 400 });
     }
 
-    const tenantId = `tenant_${uuidv4().substring(0, 8)}`;
-    const slug = nomeClinica.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
+    const tenantId = `tenant_${crypto.randomUUID().substring(0, 8)}`;
+    const slug = nomeClinica.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '') || 'clinica';
 
     // Criar Clínica e Usuário em uma transação
     const result = await prisma.$transaction(async (tx) => {
@@ -34,6 +34,7 @@ export async function POST(request: Request) {
       const senhaHash = await hashPassword(senha);
       const usuario = await tx.usuario.create({
         data: {
+          nome: nomeResponsavel,
           email,
           senhaHash,
           role: 'admin',
@@ -64,7 +65,11 @@ export async function POST(request: Request) {
     });
 
   } catch (error: any) {
-    console.error('Registration error:', error);
+    console.error('[AUTH_REGISTER_ERROR]:', {
+      message: error.message,
+      stack: error.stack,
+      code: error.code
+    });
     return NextResponse.json({ error: 'Erro ao criar conta. Tente novamente.' }, { status: 500 });
   }
 }

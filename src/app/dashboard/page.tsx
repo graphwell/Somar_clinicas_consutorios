@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNicho } from '@/context/NichoContext';
 import { fetchWithAuth } from '@/lib/api-utils';
+import KpiSection from '@/components/dashboard/KpiSection';
 
 const SLOT_INTERVAL_FALLBACK = 30;
 
@@ -43,8 +44,8 @@ const generateSmartSlots = (
   selectedDate: Date = new Date()
 ) => {
   const slots: string[] = [];
-  const startParts = (startStr || "08:00").split(':').map(Number);
-  const endParts = (endStr || "18:00").split(':').map(Number);
+  const startParts = (startStr || "00:00").split(':').map(Number);
+  const endParts = (endStr || "23:59").split(':').map(Number);
   
   let current = new Date(selectedDate);
   current.setHours(startParts[0], startParts[1], 0, 0);
@@ -52,26 +53,26 @@ const generateSmartSlots = (
   const end = new Date(selectedDate);
   end.setHours(endParts[0], endParts[1], 0, 0);
 
-  const duration = service?.duracaoMinutos || SLOT_INTERVAL_FALLBACK;
-  const buffer = service?.bufferTimeMinutes || 0;
-  const totalJump = duration + buffer;
+  const defaultJump = service?.duracaoMinutos || 30;
 
   while (current < end) {
     const timeStr = current.getHours().toString().padStart(2, '0') + ':' + current.getMinutes().toString().padStart(2, '0');
+    slots.push(timeStr);
     
-    const isSlotOccupied = existingAppts.some(a => {
-      const aStart = new Date(a.dataHora).getTime();
-      const aDur = a.durationMinutes || (a.servico?.duracaoMinutos ?? 30);
-      const aBuf = a.servico?.bufferTimeMinutes ?? 0;
-      const aEndWithBuffer = aStart + (aDur + aBuf) * 60000;
-      return current.getTime() >= aStart && current.getTime() < aEndWithBuffer;
+    // Check if there's an appointment starting EXACTLY at this slot
+    const appt = existingAppts.find(a => {
+      const aDate = new Date(a.dataHora);
+      return aDate.getHours() === current.getHours() && aDate.getMinutes() === current.getMinutes();
     });
 
-    if (!isSlotOccupied) {
-      slots.push(timeStr);
-      current = new Date(current.getTime() + totalJump * 60000);
+    if (appt) {
+      // Jump by appointment duration + buffer to avoid overlapping with its own slots
+      const duration = appt.durationMinutes || 30;
+      const buffer = appt.servico?.bufferTimeMinutes || 0;
+      current = new Date(current.getTime() + (duration + buffer) * 60000);
     } else {
-      current = new Date(current.getTime() + 10 * 60000);
+      // Standard jump
+      current = new Date(current.getTime() + defaultJump * 60000);
     }
   }
   return slots;
@@ -94,6 +95,7 @@ function formatDate(iso: string) { return new Date(iso).toLocaleDateString('pt-B
 function isSameDay(a: Date, b: Date) { return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
 
 function HourCell({ hour, appt, onClick }: { hour: string, appt?: Appointment, onClick: () => void }) {
+  const { labels } = useNicho();
   const status = appt ? appt.status : 'available';
   const config = STATUS_MAP[status] || STATUS_MAP.available;
 
@@ -105,18 +107,38 @@ function HourCell({ hour, appt, onClick }: { hour: string, appt?: Appointment, o
       `}
       style={{ backgroundColor: config.bg, color: config.text }}
     >
-      <div className="flex flex-col items-center border-r border-current/10 pr-6">
+      <div className="flex flex-col items-center border-r border-current/10 pr-6 relative">
         <span className="text-[12px] font-black uppercase tracking-tighter">{hour}</span>
+        {(() => {
+          const now = new Date();
+          const [hH, hHMin] = hour.split(':').map(Number);
+          const isSlotActive = now.getHours() === hH && Math.abs(now.getMinutes() - hHMin) < 30;
+          return isSlotActive && <div className="absolute -left-2 w-1 h-6 bg-primary rounded-full animate-pulse"></div>;
+        })()}
       </div>
       <div className="flex-1 flex justify-between items-center text-left">
         {appt ? (
           <>
             <div>
               <p className="text-[11px] font-black uppercase tracking-tight truncate max-w-[200px] leading-none mb-1">{appt.paciente.nome}</p>
-              <p className="text-[8px] font-bold opacity-60 uppercase tracking-widest truncate">{appt.servico?.nome || 'Procedimento'}</p>
+              <p className="text-[8px] font-bold opacity-60 uppercase tracking-widest truncate">{appt.servico?.nome || labels.termoServico}</p>
             </div>
-            <div className="flex gap-2 items-center">
+            <div className="flex gap-2 items-center relative">
               <span className="text-[10px] bg-white/20 px-3 py-1 rounded-full font-black uppercase tracking-widest">{appt.tipoAtendimento}</span>
+              {(() => {
+                const start = new Date(appt.dataHora).getTime();
+                const now = new Date().getTime();
+                const duration = (appt.durationMinutes || 30) * 60000;
+                const progress = Math.max(0, Math.min(100, Math.round(((now - start) / duration) * 100)));
+                if (progress > 0 && progress < 100 && appt.status !== 'cancelado') {
+                  return (
+                    <div className="absolute -bottom-6 right-0 w-24 h-1 bg-white/20 rounded-full overflow-hidden">
+                      <div className="h-full bg-white transition-all duration-1000" style={{ width: `${progress}%` }}></div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
             </div>
           </>
         ) : (
@@ -127,9 +149,9 @@ function HourCell({ hour, appt, onClick }: { hour: string, appt?: Appointment, o
   );
 }
 
-export default function AgendaPage() {
+export default function DashboardPage() {
   const { labels } = useNicho();
-  const [activeTab, setActiveTab] = useState<'dia' | 'semana' | 'mes' | 'profissionais' | 'servicos'>('dia');
+  const [activeTab, setActiveTab] = useState<'dia' | 'semana' | 'mes' | 'profissionais' | 'servicos' | 'planos'>('dia');
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [profissionais, setProfissionais] = useState<Profissional[]>([]);
   const [services, setServices] = useState<Service[]>([]);
@@ -166,11 +188,11 @@ export default function AgendaPage() {
 
   const smartSlots = useMemo(() => {
     if (!clinica) return [];
-    const targetProf = profissionais.find(p => p.id === selectedProfId);
+    const targetProf = profissionais.find((p: Profissional) => p.id === selectedProfId);
     const dayOfWeek = selectedDate.getDay();
-    const escala = targetProf?.escalas?.find(e => e.diaSemana === dayOfWeek && e.ativo);
-    const targetServ = services.find(s => s.id === selectedServId) || services[0];
-    const currentDayAppts = appointments.filter(a => isSameDay(new Date(a.dataHora), selectedDate));
+    const escala = targetProf?.escalas?.find((e: any) => e.diaSemana === dayOfWeek && e.ativo);
+    const targetServ = services.find((s: Service) => s.id === selectedServId) || services[0];
+    const currentDayAppts = appointments.filter((a: Appointment) => isSameDay(new Date(a.dataHora), selectedDate));
     return generateSmartSlots(
       escala?.horaInicio || clinica.openingTime, 
       escala?.horaFim || clinica.closingTime, 
@@ -181,16 +203,30 @@ export default function AgendaPage() {
   }, [clinica, profissionais, services, appointments, selectedDate, selectedProfId, selectedServId]);
 
   return (
-    <div className="max-w-full px-4 lg:px-8 pb-40 animate-premium space-y-6">
-      <div className="bg-white border border-card-border p-6 rounded-[2rem] shadow-premium flex flex-col xl:flex-row justify-between items-center gap-6 sticky top-4 z-[50] backdrop-blur-xl bg-white/90">
+    <div className="max-w-full px-4 lg:px-8 pb-40 animate-premium">
+      {/* 📊 Fase 3: KPIs em tempo real */}
+      <KpiSection />
+
+      <div className="bg-white border border-card-border p-6 rounded-[2rem] shadow-premium flex flex-col xl:flex-row justify-between items-center gap-6 sticky top-4 z-[50] backdrop-blur-xl bg-white/90 mb-8">
         <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center text-xl shadow-lg italic font-black">A</div>
-          <h2 className="text-xl font-black italic uppercase tracking-tighter text-text-main">Agenda</h2>
+          <div className="w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center text-xl shadow-lg italic font-black">S</div>
+          <h2 className="text-xl font-black italic uppercase tracking-tighter text-text-main">{labels.termoAgenda} <span className="text-primary opacity-30 text-sm">V3.0</span></h2>
         </div>
         <div className="bg-slate-100 p-1.5 rounded-[1.5rem] flex gap-1 border border-slate-200 shadow-inner overflow-x-auto no-scrollbar max-w-full">
-          {['dia', 'semana', 'mes', 'profissionais', 'servicos'].map(tid => (
-            <button key={tid} onClick={() => setActiveTab(tid as any)} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === tid ? 'bg-white text-primary shadow-premium' : 'text-text-muted hover:text-text-main hover:bg-white/50'}`}>
-              {tid === 'profissionais' ? 'Equipe' : tid === 'servicos' ? 'Serviços' : tid}
+          {[
+            { id: 'dia', label: 'Hoje' },
+            { id: 'semana', label: 'Semana' },
+            { id: 'profissionais', label: labels.termoProfissional === 'Médico' ? 'Equipe' : 'Profissionais' },
+            { id: 'servicos', label: labels.termoServicoPlural },
+            ...(labels.temAssinatura ? [{ id: 'planos', label: 'Planos' }] : [])
+          ].map(tab => (
+            <button 
+              key={tab.id} 
+              onClick={() => setActiveTab(tab.id as any)} 
+              className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap 
+                ${activeTab === tab.id ? 'bg-white text-primary shadow-premium' : 'text-text-muted hover:text-text-main hover:bg-white/50'}`}
+            >
+              {tab.label}
             </button>
           ))}
         </div>
@@ -220,31 +256,44 @@ export default function AgendaPage() {
         </div>
       </div>
 
-      <div className="animate-premium mt-8">
+      <div className="animate-premium">
         {activeTab === 'dia' && (
           <div className="bg-white border border-card-border rounded-[3rem] p-10 shadow-premium space-y-10">
             <div className="flex flex-col md:flex-row justify-between items-center gap-6 border-b border-slate-50 pb-8">
               <div>
-                <h3 className="text-xl font-black italic uppercase tracking-tighter text-text-main">Horários <span className="text-primary italic">Disponíveis</span></h3>
-                <p className="text-[10px] font-black text-text-placeholder uppercase mt-2 tracking-widest">Duração + Buffer</p>
+                <h3 className="text-xl font-black italic uppercase tracking-tighter text-text-main">Linha do <span className="text-primary italic">Tempo</span></h3>
+                <p className="text-[10px] font-black text-text-placeholder uppercase mt-2 tracking-widest">{labels.termoServico} + Buffer</p>
               </div>
-              <div className="flex gap-4">
+              <div className="flex gap-4 items-center">
+                <div className="flex items-center gap-4 mr-4 border-r border-slate-100 pr-6">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-status-success"></div>
+                    <span className="text-[8px] font-black uppercase text-text-placeholder">Ativo</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-status-warning"></div>
+                    <span className="text-[8px] font-black uppercase text-text-placeholder">Pendente</span>
+                  </div>
+                </div>
                 <select value={selectedProfId} onChange={(e) => setSelectedProfId(e.target.value)} className="bg-slate-100 border-none rounded-xl px-4 py-2 text-[10px] font-black uppercase text-text-main cursor-pointer">
-                  <option value="all">Todos os Profissionais</option>
-                  {profissionais.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
-                </select>
-                <select value={selectedServId} onChange={(e) => setSelectedServId(e.target.value)} className="bg-slate-100 border-none rounded-xl px-4 py-2 text-[10px] font-black uppercase text-text-main cursor-pointer">
-                  <option value="all">Serviço Padrão (30m)</option>
-                  {services.map(s => <option key={s.id} value={s.id}>{s.nome} ({s.duracaoMinutos}m)</option>)}
+                  <option value="all">Filtro por Especialista</option>
+                  {profissionais.map((p: Profissional) => <option key={p.id} value={p.id}>{p.nome}</option>)}
                 </select>
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {smartSlots.map(h => {
-                const hourDate = new Date(selectedDate);
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {smartSlots.map((h: string) => {
                 const [hH, hM] = h.split(':').map(Number);
-                hourDate.setHours(hH, hM, 0, 0);
-                const appt = appointments.find(a => isSameDay(new Date(a.dataHora), selectedDate) && new Date(a.dataHora).getTime() === hourDate.getTime());
+                const slotTime = new Date(selectedDate);
+                slotTime.setHours(hH, hM, 0, 0);
+                
+                // Find appointment that COVERS this slot
+                const appt = appointments.find((a: Appointment) => {
+                  const aStart = new Date(a.dataHora).getTime();
+                  const aEnd = aStart + (a.durationMinutes || 30) * 60000;
+                  return slotTime.getTime() >= aStart && slotTime.getTime() < aEnd;
+                });
+
                 return <HourCell key={h} hour={h} appt={appt} onClick={() => { setSelectedHour(h); setShowModal(true); }} />;
               })}
             </div>
@@ -252,22 +301,34 @@ export default function AgendaPage() {
         )}
 
         {activeTab === 'profissionais' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {profissionais.map(p => {
-              const scale = p.escalas?.find(e => e.diaSemana === selectedDate.getDay() && e.ativo);
-              const pAppts = appointments.filter(a => isSameDay(new Date(a.dataHora), selectedDate) && a.profissional?.id === p.id);
-              const pSlots = generateSmartSlots(scale?.horaInicio || clinica?.openingTime, scale?.horaFim || clinica?.closingTime, services[0], pAppts, selectedDate).slice(0, 8);
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+            {profissionais.map((p: Profissional) => {
+              const scale = p.escalas?.find((e: any) => e.diaSemana === selectedDate.getDay() && e.ativo);
+              const pAppts = appointments.filter((a: Appointment) => isSameDay(new Date(a.dataHora), selectedDate) && a.profissional?.id === p.id);
+              const isWorking = !!scale;
+              const isCurrentlyBusy = pAppts.some((a: Appointment) => {
+                const start = new Date(a.dataHora).getTime();
+                const end = start + (a.durationMinutes || 30) * 60000;
+                const now = new Date().getTime();
+                return now >= start && now < end;
+              });
+
               return (
-                <div key={p.id} className="bg-white border border-card-border p-8 rounded-[2.5rem] shadow-premium space-y-6">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-primary text-white flex items-center justify-center font-black">{p.nome[0].toUpperCase()}</div>
-                    <div>
-                      <h4 className="text-sm font-black uppercase italic tracking-tighter">{p.nome}</h4>
-                      <p className="text-[8px] font-black text-primary uppercase tracking-widest">{p.especialidade || labels.profissional}</p>
+                <div key={p.id} className="bg-white border border-card-border p-4 rounded-[2rem] shadow-sm flex flex-col items-center text-center space-y-3 group hover:shadow-md transition-all relative">
+                  <div className="relative">
+                    <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center font-black text-primary text-xl border-2 border-white shadow-sm ring-1 ring-slate-100 overflow-hidden">
+                      {p.color ? (
+                        <div className="w-full h-full" style={{ backgroundColor: p.color }} />
+                      ) : p.nome[0].toUpperCase()}
                     </div>
+                    <div className={`absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-white shadow-sm ${!isWorking ? 'bg-slate-300' : (isCurrentlyBusy ? 'bg-status-error' : 'bg-status-success')}`}></div>
                   </div>
-                  <div className="grid grid-cols-4 gap-2">
-                    {pSlots.map(h => <div key={h} className="py-2 rounded-xl text-center text-[8px] font-black bg-slate-50 border border-slate-100">{h}</div>)}
+                  <div>
+                    <h4 className="text-[10px] font-black uppercase italic tracking-tighter text-text-main truncate w-full max-w-[100px]">{p.nome}</h4>
+                    <p className="text-[7px] font-bold text-primary uppercase tracking-widest">{p.especialidade || labels.termoProfissional}</p>
+                  </div>
+                  <div className="pt-2 border-t border-slate-50 w-full">
+                    <p className="text-[7px] font-black text-text-placeholder uppercase">{pAppts.length} {labels.termoAgenda}s</p>
                   </div>
                 </div>
               );
@@ -290,6 +351,78 @@ export default function AgendaPage() {
           </div>
         )}
 
+        {activeTab === 'planos' && (
+          <div className="space-y-12">
+            <div className="flex justify-between items-center bg-white border border-card-border p-10 rounded-[3rem] shadow-sm">
+              <div>
+                <h3 className="text-xl font-black italic uppercase tracking-tighter text-text-main">Gestão de <span className="text-primary italic">Assinaturas</span></h3>
+                <p className="text-[10px] font-black text-text-muted uppercase tracking-widest mt-1 opacity-60">Status: Sistema de Fidelidade V3.0 Ativo</p>
+              </div>
+              <div className="flex items-center gap-4 bg-primary-soft px-6 py-3 rounded-2xl border border-primary/10">
+                <span className="text-[10px] font-black text-primary uppercase">Plano Ativo:</span>
+                <span className="text-[12px] font-black text-primary uppercase italic tracking-tighter animate-pulse">OURO PREMIUM</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {/* Bronze */}
+              <div className="bg-white border border-card-border p-10 rounded-[3.5rem] shadow-sm flex flex-col items-center text-center space-y-6 relative overflow-hidden group hover:border-bronze/40 transition-all">
+                <div className="w-16 h-16 rounded-3xl bg-amber-100/50 flex items-center justify-center text-3xl">🥉</div>
+                <div>
+                  <h4 className="text-lg font-black uppercase italic tracking-tighter text-amber-800">Bronze</h4>
+                  <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Essencial para iniciar</p>
+                </div>
+                <div className="text-2xl font-black text-text-main tracking-tighter italic">R$ 49<span className="text-[10px] text-text-muted">/mês</span></div>
+                <ul className="space-y-3 w-full text-left">
+                  {['Agendamentos Ilimitados', 'Lembretes via WhatsApp', 'Relatórios Básicos'].map(b => (
+                    <li key={b} className="text-[9px] font-black uppercase text-text-muted flex items-center gap-3 opacity-60">
+                      <span className="text-amber-500">✓</span> {b}
+                    </li>
+                  ))}
+                </ul>
+                <button className="w-full py-4 rounded-2xl bg-slate-50 border border-slate-100 text-[9px] font-black uppercase tracking-widest text-text-placeholder">Plano Atual</button>
+              </div>
+
+              {/* Prata */}
+              <div className="bg-white border-2 border-slate-200 p-10 rounded-[3.5rem] shadow-xl flex flex-col items-center text-center space-y-6 relative overflow-hidden group scale-105 z-10">
+                <div className="absolute top-6 right-6 bg-slate-900 text-white text-[8px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest">Mais Popular</div>
+                <div className="w-16 h-16 rounded-3xl bg-slate-100 flex items-center justify-center text-3xl">🥈</div>
+                <div>
+                  <h4 className="text-lg font-black uppercase italic tracking-tighter text-slate-700">Prata Plus</h4>
+                  <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Gestão completa</p>
+                </div>
+                <div className="text-2xl font-black text-text-main tracking-tighter italic">R$ 89<span className="text-[10px] text-text-muted">/mês</span></div>
+                <ul className="space-y-4 w-full text-left bg-slate-50/50 p-6 rounded-2xl">
+                  {['Tudo do Bronze', 'Ranking de Clientes', 'Filtro de Assinantes ⭐', 'Suporte Prioritário'].map(b => (
+                    <li key={b} className="text-[9px] font-black uppercase text-text-main flex items-center gap-3">
+                      <span className="text-slate-500">✓</span> {b}
+                    </li>
+                  ))}
+                </ul>
+                <button className="w-full py-4 rounded-2xl bg-slate-900 text-white text-[9px] font-black uppercase tracking-widest shadow-xl shadow-slate-900/20 hover:scale-105 transition-all">Migrar Agora</button>
+              </div>
+
+              {/* Ouro */}
+              <div className="bg-white border border-card-border p-10 rounded-[3.5rem] shadow-sm flex flex-col items-center text-center space-y-6 relative overflow-hidden group hover:border-primary/40 transition-all">
+                <div className="w-16 h-16 rounded-3xl bg-primary-soft flex items-center justify-center text-3xl">🥇</div>
+                <div>
+                  <h4 className="text-lg font-black uppercase italic tracking-tighter text-primary">Ouro VIP</h4>
+                  <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Experiência Máxima</p>
+                </div>
+                <div className="text-2xl font-black text-text-main tracking-tighter italic">R$ 149<span className="text-[10px] text-text-muted">/mês</span></div>
+                <ul className="space-y-3 w-full text-left">
+                  {['Tudo do Prata', 'Profissionais Ilimitados', 'Acesso Multi-Unidade', 'IA de Atendimento Gold'].map(b => (
+                    <li key={b} className="text-[9px] font-black uppercase text-text-muted flex items-center gap-3 opacity-60">
+                      <span className="text-primary">✓</span> {b}
+                    </li>
+                  ))}
+                </ul>
+                <button className="w-full py-4 rounded-2xl bg-white border border-primary/20 text-primary text-[9px] font-black uppercase tracking-widest hover:bg-primary-soft transition-all">Consultar Upgrade</button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {['semana', 'mes'].includes(activeTab) && (
           <div className="bg-white border border-card-border rounded-[3rem] p-20 text-center shadow-premium">
              <span className="text-4xl block mb-6">🗓️</span>
@@ -302,7 +435,7 @@ export default function AgendaPage() {
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xl z-[200] flex items-center justify-center p-4 animate-premium" onClick={() => setShowModal(false)}>
           <div className="bg-white border border-card-border rounded-[3.5rem] p-12 w-full max-w-xl shadow-2xl relative" onClick={e => e.stopPropagation()}>
-            <h3 className="text-2xl font-black italic uppercase tracking-tighter text-text-main mb-8">Novo Agendamento</h3>
+            <h3 className="text-2xl font-black italic uppercase tracking-tighter text-text-main mb-8">Novo {labels.termoAgenda}</h3>
             <form onSubmit={async (e) => {
               e.preventDefault();
               const d = new FormData(e.currentTarget);
@@ -323,7 +456,7 @@ export default function AgendaPage() {
               });
               fetchAll(); setLoading(false); setShowModal(false);
             }} className="space-y-4">
-              <input name="nome" required placeholder="Nome do Cliente" className="input-premium w-full bg-slate-50 py-4 px-6 rounded-xl" />
+              <input name="nome" required placeholder={`Nome do ${labels.termoPaciente}`} className="input-premium w-full bg-slate-50 py-4 px-6 rounded-xl" />
               <input name="telefone" required placeholder="WhatsApp" className="input-premium w-full bg-slate-50 py-4 px-6 rounded-xl" />
               <div className="grid grid-cols-2 gap-4">
                 <input name="date" type="date" defaultValue={selectedDate.toISOString().split('T')[0]} className="input-premium py-4 px-6 rounded-xl" />
@@ -333,7 +466,7 @@ export default function AgendaPage() {
                 </select>
               </div>
               <select name="serv" required className="input-premium w-full py-4 px-6 rounded-xl bg-slate-50">
-                <option value="">Selecione o Serviço...</option>
+                <option value="">Selecione o {labels.termoServico}...</option>
                 {services.map(s => <option key={s.id} value={s.id}>{s.nome}</option>)}
               </select>
               <select name="prof" className="input-premium w-full py-4 px-6 rounded-xl bg-slate-50">

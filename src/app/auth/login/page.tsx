@@ -10,6 +10,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [nomeClinica, setNomeClinica] = useState('');
+  const [nomeResponsavel, setNomeResponsavel] = useState('');
   const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -41,7 +42,7 @@ export default function LoginPage() {
         const res = await fetch('/api/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, senha, nomeClinica })
+          body: JSON.stringify({ email, senha, nomeClinica, nomeResponsavel })
         });
 
         const data = await res.json();
@@ -121,6 +122,8 @@ export default function LoginPage() {
                 <div className="space-y-1">
                   <label className="text-sm font-medium text-gray-600">Nome Completo (Responsável)</label>
                   <input type="text" required
+                    value={nomeResponsavel}
+                    onChange={(e) => setNomeResponsavel(e.target.value)}
                     className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#4a4ae2] focus:ring-1 focus:ring-[#4a4ae2] transition-all"
                     placeholder="Dr. João Silva" />
                 </div>

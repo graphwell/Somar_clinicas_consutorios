@@ -8,6 +8,8 @@ type Paciente = {
   nome: string;
   telefone: string;
   createdAt: string;
+  isSubscriber: boolean;
+  profissionalPreferidoId?: string;
   _count: { agendamentos: number };
   agendamentos: { id: string; dataHora: string; status: string; servico?: { nome: string } }[];
 };
@@ -29,7 +31,7 @@ function PatientChart({ patient, onClose }: { patient: Paciente; onClose: () => 
               </div>
               <div>
                  <h3 className="text-2xl font-black italic uppercase tracking-tighter text-text-main">{patient.nome}</h3>
-                 <p className="text-[10px] font-black text-text-muted uppercase tracking-widest mt-1 opacity-60">🩺 {labels.prontuario} Digital V2.2</p>
+                 <p className="text-[10px] font-black text-text-muted uppercase tracking-widest mt-1 opacity-60">🩺 {labels.termoProntuario} Digital V3.0</p>
               </div>
            </div>
            <button onClick={onClose} className="w-11 h-11 rounded-xl hover:bg-slate-100 flex items-center justify-center text-text-placeholder transition-colors italic font-black">✕</button>
@@ -48,13 +50,13 @@ function PatientChart({ patient, onClose }: { patient: Paciente; onClose: () => 
               </div>
               <div className="p-6 bg-primary-soft border border-primary/10 rounded-premium text-center">
                  <p className="text-[9px] font-black uppercase text-primary mb-1 opacity-60">Fidelidade</p>
-                 <p className="text-[10px] font-black text-primary uppercase">Ouro</p>
+                 <p className="text-[10px] font-black text-primary uppercase">{patient.isSubscriber ? 'PREMIUM' : 'OURO'}</p>
               </div>
            </div>
 
            <div className="space-y-10">
               <div className="flex justify-between items-center border-b border-slate-50 pb-4">
-                 <h4 className="text-[11px] font-black uppercase tracking-[0.3em] text-text-placeholder">Evolução de {labels.cliente}</h4>
+                 <h4 className="text-[11px] font-black uppercase tracking-[0.3em] text-text-placeholder">Evolução de {labels.termoPaciente}</h4>
                  <button className="text-[9px] font-black uppercase px-6 py-2.5 bg-primary text-white rounded-xl shadow-lg shadow-primary/20 hover:scale-105 transition-all">Nova Evolução</button>
               </div>
 
@@ -67,9 +69,9 @@ function PatientChart({ patient, onClose }: { patient: Paciente; onClose: () => 
                              <span className="text-[10px] font-black text-text-muted bg-slate-50 px-4 py-1.5 rounded-full uppercase tracking-wider">{new Date(a.dataHora).toLocaleDateString('pt-BR')}</span>
                              <span className={`text-[9px] font-black uppercase px-3 py-1 rounded-lg ${a.status === 'done' ? 'bg-status-success-bg text-status-success' : 'bg-slate-50 text-text-placeholder'}`}>{a.status}</span>
                           </div>
-                          <p className="text-base font-black text-text-main uppercase tracking-tight italic mb-4 underline underline-offset-4 decoration-primary/5">{a.servico?.nome || labels.atendimento}</p>
+                          <p className="text-base font-black text-text-main uppercase tracking-tight italic mb-4 underline underline-offset-4 decoration-primary/5">{a.servico?.nome || labels.termoServico}</p>
                           <div className="p-6 bg-slate-50/50 rounded-2xl border border-card-border/50 italic text-xs text-text-muted leading-relaxed font-medium">
-                             Histórico de {labels.atendimento.toLowerCase()}: O {labels.cliente.toLowerCase()} compareceu para realizar {a.servico?.nome || 'o procedimento'}. Evolução registrada como estável.
+                             Histórico de {labels.termoServico.toLowerCase()}: O {labels.termoPaciente.toLowerCase()} compareceu para realizar {a.servico?.nome || 'o procedimento'}. Evolução registrada como estável.
                           </div>
                        </div>
                     </div>
@@ -88,6 +90,7 @@ function PatientChart({ patient, onClose }: { patient: Paciente; onClose: () => 
 
 export default function PatientsPage() {
   const [search, setSearch] = useState('');
+  const [filterSubscriber, setFilterSubscriber] = useState<boolean | null>(null);
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPatient, setSelectedPatient] = useState<Paciente | null>(null);
@@ -100,7 +103,11 @@ export default function PatientsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const filtered = pacientes.filter(p => p.nome.toLowerCase().includes(search.toLowerCase()) || p.telefone.includes(search));
+  const filtered = pacientes.filter(p => {
+    const matchesSearch = p.nome.toLowerCase().includes(search.toLowerCase()) || p.telefone.includes(search);
+    const matchesSub = filterSubscriber === null ? true : p.isSubscriber === filterSubscriber;
+    return matchesSearch && matchesSub;
+  });
 
   return (
     <div className="max-w-7xl mx-auto space-y-12 pb-40 animate-premium">
@@ -111,23 +118,38 @@ export default function PatientsPage() {
           <div className="flex items-center gap-6">
              <div className="w-14 h-14 rounded-3xl bg-primary text-white flex items-center justify-center text-3xl shadow-xl shadow-primary/20">👥</div>
              <div>
-                <h2 className="text-2xl font-black italic uppercase tracking-tighter text-text-main">Base de <span className="text-primary">{labels.cliente}s</span></h2>
-                <p className="text-[10px] font-black text-text-placeholder uppercase tracking-[0.2em] mt-1 opacity-60">Sincronização Ativa V2.2 Official</p>
+                <h2 className="text-2xl font-black italic uppercase tracking-tighter text-text-main">Base de <span className="text-primary">{labels.termoPacientePlural}</span></h2>
+                <p className="text-[10px] font-black text-text-placeholder uppercase tracking-[0.2em] mt-1 opacity-60">Sincronização Ativa V3.0 Premium</p>
              </div>
           </div>
           <button onClick={() => window.location.href='/dashboard'} className="btn-primary flex items-center justify-center gap-2">
-            <span>➕ Novo {labels.cliente.toUpperCase()}</span>
+            <span>➕ NOVO {labels.termoPaciente.toUpperCase()}</span>
           </button>
         </div>
 
-        <div className="relative group">
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder={`Busca inteligente por nome ou WhatsApp...`}
-            className="input-premium w-full py-6 px-10 pl-24 text-base rounded-[2rem] shadow-inner"
-          />
-          <span className="absolute left-10 top-1/2 -translate-y-1/2 text-2xl grayscale group-focus-within:grayscale-0 transition-all opacity-20 group-focus-within:opacity-100">🔍</span>
+        <div className="flex flex-col lg:flex-row gap-6">
+          <div className="relative group flex-1">
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder={`Busca inteligente por nome ou WhatsApp...`}
+              className="input-premium w-full py-6 px-10 pl-24 text-base rounded-[2rem] shadow-inner"
+            />
+            <span className="absolute left-10 top-1/2 -translate-y-1/2 text-2xl grayscale group-focus-within:grayscale-0 transition-all opacity-20 group-focus-within:opacity-100">🔍</span>
+          </div>
+          
+          {labels.temAssinatura && (
+            <div className="bg-slate-50 p-2 rounded-[2rem] flex gap-2 border border-slate-100 shadow-inner">
+               <button 
+                 onClick={() => setFilterSubscriber(null)}
+                 className={`px-8 py-4 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${filterSubscriber === null ? 'bg-white text-primary shadow-premium' : 'text-text-placeholder'}`}
+               >Todos</button>
+               <button 
+                 onClick={() => setFilterSubscriber(true)}
+                 className={`px-8 py-4 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${filterSubscriber === true ? 'bg-white text-primary shadow-premium' : 'text-text-placeholder'}`}
+               >⭐ Assinantes</button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -150,7 +172,10 @@ export default function PatientsPage() {
                 {filtered.map(p => (
                    <tr key={p.id} className="group hover:bg-slate-50/50 transition-all">
                     <td className="px-12 py-10">
-                       <p className="font-black text-text-main text-lg tracking-tighter uppercase italic group-hover:text-primary transition-colors">{p.nome}</p>
+                       <div className="flex items-center gap-3">
+                        <p className="font-black text-text-main text-lg tracking-tighter uppercase italic group-hover:text-primary transition-colors">{p.nome}</p>
+                        {p.isSubscriber && <span className="text-[10px] animate-bounce">⭐</span>}
+                       </div>
                        <p className="text-[9px] font-black text-text-placeholder uppercase tracking-widest mt-1 opacity-40">Ref: ID-{p.id.slice(-5)}</p>
                     </td>
                     <td className="px-12 py-10 text-text-muted font-bold font-mono text-sm">{p.telefone}</td>
