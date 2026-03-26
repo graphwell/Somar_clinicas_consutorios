@@ -177,14 +177,6 @@ export default function DashboardPage() {
           <div className="w-[1px] bg-slate-200 mx-2 self-stretch my-2" />
           
           <button 
-            onClick={() => { setIsGeneralView(true); setSelectedProfId(null); setActiveTab('dia'); }} 
-            className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all 
-              ${isGeneralView ? 'bg-white text-primary shadow-premium' : 'text-text-muted hover:text-text-main hover:bg-white/50'}`}
-          >
-            Geral
-          </button>
-          
-          <button 
             onClick={() => setActiveTab('servicos')} 
             className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all 
               ${activeTab === 'servicos' ? 'bg-white text-primary shadow-premium' : 'text-text-muted hover:text-text-main hover:bg-white/50'}`}

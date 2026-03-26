@@ -141,17 +141,6 @@ export default function AgendaSelectionWizard({
            </div>
         </div>
 
-        {(isAdmin || onViewGeneral) && (
-          <div className="pt-12 border-t border-slate-100 flex flex-col items-center gap-6">
-             <p className="text-[9px] font-black text-text-placeholder uppercase tracking-[0.4em]">Ou se preferir gerenciamento avançado</p>
-             <button 
-               onClick={onViewGeneral}
-               className="px-10 py-5 rounded-2xl bg-slate-900 text-white text-[10px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-slate-900/40 hover:scale-105 transition-all active:scale-95"
-             >
-                Ver Agenda Geral (Consolidada)
-             </button>
-          </div>
-        )}
 
       </div>
     </div>
