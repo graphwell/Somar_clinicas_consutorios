@@ -144,15 +144,14 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       {mobileOpen && <div className="fixed inset-0 bg-slate-900/10 backdrop-blur-sm z-30 md:hidden animate-in fade-in" onClick={() => setMobileOpen(false)} />}
 
       <nav className={`fixed left-0 top-0 h-full bg-white border-r border-card-border p-6 flex flex-col z-40 transition-all duration-500 shadow-sm ${isCollapsed ? 'w-24' : 'w-72'} ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
-        <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-start'} h-12 mb-10 transition-all`}>
-          {/* Brand Logo Section */}
-          {/* Sidebar Header Branding - Clean Minimalist Mode */}
-          <div className="flex items-center gap-3 overflow-hidden min-h-[48px]">
+        <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-start'} h-24 mb-10 transition-all`}>
+          {/* Sidebar Header Branding - Clean Minimalist Mode - Increased 200% */}
+          <div className="flex items-center gap-3 overflow-hidden min-h-[80px] w-full">
             {clientLogo ? (
-               <img src={clientLogo} alt="Project Logo" className="h-10 w-auto shrink-0 object-contain rounded-lg animate-premium mx-auto" />
+               <img src={clientLogo} alt="Project Logo" className="h-20 w-auto shrink-0 object-contain rounded-lg animate-premium mx-auto" />
             ) : (
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-[8px] font-black text-slate-400 uppercase italic border border-slate-200">
+                <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-400 uppercase italic border border-slate-200">
                   LOGO
                 </div>
                 {!isCollapsed && (
