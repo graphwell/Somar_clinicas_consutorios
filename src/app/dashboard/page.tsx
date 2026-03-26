@@ -78,9 +78,15 @@ export default function DashboardPage() {
   useEffect(() => {
     if (user && profissionais.length > 0 && !selectedProfId) {
       const isProf = ['profissional', 'medico', 'especialista', 'dentista', 'barbeiro', 'esteticista'].includes(user.role?.toLowerCase());
-      // Admin não deve ser auto-selecionado para forçar o Wizard
       const isAdmin = ['admin', 'gestor'].includes(user.role?.toLowerCase());
-      if (isProf && !isAdmin) {
+      
+      // Se for admin, NUNCA seleciona automaticamente para forçar o Wizard
+      if (isAdmin) {
+        setSelectedProfId(null);
+        return;
+      }
+
+      if (isProf) {
         const matched = profissionais.find(p => p.nome.toLowerCase() === user.nome?.toLowerCase() || p.nome.toLowerCase() === user.email?.split('@')[0].toLowerCase());
         if (matched) {
           setSelectedProfId(matched.id);
@@ -129,52 +135,62 @@ export default function DashboardPage() {
           </h2>
         </div>
 
-        {(!selectedProfId && !isGeneralView) ? (
-          // MODO SELEÇÃO: Abas de Fluxo
-          <div className="bg-slate-100 p-1.5 rounded-[1.5rem] flex gap-1 border border-slate-200 shadow-inner overflow-x-auto no-scrollbar max-w-full">
+        {/* MODO UNIFICADO: Abas de Fluxo e Navegação */}
+        <div className="bg-slate-100 p-1.5 rounded-[1.5rem] flex gap-1 border border-slate-200 shadow-inner overflow-x-auto no-scrollbar max-w-full">
+          {/* Abas de Seleção (Sempre Visíveis para Admin) */}
+          <button 
+            onClick={() => { setSelectedProfId(null); setIsGeneralView(false); setWizardStep('specialty'); setActiveTab('dia'); }} 
+            className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all 
+              ${(!selectedProfId && !isGeneralView && wizardStep === 'specialty') ? 'bg-white text-primary shadow-premium' : 'text-text-muted hover:text-text-main'}`}
+          >
+            Especialidades
+          </button>
+          <button 
+            onClick={() => { setSelectedProfId(null); setIsGeneralView(false); setWizardStep('professional'); setActiveTab('dia'); }} 
+            className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all 
+              ${(!selectedProfId && !isGeneralView && wizardStep === 'professional') ? 'bg-white text-primary shadow-premium' : 'text-text-muted hover:text-text-main'}`}
+          >
+            {labels.termoProfissional === 'Médico' ? 'Médicos' : 'Profissionais'}
+          </button>
+
+          {/* Divisor Visual */}
+          <div className="w-[1px] bg-slate-300 mx-1 self-stretch my-2 opacity-50" />
+
+          {/* Abas Temporais (Só funcionam se houver profissional ou visão geral) */}
+          {[
+            { id: 'dia', label: 'Hoje' },
+            { id: 'semana', label: 'Semana' },
+            { id: 'mes', label: 'Mês' },
+            { id: 'agenda_geral', label: 'Geral' }
+          ].map(tab => (
             <button 
-              onClick={() => setWizardStep('specialty')} 
-              className={`px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all 
-                ${wizardStep === 'specialty' ? 'bg-white text-primary shadow-premium' : 'text-text-muted hover:text-text-main'}`}
+              key={tab.id} 
+              onClick={() => {
+                if (tab.id === 'agenda_geral') {
+                  setIsGeneralView(true);
+                  setSelectedProfId(null);
+                  setActiveTab('dia');
+                } else {
+                  setActiveTab(tab.id as any);
+                  // Se não tiver ninguém selecionado e clicar em Hoje/Semana/Mês, mantemos no wizard ou avisamos
+                }
+              }} 
+              className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all 
+                ${(selectedProfId || isGeneralView) && activeTab === tab.id ? 'bg-white text-primary shadow-premium' : 'text-text-muted hover:text-text-main hover:bg-white/50'}`}
+              disabled={!selectedProfId && !isGeneralView && tab.id !== 'agenda_geral'}
             >
-              Especialidades
+              {tab.label}
             </button>
-            <button 
-              onClick={() => setWizardStep('professional')} 
-              className={`px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all 
-                ${wizardStep === 'professional' ? 'bg-white text-primary shadow-premium' : 'text-text-muted hover:text-text-main'}`}
-            >
-              {labels.termoProfissional === 'Médico' ? 'Médicos' : 'Profissionais'}
-            </button>
-            <button 
-              onClick={() => setIsGeneralView(true)} 
-              className="px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-text-muted hover:text-white hover:bg-slate-900 transition-all"
-            >
-              Agenda Geral
-            </button>
-          </div>
-        ) : (
-          // MODO AGENDA: Abas de Navegação Temporal
-          <div className="bg-slate-100 p-1.5 rounded-[1.5rem] flex gap-1 border border-slate-200 shadow-inner overflow-x-auto no-scrollbar max-w-full">
-            {[
-              { id: 'dia', label: 'Hoje' },
-              { id: 'semana', label: 'Semana' },
-              { id: 'mes', label: 'Mês' },
-              { id: 'profissionais', label: labels.termoProfissional === 'Médico' ? 'Equipe' : 'Profissionais' },
-              { id: 'servicos', label: labels.termoServicoPlural },
-              ...(labels.temAssinatura ? [{ id: 'planos', label: 'Planos' }] : [])
-            ].map(tab => (
-              <button 
-                key={tab.id} 
-                onClick={() => setActiveTab(tab.id as any)} 
-                className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all 
-                  ${activeTab === tab.id ? 'bg-white text-primary shadow-premium' : 'text-text-muted hover:text-text-main hover:bg-white/50'}`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        )}
+          ))}
+          
+          <button 
+            onClick={() => setActiveTab('servicos')} 
+            className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all 
+              ${activeTab === 'servicos' ? 'bg-white text-primary shadow-premium' : 'text-text-muted hover:text-text-main'}`}
+          >
+            {labels.termoServicoPlural}
+          </button>
+        </div>
 
         <div className="flex items-center gap-4">
           {(selectedProfId || isGeneralView) && (
