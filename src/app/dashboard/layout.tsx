@@ -95,11 +95,9 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!hasMounted) return;
+    
     const token = getAuthToken();
-    if (!token) {
-      window.location.href = '/auth/login';
-      return;
-    }
+    if (!token) return; // O outro useEffect cuidará do redirecionamento se necessário
 
     const stored = localStorage.getItem('synka-sidebar-collapsed');
     if (stored === 'true') setIsCollapsed(true);
@@ -108,7 +106,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     fetchWithAuth('/api/settings')
       .then(response => {
         if (response.ok) return response.json();
-        throw new Error();
+        throw new Error('Falha na resposta da API');
       })
       .then(data => {
         if (data.success && data.clinica) {
@@ -126,10 +124,10 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         }
       })
       .catch((err) => {
-        console.error('[LAYOUT_BRANDING_DEBUG] Erro ao buscar branding via settings:', err);
+        console.error('[LAYOUT_BRANDING_DEBUG] Erro:', err);
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [hasMounted]); // IMPORTANTE: hasMounted agora é dependência
 
   const toggleSidebar = () => {
     const newState = !isCollapsed;
