@@ -10,6 +10,8 @@ interface AgendaSelectionWizardProps {
   isMultiSpecialty: boolean;
   onViewGeneral?: () => void;
   isAdmin?: boolean;
+  step: 'specialty' | 'professional';
+  setStep: (step: 'specialty' | 'professional') => void;
 }
 
 export default function AgendaSelectionWizard({ 
@@ -18,9 +20,10 @@ export default function AgendaSelectionWizard({
   onSelect, 
   isMultiSpecialty,
   onViewGeneral,
-  isAdmin
+  isAdmin,
+  step,
+  setStep
 }: AgendaSelectionWizardProps) {
-  const [step, setStep] = useState(isMultiSpecialty ? 'specialty' : 'professional');
   const [selectedSpecialty, setSelectedSpecialty] = useState<string | null>(null);
 
   const specialties = Array.from(new Set(profissionais.map(p => p.especialidade).filter(Boolean))) as string[];
@@ -30,17 +33,10 @@ export default function AgendaSelectionWizard({
     : profissionais;
 
   return (
-    <div className="flex flex-col items-center justify-center py-12 px-4 animate-premium">
+    <div className="flex flex-col items-center justify-center py-4 px-4 animate-premium">
       <div className="max-w-4xl w-full space-y-12">
         
-        <div className="text-center space-y-4">
-          <h2 className="text-4xl font-black italic uppercase tracking-tighter text-text-main">
-            Vamos começar seu <span className="text-primary italic">agendamento</span>
-          </h2>
-          <p className="text-[11px] font-black text-text-placeholder uppercase tracking-[0.3em]">
-            {step === 'specialty' ? 'Escolha uma especialidade para filtrar' : `Escolha o ${labels.termoProfissional.toLowerCase()} para ver a agenda`}
-          </p>
-        </div>
+        {/* Cabeçalho removido em favor das Tabs do Dashboard */}
 
         {step === 'specialty' && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

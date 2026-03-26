@@ -30,6 +30,7 @@ export default function DashboardPage() {
   const [selectedProfId, setSelectedProfId] = useState<string | null>(null);
   const [selectedServId, setSelectedServId] = useState<string>('all');
   const [isGeneralView, setIsGeneralView] = useState(false);
+  const [wizardStep, setWizardStep] = useState<'specialty' | 'professional'>('specialty');
   const [user, setUser] = useState<any>(null);
 
   const fetchAll = useCallback(async () => {
@@ -117,12 +118,41 @@ export default function DashboardPage() {
       {/* 📊 Fase 3: KPIs em tempo real */}
       <KpiSection />
 
-      {(selectedProfId || isGeneralView) && (
-        <div className="bg-white border border-card-border p-6 rounded-[2rem] shadow-premium flex flex-col xl:flex-row justify-between items-center gap-6 sticky top-4 z-[50] backdrop-blur-xl bg-white/90 mb-8">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center text-xl shadow-lg italic font-black">S</div>
-            <h2 className="text-xl font-black italic uppercase tracking-tighter text-text-main">{labels.termoAgenda}</h2>
+      {/* 🚀 Header Inteligente e Dinâmico */}
+      <div className="bg-white border border-card-border p-6 rounded-[2rem] shadow-premium flex flex-col xl:flex-row justify-between items-center gap-6 sticky top-4 z-[50] backdrop-blur-xl bg-white/90 mb-8">
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center text-xl shadow-lg italic font-black">S</div>
+          <h2 className="text-xl font-black italic uppercase tracking-tighter text-text-main">
+            {(!selectedProfId && !isGeneralView) ? "Início do Agendamento" : labels.termoAgenda}
+          </h2>
+        </div>
+
+        {(!selectedProfId && !isGeneralView) ? (
+          // MODO SELEÇÃO: Abas de Fluxo
+          <div className="bg-slate-100 p-1.5 rounded-[1.5rem] flex gap-1 border border-slate-200 shadow-inner overflow-x-auto no-scrollbar max-w-full">
+            <button 
+              onClick={() => setWizardStep('specialty')} 
+              className={`px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all 
+                ${wizardStep === 'specialty' ? 'bg-white text-primary shadow-premium' : 'text-text-muted hover:text-text-main'}`}
+            >
+              Especialidades
+            </button>
+            <button 
+              onClick={() => setWizardStep('professional')} 
+              className={`px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all 
+                ${wizardStep === 'professional' ? 'bg-white text-primary shadow-premium' : 'text-text-muted hover:text-text-main'}`}
+            >
+              {labels.termoProfissional === 'Médico' ? 'Médicos' : 'Profissionais'}
+            </button>
+            <button 
+              onClick={() => setIsGeneralView(true)} 
+              className="px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-text-muted hover:text-white hover:bg-slate-900 transition-all"
+            >
+              Agenda Geral
+            </button>
           </div>
+        ) : (
+          // MODO AGENDA: Abas de Navegação Temporal
           <div className="bg-slate-100 p-1.5 rounded-[1.5rem] flex gap-1 border border-slate-200 shadow-inner overflow-x-auto no-scrollbar max-w-full">
             {[
               { id: 'dia', label: 'Hoje' },
@@ -135,14 +165,17 @@ export default function DashboardPage() {
               <button 
                 key={tab.id} 
                 onClick={() => setActiveTab(tab.id as any)} 
-                className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap 
+                className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all 
                   ${activeTab === tab.id ? 'bg-white text-primary shadow-premium' : 'text-text-muted hover:text-text-main hover:bg-white/50'}`}
               >
                 {tab.label}
               </button>
             ))}
           </div>
-          <div className="flex items-center gap-4">
+        )}
+
+        <div className="flex items-center gap-4">
+          {(selectedProfId || isGeneralView) && (
             <div className="flex bg-white border border-slate-200 rounded-xl p-1 shadow-sm items-center">
               <button onClick={() => {
                 const d = new Date(selectedDate);
@@ -162,12 +195,12 @@ export default function DashboardPage() {
                 setSelectedDate(d);
               }} className="px-3 py-1.5 text-slate-400 hover:text-primary transition-colors">›</button>
             </div>
-            <button onClick={() => { setSelectedHour(''); setShowModal(true); }} className="btn-primary py-4 px-10 shadow-2xl shadow-primary/30 hidden md:block">
-              + AGENDAR
-            </button>
-          </div>
+          )}
+          <button onClick={() => { setSelectedHour(''); setShowModal(true); }} className="btn-primary py-4 px-10 shadow-2xl shadow-primary/30 hidden md:block">
+            + AGENDAR
+          </button>
         </div>
-      )}
+      </div>
 
       <div className="animate-premium">
         {activeTab === 'dia' && (
@@ -179,6 +212,8 @@ export default function DashboardPage() {
               isMultiSpecialty={labels.temEspecialidades}
               isAdmin={['admin', 'gestor'].includes(user?.role?.toLowerCase())}
               onViewGeneral={() => setIsGeneralView(true)}
+              step={wizardStep}
+              setStep={setWizardStep}
             />
           ) : (
             <div className="bg-white border border-card-border rounded-[3rem] p-10 shadow-premium space-y-10">
@@ -396,6 +431,8 @@ export default function DashboardPage() {
               isMultiSpecialty={labels.temEspecialidades}
               isAdmin={['admin', 'gestor'].includes(user?.role?.toLowerCase())}
               onViewGeneral={() => setIsGeneralView(true)}
+              step={wizardStep}
+              setStep={setWizardStep}
             />
           ) : (
             <div className="bg-white border border-card-border rounded-[3rem] p-6 shadow-premium overflow-x-auto">
@@ -438,6 +475,8 @@ export default function DashboardPage() {
               isMultiSpecialty={labels.temEspecialidades}
               isAdmin={['admin', 'gestor'].includes(user?.role?.toLowerCase())}
               onViewGeneral={() => setIsGeneralView(true)}
+              step={wizardStep}
+              setStep={setWizardStep}
             />
           ) : (
             <div className="bg-white border border-card-border rounded-[3rem] p-10 shadow-premium">
