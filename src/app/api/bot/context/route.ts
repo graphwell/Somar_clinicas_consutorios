@@ -57,7 +57,7 @@ export async function GET(request: Request) {
     });
     const servicesList = services.map(s => `- ${s.nome}: R$ ${s.preco.toFixed(2)} (${s.id})`).join('\n');
 
-    const systemPrompt = `Você é a Maya, assistente virtual da ${nome}.
+    const systemPrompt = `Você é a Synka IA, assistente virtual da ${nome}.
 Seja prestativa, educada e aja como uma humana. 
 
 === CATÁLOGO DE SERVIÇOS ===

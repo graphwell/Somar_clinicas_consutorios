@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@prisma/client": "5.18.0",
     "bcryptjs": "https://registry.npmjs.org/bcryptjs/-/bcryptjs-2.4.3.tgz",
     "jose": "^6.2.2",

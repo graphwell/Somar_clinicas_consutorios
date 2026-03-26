@@ -44,7 +44,7 @@ export default function ReportsPage() {
     },
     { 
       label: 'Base Coletada', 
-      value: stats ? `${stats.totalPacientes} ${labels.cliente}s` : `0 ${labels.cliente}s`, 
+      value: stats ? `${stats.totalPacientes} ${labels.termoPaciente}s` : `0 ${labels.termoPaciente}s`, 
       icon: '👥',
       color: 'text-orange-400',
       bg: 'bg-orange-500/10'
@@ -90,7 +90,7 @@ export default function ReportsPage() {
           <div className="bg-[#0a0a20]/60 border border-white/5 rounded-3xl p-8 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 blur-[100px] pointer-events-none" />
             <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-              🏆 Faturamento por {labels.servico}
+              🏆 Faturamento por {labels.termoServico}
             </h3>
             <div className="space-y-4">
               {loading ? (
@@ -146,9 +146,9 @@ export default function ReportsPage() {
            <div className="bg-gradient-to-br from-[#1a1a40] to-[#0a0a20] border border-[#4a4ae2]/20 rounded-3xl p-6 shadow-xl relative overflow-hidden group">
               <div className="absolute -top-10 -right-10 w-32 h-32 bg-[#4a4ae2]/20 rounded-full blur-3xl" />
               <div className="flex items-center gap-4 mb-6">
-                <div className="w-12 h-12 rounded-2xl bg-[#4a4ae2] flex items-center justify-center text-2xl shadow-lg animate-pulse">📊</div>
+                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-xl">🧠</div>
                 <div>
-                  <h4 className="font-black text-sm uppercase tracking-wider text-white">Insight da Maya</h4>
+                  <h4 className="font-black text-sm uppercase tracking-wider text-white">Insight da Synka</h4>
                   <p className="text-[10px] text-[#a0a0ff] font-bold tracking-widest">IA ANALYTICS</p>
                 </div>
               </div>
@@ -156,7 +156,7 @@ export default function ReportsPage() {
                 {stats && stats.taxaConfirmacao < 50 ? (
                   `"Sua taxa de confirmação está em ${stats.taxaConfirmacao.toFixed(1)}%. Sugiro ativar os Lembretes de WhatsApp no Marketing Hub para reduzir as faltas."`
                 ) : (
-                  `"Ótimo desempenho! Sua base cresceu para ${stats?.totalPacientes} ${labels.cliente}s. Que tal disparar um combo de upsell para os mais ativos?"`
+                  `"Ótimo desempenho! Sua base cresceu para ${stats?.totalPacientes} ${labels.termoPaciente}s. Que tal disparar um combo de upsell para os mais ativos?"`
                 )}
               </div>
            </div>

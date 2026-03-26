@@ -201,6 +201,9 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         <footer className="py-12 text-[9px] font-black text-text-placeholder uppercase tracking-[0.5em] bg-white border-t border-slate-50 text-center">
           © 2025 SYNKA CLINICAL OS — V2.3 MULTI-TENANT REAL
         </footer>
+        
+        {/* Inteligência Synka IA Global */}
+        <SynkaChatModal />
       </div>
     </div>
   );

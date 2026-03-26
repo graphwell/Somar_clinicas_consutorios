@@ -24,7 +24,7 @@ export async function POST(request: Request) {
 
     // Convert to base64 data URL
     const bytes = await file.arrayBuffer();
-    const base64 = Buffer.from(bytes).toString('base64');
+    const base64 = Buffer.from(new Uint8Array(bytes)).toString('base64');
     const logoUrl = `data:${file.type};base64,${base64}`;
 
     // Upsert into Clinica.configBranding
