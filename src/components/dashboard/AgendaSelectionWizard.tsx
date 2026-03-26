@@ -34,8 +34,8 @@ export default function AgendaSelectionWizard({
       <div className="max-w-4xl w-full space-y-12">
         
         <div className="text-center space-y-4">
-          <h2 className="text-3xl font-black italic uppercase tracking-tighter text-text-main">
-            Selecione o <span className="text-primary italic">{labels.termoProfissional}</span>
+          <h2 className="text-4xl font-black italic uppercase tracking-tighter text-text-main">
+            Vamos começar seu <span className="text-primary italic">agendamento</span>
           </h2>
           <p className="text-[11px] font-black text-text-placeholder uppercase tracking-[0.3em]">
             {step === 'specialty' ? 'Escolha uma especialidade para filtrar' : `Escolha o ${labels.termoProfissional.toLowerCase()} para ver a agenda`}
@@ -114,14 +114,45 @@ export default function AgendaSelectionWizard({
           </div>
         )}
 
+        {/* 🤖 Seção de Sugestões Synka IA */}
+        <div className="pt-16 space-y-10 border-t border-slate-100">
+           <div className="flex items-center gap-4 justify-center md:justify-start">
+              <div className="w-12 h-12 rounded-2x bg-primary flex items-center justify-center text-white text-2xl shadow-lg ring-4 ring-primary/10">🤖</div>
+              <div>
+                <h4 className="text-sm font-black uppercase tracking-tighter text-text-main italic">Sugestões de Performance <span className="text-primary tracking-widest opacity-60 ml-2">by Synka IA</span></h4>
+                <p className="text-[9px] font-black text-text-placeholder uppercase tracking-widest mt-1">Análise inteligente baseada em dados reais</p>
+              </div>
+           </div>
+
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="bg-gradient-to-br from-white to-slate-50 border border-card-border p-8 rounded-[2.5rem] shadow-sm hover:shadow-xl transition-all group relative overflow-hidden">
+                 <div className="absolute top-0 right-0 p-8 text-4xl opacity-10 group-hover:scale-125 transition-transform">📊</div>
+                 <h5 className="text-[11px] font-black uppercase tracking-widest text-primary mb-4">Marketing & Retenção</h5>
+                 <p className="text-xs font-bold text-text-main leading-relaxed italic pr-10">
+                   "Notei que <strong>{labels.termoPacientePlural}</strong> de {labels.termoServico.toLowerCase()}s recorrentes não voltam há 45 dias. Recomendo disparar cupom de fidelidade."
+                 </p>
+                 <button className="mt-8 text-[9px] font-black bg-white border border-card-border px-6 py-3 rounded-xl uppercase tracking-widest hover:bg-primary hover:text-white transition-all">Ativar Campanha</button>
+              </div>
+
+              <div className="bg-gradient-to-br from-white to-slate-50 border border-card-border p-8 rounded-[2.5rem] shadow-sm hover:shadow-xl transition-all group relative overflow-hidden">
+                 <div className="absolute top-0 right-0 p-8 text-4xl opacity-10 group-hover:scale-125 transition-transform">⚡</div>
+                 <h5 className="text-[11px] font-black uppercase tracking-widest text-emerald-500 mb-4">Otimização de Agenda</h5>
+                 <p className="text-xs font-bold text-text-main leading-relaxed italic pr-10">
+                   "Sua taxa de ocupação nas quartas-feiras está abaixo da meta (15%). Que tal abrir um horário promocional matutino?"
+                 </p>
+                 <button className="mt-8 text-[9px] font-black bg-white border border-card-border px-6 py-3 rounded-xl uppercase tracking-widest hover:bg-emerald-500 hover:text-white transition-all">Abrir Horários</button>
+              </div>
+           </div>
+        </div>
+
         {(isAdmin || onViewGeneral) && (
           <div className="pt-12 border-t border-slate-100 flex flex-col items-center gap-6">
-             <p className="text-[9px] font-black text-text-placeholder uppercase tracking-[0.4em]">Ou se preferir</p>
+             <p className="text-[9px] font-black text-text-placeholder uppercase tracking-[0.4em]">Ou se preferir gerenciamento avançado</p>
              <button 
                onClick={onViewGeneral}
                className="px-10 py-5 rounded-2xl bg-slate-900 text-white text-[10px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-slate-900/40 hover:scale-105 transition-all active:scale-95"
              >
-                Ver Agenda Geral (Todos)
+                Ver Agenda Geral (Consolidada)
              </button>
           </div>
         )}

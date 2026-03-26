@@ -117,55 +117,57 @@ export default function DashboardPage() {
       {/* 📊 Fase 3: KPIs em tempo real */}
       <KpiSection />
 
-      <div className="bg-white border border-card-border p-6 rounded-[2rem] shadow-premium flex flex-col xl:flex-row justify-between items-center gap-6 sticky top-4 z-[50] backdrop-blur-xl bg-white/90 mb-8">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center text-xl shadow-lg italic font-black">S</div>
-          <h2 className="text-xl font-black italic uppercase tracking-tighter text-text-main">{labels.termoAgenda} <span className="text-primary opacity-30 text-sm">V3.0</span></h2>
-        </div>
-        <div className="bg-slate-100 p-1.5 rounded-[1.5rem] flex gap-1 border border-slate-200 shadow-inner overflow-x-auto no-scrollbar max-w-full">
-          {[
-            { id: 'dia', label: 'Hoje' },
-            { id: 'semana', label: 'Semana' },
-            { id: 'mes', label: 'Mês' },
-            { id: 'profissionais', label: labels.termoProfissional === 'Médico' ? 'Equipe' : 'Profissionais' },
-            { id: 'servicos', label: labels.termoServicoPlural },
-            ...(labels.temAssinatura ? [{ id: 'planos', label: 'Planos' }] : [])
-          ].map(tab => (
-            <button 
-              key={tab.id} 
-              onClick={() => setActiveTab(tab.id as any)} 
-              className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap 
-                ${activeTab === tab.id ? 'bg-white text-primary shadow-premium' : 'text-text-muted hover:text-text-main hover:bg-white/50'}`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="flex bg-white border border-slate-200 rounded-xl p-1 shadow-sm items-center">
-            <button onClick={() => {
-              const d = new Date(selectedDate);
-              if (activeTab === 'mes') d.setMonth(d.getMonth() - 1);
-              else if (activeTab === 'semana') d.setDate(d.getDate() - 7);
-              else d.setDate(d.getDate() - 1);
-              setSelectedDate(d);
-            }} className="px-3 py-1.5 text-slate-400 hover:text-primary transition-colors">‹</button>
-            <span className="px-4 py-1.5 text-[11px] font-black uppercase text-text-main min-w-[140px] text-center">
-              {formatDate(selectedDate.toISOString())}
-            </span>
-            <button onClick={() => {
-              const d = new Date(selectedDate);
-              if (activeTab === 'mes') d.setMonth(d.getMonth() + 1);
-              else if (activeTab === 'semana') d.setDate(d.getDate() + 7);
-              else d.setDate(d.getDate() + 1);
-              setSelectedDate(d);
-            }} className="px-3 py-1.5 text-slate-400 hover:text-primary transition-colors">›</button>
+      {(selectedProfId || isGeneralView) && (
+        <div className="bg-white border border-card-border p-6 rounded-[2rem] shadow-premium flex flex-col xl:flex-row justify-between items-center gap-6 sticky top-4 z-[50] backdrop-blur-xl bg-white/90 mb-8">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center text-xl shadow-lg italic font-black">S</div>
+            <h2 className="text-xl font-black italic uppercase tracking-tighter text-text-main">{labels.termoAgenda}</h2>
           </div>
-          <button onClick={() => { setSelectedHour(''); setShowModal(true); }} className="btn-primary py-4 px-10 shadow-2xl shadow-primary/30 hidden md:block">
-            + AGENDAR
-          </button>
+          <div className="bg-slate-100 p-1.5 rounded-[1.5rem] flex gap-1 border border-slate-200 shadow-inner overflow-x-auto no-scrollbar max-w-full">
+            {[
+              { id: 'dia', label: 'Hoje' },
+              { id: 'semana', label: 'Semana' },
+              { id: 'mes', label: 'Mês' },
+              { id: 'profissionais', label: labels.termoProfissional === 'Médico' ? 'Equipe' : 'Profissionais' },
+              { id: 'servicos', label: labels.termoServicoPlural },
+              ...(labels.temAssinatura ? [{ id: 'planos', label: 'Planos' }] : [])
+            ].map(tab => (
+              <button 
+                key={tab.id} 
+                onClick={() => setActiveTab(tab.id as any)} 
+                className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap 
+                  ${activeTab === tab.id ? 'bg-white text-primary shadow-premium' : 'text-text-muted hover:text-text-main hover:bg-white/50'}`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="flex bg-white border border-slate-200 rounded-xl p-1 shadow-sm items-center">
+              <button onClick={() => {
+                const d = new Date(selectedDate);
+                if (activeTab === 'mes') d.setMonth(d.getMonth() - 1);
+                else if (activeTab === 'semana') d.setDate(d.getDate() - 7);
+                else d.setDate(d.getDate() - 1);
+                setSelectedDate(d);
+              }} className="px-3 py-1.5 text-slate-400 hover:text-primary transition-colors">‹</button>
+              <span className="px-4 py-1.5 text-[11px] font-black uppercase text-text-main min-w-[140px] text-center">
+                {formatDate(selectedDate.toISOString())}
+              </span>
+              <button onClick={() => {
+                const d = new Date(selectedDate);
+                if (activeTab === 'mes') d.setMonth(d.getMonth() + 1);
+                else if (activeTab === 'semana') d.setDate(d.getDate() + 7);
+                else d.setDate(d.getDate() + 1);
+                setSelectedDate(d);
+              }} className="px-3 py-1.5 text-slate-400 hover:text-primary transition-colors">›</button>
+            </div>
+            <button onClick={() => { setSelectedHour(''); setShowModal(true); }} className="btn-primary py-4 px-10 shadow-2xl shadow-primary/30 hidden md:block">
+              + AGENDAR
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="animate-premium">
         {activeTab === 'dia' && (
