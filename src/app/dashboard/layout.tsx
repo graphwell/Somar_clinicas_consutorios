@@ -148,22 +148,37 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       <nav className={`fixed left-0 top-0 h-full bg-white border-r border-card-border p-6 flex flex-col z-40 transition-all duration-500 shadow-sm ${isCollapsed ? 'w-24' : 'w-72'} ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
         <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-start'} h-12 mb-10 transition-all`}>
           {/* Brand Logo Section */}
-          <div className="flex items-center gap-3 overflow-hidden">
+          {/* Sidebar Header Branding - White-label Focus */}
+          <div className="flex items-center gap-3 overflow-hidden min-h-[48px]">
             {clientLogo ? (
-              <img src={clientLogo} alt="Logo" className="h-10 w-auto shrink-0 object-contain rounded-lg animate-premium" />
-            ) : (
-              <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-[8px] font-black text-slate-400 uppercase italic border border-slate-200">
-                LOGO
+              <div className="flex items-center gap-3">
+                 <img src={clientLogo} alt="Project Logo" className="h-10 w-auto shrink-0 object-contain rounded-lg animate-premium" />
+                 {!isCollapsed && (
+                   <div className="flex flex-col">
+                      <span className="text-[11px] font-black uppercase tracking-tighter text-text-main line-clamp-1 italic">
+                         {clientName}
+                      </span>
+                      <span className="text-[7px] font-black uppercase tracking-widest text-status-success">
+                         Sistema Ativo
+                      </span>
+                   </div>
+                 )}
               </div>
-            )}
-            {!isCollapsed && (
-              <div className="flex flex-col">
-                <span className="text-[11px] font-black uppercase tracking-tighter text-text-main line-clamp-1 italic">
-                  {clientName || 'Sua Clínica'}
-                </span>
-                <span className={`text-[7px] font-black uppercase tracking-widest ${onboardingDone ? 'text-status-success' : 'text-primary animate-pulse'}`}>
-                  {onboardingDone ? 'Sistema Ativo' : 'Configuração Pendente'}
-                </span>
+            ) : (
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-[8px] font-black text-slate-400 uppercase italic border border-slate-200">
+                  LOGO
+                </div>
+                {!isCollapsed && (
+                  <div className="flex flex-col">
+                    <span className="text-[11px] font-black uppercase tracking-tighter text-text-main line-clamp-1 italic">
+                      {clientName || 'Sua Unidade'}
+                    </span>
+                    <span className="text-[7px] font-black uppercase tracking-widest text-primary animate-pulse">
+                      Configuração Pendente
+                    </span>
+                  </div>
+                )}
               </div>
             )}
           </div>
