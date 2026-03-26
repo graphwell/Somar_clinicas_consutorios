@@ -69,30 +69,45 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     const tenantId = await getAuthorizedTenantId();
+    if (!tenantId) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+    }
+    
     const prisma = getTenantPrisma();
 
-    const clinica = await prisma.clinica.findUnique({ where: { tenantId } });
+    // Query IDÊNTICA à de /api/settings que sabemos que funciona
+    const clinica = await prisma.clinica.findUnique({ 
+      where: { tenantId } 
+    });
     
     if (!clinica) {
       console.error('[GET_LOGO_DEBUG] Clínica não encontrada para tenantId:', tenantId);
       return NextResponse.json({ error: 'Clínica não encontrada.' }, { status: 404 });
     }
 
-    // Secure extraction of JSON branding
+    // Processamento robusto do JSON
     let branding: any = {};
-    if (typeof clinica.configBranding === 'string') {
-      try { branding = JSON.parse(clinica.configBranding); } catch (e) { branding = {}; }
-    } else {
-      branding = clinica.configBranding || {};
+    try {
+      if (clinica.configBranding) {
+        branding = typeof clinica.configBranding === 'string' 
+          ? JSON.parse(clinica.configBranding) 
+          : clinica.configBranding;
+      }
+    } catch (e) {
+      console.error('[GET_LOGO_DEBUG] Erro ao parsear branding:', e);
     }
 
-    console.log('[GET_LOGO_DEBUG] Branding carregado:', !!branding.logoUrl, 'Length:', branding.logoUrl?.length || 0);
+    console.log('[GET_LOGO_DEBUG] Sucesso:', {
+      hasLogo: !!branding.logoUrl,
+      nome: clinica.nome || clinica.razaoSocial,
+      onboarding: clinica.onboardingCompleted
+    });
 
     return NextResponse.json({ 
       logoUrl: branding.logoUrl || null, 
-      nome: clinica?.nome || clinica?.razaoSocial || 'Minha Unidade',
-      nicho: clinica?.nicho || null,
-      onboardingCompleted: clinica?.onboardingCompleted || false
+      nome: clinica.nome || clinica.razaoSocial || 'Minha Unidade',
+      nicho: clinica.nicho || null,
+      onboardingCompleted: clinica.onboardingCompleted || false
     });
   } catch (error: any) {
     console.error('[GET_LOGO_DEBUG] Erro fatal:', error.message);

@@ -111,11 +111,19 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         throw new Error();
       })
       .then(data => {
-        if (data.logoUrl) setClientLogo(data.logoUrl);
+        console.log('[LAYOUT_BRANDING_DEBUG]', data);
+        if (data.logoUrl) {
+          console.log('[LAYOUT_BRANDING_DEBUG] Logo encontrada:', data.logoUrl.substring(0, 50) + '...');
+          setClientLogo(data.logoUrl);
+        } else {
+          console.warn('[LAYOUT_BRANDING_DEBUG] Logo não recebida no layout');
+        }
         if (data.nome) setClientName(data.nome);
         if (data.onboardingCompleted) setOnboardingDone(true);
       })
-      .catch(() => {})
+      .catch((err) => {
+        console.error('[LAYOUT_BRANDING_DEBUG] Erro ao buscar branding:', err);
+      })
       .finally(() => setLoading(false));
   }, []);
 
