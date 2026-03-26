@@ -29,8 +29,8 @@ const NavigationLinks = ({ isCollapsed }: { isCollapsed: boolean }) => {
   const pathname = usePathname();
   
   return (
-    <div className="flex flex-col gap-3 flex-1 overflow-y-auto no-scrollbar py-1">
-      <section className="space-y-1.5">
+    <div className="flex flex-col gap-1 flex-1 overflow-y-auto no-scrollbar py-1">
+      <section className="space-y-0.5">
         <p className={`text-[9px] font-black uppercase tracking-[0.2em] text-text-placeholder mb-3 px-4 ${isCollapsed ? 'hidden' : 'block'}`}>Principal</p>
         <NavItem href="/dashboard" label={labels.termoAgenda} icon="📅" isCollapsed={isCollapsed} active={pathname === '/dashboard'} />
         <NavItem href="/dashboard/patients" label={labels.termoPacientePlural} icon="👥" isCollapsed={isCollapsed} active={pathname.startsWith('/dashboard/patients')} />
@@ -38,8 +38,8 @@ const NavigationLinks = ({ isCollapsed }: { isCollapsed: boolean }) => {
         <NavItem href="/dashboard/services" label={labels.termoServicoPlural} icon="📦" isCollapsed={isCollapsed} active={pathname === '/dashboard/services'} />
       </section>
 
-      <section className="space-y-1.5">
-        <p className={`text-[9px] font-black uppercase tracking-[0.2em] text-text-placeholder mb-3 px-4 ${isCollapsed ? 'hidden' : 'block'}`}>Operação</p>
+      <section className="space-y-0.5">
+        <p className={`text-[9px] font-black uppercase tracking-[0.2em] text-text-placeholder mb-2 px-4 ${isCollapsed ? 'hidden' : 'block'}`}>Operação</p>
         {labels.temProntuario && (
           <NavItem href="/dashboard/clinical-records" label="Prontuário" icon="🩺" isCollapsed={isCollapsed} active={pathname.startsWith('/dashboard/clinical-records')} />
         )}
@@ -52,14 +52,14 @@ const NavigationLinks = ({ isCollapsed }: { isCollapsed: boolean }) => {
         <NavItem href="/dashboard/reports" label="Relatórios" icon="📊" isCollapsed={isCollapsed} active={pathname === '/dashboard/reports'} />
       </section>
 
-      <section className="space-y-1 border-t border-slate-50 pt-2">
+      <section className="space-y-0.5 border-t border-slate-50 pt-1">
         <p className={`text-[8px] font-black uppercase tracking-[0.2em] text-text-placeholder mb-1 px-3 ${isCollapsed ? 'hidden' : 'block'}`}>Marketing & IA</p>
         <NavItem href="/dashboard/help" label="Central de Ajuda" icon="🧠" isCollapsed={isCollapsed} active={pathname === '/dashboard/help'} />
         <NavItem href="/dashboard/marketing/campaigns" label="Campanhas" icon="📢" isCollapsed={isCollapsed} active={pathname === '/dashboard/marketing/campaigns'} />
         <NavItem href="/dashboard/marketing/integrations" label="Integrações" icon="🔗" isCollapsed={isCollapsed} active={pathname === '/dashboard/marketing/integrations'} />
       </section>
 
-      <section className="space-y-1 border-t border-slate-50 pt-2">
+      <section className="space-y-0.5 border-t border-slate-50 pt-1">
         <p className={`text-[8px] font-black uppercase tracking-[0.2em] text-text-placeholder mb-1 px-3 ${isCollapsed ? 'hidden' : 'block'}`}>Gestão</p>
         <NavItem href="/dashboard/finance" label="Financeiro" icon="🏦" isCollapsed={isCollapsed} active={pathname === '/dashboard/finance'} />
         <NavItem href="/dashboard/settings" label="Configurações" icon="⚙️" isCollapsed={isCollapsed} active={pathname === '/dashboard/settings'} />

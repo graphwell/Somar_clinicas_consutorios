@@ -10,6 +10,7 @@ import {
   formatTime, formatDate, isSameDay 
 } from '@/lib/agenda-utils';
 import HourCell from '@/components/dashboard/HourCell';
+import AgendaSelectionWizard from '@/components/dashboard/AgendaSelectionWizard';
 
 const SLOT_INTERVAL_FALLBACK = 30;
 
@@ -26,8 +27,10 @@ export default function DashboardPage() {
   const [showModal, setShowModal] = useState(false);
   const [selectedHour, setSelectedHour] = useState('');
   const [tipoAtendimento, setTipoAtendimento] = useState<'particular' | 'convenio'>('particular');
-  const [selectedProfId, setSelectedProfId] = useState<string>('all');
+  const [selectedProfId, setSelectedProfId] = useState<string | null>(null);
   const [selectedServId, setSelectedServId] = useState<string>('all');
+  const [isGeneralView, setIsGeneralView] = useState(false);
+  const [user, setUser] = useState<any>(null);
 
   const fetchAll = useCallback(async () => {
     try {
@@ -48,15 +51,58 @@ export default function DashboardPage() {
     } finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => { 
+    fetchAll(); 
+    // Recuperar usuário e última seleção
+    if (typeof window !== 'undefined') {
+      const storedUser = localStorage.getItem('synka-user');
+      if (storedUser) {
+        const u = JSON.parse(storedUser);
+        setUser(u);
+        
+        // Se profissional, tentar auto-selecionar
+        const isProf = ['profissional', 'medico', 'especialista', 'dentista', 'barbeiro'].includes(u.role?.toLowerCase());
+        if (isProf) {
+          // Tentaremos parear pelo email ou nome assim que os profissionais carregarem
+        } else {
+          // Se admin/recepcao, recuperar última seleção da sessão se houver
+          const lastProf = sessionStorage.getItem('synka-selected-prof');
+          if (lastProf) setSelectedProfId(lastProf);
+        }
+      }
+    }
+  }, [fetchAll]);
+
+  // Efeito para auto-selecionar profissional logado
+  useEffect(() => {
+    if (user && profissionais.length > 0 && !selectedProfId) {
+      const isProf = ['profissional', 'medico', 'especialista', 'dentista', 'barbeiro', 'esteticista'].includes(user.role?.toLowerCase());
+      if (isProf) {
+        // Busca o profissional que tem o mesmo nome (melhor heurística disponível sem campo email no prof)
+        const matched = profissionais.find(p => p.nome.toLowerCase() === user.nome?.toLowerCase() || p.nome.toLowerCase() === user.email?.split('@')[0].toLowerCase());
+        if (matched) {
+          setSelectedProfId(matched.id);
+        }
+      }
+    }
+  }, [user, profissionais, selectedProfId]);
+
+  const handleProfSelect = (id: string) => {
+    setSelectedProfId(id);
+    setIsGeneralView(false);
+    if (typeof window !== 'undefined') sessionStorage.setItem('synka-selected-prof', id);
+  };
 
   const smartSlots = useMemo(() => {
     if (!clinica) return [];
     const targetProf = profissionais.find((p: Profissional) => p.id === selectedProfId);
+    if (!targetProf && !isGeneralView) return []; // Não gera slots se não houver prof ou visão geral
+    
     const dayOfWeek = selectedDate.getDay();
     const escala = targetProf?.escalas?.find((e: any) => e.diaSemana === dayOfWeek && e.ativo);
     const targetServ = services.find((s: Service) => s.id === selectedServId) || services[0];
     const currentDayAppts = appointments.filter((a: Appointment) => isSameDay(new Date(a.dataHora), selectedDate));
+    
     return generateSmartSlots(
       escala?.horaInicio || clinica.openingTime, 
       escala?.horaFim || clinica.closingTime, 
@@ -64,7 +110,7 @@ export default function DashboardPage() {
       currentDayAppts,
       selectedDate
     );
-  }, [clinica, profissionais, services, appointments, selectedDate, selectedProfId, selectedServId]);
+  }, [clinica, profissionais, services, appointments, selectedDate, selectedProfId, selectedServId, isGeneralView]);
 
   return (
     <div className="max-w-full px-4 lg:px-8 pb-40 animate-premium">
@@ -123,46 +169,88 @@ export default function DashboardPage() {
 
       <div className="animate-premium">
         {activeTab === 'dia' && (
-          <div className="bg-white border border-card-border rounded-[3rem] p-10 shadow-premium space-y-10">
-            <div className="flex flex-col md:flex-row justify-between items-center gap-6 border-b border-slate-50 pb-8">
-              <div>
-                <h3 className="text-xl font-black italic uppercase tracking-tighter text-text-main">Linha do <span className="text-primary italic">Tempo</span></h3>
-                <p className="text-[10px] font-black text-text-placeholder uppercase mt-2 tracking-widest">{labels.termoServico} + Buffer</p>
-              </div>
-              <div className="flex gap-4 items-center">
-                <div className="flex items-center gap-4 mr-4 border-r border-slate-100 pr-6">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-status-success"></div>
-                    <span className="text-[8px] font-black uppercase text-text-placeholder">Ativo</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-status-warning"></div>
-                    <span className="text-[8px] font-black uppercase text-text-placeholder">Pendente</span>
+          !selectedProfId && !isGeneralView ? (
+            <AgendaSelectionWizard 
+              profissionais={profissionais}
+              labels={labels}
+              onSelect={handleProfSelect}
+              isMultiSpecialty={labels.temEspecialidades}
+              isAdmin={['admin', 'gestor'].includes(user?.role?.toLowerCase())}
+              onViewGeneral={() => setIsGeneralView(true)}
+            />
+          ) : (
+            <div className="bg-white border border-card-border rounded-[3rem] p-10 shadow-premium space-y-10">
+              <div className="flex flex-col md:flex-row justify-between items-center gap-6 border-b border-slate-50 pb-8">
+                <div className="flex items-center gap-6">
+                  {selectedProfId && !isGeneralView && (
+                    <div className="flex items-center gap-4 pr-10 border-r border-slate-100">
+                      <div className="w-16 h-16 rounded-full border-4 border-white shadow-xl ring-2 ring-slate-100 overflow-hidden bg-slate-50 flex items-center justify-center">
+                         {profissionais.find(p => p.id === selectedProfId)?.fotoUrl ? (
+                           <img src={profissionais.find(p => p.id === selectedProfId)?.fotoUrl!} alt="Prof" className="w-full h-full object-cover" />
+                         ) : (
+                           <span className="text-xl font-black text-primary/30 uppercase italic">{profissionais.find(p => p.id === selectedProfId)?.nome[0]}</span>
+                         )}
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[11px] font-black uppercase italic tracking-tighter text-text-main">
+                          {profissionais.find(p => p.id === selectedProfId)?.nome}
+                        </span>
+                        <span className="text-[8px] font-black text-primary uppercase tracking-[0.2em]">
+                          {profissionais.find(p => p.id === selectedProfId)?.especialidade || labels.termoProfissional}
+                        </span>
+                        <button onClick={() => setSelectedProfId(null)} className="text-[7px] font-black text-text-placeholder uppercase tracking-widest hover:text-primary mt-1 text-left">
+                          Trocar {labels.termoProfissional}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  <div>
+                    <h3 className="text-xl font-black italic uppercase tracking-tighter text-text-main">
+                      {isGeneralView ? 'Agenda' : 'Linha do'} <span className="text-primary italic">{isGeneralView ? 'Geral' : 'Tempo'}</span>
+                    </h3>
+                    <p className="text-[10px] font-black text-text-placeholder uppercase mt-2 tracking-widest">{labels.termoServico} + Buffer</p>
                   </div>
                 </div>
-                <select value={selectedProfId} onChange={(e) => setSelectedProfId(e.target.value)} className="bg-slate-100 border-none rounded-xl px-4 py-2 text-[10px] font-black uppercase text-text-main cursor-pointer">
-                  <option value="all">Filtro por Especialista</option>
-                  {profissionais.map((p: Profissional) => <option key={p.id} value={p.id}>{p.nome}</option>)}
-                </select>
+                <div className="flex gap-4 items-center">
+                  <div className="flex items-center gap-4 mr-4 border-r border-slate-100 pr-6">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-status-success"></div>
+                      <span className="text-[8px] font-black uppercase text-text-placeholder">Ativo</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-status-warning"></div>
+                      <span className="text-[8px] font-black uppercase text-text-placeholder">Pendente</span>
+                    </div>
+                  </div>
+                  <select 
+                    value={selectedProfId || 'all'} 
+                    onChange={(e) => handleProfSelect(e.target.value)} 
+                    className="bg-slate-100 border-none rounded-xl px-4 py-2 text-[10px] font-black uppercase text-text-main cursor-pointer"
+                  >
+                    <option value="all">Filtro por Especialista</option>
+                    {profissionais.map((p: Profissional) => <option key={p.id} value={p.id}>{p.nome}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {smartSlots.map((h: string) => {
+                  const [hH, hM] = h.split(':').map(Number);
+                  const slotTime = new Date(selectedDate);
+                  slotTime.setHours(hH, hM, 0, 0);
+                  
+                  // Find appointment that COVERS this slot
+                  const appt = appointments.find((a: Appointment) => {
+                    if (selectedProfId && a.profissional?.id !== selectedProfId) return false;
+                    const aStart = new Date(a.dataHora).getTime();
+                    const aEnd = aStart + (a.durationMinutes || 30) * 60000;
+                    return slotTime.getTime() >= aStart && slotTime.getTime() < aEnd;
+                  });
+
+                  return <HourCell key={h} hour={h} appt={appt} onClick={() => { setSelectedHour(h); setShowModal(true); }} />;
+                })}
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {smartSlots.map((h: string) => {
-                const [hH, hM] = h.split(':').map(Number);
-                const slotTime = new Date(selectedDate);
-                slotTime.setHours(hH, hM, 0, 0);
-                
-                // Find appointment that COVERS this slot
-                const appt = appointments.find((a: Appointment) => {
-                  const aStart = new Date(a.dataHora).getTime();
-                  const aEnd = aStart + (a.durationMinutes || 30) * 60000;
-                  return slotTime.getTime() >= aStart && slotTime.getTime() < aEnd;
-                });
-
-                return <HourCell key={h} hour={h} appt={appt} onClick={() => { setSelectedHour(h); setShowModal(true); }} />;
-              })}
-            </div>
-          </div>
+          )
         )}
 
         {activeTab === 'profissionais' && (
@@ -298,76 +386,98 @@ export default function DashboardPage() {
         )}
 
         {activeTab === 'semana' && (
-          <div className="bg-white border border-card-border rounded-[3rem] p-6 shadow-premium overflow-x-auto">
-            <div className="min-w-[1000px] grid grid-cols-7 gap-4">
-              {Array.from({ length: 7 }).map((_, i) => {
-                const day = new Date(selectedDate);
-                day.setDate(day.getDate() - day.getDay() + i);
-                const dayAppts = appointments.filter(a => isSameDay(new Date(a.dataHora), day) && (selectedProfId === 'all' || a.profissional?.id === selectedProfId));
-                
-                return (
-                  <div key={i} className={`space-y-4 p-4 rounded-[2rem] border transition-all ${isSameDay(day, new Date()) ? 'bg-primary-soft/30 border-primary/20 shadow-inner' : 'bg-slate-50 border-slate-100'}`}>
-                    <div className="text-center pb-2 border-b border-slate-200">
-                      <p className="text-[10px] font-black text-text-placeholder uppercase tracking-widest">{WEEKDAYS_SHORT[i]}</p>
-                      <p className={`text-xl font-black italic tracking-tighter ${isSameDay(day, new Date()) ? 'text-primary' : 'text-text-main'}`}>{day.getDate()}</p>
+          !selectedProfId && !isGeneralView ? (
+            <AgendaSelectionWizard 
+              profissionais={profissionais}
+              labels={labels}
+              onSelect={handleProfSelect}
+              isMultiSpecialty={labels.temEspecialidades}
+              isAdmin={['admin', 'gestor'].includes(user?.role?.toLowerCase())}
+              onViewGeneral={() => setIsGeneralView(true)}
+            />
+          ) : (
+            <div className="bg-white border border-card-border rounded-[3rem] p-6 shadow-premium overflow-x-auto">
+              <div className="min-w-[1000px] grid grid-cols-7 gap-4">
+                {Array.from({ length: 7 }).map((_, i) => {
+                  const day = new Date(selectedDate);
+                  day.setDate(day.getDate() - day.getDay() + i);
+                  const dayAppts = appointments.filter(a => isSameDay(new Date(a.dataHora), day) && (isGeneralView || a.profissional?.id === selectedProfId));
+                  
+                  return (
+                    <div key={i} className={`space-y-4 p-4 rounded-[2rem] border transition-all ${isSameDay(day, new Date()) ? 'bg-primary-soft/30 border-primary/20 shadow-inner' : 'bg-slate-50 border-slate-100'}`}>
+                      <div className="text-center pb-2 border-b border-slate-200">
+                        <p className="text-[10px] font-black text-text-placeholder uppercase tracking-widest">{WEEKDAYS_SHORT[i]}</p>
+                        <p className={`text-xl font-black italic tracking-tighter ${isSameDay(day, new Date()) ? 'text-primary' : 'text-text-main'}`}>{day.getDate()}</p>
+                      </div>
+                      <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1 no-scrollbar">
+                        {dayAppts.length === 0 ? (
+                          <div className="py-10 text-center opacity-20 italic text-[10px] font-black uppercase tracking-widest">Livre</div>
+                        ) : dayAppts.sort((a,b) => a.dataHora.localeCompare(b.dataHora)).map(a => (
+                          <div key={a.id} className="p-3 bg-white border border-card-border rounded-2xl shadow-sm hover:shadow-md transition-all cursor-pointer group" style={{ borderLeft: `4px solid ${STATUS_MAP[a.status]?.bg || '#ccc'}` }}>
+                             <p className="text-[10px] font-black text-text-main leading-tight truncate">{a.paciente.nome}</p>
+                             <p className="text-[8px] font-black text-primary uppercase tracking-widest mt-1">{formatTime(a.dataHora)}</p>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1 no-scrollbar">
-                      {dayAppts.length === 0 ? (
-                        <div className="py-10 text-center opacity-20 italic text-[10px] font-black uppercase tracking-widest">Livre</div>
-                      ) : dayAppts.sort((a,b) => a.dataHora.localeCompare(b.dataHora)).map(a => (
-                        <div key={a.id} className="p-3 bg-white border border-card-border rounded-2xl shadow-sm hover:shadow-md transition-all cursor-pointer group" style={{ borderLeft: `4px solid ${STATUS_MAP[a.status]?.bg || '#ccc'}` }}>
-                           <p className="text-[10px] font-black text-text-main leading-tight truncate">{a.paciente.nome}</p>
-                           <p className="text-[8px] font-black text-primary uppercase tracking-widest mt-1">{formatTime(a.dataHora)}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )
         )}
 
         {activeTab === 'mes' && (
-          <div className="bg-white border border-card-border rounded-[3rem] p-10 shadow-premium">
-            <div className="grid grid-cols-7 gap-4 mb-6">
-              {WEEKDAYS_SHORT.map(w => <div key={w} className="text-center text-[9px] font-black text-text-placeholder uppercase tracking-[0.3em]">{w}</div>)}
+          !selectedProfId && !isGeneralView ? (
+            <AgendaSelectionWizard 
+              profissionais={profissionais}
+              labels={labels}
+              onSelect={handleProfSelect}
+              isMultiSpecialty={labels.temEspecialidades}
+              isAdmin={['admin', 'gestor'].includes(user?.role?.toLowerCase())}
+              onViewGeneral={() => setIsGeneralView(true)}
+            />
+          ) : (
+            <div className="bg-white border border-card-border rounded-[3rem] p-10 shadow-premium">
+              <div className="grid grid-cols-7 gap-4 mb-6">
+                {WEEKDAYS_SHORT.map(w => <div key={w} className="text-center text-[9px] font-black text-text-placeholder uppercase tracking-[0.3em]">{w}</div>)}
+              </div>
+              <div className="grid grid-cols-7 gap-4">
+                {(() => {
+                  const firstDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+                  const lastDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0);
+                  const prevLastDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 0);
+                  const days = [];
+                  
+                  // Prefill prev month days
+                  for (let i = firstDay.getDay(); i > 0; i--) {
+                    days.push({ day: prevLastDay.getDate() - i + 1, current: false, date: new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 1, prevLastDay.getDate() - i + 1) });
+                  }
+                  // Current month
+                  for (let i = 1; i <= lastDay.getDate(); i++) {
+                    days.push({ day: i, current: true, date: new Date(selectedDate.getFullYear(), selectedDate.getMonth(), i) });
+                  }
+                  
+                  return days.map((d, i) => {
+                    const dayAppts = appointments.filter(a => isSameDay(new Date(a.dataHora), d.date) && (isGeneralView || a.profissional?.id === selectedProfId));
+                    return (
+                      <div key={i} onClick={() => { setSelectedDate(d.date); setActiveTab('dia'); }} className={`aspect-square p-3 rounded-3xl border transition-all cursor-pointer flex flex-col items-center justify-between ${d.current ? 'bg-slate-50 border-slate-100 hover:border-primary/30' : 'bg-white opacity-20 border-transparent'} ${isSameDay(d.date, new Date()) ? 'ring-2 ring-primary ring-offset-4' : ''}`}>
+                         <span className={`text-sm font-black italic tracking-tighter ${d.current ? 'text-text-main' : 'text-text-placeholder'}`}>{d.day}</span>
+                         {dayAppts.length > 0 && d.current && (
+                           <div className="flex -space-x-1">
+                              {dayAppts.slice(0, 3).map((a, idx) => (
+                                <div key={idx} className="w-2 h-2 rounded-full border border-white shadow-sm" style={{ backgroundColor: STATUS_MAP[a.status]?.bg || '#ccc' }} />
+                              ))}
+                              {dayAppts.length > 3 && <span className="text-[7px] font-black text-primary pl-1">+{dayAppts.length - 3}</span>}
+                           </div>
+                         )}
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
             </div>
-            <div className="grid grid-cols-7 gap-4">
-              {(() => {
-                const firstDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
-                const lastDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0);
-                const prevLastDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 0);
-                const days = [];
-                
-                // Prefill prev month days
-                for (let i = firstDay.getDay(); i > 0; i--) {
-                  days.push({ day: prevLastDay.getDate() - i + 1, current: false, date: new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 1, prevLastDay.getDate() - i + 1) });
-                }
-                // Current month
-                for (let i = 1; i <= lastDay.getDate(); i++) {
-                  days.push({ day: i, current: true, date: new Date(selectedDate.getFullYear(), selectedDate.getMonth(), i) });
-                }
-                
-                return days.map((d, i) => {
-                  const dayAppts = appointments.filter(a => isSameDay(new Date(a.dataHora), d.date));
-                  return (
-                    <div key={i} onClick={() => { setSelectedDate(d.date); setActiveTab('dia'); }} className={`aspect-square p-3 rounded-3xl border transition-all cursor-pointer flex flex-col items-center justify-between ${d.current ? 'bg-slate-50 border-slate-100 hover:border-primary/30' : 'bg-white opacity-20 border-transparent'} ${isSameDay(d.date, new Date()) ? 'ring-2 ring-primary ring-offset-4' : ''}`}>
-                       <span className={`text-sm font-black italic tracking-tighter ${d.current ? 'text-text-main' : 'text-text-placeholder'}`}>{d.day}</span>
-                       {dayAppts.length > 0 && d.current && (
-                         <div className="flex -space-x-1">
-                            {dayAppts.slice(0, 3).map((a, idx) => (
-                              <div key={idx} className="w-2 h-2 rounded-full border border-white shadow-sm" style={{ backgroundColor: STATUS_MAP[a.status]?.bg || '#ccc' }} />
-                            ))}
-                            {dayAppts.length > 3 && <span className="text-[7px] font-black text-primary pl-1">+{dayAppts.length - 3}</span>}
-                         </div>
-                       )}
-                    </div>
-                  );
-                });
-              })()}
-            </div>
-          </div>
+          )
         )}
       </div>
 
@@ -408,8 +518,8 @@ export default function DashboardPage() {
                 <option value="">Selecione o {labels.termoServico}...</option>
                 {services.map(s => <option key={s.id} value={s.id}>{s.nome}</option>)}
               </select>
-              <select name="prof" className="input-premium w-full py-4 px-6 rounded-xl bg-slate-50">
-                <option value="">Automático / Livre</option>
+              <select name="prof" required defaultValue={selectedProfId || ''} className="input-premium w-full py-4 px-6 rounded-xl bg-slate-50">
+                <option value="">Selecione o {labels.termoProfissional}...</option>
                 {profissionais.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
               </select>
               <button type="submit" disabled={loading} className="btn-primary w-full py-5 text-[10px] font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-primary/30 mt-4">{loading ? '...' : 'Confirmar'}</button>

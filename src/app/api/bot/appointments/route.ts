@@ -72,10 +72,10 @@ export async function POST(request: Request) {
     console.log('Tenant:', tenantId);
     console.log('-------------------------');
 
-    if (!pacienteTelefone || !dataHora || !tenantId) {
+    if (!pacienteTelefone || !dataHora || !tenantId || !profissionalId) {
       return NextResponse.json({
-        error: 'Faltam parametros obrigatorios: pacienteTelefone, dataHora, tenantId',
-        debug: { hasPhone: !!pacienteTelefone, hasDate: !!dataHora, hasTenant: !!tenantId }
+        error: 'Faltam parametros obrigatorios: pacienteTelefone, dataHora, tenantId, profissionalId',
+        debug: { hasPhone: !!pacienteTelefone, hasDate: !!dataHora, hasTenant: !!tenantId, hasProf: !!profissionalId }
       }, { status: 400 });
     }
 
