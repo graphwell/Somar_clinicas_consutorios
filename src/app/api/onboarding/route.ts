@@ -20,7 +20,11 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, onboardingCompleted: updated.onboardingCompleted });
   } catch (error: any) {
-    console.error('[API_ONBOARDING_ERROR]', error);
+    console.error('[API_ONBOARDING_ERROR]:', {
+      message: error.message,
+      stack: error.stack,
+      code: error.code
+    });
     return NextResponse.json({ 
       error: 'Erro interno ao salvar configurações', 
       details: error.message 

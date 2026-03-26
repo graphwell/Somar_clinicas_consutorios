@@ -17,6 +17,19 @@ const NICHOS = [
   'Outro',
 ];
 
+const NICHO_MAP: Record<string, string> = {
+  'Salão de Beleza': 'SALAO_BELEZA',
+  'Barbearia': 'BARBEARIA',
+  'Clínica de Estética': 'CLINICA_ESTETICA',
+  'Clínica Médica — Monoespecialidade': 'CLINICA_MEDICA',
+  'Clínica Médica — Multiespecialidades': 'CLINICA_MULTI',
+  'Clínica de Fisioterapia': 'FISIOTERAPIA',
+  'Odontologia': 'ODONTOLOGIA',
+  'Nutricionista': 'OUTRO',
+  'Psicólogo': 'OUTRO',
+  'Outro': 'OUTRO',
+};
+
 export default function OnboardingPage() {
   const router = useRouter();
   const [nicho, setNicho] = useState('');
@@ -45,8 +58,10 @@ export default function OnboardingPage() {
     e.preventDefault();
     setError('');
 
-    const finalNicho = nicho === 'Outro' ? outroNicho : nicho;
-    if (!finalNicho) {
+    const displayNicho = nicho === 'Outro' ? outroNicho : nicho;
+    const enumNicho = NICHO_MAP[nicho] || 'OUTRO';
+
+    if (!displayNicho) {
       setError('Por favor, selecione ou digite seu nicho de atuação.');
       return;
     }
@@ -58,13 +73,14 @@ export default function OnboardingPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tenantId: tenantId,
-          nicho: finalNicho,
+          nicho: enumNicho, // Envia o enum correto para o banco
           multiProfissional
         }),
       });
 
+      const data = await res.json();
       if (!res.ok) {
-        throw new Error('Falha ao salvar as configurações.');
+        throw new Error(data.error || 'Falha ao salvar as configurações.');
       }
 
       router.push('/dashboard');
