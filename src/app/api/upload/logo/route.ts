@@ -6,7 +6,7 @@ import { getTenantPrisma, getMasterPrisma } from '@/lib/prisma';
 export async function POST(request: Request) {
   try {
     const tenantId = await getAuthorizedTenantId();
-    const prisma = getTenantPrisma(tenantId);
+    const prisma = getTenantPrisma();
     const formData = await request.formData();
     const file = formData.get('logo') as File;
 
@@ -67,17 +67,26 @@ export async function POST(request: Request) {
 export async function GET() {
   try {
     const tenantId = await getAuthorizedTenantId();
-    const prisma = getTenantPrisma(tenantId);
+    const prisma = getTenantPrisma();
 
     const clinica = await prisma.clinica.findUnique({ where: { tenantId } });
+    
+    if (!clinica) {
+      console.error('[GET_LOGO_DEBUG] Clínica não encontrada para tenantId:', tenantId);
+      return NextResponse.json({ error: 'Clínica não encontrada.' }, { status: 404 });
+    }
+
     const branding = (clinica?.configBranding as Record<string, string>) || {};
+    console.log('[GET_LOGO_DEBUG] Branding carregado:', !!branding.logoUrl, 'Length:', branding.logoUrl?.length || 0);
+
     return NextResponse.json({ 
       logoUrl: branding.logoUrl || null, 
-      nome: clinica?.nome || null,
+      nome: clinica?.nome || clinica?.razaoSocial || null,
       nicho: clinica?.nicho || null,
       onboardingCompleted: clinica?.onboardingCompleted || false
     });
   } catch (error: any) {
+    console.error('[GET_LOGO_DEBUG] Erro fatal:', error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

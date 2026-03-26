@@ -76,6 +76,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [clientLogo, setClientLogo] = useState<string | null>(null);
   const [clientName, setClientName] = useState<string | null>(null);
+  const [onboardingDone, setOnboardingDone] = useState(false);
   const [loading, setLoading] = useState(true);
   const [hasMounted, setHasMounted] = useState(false);
 
@@ -104,7 +105,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     if (stored === 'true') setIsCollapsed(true);
 
     // Busca branding dinâmico baseado no token
-    fetchWithAuth('/api/upload/logo')
+    fetchWithAuth(`/api/upload/logo?t=${Date.now()}`, { cache: 'no-store' } as any)
       .then(response => {
         if (response.ok) return response.json();
         throw new Error();
@@ -112,6 +113,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       .then(data => {
         if (data.logoUrl) setClientLogo(data.logoUrl);
         if (data.nome) setClientName(data.nome);
+        if (data.onboardingCompleted) setOnboardingDone(true);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -133,20 +135,25 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
       <nav className={`fixed left-0 top-0 h-full bg-white border-r border-card-border p-6 flex flex-col z-40 transition-all duration-500 shadow-sm ${isCollapsed ? 'w-24' : 'w-72'} ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
         <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-start'} h-12 mb-10 transition-all`}>
+          {/* Brand Logo Section */}
           <div className="flex items-center gap-3 overflow-hidden">
-             {clientLogo ? (
-               <img src={clientLogo} alt="Logo" className="h-10 w-auto shrink-0 object-contain rounded-lg animate-premium" />
-             ) : (
-               <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-[10px] font-black text-slate-300 italic">LOGO</div>
-                  {!isCollapsed && (
-                    <div className="flex flex-col">
-                      <span className="font-black text-[13px] tracking-tight text-slate-400 uppercase">SUA LOGO</span>
-                      <span className="text-[7px] font-bold text-primary uppercase tracking-widest leading-none">Configuração Pendente</span>
-                    </div>
-                  )}
-               </div>
-             )}
+            {clientLogo ? (
+              <img src={clientLogo} alt="Logo" className="h-10 w-auto shrink-0 object-contain rounded-lg animate-premium" />
+            ) : (
+              <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-[8px] font-black text-slate-400 uppercase italic border border-slate-200">
+                LOGO
+              </div>
+            )}
+            {!isCollapsed && (
+              <div className="flex flex-col">
+                <span className="text-[11px] font-black uppercase tracking-tighter text-text-main line-clamp-1 italic">
+                  {clientName || 'Sua Clínica'}
+                </span>
+                <span className={`text-[7px] font-black uppercase tracking-widest ${onboardingDone ? 'text-status-success' : 'text-primary animate-pulse'}`}>
+                  {onboardingDone ? 'Sistema Ativo' : 'Configuração Pendente'}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 

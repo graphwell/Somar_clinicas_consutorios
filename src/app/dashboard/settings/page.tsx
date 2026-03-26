@@ -107,13 +107,13 @@ export default function SettingsPage() {
   return (
     <div className="max-w-7xl mx-auto space-y-12 pb-40 animate-premium">
       
-      {/* Header Premium V2.2 */}
-      <div className="bg-white border border-card-border p-10 rounded-[3rem] shadow-sm flex flex-col md:flex-row justify-between items-center gap-8">
-        <div className="flex items-center gap-6">
-           <div className="w-14 h-14 rounded-3xl bg-primary text-white flex items-center justify-center text-3xl shadow-xl shadow-primary/20 italic font-black">C</div>
+      {/* Header Premium V2.2 - 3x Smaller */}
+      <div className="bg-white border border-card-border p-6 rounded-3xl shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="flex items-center gap-4">
+           <div className="w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center text-xl shadow-lg shadow-primary/10 italic font-black">C</div>
            <div>
-              <h2 className="text-2xl font-black italic uppercase tracking-tighter text-text-main">Ajustes de <span className="text-primary">Sistema</span></h2>
-              <p className="text-[10px] font-black text-text-placeholder uppercase tracking-[0.25em] mt-1 opacity-60">Configuração Estrutural • V2.2 Official</p>
+              <h2 className="text-lg font-black italic uppercase tracking-tighter text-text-main">Ajustes de <span className="text-primary">Sistema</span></h2>
+              <p className="text-[8px] font-black text-text-placeholder uppercase tracking-[0.2em] mt-0.5 opacity-60">Configuração Estrutural • V2.2</p>
            </div>
         </div>
         <button onClick={handleSave} className="btn-primary flex items-center justify-center gap-3">
@@ -126,71 +126,66 @@ export default function SettingsPage() {
         {/* Identidade Corporativa */}
         <div className="lg:col-span-12 space-y-10">
            
-           <div className="premium-card p-12 bg-white space-y-10">
-              <div className="border-b border-slate-50 pb-6">
-                <h3 className="text-xl font-black text-text-main italic uppercase tracking-tighter">1. Identidade de Marca</h3>
-                <p className="text-[10px] font-black text-text-placeholder uppercase tracking-widest mt-1 opacity-60">Logotipo e Presença Visual</p>
+           <div className="premium-card p-6 bg-white space-y-6">
+              <div className="border-b border-slate-50 pb-4">
+                <h3 className="text-base font-black text-text-main italic uppercase tracking-tighter">1. Identidade de Marca</h3>
+                <p className="text-[8px] font-black text-text-placeholder uppercase tracking-widest mt-0.5 opacity-60">Logotipo e Presença Visual</p>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                 <div className="space-y-4">
-                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-2">Logo da Unidade</label>
-                     <div onClick={() => fileRef.current?.click()} className="w-full aspect-video rounded-[2.5rem] bg-slate-50 border-2 border-dashed border-card-border flex flex-col items-center justify-center cursor-pointer hover:border-primary/30 transition-all overflow-hidden relative group">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 <div className="space-y-3">
+                    <label className="text-[8px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-2">Logo da Unidade</label>
+                     <div onClick={() => fileRef.current?.click()} className="w-full h-32 rounded-2xl bg-slate-50 border-2 border-dashed border-card-border flex flex-col items-center justify-center cursor-pointer hover:border-primary/30 transition-all overflow-hidden relative group">
                         {logoUrl ? (
                           <>
-                            <img src={logoUrl} className="h-24 object-contain animate-premium" />
+                            <img src={logoUrl} className="h-16 object-contain animate-premium" />
                             <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                               <span className="text-[10px] font-black text-white uppercase tracking-widest">Atualizar Marca</span>
+                               <span className="text-[8px] font-black text-white uppercase tracking-widest">Atualizar Marca</span>
                             </div>
                           </>
                         ) : (
                           <div className="text-center italic opacity-30 group-hover:opacity-60 transition-opacity">
-                             <span className="text-4xl mb-2 block">🖼️</span>
-                             <span className="text-[10px] font-black uppercase text-text-placeholder">Upload (PNG/SVG)</span>
+                             <span className="text-2xl mb-1 block">🖼️</span>
+                             <span className="text-[8px] font-black uppercase text-text-placeholder">Upload (PNG/SVG)</span>
                           </div>
                         )}
-                        {uploading && <div className="absolute inset-0 bg-white/90 flex items-center justify-center font-black text-[10px] uppercase text-primary animate-pulse">Processando...</div>}
+                        {uploading && <div className="absolute inset-0 bg-white/90 flex items-center justify-center font-black text-[9px] uppercase text-primary animate-pulse">Processando...</div>}
                         {uploadSuccess && (
                           <div className="absolute inset-0 bg-status-success flex flex-col items-center justify-center text-white animate-in zoom-in duration-300">
-                             <span className="text-4xl mb-2">✅</span>
-                             <span className="text-[12px] font-black uppercase tracking-widest">Upload concluído com sucesso!</span>
-                             <span className="text-[8px] mt-2 opacity-80">Sincronizando Sidebar...</span>
+                             <span className="text-2xl mb-1">✅</span>
+                             <span className="text-[10px] font-black uppercase tracking-widest text-center">Sucesso!</span>
                           </div>
                         )}
                      </div>
                      <input ref={fileRef} type="file" className="hidden" onChange={handleLogoUpload} />
                  </div>
-                 <div className="space-y-4">
-                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-2">Cor Institucional (Foco)</label>
-                    <div className="flex items-center gap-8 p-10 bg-slate-50 border border-card-border rounded-[2.5rem] h-full">
-                       <input type="color" value={primaryColor} disabled className="w-20 h-20 rounded-2xl border-0 bg-transparent cursor-not-allowed opacity-50 shadow-inner" />
+                 <div className="space-y-3">
+                    <label className="text-[8px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-2">Cor Institucional (Foco)</label>
+                    <div className="flex items-center gap-4 p-6 bg-slate-50 border border-card-border rounded-2xl h-32">
+                       <input type="color" value={primaryColor} disabled className="w-12 h-12 rounded-xl border-0 bg-transparent cursor-not-allowed opacity-50 shadow-inner" />
                        <div>
-                          <p className="text-2xl font-black text-text-main uppercase tracking-tighter font-mono italic">{primaryColor}</p>
-                          <p className="text-[9px] font-black text-primary uppercase tracking-widest mt-2">{theme === 'light-soft' ? 'Premium Light Active' : 'Custom Palette'}</p>
+                          <p className="text-xl font-black text-text-main uppercase tracking-tighter font-mono italic">{primaryColor}</p>
+                          <p className="text-[8px] font-black text-primary uppercase tracking-widest mt-1">Light Active</p>
                        </div>
                     </div>
                  </div>
               </div>
            </div>
 
-           {/* Ambientes Disponíveis */}
-           <div className="premium-card p-12 bg-white space-y-10 shadow-lg">
-              <div className="border-b border-slate-50 pb-6">
-                <h3 className="text-xl font-black text-text-main italic uppercase tracking-tighter">2. Universo de Trabalho</h3>
-                <p className="text-[10px] font-black text-text-placeholder uppercase tracking-widest mt-1 opacity-60">Escolha a experiência visual do Synka</p>
+           {/* Ambientes Disponíveis - 3x Smaller */}
+           <div className="premium-card p-6 bg-white space-y-6 shadow-md">
+              <div className="border-b border-slate-50 pb-4">
+                <h3 className="text-base font-black text-text-main italic uppercase tracking-tighter">2. Universo de Trabalho</h3>
+                <p className="text-[8px] font-black text-text-placeholder uppercase tracking-widest mt-0.5 opacity-60">Escolha a experiência visual</p>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-10">
+              <div className="grid grid-cols-3 gap-4">
                 {[
-                  { id: 'light-soft', label: 'Premium Light', colors: ['bg-[#F8FAFC]', 'bg-[#3B82F6]'], emoji: '✨', desc: 'Foco e Clareza Profissional' },
-                  { id: 'dark-stellar', label: 'Dark Stellar', colors: ['bg-[#0F172A]', 'bg-[#6366F1]'], emoji: '🌑', desc: 'Alto Contraste Tecnológico' },
-                  { id: 'modern-blue', label: 'Classic Blue', colors: ['bg-[#EFF6FF]', 'bg-[#2563EB]'], emoji: '🔹', desc: 'Equilíbrio e Tradição' }
+                  { id: 'light-soft', label: 'Light', emoji: '✨' },
+                  { id: 'dark-stellar', label: 'Dark', emoji: '🌑' },
+                  { id: 'modern-blue', label: 'Blue', emoji: '🔹' }
                 ].map((p) => (
-                  <button key={p.id} onClick={() => setAppTheme(p.id as any)} className={`p-8 rounded-[3rem] border-2 transition-all text-center group relative overflow-hidden ${theme === p.id ? 'border-primary bg-primary-soft shadow-xl' : 'border-slate-50 hover:border-card-border opacity-60 hover:opacity-100'}`}>
-                    <div className={`w-full h-32 rounded-[2rem] ${p.colors[0]} border border-card-border flex items-center justify-center mb-6 shadow-inner relative`}>
-                       <span className="text-4xl group-hover:scale-125 transition-transform duration-500">{p.emoji}</span>
-                       <div className={`absolute bottom-4 right-4 w-8 h-8 rounded-xl ${p.colors[1]} border-2 border-white shadow-lg shadow-black/5`} />
-                    </div>
-                    <p className={`text-[11px] font-black uppercase tracking-widest ${theme === p.id ? 'text-primary' : 'text-text-placeholder'}`}>{p.label}</p>
-                    <p className="text-[8px] font-bold text-text-muted uppercase mt-2 opacity-50">{p.desc}</p>
+                  <button key={p.id} onClick={() => setAppTheme(p.id as any)} className={`p-4 rounded-2xl border-2 transition-all text-center group ${theme === p.id ? 'border-primary bg-primary-soft' : 'border-slate-50 opacity-60'}`}>
+                    <div className="text-2xl mb-1">{p.emoji}</div>
+                    <p className={`text-[9px] font-black uppercase tracking-widest ${theme === p.id ? 'text-primary' : 'text-text-placeholder'}`}>{p.label}</p>
                   </button>
                 ))}
               </div>
@@ -200,21 +195,21 @@ export default function SettingsPage() {
         {/* Informações de Cadastro */}
         <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-10">
            
-           <div className="premium-card p-12 bg-white space-y-10 shadow-md">
-              <h3 className="text-xl font-black text-text-main italic uppercase tracking-tighter border-b border-slate-50 pb-6">3. Dados da Operação</h3>
-              <div className="space-y-6">
-                 <div className="space-y-2">
-                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-2">Razão Social / Fantasia</label>
-                    <input value={razaoSocial} onChange={e => setRazaoSocial(e.target.value)} className="input-premium w-full py-5 text-base" />
+           <div className="premium-card p-6 bg-white space-y-6 shadow-sm">
+              <h3 className="text-base font-black text-text-main italic uppercase tracking-tighter border-b border-slate-50 pb-4">3. Dados da Operação</h3>
+              <div className="space-y-4">
+                 <div className="space-y-1">
+                    <label className="text-[8px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-2">Razão / Fantasia</label>
+                    <input value={razaoSocial} onChange={e => setRazaoSocial(e.target.value)} className="input-premium w-full py-3 text-sm" />
                  </div>
-                 <div className="grid grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                       <label className="text-[9px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-2">CNPJ / CPF</label>
-                       <input value={cnpj} onChange={e => setCnpj(e.target.value)} className="input-premium w-full" placeholder="00.000.000/0001-00" />
+                 <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                       <label className="text-[8px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-2">CNPJ / CPF</label>
+                       <input value={cnpj} onChange={e => setCnpj(e.target.value)} className="input-premium w-full py-3" />
                     </div>
-                    <div className="space-y-2">
-                       <label className="text-[9px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-2">Telefone Admin</label>
-                       <input value={adminPhone} onChange={e => setAdminPhone(e.target.value)} className="input-premium w-full" placeholder="55 85 9..." />
+                    <div className="space-y-1">
+                       <label className="text-[8px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-2">Telefone</label>
+                       <input value={adminPhone} onChange={e => setAdminPhone(e.target.value)} className="input-premium w-full py-3" />
                     </div>
                  </div>
                  <div className="space-y-2">
@@ -222,15 +217,15 @@ export default function SettingsPage() {
                     <input value={endereco} onChange={e => setEndereco(e.target.value)} className="input-premium w-full" />
                  </div>
                  
-                 <div className="pt-6 border-t border-slate-50 space-y-6">
-                    <div className="grid grid-cols-2 gap-6">
+                 <div className="pt-4 border-t border-slate-50 space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <label className="text-[9px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-2">Abertura Unidade</label>
-                        <input type="time" value={openingTime} onChange={e => setOpeningTime(e.target.value)} className="input-premium w-full" />
+                        <input type="time" value={openingTime} onChange={e => setOpeningTime(e.target.value)} className="input-premium w-full py-2 text-xs" />
                       </div>
                       <div className="space-y-2">
                         <label className="text-[9px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-2">Fechamento Unidade</label>
-                        <input type="time" value={closingTime} onChange={e => setClosingTime(e.target.value)} className="input-premium w-full" />
+                        <input type="time" value={closingTime} onChange={e => setClosingTime(e.target.value)} className="input-premium w-full py-2 text-xs" />
                       </div>
                     </div>
 
@@ -259,9 +254,9 @@ export default function SettingsPage() {
               </div>
            </div>
 
-           <div className="premium-card p-12 bg-white space-y-10 shadow-md">
-              <h3 className="text-xl font-black text-text-main italic uppercase tracking-tighter border-b border-slate-50 pb-6">4. Segmento Inteligente</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+           <div className="premium-card p-6 bg-white space-y-6 shadow-sm">
+              <h3 className="text-base font-black text-text-main italic uppercase tracking-tighter border-b border-slate-50 pb-4">4. Segmento</h3>
+              <div className="grid grid-cols-4 gap-2">
                  {[
                    { id: "Clínica Médica", icon: "🩺" },
                    { id: "Clínica de Estética", icon: "✨" },
@@ -272,9 +267,9 @@ export default function SettingsPage() {
                    { id: "Beleza / Barbearia", icon: "✂️" },
                    { id: "Outros", icon: "🏢" }
                  ].map((n) => (
-                   <button key={n.id} onClick={() => setNiche(n.id)} className={`flex flex-col items-center justify-center p-4 rounded-[1.5rem] border transition-all text-center h-28 group ${niche === n.id ? 'border-primary bg-primary-soft shadow-sm ring-4 ring-primary/5' : 'border-slate-50 hover:border-card-border opacity-40 hover:opacity-100'}`}>
-                     <span className="text-xl mb-1 grayscale group-hover:grayscale-0 transition-all group-hover:scale-110">{n.icon}</span>
-                     <span className="text-[8px] font-black uppercase text-text-main tracking-tighter leading-tight italic">{n.id}</span>
+                   <button key={n.id} onClick={() => setNiche(n.id)} className={`flex flex-col items-center justify-center p-2 rounded-xl border transition-all text-center h-16 ${niche === n.id ? 'border-primary bg-primary-soft shadow-sm' : 'border-slate-50 opacity-40 hover:opacity-100'}`}>
+                     <span className="text-base mb-1">{n.icon}</span>
+                     <span className="text-[6px] font-black uppercase text-text-main leading-tight italic">{n.id.split(' ')[0]}</span>
                    </button>
                  ))}
               </div>
