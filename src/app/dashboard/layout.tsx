@@ -10,7 +10,7 @@ import SynkaChatModal from '@/components/dashboard/SynkaChatModal';
 const NavItem = ({ href, label, icon, isCollapsed, active }: { href: string; label: string; icon: string; isCollapsed: boolean; active: boolean }) => (
   <Link 
     href={href} 
-    className={`flex items-center gap-3 px-4 py-2.5 rounded-2xl transition-all text-xs font-bold group relative
+    className={`flex items-center gap-2 px-3 py-2.5 rounded-2xl transition-all text-xs font-bold group relative
       ${active ? 'bg-primary-soft text-primary shadow-sm border border-primary/10' : 'text-text-muted hover:bg-slate-50 hover:text-text-main'}`}
     title={isCollapsed ? label : ''}
   >
@@ -143,7 +143,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       
       {mobileOpen && <div className="fixed inset-0 bg-slate-900/10 backdrop-blur-sm z-30 md:hidden animate-in fade-in" onClick={() => setMobileOpen(false)} />}
 
-      <nav className={`fixed left-0 top-0 h-full bg-white border-r border-card-border p-5 flex flex-col z-40 transition-all duration-500 shadow-sm ${isCollapsed ? 'w-24' : 'w-72'} ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+      <nav className={`fixed left-0 top-0 h-full bg-white border-r border-card-border px-3 py-6 flex flex-col z-40 transition-all duration-500 shadow-sm ${isCollapsed ? 'w-24' : 'w-60'} ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
         <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-start'} h-24 mb-6 transition-all`}>
           {/* Sidebar Header Branding - Clean Minimalist Mode - Increased 200% */}
           <div className="flex items-center gap-3 overflow-hidden min-h-[80px] w-full">
@@ -181,7 +181,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         </div>
       </nav>
 
-      <div className={`flex-1 flex flex-col min-h-screen transition-all duration-500 ${isCollapsed ? 'md:ml-24' : 'md:ml-72'}`}>
+      <div className={`flex-1 flex flex-col min-h-screen transition-all duration-500 ${isCollapsed ? 'md:pl-24' : 'md:pl-60'}`}>
         <header className="h-[76px] glass-header flex items-center px-6 md:px-12 justify-between">
           <div className="flex items-center gap-6">
             <button onClick={() => setMobileOpen(!mobileOpen)} className="md:hidden p-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-card-border">
