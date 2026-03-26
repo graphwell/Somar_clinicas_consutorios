@@ -115,12 +115,17 @@ export default function DashboardPage() {
     const targetServ = services.find((s: Service) => s.id === selectedServId) || services[0];
     const currentDayAppts = appointments.filter((a: Appointment) => isSameDay(new Date(a.dataHora), selectedDate));
     
+    // Prof Metadata V5.4
+    const metadata = targetProf?.horariosJson as any;
+
     return generateSmartSlots(
       escala?.horaInicio || "08:00", 
       escala?.horaFim || "18:00", 
       targetServ,
       currentDayAppts,
-      selectedDate
+      selectedDate,
+      metadata?.sessionDuration,
+      metadata?.sessionBuffer
     );
   }, [clinica, profissionais, services, appointments, selectedDate, selectedProfId, selectedServId, isGeneralView]);
 

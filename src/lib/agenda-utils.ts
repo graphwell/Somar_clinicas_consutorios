@@ -16,6 +16,7 @@ export interface Profissional {
   fotoUrl?: string | null;
   bio?: string | null;
   escalas?: Array<{ diaSemana: number, horaInicio: string, horaFim: string, ativo: boolean }>;
+  horariosJson?: any;
 }
 
 export interface Appointment {
@@ -61,7 +62,9 @@ export const generateSmartSlots = (
   endStr: string = "18:00",
   service?: Service | null,
   existingAppts: Appointment[] = [],
-  selectedDate: Date = new Date()
+  selectedDate: Date = new Date(),
+  profDuration?: number,
+  profBuffer?: number
 ) => {
   const slots: string[] = [];
   const startParts = (startStr || "08:00").split(':').map(Number);
@@ -73,8 +76,9 @@ export const generateSmartSlots = (
   const end = new Date(selectedDate);
   end.setHours(endParts[0], endParts[1], 0, 0);
 
-  const duration = service?.duracaoMinutos || 30;
-  const buffer = service?.bufferTimeMinutes || 0;
+  // Prioritize professional settings over service settings
+  const duration = profDuration || service?.duracaoMinutos || 30;
+  const buffer = (profBuffer !== undefined && profBuffer !== null) ? profBuffer : (service?.bufferTimeMinutes || 0);
   const slotTotal = duration + buffer;
 
   while (current < end) {

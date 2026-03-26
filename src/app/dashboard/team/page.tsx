@@ -47,6 +47,8 @@ export default function TeamPage() {
   const [conveniosSelecionados, setConveniosSelecionados] = useState<string[]>([]);
   const [startHour, setStartHour] = useState('08:00');
   const [endHour, setEndHour] = useState('18:00');
+  const [sessionDuration, setSessionDuration] = useState(30);
+  const [sessionBuffer, setSessionBuffer] = useState(0);
   const [saving, setSaving] = useState(false);
 
   const fetchTeam = useCallback(() => {
@@ -62,6 +64,7 @@ export default function TeamPage() {
   const openAdd = () => {
     setEditing(null); setNome(''); setEspecialidade(''); setRegistroProfissional(''); setBio(''); setFotoUrl(''); setColor('#3B82F6'); setAtivo(true); setEscalas([]); 
     setAtendeConvenio(false); setConveniosSelecionados([]); setStartHour('08:00'); setEndHour('18:00');
+    setSessionDuration(30); setSessionBuffer(0);
     setShowModal(true);
   };
 
@@ -72,6 +75,8 @@ export default function TeamPage() {
     const metadata = p.horariosJson as any;
     setAtendeConvenio(metadata?.atendeConvenio || false);
     setConveniosSelecionados(metadata?.convenios || []);
+    setSessionDuration(metadata?.sessionDuration || 30);
+    setSessionBuffer(metadata?.sessionBuffer || 0);
     
     // Set start/end from first escala if exists
     if (p.escalas && p.escalas.length > 0) {
@@ -118,7 +123,7 @@ export default function TeamPage() {
     try {
       const url = editing ? `/api/team/${editing.id}` : '/api/team';
       const method = editing ? 'PUT' : 'POST';
-      const horariosJson = { atendeConvenio, convenios: conveniosSelecionados };
+      const horariosJson = { atendeConvenio, convenios: conveniosSelecionados, sessionDuration, sessionBuffer };
       const body = { nome, especialidade, registroProfissional, bio, fotoUrl: fotoUrl || null, color, ativo, escalas, horariosJson };
       await fetchWithAuth(url, { method, body: JSON.stringify(body) });
       setShowModal(false); fetchTeam();
@@ -193,7 +198,7 @@ export default function TeamPage() {
           <div className="relative w-full max-w-2xl max-h-[90vh] bg-white border border-card-border rounded-[3rem] shadow-2xl scale-in overflow-y-auto custom-scrollbar" onClick={e => e.stopPropagation()}>
             <div className="p-10 border-b border-slate-50 flex items-center justify-between">
               <div>
-                <h3 className="text-xl font-black text-text-main tracking-tighter uppercase italic">{editing ? `Refinar` : `Novo`} Profissional</h3>
+                <h3 className="text-xl font-black text-text-main tracking-tighter uppercase italic">{editing ? `Refinar` : `Cadastrar`} Profissional</h3>
                 <p className="text-[9px] text-text-placeholder font-black uppercase tracking-widest mt-1">Configurações de identidade corporativa V2.2</p>
               </div>
               <button onClick={() => setShowModal(false)} className="w-10 h-10 rounded-xl hover:bg-slate-50 flex items-center justify-center text-text-placeholder transition-colors">✕</button>
@@ -291,6 +296,17 @@ export default function TeamPage() {
                       <div className="space-y-2">
                         <label className="text-[9px] font-black text-text-placeholder uppercase tracking-widest ml-1">Fim do Turno</label>
                         <input type="time" value={endHour} onChange={e => setEndHour(e.target.value)} className="input-premium w-full py-4" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-6 pt-4 border-t border-slate-100">
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-black text-text-placeholder uppercase tracking-widest ml-1">Tempo da Consulta (min)</label>
+                        <input type="number" value={sessionDuration} onChange={e => setSessionDuration(parseInt(e.target.value))} className="input-premium w-full py-4" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-black text-text-placeholder uppercase tracking-widest ml-1">Intervalo (min)</label>
+                        <input type="number" value={sessionBuffer} onChange={e => setSessionBuffer(parseInt(e.target.value))} className="input-premium w-full py-4" />
                       </div>
                     </div>
                   </div>
