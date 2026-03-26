@@ -131,62 +131,63 @@ export default function DashboardPage() {
           <div className="w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center text-xl shadow-lg italic font-black">S</div>
           <h2 className="text-xl font-black italic uppercase tracking-tighter text-text-main">
             {(!selectedProfId && !isGeneralView) ? "Início do Agendamento" : labels.termoAgenda}
-            <span className="text-primary opacity-30 text-[8px] ml-2 tracking-widest">V4.3 PREMIUM</span>
           </h2>
         </div>
 
-        {/* MODO UNIFICADO: Abas de Fluxo e Navegação */}
+        {/* MODO DINÂMICO: Abas de Fluxo e Navegação */}
         <div className="bg-slate-100 p-1.5 rounded-[1.5rem] flex gap-1 border border-slate-200 shadow-inner overflow-x-auto no-scrollbar max-w-full">
-          {/* Abas de Seleção (Sempre Visíveis para Admin) */}
           <button 
             onClick={() => { setSelectedProfId(null); setIsGeneralView(false); setWizardStep('specialty'); setActiveTab('dia'); }} 
             className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all 
-              ${(!selectedProfId && !isGeneralView && wizardStep === 'specialty') ? 'bg-white text-primary shadow-premium' : 'text-text-muted hover:text-text-main'}`}
+              ${(!selectedProfId && !isGeneralView && wizardStep === 'specialty') ? 'bg-white text-primary shadow-premium' : 'text-text-muted hover:text-text-main hover:bg-white/50'}`}
           >
             Especialidades
           </button>
           <button 
             onClick={() => { setSelectedProfId(null); setIsGeneralView(false); setWizardStep('professional'); setActiveTab('dia'); }} 
             className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all 
-              ${(!selectedProfId && !isGeneralView && wizardStep === 'professional') ? 'bg-white text-primary shadow-premium' : 'text-text-muted hover:text-text-main'}`}
+              ${(!selectedProfId && !isGeneralView && wizardStep === 'professional') ? 'bg-white text-primary shadow-premium' : 'text-text-muted hover:text-text-main hover:bg-white/50'}`}
           >
             {labels.termoProfissional === 'Médico' ? 'Médicos' : 'Profissionais'}
           </button>
 
-          {/* Divisor Visual */}
-          <div className="w-[1px] bg-slate-300 mx-1 self-stretch my-2 opacity-50" />
+          {(selectedProfId || isGeneralView) && (
+            <>
+              {/* Divisor Visual */}
+              <div className="w-[1px] bg-slate-200 mx-2 self-stretch my-2" />
 
-          {/* Abas Temporais (Só funcionam se houver profissional ou visão geral) */}
-          {[
-            { id: 'dia', label: 'Hoje' },
-            { id: 'semana', label: 'Semana' },
-            { id: 'mes', label: 'Mês' },
-            { id: 'agenda_geral', label: 'Geral' }
-          ].map(tab => (
-            <button 
-              key={tab.id} 
-              onClick={() => {
-                if (tab.id === 'agenda_geral') {
-                  setIsGeneralView(true);
-                  setSelectedProfId(null);
-                  setActiveTab('dia');
-                } else {
-                  setActiveTab(tab.id as any);
-                  // Se não tiver ninguém selecionado e clicar em Hoje/Semana/Mês, mantemos no wizard ou avisamos
-                }
-              }} 
-              className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all 
-                ${(selectedProfId || isGeneralView) && activeTab === tab.id ? 'bg-white text-primary shadow-premium' : 'text-text-muted hover:text-text-main hover:bg-white/50'}`}
-              disabled={!selectedProfId && !isGeneralView && tab.id !== 'agenda_geral'}
-            >
-              {tab.label}
-            </button>
-          ))}
+              {/* Abas Temporais (Aparecem só após a escolha) */}
+              {[
+                { id: 'dia', label: 'Hoje' },
+                { id: 'semana', label: 'Semana' },
+                { id: 'mes', label: 'Mês' }
+              ].map(tab => (
+                <button 
+                  key={tab.id} 
+                  onClick={() => setActiveTab(tab.id as any)} 
+                  className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all 
+                    ${activeTab === tab.id ? 'bg-white text-primary shadow-premium' : 'text-text-muted hover:text-text-main hover:bg-white/50'}`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </>
+          )}
+
+          <div className="w-[1px] bg-slate-200 mx-2 self-stretch my-2" />
+          
+          <button 
+            onClick={() => { setIsGeneralView(true); setSelectedProfId(null); setActiveTab('dia'); }} 
+            className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all 
+              ${isGeneralView ? 'bg-white text-primary shadow-premium' : 'text-text-muted hover:text-text-main hover:bg-white/50'}`}
+          >
+            Geral
+          </button>
           
           <button 
             onClick={() => setActiveTab('servicos')} 
             className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all 
-              ${activeTab === 'servicos' ? 'bg-white text-primary shadow-premium' : 'text-text-muted hover:text-text-main'}`}
+              ${activeTab === 'servicos' ? 'bg-white text-primary shadow-premium' : 'text-text-muted hover:text-text-main hover:bg-white/50'}`}
           >
             {labels.termoServicoPlural}
           </button>
