@@ -76,16 +76,23 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   const [clientLogo, setClientLogo] = useState<string | null>(null);
   const [clientName, setClientName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hasMounted, setHasMounted] = useState(false);
 
   useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hasMounted) return;
     // Redireciona para onboarding se não concluído
     if (!nichoLoading && onboardingCompleted === false) {
       window.location.href = '/onboarding';
       return;
     }
-  }, [onboardingCompleted, nichoLoading]);
+  }, [onboardingCompleted, nichoLoading, hasMounted]);
 
   useEffect(() => {
+    if (!hasMounted) return;
     const token = getAuthToken();
     if (!token) {
       window.location.href = '/auth/login';
@@ -98,22 +105,14 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     // Busca branding dinâmico baseado no token
     fetchWithAuth('/api/upload/logo')
       .then(response => {
-        if (response.status === 401 || response.status === 403) {
-          // Sessão expirada ou acesso negado entre tenants
-          clearAuthSession();
-          window.location.href = '/auth/login';
-          return; // Stop further processing
-        }
-        return response.json();
+        if (response.ok) return response.json();
+        throw new Error();
       })
       .then(data => {
         if (data.logoUrl) setClientLogo(data.logoUrl);
-        if (data.nome) setClientName(data.nome);
+        if (data.nomeClinica) setClientName(data.nomeClinica);
       })
-      .catch(error => {
-        // Log error for debugging, but avoid exposing detailed error to user
-        console.error("Failed to fetch client branding:", error);
-      })
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
@@ -123,6 +122,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     localStorage.setItem('synka-sidebar-collapsed', String(newState));
   };
   
+  if (!hasMounted) return <div className="min-h-screen bg-slate-50 flex items-center justify-center animate-pulse font-black text-[10px] uppercase tracking-widest text-text-placeholder">Inicializando Synka...</div>;
   if (loading && !getAuthToken()) return null; // Prevenção de flash de conteúdo não autorizado
 
   return (
