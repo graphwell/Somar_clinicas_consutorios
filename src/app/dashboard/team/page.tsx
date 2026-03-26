@@ -1,7 +1,15 @@
 "use client";
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import Link from 'next/link';
 import { useNicho } from '@/context/NichoContext';
 import { fetchWithAuth } from '@/lib/api-utils';
+
+interface ProfessionalSchedule {
+  diaSemana: number;
+  horaInicio: string;
+  horaFim: string;
+  ativo: boolean;
+}
 
 interface Profissional {
   id: string;
@@ -12,9 +20,11 @@ interface Profissional {
   fotoUrl: string | null;
   color: string | null;
   ativo: boolean;
+  escalas?: ProfessionalSchedule[];
 }
 
 const PRESET_COLORS = ['#3B82F6', '#F472B6', '#A78BFA', '#34D399', '#FB7185', '#60A5FA', '#38BDF8'];
+const DAYS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
 export default function TeamPage() {
   const { labels } = useNicho();
@@ -31,6 +41,7 @@ export default function TeamPage() {
   const [fotoUrl, setFotoUrl] = useState('');
   const [color, setColor] = useState('#3B82F6');
   const [ativo, setAtivo] = useState(true);
+  const [escalas, setEscalas] = useState<ProfessionalSchedule[]>([]);
   const [saving, setSaving] = useState(false);
 
   const fetchTeam = useCallback(() => {
@@ -44,11 +55,25 @@ export default function TeamPage() {
   useEffect(() => { fetchTeam(); }, [fetchTeam]);
 
   const openAdd = () => {
-    setEditing(null); setNome(''); setEspecialidade(''); setRegistroProfissional(''); setBio(''); setFotoUrl(''); setColor('#3B82F6'); setAtivo(true); setShowModal(true);
+    setEditing(null); setNome(''); setEspecialidade(''); setRegistroProfissional(''); setBio(''); setFotoUrl(''); setColor('#3B82F6'); setAtivo(true); setEscalas([]); setShowModal(true);
   };
 
   const openEdit = (p: Profissional) => {
-    setEditing(p); setNome(p.nome); setEspecialidade(p.especialidade || ''); setRegistroProfissional(p.registroProfissional || ''); setBio(p.bio || ''); setFotoUrl(p.fotoUrl || ''); setColor(p.color || '#3B82F6'); setAtivo(p.ativo); setShowModal(true);
+    setEditing(p); setNome(p.nome); setEspecialidade(p.especialidade || ''); setRegistroProfissional(p.registroProfissional || ''); setBio(p.bio || ''); setFotoUrl(p.fotoUrl || ''); setColor(p.color || '#3B82F6'); setAtivo(p.ativo); setEscalas(p.escalas || []); setShowModal(true);
+  };
+
+  const addEscala = () => {
+    setEscalas([...escalas, { diaSemana: 1, horaInicio: '08:00', horaFim: '18:00', ativo: true }]);
+  };
+
+  const removeEscala = (index: number) => {
+    setEscalas(escalas.filter((_, i) => i !== index));
+  };
+
+  const updateEscala = (index: number, field: keyof ProfessionalSchedule, value: any) => {
+    const newEscalas = [...escalas];
+    newEscalas[index] = { ...newEscalas[index], [field]: value };
+    setEscalas(newEscalas);
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -56,7 +81,7 @@ export default function TeamPage() {
     try {
       const url = editing ? `/api/team/${editing.id}` : '/api/team';
       const method = editing ? 'PUT' : 'POST';
-      const body = { nome, especialidade, registroProfissional, bio, fotoUrl: fotoUrl || null, color, ativo };
+      const body = { nome, especialidade, registroProfissional, bio, fotoUrl: fotoUrl || null, color, ativo, escalas };
       await fetchWithAuth(url, { method, body: JSON.stringify(body) });
       setShowModal(false); fetchTeam();
     } catch { } finally { setSaving(false); }
@@ -79,7 +104,7 @@ export default function TeamPage() {
            <div className="w-14 h-14 rounded-3xl bg-primary text-white flex items-center justify-center text-3xl shadow-xl shadow-primary/20">🧑‍💼</div>
            <div>
               <h2 className="text-2xl font-black italic uppercase tracking-tighter text-text-main">Gestão de <span className="text-primary">Equipe</span></h2>
-              <p className="text-[10px] font-black text-text-placeholder uppercase tracking-[0.2em] mt-1 opacity-60">Quadro de {labels.profissional}s • V2.2 Official</p>
+              <p className="text-[10px] font-black text-text-placeholder uppercase tracking-[0.2em] mt-1 opacity-60">Quadro de {labels.termoProfissional}s • V2.2 Official</p>
            </div>
         </div>
         <button onClick={openAdd} className="w-full md:w-auto px-10 py-5 bg-primary text-white rounded-[1.5rem] text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 hover:scale-105 transition-all text-center">Contratar Especialista</button>
@@ -110,13 +135,15 @@ export default function TeamPage() {
               </div>
 
               <h3 className="text-xl font-black text-text-main tracking-tighter mb-1.5 uppercase italic underline decoration-primary/10 underline-offset-8 decoration-4">{p.nome}</h3>
-              <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-6">{p.especialidade || labels.profissional}</p>
+              <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-6">{p.especialidade || labels.termoProfissional}</p>
               
               <div className="w-full space-y-4">
                  <p className="text-xs text-text-muted font-medium italic mb-8 line-clamp-2 px-4 leading-relaxed opacity-60 h-10">
                    {p.bio || 'Sem detalhes biográficos.'}
                  </p>
-                 <button className="w-full py-4 bg-slate-50 hover:bg-primary-soft hover:text-primary rounded-2xl text-[9px] font-black uppercase tracking-widest text-text-placeholder transition-all border border-transparent hover:border-primary/10">Ver Perfil Completo</button>
+                 <Link href={`/dashboard/team/${p.id}`} onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                    <button className="w-full py-4 bg-slate-50 hover:bg-primary-soft hover:text-primary rounded-2xl text-[9px] font-black uppercase tracking-widest text-text-placeholder transition-all border border-transparent hover:border-primary/10">Ver Perfil Completo</button>
+                  </Link>
               </div>
             </div>
         ))}
@@ -185,6 +212,45 @@ export default function TeamPage() {
                     <button type="button" onClick={() => setAtivo(!ativo)} className={`w-full py-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${ativo ? 'bg-status-success-bg text-status-success border border-status-success/10' : 'bg-slate-100 text-text-placeholder border border-card-border'}`}>
                        {ativo ? 'Ativo na Unidade' : 'Afastado / Inativo'}
                     </button>
+                  </div>
+               </div>
+
+               {/* Seção de Escalas V4.1 */}
+               <div className="col-span-full space-y-6 pt-6 border-t border-slate-50">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-xs font-black text-text-main uppercase tracking-widest italic">Horários de Atendimento</h4>
+                      <p className="text-[8px] text-text-placeholder font-bold uppercase tracking-widest mt-0.5">Defina os turnos semanais deste especialista</p>
+                    </div>
+                    <button type="button" onClick={addEscala} className="px-4 py-2 bg-primary-soft text-primary rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all">+ Add Turno</button>
+                  </div>
+
+                  <div className="space-y-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                    {escalas.length === 0 ? (
+                      <div className="py-8 text-center bg-slate-50 rounded-2xl border border-dashed border-card-border">
+                        <p className="text-[9px] font-black text-text-placeholder uppercase tracking-widest opacity-40 italic">Sem horários definidos</p>
+                      </div>
+                    ) : escalas.map((esc, idx) => (
+                      <div key={idx} className="grid grid-cols-12 gap-3 items-end p-4 bg-slate-50/50 border border-card-border rounded-2xl animate-premium">
+                        <div className="col-span-4 space-y-1.5">
+                          <label className="text-[8px] font-black text-text-placeholder uppercase ml-1">Dia</label>
+                          <select value={esc.diaSemana} onChange={e => updateEscala(idx, 'diaSemana', parseInt(e.target.value))} className="input-premium w-full py-2.5 text-[10px]">
+                            {DAYS.map((d, i) => <option key={i} value={i}>{d}</option>)}
+                          </select>
+                        </div>
+                        <div className="col-span-3 space-y-1.5">
+                          <label className="text-[8px] font-black text-text-placeholder uppercase ml-1">Início</label>
+                          <input type="time" value={esc.horaInicio} onChange={e => updateEscala(idx, 'horaInicio', e.target.value)} className="input-premium w-full py-2.5 text-[10px]" />
+                        </div>
+                        <div className="col-span-3 space-y-1.5">
+                          <label className="text-[8px] font-black text-text-placeholder uppercase ml-1">Fim</label>
+                          <input type="time" value={esc.horaFim} onChange={e => updateEscala(idx, 'horaFim', e.target.value)} className="input-premium w-full py-2.5 text-[10px]" />
+                        </div>
+                        <div className="col-span-2">
+                          <button type="button" onClick={() => removeEscala(idx)} className="w-full py-2.5 bg-white hover:bg-status-error-bg text-status-error border border-card-border hover:border-status-error/20 rounded-xl transition-all">✕</button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                </div>
 

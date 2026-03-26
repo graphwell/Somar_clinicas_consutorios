@@ -19,6 +19,8 @@ export default function SettingsPage() {
   const [cnpj, setCnpj] = useState('');
   const [endereco, setEndereco] = useState('');
   const [adminPhone, setAdminPhone] = useState('');
+  const [openingTime, setOpeningTime] = useState('08:00');
+  const [closingTime, setClosingTime] = useState('18:00');
 
   useEffect(() => {
     fetchWithAuth('/api/settings')
@@ -31,6 +33,8 @@ export default function SettingsPage() {
           setAdminPhone(data.clinica.adminPhone || '');
           setNiche(data.clinica.nicho || 'Clínica Médica');
           setBotActive(data.clinica.botActive ?? true);
+          setOpeningTime(data.clinica.openingTime || '08:00');
+          setClosingTime(data.clinica.closingTime || '18:00');
           if (data.clinica.primaryColor) setPrimaryColor(data.clinica.primaryColor);
           if (data.clinica.logoUrl) setLogoUrl(data.clinica.logoUrl);
         }
@@ -57,7 +61,7 @@ export default function SettingsPage() {
     try {
       const res = await fetchWithAuth('/api/settings', {
         method: 'PUT',
-        body: JSON.stringify({ razaoSocial, cnpj, endereco, adminPhone, nicho: niche, botActive })
+        body: JSON.stringify({ razaoSocial, cnpj, endereco, adminPhone, nicho: niche, botActive, openingTime, closingTime })
       });
       if (res.ok) {
         setSaved(true);
@@ -175,6 +179,16 @@ export default function SettingsPage() {
                  <div className="space-y-2">
                     <label className="text-[9px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-2">Endereço da Unidade</label>
                     <input value={endereco} onChange={e => setEndereco(e.target.value)} className="input-premium w-full" />
+                 </div>
+                 <div className="grid grid-cols-2 gap-6 pt-4 border-t border-slate-50">
+                    <div className="space-y-2">
+                       <label className="text-[9px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-2">Abertura Unidade</label>
+                       <input type="time" value={openingTime} onChange={e => setOpeningTime(e.target.value)} className="input-premium w-full" />
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-[9px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-2">Fechamento Unidade</label>
+                       <input type="time" value={closingTime} onChange={e => setClosingTime(e.target.value)} className="input-premium w-full" />
+                    </div>
                  </div>
               </div>
            </div>

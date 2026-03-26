@@ -4,150 +4,14 @@ import { useNicho } from '@/context/NichoContext';
 import { fetchWithAuth } from '@/lib/api-utils';
 import KpiSection from '@/components/dashboard/KpiSection';
 
+import { 
+  Service, Profissional, Appointment, 
+  generateSmartSlots, STATUS_MAP, WEEKDAYS_SHORT, MONTHS, 
+  formatTime, formatDate, isSameDay 
+} from '@/lib/agenda-utils';
+import HourCell from '@/components/dashboard/HourCell';
+
 const SLOT_INTERVAL_FALLBACK = 30;
-
-interface Service {
-  id: string;
-  nome: string;
-  preco: number;
-  duracaoMinutos: number;
-  bufferTimeMinutes: number;
-}
-
-interface Profissional {
-  id: string;
-  nome: string;
-  color?: string;
-  especialidade?: string;
-  escalas?: Array<{ diaSemana: number, horaInicio: string, horaFim: string, ativo: boolean }>;
-}
-
-interface Appointment {
-  id: string;
-  dataHora: string;
-  fimDataHora?: string;
-  durationMinutes?: number;
-  status: string;
-  paciente: { id: string; nome: string; telefone: string };
-  profissional?: Profissional | null;
-  servico?: Service | null;
-  tipoAtendimento?: string;
-  convenio?: string;
-  observacoes?: string;
-}
-
-const generateSmartSlots = (
-  startStr: string = "08:00",
-  endStr: string = "18:00",
-  service?: Service | null,
-  existingAppts: Appointment[] = [],
-  selectedDate: Date = new Date()
-) => {
-  const slots: string[] = [];
-  const startParts = (startStr || "00:00").split(':').map(Number);
-  const endParts = (endStr || "23:59").split(':').map(Number);
-  
-  let current = new Date(selectedDate);
-  current.setHours(startParts[0], startParts[1], 0, 0);
-  
-  const end = new Date(selectedDate);
-  end.setHours(endParts[0], endParts[1], 0, 0);
-
-  const defaultJump = service?.duracaoMinutos || 30;
-
-  while (current < end) {
-    const timeStr = current.getHours().toString().padStart(2, '0') + ':' + current.getMinutes().toString().padStart(2, '0');
-    slots.push(timeStr);
-    
-    // Check if there's an appointment starting EXACTLY at this slot
-    const appt = existingAppts.find(a => {
-      const aDate = new Date(a.dataHora);
-      return aDate.getHours() === current.getHours() && aDate.getMinutes() === current.getMinutes();
-    });
-
-    if (appt) {
-      // Jump by appointment duration + buffer to avoid overlapping with its own slots
-      const duration = appt.durationMinutes || 30;
-      const buffer = appt.servico?.bufferTimeMinutes || 0;
-      current = new Date(current.getTime() + (duration + buffer) * 60000);
-    } else {
-      // Standard jump
-      current = new Date(current.getTime() + defaultJump * 60000);
-    }
-  }
-  return slots;
-};
-
-const MONTHS = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-const WEEKDAYS_SHORT = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
-
-const STATUS_MAP: Record<string, { label: string; bg: string; text: string }> = {
-  confirmado: { label: 'Confirmado', bg: '#22C55E', text: 'white' },
-  pendente: { label: 'Pendente', bg: '#F59E0B', text: 'white' },
-  cancelado: { label: 'Cancelado', bg: '#EF4444', text: 'white' },
-  available: { label: 'Livre', bg: '#FFFFFF', text: '#1E293B' },
-  done: { label: 'Concluído', bg: '#1E293B', text: 'white' },
-  reagendado: { label: 'Reagendado', bg: '#6366F1', text: 'white' },
-};
-
-function formatTime(iso: string) { return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); }
-function formatDate(iso: string) { return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }); }
-function isSameDay(a: Date, b: Date) { return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
-
-function HourCell({ hour, appt, onClick }: { hour: string, appt?: Appointment, onClick: () => void }) {
-  const { labels } = useNicho();
-  const status = appt ? appt.status : 'available';
-  const config = STATUS_MAP[status] || STATUS_MAP.available;
-
-  return (
-    <button
-      onClick={onClick}
-      className={`relative group transition-all duration-300 rounded-[1.5rem] border flex items-center px-6 gap-6 h-[70px] w-full
-        ${appt ? 'shadow-md scale-[0.98]' : 'hover:border-primary/30 hover:bg-slate-50 border-slate-100'}
-      `}
-      style={{ backgroundColor: config.bg, color: config.text }}
-    >
-      <div className="flex flex-col items-center border-r border-current/10 pr-6 relative">
-        <span className="text-[12px] font-black uppercase tracking-tighter">{hour}</span>
-        {(() => {
-          const now = new Date();
-          const [hH, hHMin] = hour.split(':').map(Number);
-          const isSlotActive = now.getHours() === hH && Math.abs(now.getMinutes() - hHMin) < 30;
-          return isSlotActive && <div className="absolute -left-2 w-1 h-6 bg-primary rounded-full animate-pulse"></div>;
-        })()}
-      </div>
-      <div className="flex-1 flex justify-between items-center text-left">
-        {appt ? (
-          <>
-            <div>
-              <p className="text-[11px] font-black uppercase tracking-tight truncate max-w-[200px] leading-none mb-1">{appt.paciente.nome}</p>
-              <p className="text-[8px] font-bold opacity-60 uppercase tracking-widest truncate">{appt.servico?.nome || labels.termoServico}</p>
-            </div>
-            <div className="flex gap-2 items-center relative">
-              <span className="text-[10px] bg-white/20 px-3 py-1 rounded-full font-black uppercase tracking-widest">{appt.tipoAtendimento}</span>
-              {(() => {
-                const start = new Date(appt.dataHora).getTime();
-                const now = new Date().getTime();
-                const duration = (appt.durationMinutes || 30) * 60000;
-                const progress = Math.max(0, Math.min(100, Math.round(((now - start) / duration) * 100)));
-                if (progress > 0 && progress < 100 && appt.status !== 'cancelado') {
-                  return (
-                    <div className="absolute -bottom-6 right-0 w-24 h-1 bg-white/20 rounded-full overflow-hidden">
-                      <div className="h-full bg-white transition-all duration-1000" style={{ width: `${progress}%` }}></div>
-                    </div>
-                  );
-                }
-                return null;
-              })()}
-            </div>
-          </>
-        ) : (
-          <span className="text-[9px] font-black opacity-30 group-hover:opacity-100 uppercase tracking-[0.2em]">Disponível</span>
-        )}
-      </div>
-    </button>
-  );
-}
 
 export default function DashboardPage() {
   const { labels } = useNicho();
@@ -216,6 +80,7 @@ export default function DashboardPage() {
           {[
             { id: 'dia', label: 'Hoje' },
             { id: 'semana', label: 'Semana' },
+            { id: 'mes', label: 'Mês' },
             { id: 'profissionais', label: labels.termoProfissional === 'Médico' ? 'Equipe' : 'Profissionais' },
             { id: 'servicos', label: labels.termoServicoPlural },
             ...(labels.temAssinatura ? [{ id: 'planos', label: 'Planos' }] : [])
@@ -423,11 +288,85 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {['semana', 'mes'].includes(activeTab) && (
-          <div className="bg-white border border-card-border rounded-[3rem] p-20 text-center shadow-premium">
-             <span className="text-4xl block mb-6">🗓️</span>
-             <h3 className="text-xl font-black uppercase italic tracking-tighter text-text-main">Em Manutenção</h3>
-             <p className="text-[10px] font-black text-text-placeholder uppercase tracking-widest mt-4">Use a visão diária para Smart Slots.</p>
+        {activeTab === 'dia' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-6 animate-premium">
+            {smartSlots.map(h => {
+              const appt = appointments.find(a => isSameDay(new Date(a.dataHora), selectedDate) && formatTime(a.dataHora) === h && (selectedProfId === 'all' || a.profissional?.id === selectedProfId));
+              return <HourCell key={h} hour={h} appt={appt} onClick={() => { setSelectedHour(h); setShowModal(true); }} />;
+            })}
+          </div>
+        )}
+
+        {activeTab === 'semana' && (
+          <div className="bg-white border border-card-border rounded-[3rem] p-6 shadow-premium overflow-x-auto">
+            <div className="min-w-[1000px] grid grid-cols-7 gap-4">
+              {Array.from({ length: 7 }).map((_, i) => {
+                const day = new Date(selectedDate);
+                day.setDate(day.getDate() - day.getDay() + i);
+                const dayAppts = appointments.filter(a => isSameDay(new Date(a.dataHora), day) && (selectedProfId === 'all' || a.profissional?.id === selectedProfId));
+                
+                return (
+                  <div key={i} className={`space-y-4 p-4 rounded-[2rem] border transition-all ${isSameDay(day, new Date()) ? 'bg-primary-soft/30 border-primary/20 shadow-inner' : 'bg-slate-50 border-slate-100'}`}>
+                    <div className="text-center pb-2 border-b border-slate-200">
+                      <p className="text-[10px] font-black text-text-placeholder uppercase tracking-widest">{WEEKDAYS_SHORT[i]}</p>
+                      <p className={`text-xl font-black italic tracking-tighter ${isSameDay(day, new Date()) ? 'text-primary' : 'text-text-main'}`}>{day.getDate()}</p>
+                    </div>
+                    <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1 no-scrollbar">
+                      {dayAppts.length === 0 ? (
+                        <div className="py-10 text-center opacity-20 italic text-[10px] font-black uppercase tracking-widest">Livre</div>
+                      ) : dayAppts.sort((a,b) => a.dataHora.localeCompare(b.dataHora)).map(a => (
+                        <div key={a.id} className="p-3 bg-white border border-card-border rounded-2xl shadow-sm hover:shadow-md transition-all cursor-pointer group" style={{ borderLeft: `4px solid ${STATUS_MAP[a.status]?.bg || '#ccc'}` }}>
+                           <p className="text-[10px] font-black text-text-main leading-tight truncate">{a.paciente.nome}</p>
+                           <p className="text-[8px] font-black text-primary uppercase tracking-widest mt-1">{formatTime(a.dataHora)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'mes' && (
+          <div className="bg-white border border-card-border rounded-[3rem] p-10 shadow-premium">
+            <div className="grid grid-cols-7 gap-4 mb-6">
+              {WEEKDAYS_SHORT.map(w => <div key={w} className="text-center text-[9px] font-black text-text-placeholder uppercase tracking-[0.3em]">{w}</div>)}
+            </div>
+            <div className="grid grid-cols-7 gap-4">
+              {(() => {
+                const firstDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+                const lastDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0);
+                const prevLastDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 0);
+                const days = [];
+                
+                // Prefill prev month days
+                for (let i = firstDay.getDay(); i > 0; i--) {
+                  days.push({ day: prevLastDay.getDate() - i + 1, current: false, date: new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 1, prevLastDay.getDate() - i + 1) });
+                }
+                // Current month
+                for (let i = 1; i <= lastDay.getDate(); i++) {
+                  days.push({ day: i, current: true, date: new Date(selectedDate.getFullYear(), selectedDate.getMonth(), i) });
+                }
+                
+                return days.map((d, i) => {
+                  const dayAppts = appointments.filter(a => isSameDay(new Date(a.dataHora), d.date));
+                  return (
+                    <div key={i} onClick={() => { setSelectedDate(d.date); setActiveTab('dia'); }} className={`aspect-square p-3 rounded-3xl border transition-all cursor-pointer flex flex-col items-center justify-between ${d.current ? 'bg-slate-50 border-slate-100 hover:border-primary/30' : 'bg-white opacity-20 border-transparent'} ${isSameDay(d.date, new Date()) ? 'ring-2 ring-primary ring-offset-4' : ''}`}>
+                       <span className={`text-sm font-black italic tracking-tighter ${d.current ? 'text-text-main' : 'text-text-placeholder'}`}>{d.day}</span>
+                       {dayAppts.length > 0 && d.current && (
+                         <div className="flex -space-x-1">
+                            {dayAppts.slice(0, 3).map((a, idx) => (
+                              <div key={idx} className="w-2 h-2 rounded-full border border-white shadow-sm" style={{ backgroundColor: STATUS_MAP[a.status]?.bg || '#ccc' }} />
+                            ))}
+                            {dayAppts.length > 3 && <span className="text-[7px] font-black text-primary pl-1">+{dayAppts.length - 3}</span>}
+                         </div>
+                       )}
+                    </div>
+                  );
+                });
+              })()}
+            </div>
           </div>
         )}
       </div>

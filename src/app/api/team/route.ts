@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     const tenantId = await getAuthorizedTenantId();
     const prisma = getTenantPrisma();
     const body = await request.json();
-    const { nome, especialidade, registroProfissional, bio, fotoUrl, color, horariosJson, ativo } = body;
+    const { nome, especialidade, registroProfissional, bio, fotoUrl, color, horariosJson, ativo, escalas } = body;
   
     if (!nome) return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 });
   
@@ -38,8 +38,17 @@ export async function POST(request: Request) {
         fotoUrl: fotoUrl || null,
         color: color || '#4a4ae2',
         horariosJson: horariosJson || null,
-        ativo: ativo ?? true
-      }
+        ativo: ativo ?? true,
+        escalas: {
+          create: escalas?.map((e: any) => ({
+            diaSemana: e.diaSemana,
+            horaInicio: e.horaInicio,
+            horaFim: e.horaFim,
+            ativo: e.ativo ?? true
+          })) || []
+        }
+      },
+      include: { escalas: true }
     });
     return NextResponse.json(prof);
   } catch (error: any) {
