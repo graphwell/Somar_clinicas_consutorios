@@ -63,6 +63,8 @@ export async function POST(request: Request) {
   }
 }
 
+export const dynamic = 'force-dynamic';
+
 // Read the saved logo for a tenant
 export async function GET() {
   try {
@@ -76,12 +78,19 @@ export async function GET() {
       return NextResponse.json({ error: 'Clínica não encontrada.' }, { status: 404 });
     }
 
-    const branding = (clinica?.configBranding as Record<string, string>) || {};
+    // Secure extraction of JSON branding
+    let branding: any = {};
+    if (typeof clinica.configBranding === 'string') {
+      try { branding = JSON.parse(clinica.configBranding); } catch (e) { branding = {}; }
+    } else {
+      branding = clinica.configBranding || {};
+    }
+
     console.log('[GET_LOGO_DEBUG] Branding carregado:', !!branding.logoUrl, 'Length:', branding.logoUrl?.length || 0);
 
     return NextResponse.json({ 
       logoUrl: branding.logoUrl || null, 
-      nome: clinica?.nome || clinica?.razaoSocial || null,
+      nome: clinica?.nome || clinica?.razaoSocial || 'Minha Unidade',
       nicho: clinica?.nicho || null,
       onboardingCompleted: clinica?.onboardingCompleted || false
     });
