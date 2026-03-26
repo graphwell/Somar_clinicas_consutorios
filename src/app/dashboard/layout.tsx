@@ -132,10 +132,21 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       {mobileOpen && <div className="fixed inset-0 bg-slate-900/10 backdrop-blur-sm z-30 md:hidden animate-in fade-in" onClick={() => setMobileOpen(false)} />}
 
       <nav className={`fixed left-0 top-0 h-full bg-white border-r border-card-border p-6 flex flex-col z-40 transition-all duration-500 shadow-sm ${isCollapsed ? 'w-24' : 'w-72'} ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
-        <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} h-12 mb-10 transition-all`}>
+        <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-start'} h-12 mb-10 transition-all`}>
           <div className="flex items-center gap-3 overflow-hidden">
-             <img src={clientLogo || "/icon-192.png"} alt="Logo" className="h-10 w-10 shrink-0 object-contain rounded-lg" />
-             {!isCollapsed && <span className="font-black text-2xl tracking-tighter text-text-main">synka<span className="text-primary">.</span></span>}
+             {clientLogo ? (
+               <img src={clientLogo} alt="Logo" className="h-10 w-auto shrink-0 object-contain rounded-lg animate-premium" />
+             ) : (
+               <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-[10px] font-black text-slate-300 italic">LOGO</div>
+                  {!isCollapsed && (
+                    <div className="flex flex-col">
+                      <span className="font-black text-[13px] tracking-tight text-slate-400 uppercase">SUA LOGO</span>
+                      <span className="text-[7px] font-bold text-primary uppercase tracking-widest leading-none">Configuração Pendente</span>
+                    </div>
+                  )}
+               </div>
+             )}
           </div>
         </div>
 

@@ -55,7 +55,11 @@ export default function SettingsPage() {
       if (res.ok) {
         setLogoUrl(data.logoUrl);
         window.location.reload(); 
+      } else {
+        alert(data.error || 'Erro ao subir logo. Verifique se o arquivo tem menos de 2MB.');
       }
+    } catch (err: any) {
+      alert('Erro de conexão ou tamanho excedido.');
     } finally { setUploading(false); }
   };
 

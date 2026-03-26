@@ -22,25 +22,44 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Arquivo muito grande. Máximo 2MB.' }, { status: 400 });
     }
 
+    console.log('[UPLOAD_DEBUG] Recebido arquivo:', file.name, 'Tipo:', file.type, 'Tamanho:', file.size);
+
     // Convert to base64 data URL
-    const bytes = await file.arrayBuffer();
-    const base64 = Buffer.from(new Uint8Array(bytes)).toString('base64');
-    const logoUrl = `data:${file.type};base64,${base64}`;
+    let logoUrl = '';
+    try {
+      const bytes = await file.arrayBuffer();
+      const base64 = Buffer.from(new Uint8Array(bytes)).toString('base64');
+      logoUrl = `data:${file.type};base64,${base64}`;
+      console.log('[UPLOAD_DEBUG] Base64 gerado com sucesso. Length:', logoUrl.length);
+    } catch (err: any) {
+      console.error('[UPLOAD_DEBUG] Erro ao converter para base64:', err.message);
+      return NextResponse.json({ error: 'Erro ao processar imagem.' }, { status: 500 });
+    }
 
     // Upsert into Clinica.configBranding
-    const masterPrisma = getMasterPrisma();
-    const existing = await masterPrisma.clinica.findUnique({ where: { tenantId } });
-    if (existing) {
+    try {
+      const masterPrisma = getMasterPrisma();
+      const existing = await masterPrisma.clinica.findUnique({ where: { tenantId } });
+      if (!existing) {
+         console.error('[UPLOAD_DEBUG] Clínica não encontrada para tenantId:', tenantId);
+         return NextResponse.json({ error: 'Clínica não encontrada.' }, { status: 404 });
+      }
+
       const branding = (existing.configBranding as Record<string, string>) || {};
       await masterPrisma.clinica.update({
         where: { tenantId },
         data: { configBranding: { ...branding, logoUrl } },
       });
+      console.log('[UPLOAD_DEBUG] ConfigBranding atualizado no banco.');
+    } catch (err: any) {
+      console.error('[UPLOAD_DEBUG] Erro ao salvar no banco:', err.message);
+      return NextResponse.json({ error: 'Erro ao salvar no banco de dados.' }, { status: 500 });
     }
+
     return NextResponse.json({ success: true, logoUrl });
   } catch (error: any) {
-    console.error('[UPLOAD_LOGO_ERROR]', error);
-    return NextResponse.json({ error: error.message || 'Erro interno ao fazer upload.' }, { status: 500 });
+    console.error('[UPLOAD_LOGO_TOTAL_ERROR]', error);
+    return NextResponse.json({ error: error.message || 'Erro interno fatal.' }, { status: 500 });
   }
 }
 
