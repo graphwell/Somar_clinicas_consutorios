@@ -21,6 +21,7 @@ interface Profissional {
   color: string | null;
   ativo: boolean;
   escalas?: ProfessionalSchedule[];
+  horariosJson?: any;
 }
 
 const PRESET_COLORS = ['#3B82F6', '#F472B6', '#A78BFA', '#34D399', '#FB7185', '#60A5FA', '#38BDF8'];
@@ -42,6 +43,10 @@ export default function TeamPage() {
   const [color, setColor] = useState('#3B82F6');
   const [ativo, setAtivo] = useState(true);
   const [escalas, setEscalas] = useState<ProfessionalSchedule[]>([]);
+  const [atendeConvenio, setAtendeConvenio] = useState(false);
+  const [conveniosSelecionados, setConveniosSelecionados] = useState<string[]>([]);
+  const [startHour, setStartHour] = useState('08:00');
+  const [endHour, setEndHour] = useState('18:00');
   const [saving, setSaving] = useState(false);
 
   const fetchTeam = useCallback(() => {
@@ -55,11 +60,29 @@ export default function TeamPage() {
   useEffect(() => { fetchTeam(); }, [fetchTeam]);
 
   const openAdd = () => {
-    setEditing(null); setNome(''); setEspecialidade(''); setRegistroProfissional(''); setBio(''); setFotoUrl(''); setColor('#3B82F6'); setAtivo(true); setEscalas([]); setShowModal(true);
+    setEditing(null); setNome(''); setEspecialidade(''); setRegistroProfissional(''); setBio(''); setFotoUrl(''); setColor('#3B82F6'); setAtivo(true); setEscalas([]); 
+    setAtendeConvenio(false); setConveniosSelecionados([]); setStartHour('08:00'); setEndHour('18:00');
+    setShowModal(true);
   };
 
   const openEdit = (p: Profissional) => {
-    setEditing(p); setNome(p.nome); setEspecialidade(p.especialidade || ''); setRegistroProfissional(p.registroProfissional || ''); setBio(p.bio || ''); setFotoUrl(p.fotoUrl || ''); setColor(p.color || '#3B82F6'); setAtivo(p.ativo); setEscalas(p.escalas || []); setShowModal(true);
+    setEditing(p); setNome(p.nome); setEspecialidade(p.especialidade || ''); setRegistroProfissional(p.registroProfissional || ''); setBio(p.bio || ''); setFotoUrl(p.fotoUrl || ''); setColor(p.color || '#3B82F6'); setAtivo(p.ativo); setEscalas(p.escalas || []); 
+    
+    // Parse metadata from horariosJson
+    const metadata = p.horariosJson as any;
+    setAtendeConvenio(metadata?.atendeConvenio || false);
+    setConveniosSelecionados(metadata?.convenios || []);
+    
+    // Set start/end from first escala if exists
+    if (p.escalas && p.escalas.length > 0) {
+      setStartHour(p.escalas[0].horaInicio);
+      setEndHour(p.escalas[0].horaFim);
+    } else {
+      setStartHour('08:00');
+      setEndHour('18:00');
+    }
+    
+    setShowModal(true);
   };
 
   const addEscala = () => {
@@ -76,12 +99,27 @@ export default function TeamPage() {
     setEscalas(newEscalas);
   };
 
+  const toggleDay = (day: number) => {
+    const exists = escalas.some(e => e.diaSemana === day);
+    if (exists) {
+      setEscalas(escalas.filter(e => e.diaSemana !== day));
+    } else {
+      setEscalas([...escalas, { diaSemana: day, horaInicio: startHour, horaFim: endHour, ativo: true }]);
+    }
+  };
+
+  useEffect(() => {
+    // Update all existing escalas when hours change
+    setEscalas(prev => prev.map(e => ({ ...e, horaInicio: startHour, horaFim: endHour })));
+  }, [startHour, endHour]);
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault(); setSaving(true);
     try {
       const url = editing ? `/api/team/${editing.id}` : '/api/team';
       const method = editing ? 'PUT' : 'POST';
-      const body = { nome, especialidade, registroProfissional, bio, fotoUrl: fotoUrl || null, color, ativo, escalas };
+      const horariosJson = { atendeConvenio, convenios: conveniosSelecionados };
+      const body = { nome, especialidade, registroProfissional, bio, fotoUrl: fotoUrl || null, color, ativo, escalas, horariosJson };
       await fetchWithAuth(url, { method, body: JSON.stringify(body) });
       setShowModal(false); fetchTeam();
     } catch { } finally { setSaving(false); }
@@ -103,11 +141,11 @@ export default function TeamPage() {
         <div className="flex items-center gap-6">
            <div className="w-14 h-14 rounded-3xl bg-primary text-white flex items-center justify-center text-3xl shadow-xl shadow-primary/20">🧑‍💼</div>
            <div>
-              <h2 className="text-2xl font-black italic uppercase tracking-tighter text-text-main">Gestão de <span className="text-primary">Equipe</span></h2>
+              <h2 className="text-2xl font-black italic uppercase tracking-tighter text-text-main">Gestão de <span className="text-primary">Profissionais</span></h2>
               <p className="text-[10px] font-black text-text-placeholder uppercase tracking-[0.2em] mt-1 opacity-60">Quadro de {labels.termoProfissional}s • V2.2 Official</p>
            </div>
         </div>
-        <button onClick={openAdd} className="w-full md:w-auto px-10 py-5 bg-primary text-white rounded-[1.5rem] text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 hover:scale-105 transition-all text-center">Contratar Especialista</button>
+        <button onClick={openAdd} className="w-full md:w-auto px-10 py-5 bg-primary text-white rounded-[1.5rem] text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 hover:scale-105 transition-all text-center">Adicionar Profissional</button>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10">
@@ -152,7 +190,7 @@ export default function TeamPage() {
       {showModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" onClick={() => setShowModal(false)}>
           <div className="absolute inset-0 bg-slate-900/10 backdrop-blur-md" />
-          <div className="relative w-full max-w-2xl bg-white border border-card-border rounded-[3rem] shadow-2xl scale-in overflow-hidden" onClick={e => e.stopPropagation()}>
+          <div className="relative w-full max-w-2xl max-h-[90vh] bg-white border border-card-border rounded-[3rem] shadow-2xl scale-in overflow-y-auto custom-scrollbar" onClick={e => e.stopPropagation()}>
             <div className="p-10 border-b border-slate-50 flex items-center justify-between">
               <div>
                 <h3 className="text-xl font-black text-text-main tracking-tighter uppercase italic">{editing ? `Refinar` : `Novo`} Profissional</h3>
@@ -215,43 +253,93 @@ export default function TeamPage() {
                   </div>
                </div>
 
-               {/* Seção de Escalas V4.1 */}
+               {/* Seção de Escalas V5.0 - Simplificada (Estilo Empresa) */}
                <div className="col-span-full space-y-6 pt-6 border-t border-slate-50">
                   <div className="flex items-center justify-between">
                     <div>
                       <h4 className="text-xs font-black text-text-main uppercase tracking-widest italic">Horários de Atendimento</h4>
-                      <p className="text-[8px] text-text-placeholder font-bold uppercase tracking-widest mt-0.5">Defina os turnos semanais deste especialista</p>
+                      <p className="text-[8px] text-text-placeholder font-bold uppercase tracking-widest mt-0.5">Selecione os dias e defina o turno único</p>
                     </div>
-                    <button type="button" onClick={addEscala} className="px-4 py-2 bg-primary-soft text-primary rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all">+ Add Turno</button>
                   </div>
 
-                  <div className="space-y-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-                    {escalas.length === 0 ? (
-                      <div className="py-8 text-center bg-slate-50 rounded-2xl border border-dashed border-card-border">
-                        <p className="text-[9px] font-black text-text-placeholder uppercase tracking-widest opacity-40 italic">Sem horários definidos</p>
+                  <div className="bg-slate-50/50 p-6 rounded-3xl border border-card-border space-y-6">
+                    <div className="flex flex-wrap gap-2 justify-center">
+                      {['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'].map((d, i) => {
+                        const active = escalas.some(e => e.diaSemana === i);
+                        return (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => toggleDay(i)}
+                            className={`h-12 px-5 rounded-2xl text-[10px] font-black transition-all border ${
+                              active 
+                                ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' 
+                                : 'bg-white text-text-placeholder border-card-border opacity-40 hover:opacity-100'
+                            }`}
+                          >
+                            {d}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-6 pt-4 border-t border-slate-100">
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-black text-text-placeholder uppercase tracking-widest ml-1">Início do Turno</label>
+                        <input type="time" value={startHour} onChange={e => setStartHour(e.target.value)} className="input-premium w-full py-4" />
                       </div>
-                    ) : escalas.map((esc, idx) => (
-                      <div key={idx} className="grid grid-cols-12 gap-3 items-end p-4 bg-slate-50/50 border border-card-border rounded-2xl animate-premium">
-                        <div className="col-span-4 space-y-1.5">
-                          <label className="text-[8px] font-black text-text-placeholder uppercase ml-1">Dia</label>
-                          <select value={esc.diaSemana} onChange={e => updateEscala(idx, 'diaSemana', parseInt(e.target.value))} className="input-premium w-full py-2.5 text-[10px]">
-                            {DAYS.map((d, i) => <option key={i} value={i}>{d}</option>)}
-                          </select>
-                        </div>
-                        <div className="col-span-3 space-y-1.5">
-                          <label className="text-[8px] font-black text-text-placeholder uppercase ml-1">Início</label>
-                          <input type="time" value={esc.horaInicio} onChange={e => updateEscala(idx, 'horaInicio', e.target.value)} className="input-premium w-full py-2.5 text-[10px]" />
-                        </div>
-                        <div className="col-span-3 space-y-1.5">
-                          <label className="text-[8px] font-black text-text-placeholder uppercase ml-1">Fim</label>
-                          <input type="time" value={esc.horaFim} onChange={e => updateEscala(idx, 'horaFim', e.target.value)} className="input-premium w-full py-2.5 text-[10px]" />
-                        </div>
-                        <div className="col-span-2">
-                          <button type="button" onClick={() => removeEscala(idx)} className="w-full py-2.5 bg-white hover:bg-status-error-bg text-status-error border border-card-border hover:border-status-error/20 rounded-xl transition-all">✕</button>
-                        </div>
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-black text-text-placeholder uppercase tracking-widest ml-1">Fim do Turno</label>
+                        <input type="time" value={endHour} onChange={e => setEndHour(e.target.value)} className="input-premium w-full py-4" />
                       </div>
-                    ))}
+                    </div>
                   </div>
+               </div>
+
+               {/* Seção de Convênios V5.0 */}
+               <div className="col-span-full space-y-6 pt-6 border-t border-slate-50">
+                  <div>
+                    <h4 className="text-xs font-black text-text-main uppercase tracking-widest italic">Comercial e Convênios</h4>
+                    <p className="text-[8px] text-text-placeholder font-bold uppercase tracking-widest mt-0.5">Defina as modalidades de pagamento aceitas</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setAtendeConvenio(false)}
+                      className={`py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all ${!atendeConvenio ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' : 'bg-slate-50 text-text-placeholder border-card-border'}`}
+                    >
+                      Só Particular
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAtendeConvenio(true)}
+                      className={`py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all ${atendeConvenio ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' : 'bg-slate-50 text-text-placeholder border-card-border'}`}
+                    >
+                      Atende Convênio
+                    </button>
+                  </div>
+
+                  {atendeConvenio && (
+                    <div className="p-6 bg-slate-50/50 rounded-3xl border border-card-border grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {['Unimed', 'Bradesco', 'Amil', 'SulAmérica', 'Cassi', 'Porto Seguro', 'Golden Cross', 'Care Plus', 'Intermédica', 'Outros'].map(c => {
+                        const selected = conveniosSelecionados.includes(c);
+                        return (
+                          <button
+                            key={c}
+                            type="button"
+                            onClick={() => {
+                              if (selected) setConveniosSelecionados(conveniosSelecionados.filter(item => item !== c));
+                              else setConveniosSelecionados([...conveniosSelecionados, c]);
+                            }}
+                            className={`py-3 px-2 rounded-xl text-[8px] font-black uppercase tracking-widest border transition-all ${selected ? 'bg-primary-soft text-primary border-primary/20' : 'bg-white text-text-placeholder border-slate-100'}`}
+                          >
+                            {selected ? '✅ ' : ''}{c}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                </div>
 
                <div className="col-span-full pt-10 border-t border-slate-50">

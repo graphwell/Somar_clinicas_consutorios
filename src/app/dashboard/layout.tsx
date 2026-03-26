@@ -34,7 +34,7 @@ const NavigationLinks = ({ isCollapsed }: { isCollapsed: boolean }) => {
         <p className={`text-[9px] font-black uppercase tracking-[0.2em] text-text-placeholder mb-3 px-4 ${isCollapsed ? 'hidden' : 'block'}`}>Principal</p>
         <NavItem href="/dashboard" label={labels.termoAgenda} icon="📅" isCollapsed={isCollapsed} active={pathname === '/dashboard'} />
         <NavItem href="/dashboard/patients" label={labels.termoPacientePlural} icon="👥" isCollapsed={isCollapsed} active={pathname.startsWith('/dashboard/patients')} />
-        <NavItem href="/dashboard/team" label={labels.termoProfissional === 'Médico' ? 'Corpo Clínico' : labels.termoProfissional === 'Dentista' ? 'Equipe Odonto' : 'Equipe'} icon="🧑‍💼" isCollapsed={isCollapsed} active={pathname === '/dashboard/team'} />
+        <NavItem href="/dashboard/team" label="Profissionais" icon="🧑‍💼" isCollapsed={isCollapsed} active={pathname === '/dashboard/team'} />
         <NavItem href="/dashboard/services" label={labels.termoServicoPlural} icon="📦" isCollapsed={isCollapsed} active={pathname === '/dashboard/services'} />
       </section>
 
