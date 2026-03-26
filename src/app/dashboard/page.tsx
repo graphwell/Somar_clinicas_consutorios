@@ -78,8 +78,9 @@ export default function DashboardPage() {
   useEffect(() => {
     if (user && profissionais.length > 0 && !selectedProfId) {
       const isProf = ['profissional', 'medico', 'especialista', 'dentista', 'barbeiro', 'esteticista'].includes(user.role?.toLowerCase());
-      if (isProf) {
-        // Busca o profissional que tem o mesmo nome (melhor heurística disponível sem campo email no prof)
+      // Admin não deve ser auto-selecionado para forçar o Wizard
+      const isAdmin = ['admin', 'gestor'].includes(user.role?.toLowerCase());
+      if (isProf && !isAdmin) {
         const matched = profissionais.find(p => p.nome.toLowerCase() === user.nome?.toLowerCase() || p.nome.toLowerCase() === user.email?.split('@')[0].toLowerCase());
         if (matched) {
           setSelectedProfId(matched.id);
@@ -124,6 +125,7 @@ export default function DashboardPage() {
           <div className="w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center text-xl shadow-lg italic font-black">S</div>
           <h2 className="text-xl font-black italic uppercase tracking-tighter text-text-main">
             {(!selectedProfId && !isGeneralView) ? "Início do Agendamento" : labels.termoAgenda}
+            <span className="text-primary opacity-30 text-[8px] ml-2 tracking-widest">V4.3 PREMIUM</span>
           </h2>
         </div>
 
