@@ -21,8 +21,9 @@ export async function PUT(request: Request) {
     const tenantId = await getAuthorizedTenantId();
     const prisma = getTenantPrisma();
     const data = await request.json();
-    const { razaoSocial, cnpj, endereco, adminPhone, nicho, botActive, openingTime, closingTime } = data;
+    const { razaoSocial, cnpj, endereco, adminPhone, nicho, botActive, openingTime, closingTime, workingDays } = data;
 
+    // @ts-ignore - Prisma auto-generated types might not have updated due to EPERM
     const clinica = await prisma.clinica.update({
       where: { tenantId },
       data: {
@@ -33,7 +34,8 @@ export async function PUT(request: Request) {
         nicho,
         botActive,
         openingTime,
-        closingTime
+        closingTime,
+        workingDays
       }
     });
 

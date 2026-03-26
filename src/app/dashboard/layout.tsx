@@ -133,7 +133,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       <nav className={`fixed left-0 top-0 h-full bg-white border-r border-card-border p-6 flex flex-col z-40 transition-all duration-500 shadow-sm ${isCollapsed ? 'w-24' : 'w-72'} ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
         <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} h-12 mb-10 transition-all`}>
           <div className="flex items-center gap-3 overflow-hidden">
-             <img src="/icon-192.png" alt="Logo" className="h-10 w-10 shrink-0" />
+             <img src={clientLogo || "/icon-192.png"} alt="Logo" className="h-10 w-10 shrink-0 object-contain rounded-lg" />
              {!isCollapsed && <span className="font-black text-2xl tracking-tighter text-text-main">synka<span className="text-primary">.</span></span>}
           </div>
         </div>

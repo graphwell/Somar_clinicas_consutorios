@@ -21,6 +21,7 @@ export default function SettingsPage() {
   const [adminPhone, setAdminPhone] = useState('');
   const [openingTime, setOpeningTime] = useState('08:00');
   const [closingTime, setClosingTime] = useState('18:00');
+  const [workingDays, setWorkingDays] = useState('1,2,3,4,5');
 
   useEffect(() => {
     fetchWithAuth('/api/settings')
@@ -35,6 +36,7 @@ export default function SettingsPage() {
           setBotActive(data.clinica.botActive ?? true);
           setOpeningTime(data.clinica.openingTime || '08:00');
           setClosingTime(data.clinica.closingTime || '18:00');
+          setWorkingDays(data.clinica.workingDays || '1,2,3,4,5');
           if (data.clinica.primaryColor) setPrimaryColor(data.clinica.primaryColor);
           if (data.clinica.logoUrl) setLogoUrl(data.clinica.logoUrl);
         }
@@ -57,11 +59,20 @@ export default function SettingsPage() {
     } finally { setUploading(false); }
   };
 
+  const toggleDay = (day: number) => {
+    const daysArr = workingDays.split(',').filter(Boolean).map(Number);
+    if (daysArr.includes(day)) {
+      setWorkingDays(daysArr.filter(d => d !== day).join(','));
+    } else {
+      setWorkingDays([...daysArr, day].sort().join(','));
+    }
+  };
+
   const handleSave = async () => {
     try {
       const res = await fetchWithAuth('/api/settings', {
         method: 'PUT',
-        body: JSON.stringify({ razaoSocial, cnpj, endereco, adminPhone, nicho: niche, botActive, openingTime, closingTime })
+        body: JSON.stringify({ razaoSocial, cnpj, endereco, adminPhone, nicho: niche, botActive, openingTime, closingTime, workingDays })
       });
       if (res.ok) {
         setSaved(true);
@@ -69,6 +80,16 @@ export default function SettingsPage() {
       }
     } catch {}
   };
+
+  const DAYS = [
+    { id: 1, label: 'SEG' },
+    { id: 2, label: 'TER' },
+    { id: 3, label: 'QUA' },
+    { id: 4, label: 'QUI' },
+    { id: 5, label: 'SEX' },
+    { id: 6, label: 'SÁB' },
+    { id: 7, label: 'DOM' }
+  ];
 
   return (
     <div className="max-w-7xl mx-auto space-y-12 pb-40 animate-premium">
@@ -180,14 +201,39 @@ export default function SettingsPage() {
                     <label className="text-[9px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-2">Endereço da Unidade</label>
                     <input value={endereco} onChange={e => setEndereco(e.target.value)} className="input-premium w-full" />
                  </div>
-                 <div className="grid grid-cols-2 gap-6 pt-4 border-t border-slate-50">
-                    <div className="space-y-2">
-                       <label className="text-[9px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-2">Abertura Unidade</label>
-                       <input type="time" value={openingTime} onChange={e => setOpeningTime(e.target.value)} className="input-premium w-full" />
+                 
+                 <div className="pt-6 border-t border-slate-50 space-y-6">
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-2">Abertura Unidade</label>
+                        <input type="time" value={openingTime} onChange={e => setOpeningTime(e.target.value)} className="input-premium w-full" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-2">Fechamento Unidade</label>
+                        <input type="time" value={closingTime} onChange={e => setClosingTime(e.target.value)} className="input-premium w-full" />
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                       <label className="text-[9px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-2">Fechamento Unidade</label>
-                       <input type="time" value={closingTime} onChange={e => setClosingTime(e.target.value)} className="input-premium w-full" />
+
+                    <div className="space-y-3">
+                      <label className="text-[9px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-2">Dias de Funcionamento</label>
+                      <div className="flex flex-wrap gap-2">
+                        {DAYS.map((d) => {
+                          const active = workingDays.split(',').includes(String(d.id));
+                          return (
+                            <button
+                              key={d.id}
+                              onClick={() => toggleDay(d.id)}
+                              className={`h-12 px-4 rounded-2xl text-[10px] font-black transition-all border ${
+                                active 
+                                  ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' 
+                                  : 'bg-slate-50 text-text-placeholder border-slate-100 opacity-60 hover:opacity-100'
+                              }`}
+                            >
+                              {d.label}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                  </div>
               </div>
@@ -195,7 +241,7 @@ export default function SettingsPage() {
 
            <div className="premium-card p-12 bg-white space-y-10 shadow-md">
               <h3 className="text-xl font-black text-text-main italic uppercase tracking-tighter border-b border-slate-50 pb-6">4. Segmento Inteligente</h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                  {[
                    { id: "Clínica Médica", icon: "🩺" },
                    { id: "Clínica de Estética", icon: "✨" },
@@ -206,9 +252,9 @@ export default function SettingsPage() {
                    { id: "Beleza / Barbearia", icon: "✂️" },
                    { id: "Outros", icon: "🏢" }
                  ].map((n) => (
-                   <button key={n.id} onClick={() => setNiche(n.id)} className={`flex flex-col items-center p-6 rounded-[2rem] border transition-all text-center ${niche === n.id ? 'border-primary bg-primary-soft shadow-sm ring-4 ring-primary/5' : 'border-slate-50 hover:border-card-border opacity-40 hover:opacity-100'}`}>
-                     <span className="text-2xl mb-2 grayscale group-hover:grayscale-0">{n.icon}</span>
-                     <span className="text-[9px] font-black uppercase text-text-main tracking-tighter leading-tight italic">{n.id}</span>
+                   <button key={n.id} onClick={() => setNiche(n.id)} className={`flex flex-col items-center justify-center p-4 rounded-[1.5rem] border transition-all text-center h-28 group ${niche === n.id ? 'border-primary bg-primary-soft shadow-sm ring-4 ring-primary/5' : 'border-slate-50 hover:border-card-border opacity-40 hover:opacity-100'}`}>
+                     <span className="text-xl mb-1 grayscale group-hover:grayscale-0 transition-all group-hover:scale-110">{n.icon}</span>
+                     <span className="text-[8px] font-black uppercase text-text-main tracking-tighter leading-tight italic">{n.id}</span>
                    </button>
                  ))}
               </div>

@@ -23,6 +23,7 @@ model Clinica {
   multiProfissional   Boolean  @default(false)
   openingTime         String   @default("08:00")
   closingTime         String   @default("18:00")
+  workingDays         String   @default("1,2,3,4,5")
   usuarios       Usuario[]
   pacientes      Paciente[]
   agendamentos   Agendamento[]
