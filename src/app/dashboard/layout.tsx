@@ -104,25 +104,29 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     const stored = localStorage.getItem('synka-sidebar-collapsed');
     if (stored === 'true') setIsCollapsed(true);
 
-    // Busca branding dinâmico baseado no token
-    fetchWithAuth(`/api/upload/logo?t=${Date.now()}`, { cache: 'no-store' } as any)
+    // Busca branding via /api/settings (mais confiável e unificado)
+    fetchWithAuth('/api/settings')
       .then(response => {
         if (response.ok) return response.json();
         throw new Error();
       })
       .then(data => {
-        console.log('[LAYOUT_BRANDING_DEBUG]', data);
-        if (data.logoUrl) {
-          console.log('[LAYOUT_BRANDING_DEBUG] Logo encontrada:', data.logoUrl.substring(0, 50) + '...');
-          setClientLogo(data.logoUrl);
-        } else {
-          console.warn('[LAYOUT_BRANDING_DEBUG] Logo não recebida no layout');
+        if (data.success && data.clinica) {
+          const clinica = data.clinica;
+          const branding = clinica.configBranding as any;
+          if (branding?.logoUrl) {
+            setClientLogo(branding.logoUrl);
+          }
+          if (clinica.nome || clinica.razaoSocial) {
+            setClientName(clinica.nome || clinica.razaoSocial);
+          }
+          if (clinica.onboardingCompleted) {
+            setOnboardingDone(true);
+          }
         }
-        if (data.nome) setClientName(data.nome);
-        if (data.onboardingCompleted) setOnboardingDone(true);
       })
       .catch((err) => {
-        console.error('[LAYOUT_BRANDING_DEBUG] Erro ao buscar branding:', err);
+        console.error('[LAYOUT_BRANDING_DEBUG] Erro ao buscar branding via settings:', err);
       })
       .finally(() => setLoading(false));
   }, []);
