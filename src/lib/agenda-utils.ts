@@ -15,7 +15,7 @@ export interface Profissional {
   especialidade?: string | null;
   fotoUrl?: string | null;
   bio?: string | null;
-  escalas?: Array<{ diaSemana: number, horaInicio: string, horaFim: string, ativo: boolean }>;
+  escalas?: Array<{ diaSemana: number, horaInicio: string, horaFim: string, lunchStart?: string | null, lunchEnd?: string | null, ativo: boolean }>;
   horariosJson?: any;
 }
 
@@ -64,7 +64,9 @@ export const generateSmartSlots = (
   existingAppts: Appointment[] = [],
   selectedDate: Date = new Date(),
   profDuration?: number,
-  profBuffer?: number
+  profBuffer?: number,
+  lunchStart?: string | null,
+  lunchEnd?: string | null
 ) => {
   const slots: string[] = [];
   const startParts = (startStr || "08:00").split(':').map(Number);
@@ -83,6 +85,14 @@ export const generateSmartSlots = (
 
   while (current < end) {
     const timeStr = current.getHours().toString().padStart(2, '0') + ':' + current.getMinutes().toString().padStart(2, '0');
+    
+    // Lunch Break Logic V5.11
+    if (lunchStart && lunchEnd && timeStr >= lunchStart && timeStr < lunchEnd) {
+      const [leH, leM] = lunchEnd.split(':').map(Number);
+      current.setHours(leH, leM, 0, 0);
+      continue;
+    }
+
     if (new Date(current.getTime() + slotTotal * 60000) > end) break;
     slots.push(timeStr);
     

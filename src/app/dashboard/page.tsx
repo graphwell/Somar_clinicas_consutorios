@@ -137,7 +137,9 @@ export default function DashboardPage() {
       currentDayAppts,
       selectedDate,
       metadata?.sessionDuration,
-      metadata?.sessionBuffer
+      metadata?.sessionBuffer,
+      escala?.lunchStart,
+      escala?.lunchEnd
     );
   }, [clinica, profissionais, services, appointments, selectedDate, selectedProfId, selectedServId, isGeneralView]);
 

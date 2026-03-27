@@ -139,7 +139,9 @@ export default function QuickAppointmentForm({
       [], // Por enquanto não filtra agendamentos existentes para simplificar
       dateObj,
       metadata?.sessionDuration,
-      metadata?.sessionBuffer
+      metadata?.sessionBuffer,
+      escala?.lunchStart,
+      escala?.lunchEnd
     );
 
     if (slots.length === 0) {

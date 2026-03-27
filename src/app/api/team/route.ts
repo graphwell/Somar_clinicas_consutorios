@@ -44,6 +44,8 @@ export async function POST(request: Request) {
             diaSemana: e.diaSemana,
             horaInicio: e.horaInicio,
             horaFim: e.horaFim,
+            lunchStart: e.lunchStart || null,
+            lunchEnd: e.lunchEnd || null,
             ativo: e.ativo ?? true
           })) || []
         }

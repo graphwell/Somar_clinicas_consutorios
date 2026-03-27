@@ -19,6 +19,8 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
             diaSemana: e.diaSemana,
             horaInicio: e.horaInicio,
             horaFim: e.horaFim,
+            lunchStart: e.lunchStart || null,
+            lunchEnd: e.lunchEnd || null,
             ativo: e.ativo ?? true
           })) || []
         }

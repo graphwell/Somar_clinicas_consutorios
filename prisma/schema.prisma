@@ -120,6 +120,8 @@ model ProfessionalSchedule {
   diaSemana      Int          // 0-6
   horaInicio     String       // "08:00"
   horaFim        String       // "18:00"
+  lunchStart     String?      // "12:00"
+  lunchEnd       String?      // "13:00"
   ativo          Boolean      @default(true)
   profissional   Profissional @relation(fields: [profissionalId], references: [id])
 

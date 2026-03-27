@@ -8,6 +8,8 @@ interface ProfessionalSchedule {
   diaSemana: number;
   horaInicio: string;
   horaFim: string;
+  lunchStart?: string | null;
+  lunchEnd?: string | null;
   ativo: boolean;
 }
 
@@ -47,6 +49,8 @@ export default function TeamPage() {
   const [conveniosSelecionados, setConveniosSelecionados] = useState<string[]>([]);
   const [startHour, setStartHour] = useState('08:00');
   const [endHour, setEndHour] = useState('18:00');
+  const [lunchStart, setLunchStart] = useState('12:00');
+  const [lunchEnd, setLunchEnd] = useState('13:00');
   const [sessionDuration, setSessionDuration] = useState(30);
   const [sessionBuffer, setSessionBuffer] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -64,6 +68,7 @@ export default function TeamPage() {
   const openAdd = () => {
     setEditing(null); setNome(''); setEspecialidade(''); setRegistroProfissional(''); setBio(''); setFotoUrl(''); setColor('#3B82F6'); setAtivo(true); setEscalas([]); 
     setAtendeConvenio(false); setConveniosSelecionados([]); setStartHour('08:00'); setEndHour('18:00');
+    setLunchStart('12:00'); setLunchEnd('13:00');
     setSessionDuration(30); setSessionBuffer(0);
     setShowModal(true);
   };
@@ -82,9 +87,13 @@ export default function TeamPage() {
     if (p.escalas && p.escalas.length > 0) {
       setStartHour(p.escalas[0].horaInicio);
       setEndHour(p.escalas[0].horaFim);
+      setLunchStart(p.escalas[0].lunchStart || '12:00');
+      setLunchEnd(p.escalas[0].lunchEnd || '13:00');
     } else {
       setStartHour('08:00');
       setEndHour('18:00');
+      setLunchStart('12:00');
+      setLunchEnd('13:00');
     }
     
     setShowModal(true);
@@ -109,14 +118,14 @@ export default function TeamPage() {
     if (exists) {
       setEscalas(escalas.filter(e => e.diaSemana !== day));
     } else {
-      setEscalas([...escalas, { diaSemana: day, horaInicio: startHour, horaFim: endHour, ativo: true }]);
+      setEscalas([...escalas, { diaSemana: day, horaInicio: startHour, horaFim: endHour, lunchStart, lunchEnd, ativo: true }]);
     }
   };
 
   useEffect(() => {
     // Update all existing escalas when hours change
-    setEscalas(prev => prev.map(e => ({ ...e, horaInicio: startHour, horaFim: endHour })));
-  }, [startHour, endHour]);
+    setEscalas(prev => prev.map(e => ({ ...e, horaInicio: startHour, horaFim: endHour, lunchStart, lunchEnd })));
+  }, [startHour, endHour, lunchStart, lunchEnd]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault(); setSaving(true);
@@ -296,6 +305,17 @@ export default function TeamPage() {
                       <div className="space-y-2">
                         <label className="text-[9px] font-black text-text-placeholder uppercase tracking-widest ml-1">Fim do Turno</label>
                         <input type="time" value={endHour} onChange={e => setEndHour(e.target.value)} className="input-premium w-full py-4" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-6 pt-4 border-t border-slate-100">
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-black text-text-placeholder uppercase tracking-widest ml-1">Início Almoço</label>
+                        <input type="time" value={lunchStart} onChange={e => setLunchStart(e.target.value)} className="input-premium w-full py-4 text-primary" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-black text-text-placeholder uppercase tracking-widest ml-1">Fim Almoço</label>
+                        <input type="time" value={lunchEnd} onChange={e => setLunchEnd(e.target.value)} className="input-premium w-full py-4 text-primary" />
                       </div>
                     </div>
 
