@@ -32,11 +32,11 @@ export async function GET(request: Request) {
       }
     });
 
-    const faturamentoPrevisto = transactions
+    let faturamentoPrevisto = transactions
       .filter(t => t.status === 'pending' || t.status === 'previsto' || t.status === 'realizado')
       .reduce((acc, t) => acc + (t.valor || 0), 0);
 
-    const faturamentoRealizado = transactions
+    let faturamentoRealizado = transactions
       .filter(t => t.status === 'realizado')
       .reduce((acc, t) => acc + (t.valor || 0), 0);
 
@@ -46,8 +46,21 @@ export async function GET(request: Request) {
         tenantId: tenantId as string,
         dataHora: { gte: targetDateStart, lte: targetDateEnd },
         status: { not: 'cancelado' }
-      }
+      },
+      include: { servico: true }
     });
+
+    // FALLBACK: Se faturamento previsto for 0 (comum em agendamentos manuais sem transação),
+    // calculamos pela soma dos preços dos serviços agendados.
+    if (faturamentoPrevisto === 0 && appointments.length > 0) {
+      faturamentoPrevisto = appointments.reduce((acc, appt) => acc + (appt.servico?.preco || 0), 0);
+      
+      // Se houver algum 'confirmado' ou 'done', consideramos como realizado na estimativa se não houver transações
+      const realizados = appointments.filter(a => a.status === 'confirmado' || a.status === 'done');
+      if (faturamentoRealizado === 0 && realizados.length > 0) {
+        faturamentoRealizado = realizados.reduce((acc, appt) => acc + (appt.servico?.preco || 0), 0);
+      }
+    }
 
     const totalAtendimentos = appointments.length;
 

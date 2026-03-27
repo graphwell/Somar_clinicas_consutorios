@@ -37,15 +37,17 @@ const KpiCard = ({ title, value, icon, subtitle, loading }: { title: string, val
   </div>
 );
 
-export default function KpiSection() {
+export default function KpiSection({ selectedDate }: { selectedDate: Date }) {
   const { nicho, labels } = useNicho();
   const [data, setData] = useState<KpiData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchKpis = async () => {
+      setLoading(true);
       try {
-        const res = await fetchWithAuth('/api/dashboard/kpi');
+        const dateParam = selectedDate.toISOString().split('T')[0];
+        const res = await fetchWithAuth(`/api/dashboard/kpi?date=${dateParam}`);
         const json = await res.json();
         if (json.success) setData(json.data);
       } catch (e) {
@@ -58,7 +60,7 @@ export default function KpiSection() {
     fetchKpis();
     const interval = setInterval(fetchKpis, 60000); // Polling 60s
     return () => clearInterval(interval);
-  }, []);
+  }, [selectedDate]);
 
   return (
     <div className="flex flex-wrap gap-4 mb-10 animate-in fade-in slide-in-from-top-4 duration-700">
