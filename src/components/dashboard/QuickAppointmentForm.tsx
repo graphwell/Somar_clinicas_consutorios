@@ -65,6 +65,7 @@ export default function QuickAppointmentForm({
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [slotStatus, setSlotStatus] = useState<'loading' | 'no_prof' | 'no_date' | 'no_escala' | 'empty' | 'ok'>('no_prof');
   const [deleting, setDeleting] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   // Debounce Search
   useEffect(() => {
@@ -302,6 +303,29 @@ export default function QuickAppointmentForm({
     }
   };
 
+  const handleConfirmPresence = async () => {
+    if (!initialAppt || !clinica?.tenantId) return;
+    
+    setConfirming(true);
+    try {
+      const res = await fetchWithAuth(`/api/bot/appointments/${initialAppt.id}?tenantId=${clinica.tenantId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ status: 'confirmado' })
+      });
+      if (res.ok) {
+        onSuccess();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Erro ao confirmar presença');
+      }
+    } catch (err) {
+      console.error('Erro na confirmação:', err);
+      alert('Falha na comunicação com o servidor');
+    } finally {
+      setConfirming(false);
+    }
+  };
+
   const age = calculateAge(form.dataNascimento);
 
   const CONVENIOS_LIST = [
@@ -364,6 +388,15 @@ export default function QuickAppointmentForm({
            </div>
 
            <div className="flex gap-4">
+              <button 
+                type="button"
+                onClick={handleConfirmPresence}
+                disabled={confirming || initialAppt.status === 'confirmado'}
+                className={`flex-1 py-6 ${initialAppt.status === 'confirmado' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/30' : 'bg-emerald-500 text-white shadow-emerald-500/20'} text-xs font-black italic uppercase tracking-widest rounded-3xl shadow-2xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-80`}
+              >
+                {confirming ? '...' : (initialAppt.status === 'confirmado' ? '✅ PRESENÇA CONFIRMADA' : '✅ CONFIRMAR PRESENÇA')}
+              </button>
+              
               <button 
                 type="button"
                 onClick={() => setViewMode('form')}
