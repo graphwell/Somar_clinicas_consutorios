@@ -144,6 +144,54 @@ export default function DashboardPage() {
     );
   }, [clinica, profissionais, services, appointments, selectedDate, selectedProfId, selectedServId, isGeneralView]);
 
+  // 🕒 Status Dinâmico do Profissional V5.21
+  const profStatus = useMemo(() => {
+    if (!selectedProfId || isGeneralView) return null;
+    const prof = profissionais.find(p => p.id === selectedProfId);
+    if (!prof) return null;
+
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const escala = prof.escalas?.find((e: any) => e.diaSemana === dayOfWeek && e.ativo);
+
+    if (!escala) return { label: 'FORA DE ESCALA', color: 'bg-slate-300', text: 'text-slate-400' };
+
+    const [hStart, mStart] = escala.horaInicio.split(':').map(Number);
+    const [hEnd, mEnd] = escala.horaFim.split(':').map(Number);
+    const startMinutes = hStart * 60 + mStart;
+    const endMinutes = hEnd * 60 + mEnd;
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+    // Verificação de Almoço/Intervalo
+    if (escala.lunchStart && escala.lunchEnd) {
+      const [hLStart, mLStart] = escala.lunchStart.split(':').map(Number);
+      const [hLEnd, mLEnd] = escala.lunchEnd.split(':').map(Number);
+      const lStartMinutes = hLStart * 60 + mLStart;
+      const lEndMinutes = hLEnd * 60 + mLEnd;
+      if (nowMinutes >= lStartMinutes && nowMinutes < lEndMinutes) {
+        return { label: 'EM INTERVALO', color: 'bg-amber-400', text: 'text-amber-500' };
+      }
+    }
+
+    if (nowMinutes < startMinutes || nowMinutes >= endMinutes) {
+      return { label: 'FORA DE HORÁRIO', color: 'bg-slate-300', text: 'text-slate-400' };
+    }
+
+    // Verificação de Ocupação Real (Now)
+    const nowTime = now.getTime();
+    const isBusy = appointments.some(a => {
+      if (a.profissional?.id !== selectedProfId) return false;
+      if (a.status === 'cancelado') return false;
+      const aStart = new Date(a.dataHora).getTime();
+      const aEnd = aStart + (a.durationMinutes || 30) * 60000;
+      return nowTime >= aStart && nowTime < aEnd;
+    });
+
+    if (isBusy) return { label: 'OCUPADO', color: 'bg-status-error', text: 'text-status-error' };
+
+    return { label: 'DISPONÍVEL', color: 'bg-status-success', text: 'text-status-success' };
+  }, [selectedProfId, isGeneralView, profissionais, appointments]);
+
   return (
     <div className="max-w-full px-4 lg:px-8 pb-40 animate-premium">
       {/* 📊 Fase 3: KPIs em tempo real */}
@@ -348,16 +396,14 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <div className="flex gap-4 items-center">
-                  <div className="flex items-center gap-4 mr-4 border-r border-slate-100 pr-6">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-status-success"></div>
-                      <span className="text-[8px] font-black uppercase text-text-placeholder">Confirmado</span>
+                  {(selectedProfId && !isGeneralView && profStatus) && (
+                    <div className="flex items-center gap-3 mr-4 border-r border-slate-100 pr-6">
+                      <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">
+                        <div className={`w-2 h-2 rounded-full ${profStatus.color} animate-pulse`}></div>
+                        <span className={`text-[8px] font-black uppercase tracking-widest ${profStatus.text}`}>{profStatus.label}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-status-warning"></div>
-                      <span className="text-[8px] font-black uppercase text-text-placeholder">Pendente</span>
-                    </div>
-                  </div>
+                  )}
                   <select 
                     value={selectedProfId || 'all'} 
                     onChange={(e) => handleProfSelect(e.target.value)} 
