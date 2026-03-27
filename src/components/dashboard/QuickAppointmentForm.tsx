@@ -60,6 +60,7 @@ export default function QuickAppointmentForm({
   const [errors, setErrors] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [slotStatus, setSlotStatus] = useState<'loading' | 'no_prof' | 'no_date' | 'no_escala' | 'empty' | 'ok'>('no_prof');
 
   // Debounce Search
   useEffect(() => {
@@ -87,21 +88,34 @@ export default function QuickAppointmentForm({
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Available Slots Logic V5.7
+  // Available Slots Logic V5.9 (Flexível)
   useEffect(() => {
-    if (!form.dataAgendamento || !form.profissionalId || !form.servicoId) {
+    if (!form.dataAgendamento) {
+      setSlotStatus('no_date');
+      setAvailableSlots([]);
+      return;
+    }
+    if (!form.profissionalId) {
+      setSlotStatus('no_prof');
       setAvailableSlots([]);
       return;
     }
 
     const targetProf = profissionais.find(p => p.id === form.profissionalId);
-    if (!targetProf) return;
+    if (!targetProf) {
+      setSlotStatus('no_prof');
+      return;
+    }
 
-    const dateObj = new Date(form.dataAgendamento + 'T00:00:00');
+    // Parse resiliente de data para evitar problemas de fuso horário no getDay
+    const [year, month, day] = form.dataAgendamento.split('-').map(Number);
+    const dateObj = new Date(year, month - 1, day); 
     const dayOfWeek = dateObj.getDay();
+    
     const escala = targetProf.escalas?.find((e: any) => e.diaSemana === dayOfWeek && e.ativo);
 
     if (!escala) {
+      setSlotStatus('no_escala');
       setAvailableSlots([]);
       return;
     }
@@ -122,12 +136,18 @@ export default function QuickAppointmentForm({
       finalStart,
       finalEnd,
       targetServ,
-      [], // No appointments filtering for simple selection yet
+      [], // Por enquanto não filtra agendamentos existentes para simplificar
       dateObj,
       metadata?.sessionDuration,
       metadata?.sessionBuffer
     );
 
+    if (slots.length === 0) {
+      setSlotStatus('empty');
+    } else {
+      setSlotStatus('ok');
+    }
+    
     setAvailableSlots(slots);
   }, [form.dataAgendamento, form.profissionalId, form.servicoId, profissionais, services, clinica]);
 
@@ -358,11 +378,16 @@ export default function QuickAppointmentForm({
               onChange={e => setForm({ ...form, horario: e.target.value })}
               className={`input-premium w-full py-5 px-6 bg-slate-50/50 ${errors.horario ? 'border-status-error ring-1 ring-status-error/20' : ''}`}
             >
-              <option value="">Selecione...</option>
-              {availableSlots.length > 0 ? (
-                availableSlots.map(h => <option key={h} value={h}>{h}</option>)
-              ) : (
-                <option disabled>Nenhum horário disponível</option>
+              {slotStatus === 'no_prof' && <option value="">Selecione o profissional...</option>}
+              {slotStatus === 'no_date' && <option value="">Selecione a data...</option>}
+              {slotStatus === 'no_escala' && <option value="">Profissional não atende neste dia</option>}
+              {slotStatus === 'empty' && <option value="">Nenhum horário disponível</option>}
+              
+              {slotStatus === 'ok' && (
+                <>
+                  <option value="">Selecione o horário...</option>
+                  {availableSlots.map(h => <option key={h} value={h}>{h}</option>)}
+                </>
               )}
             </select>
           </div>
