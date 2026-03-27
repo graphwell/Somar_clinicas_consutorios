@@ -199,35 +199,78 @@ export default function DashboardPage() {
 
           <div className="w-[1px] bg-slate-200 mx-2 self-stretch my-2" />
           
-          <button 
-            onClick={() => setActiveTab('servicos')} 
-            className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all 
-              ${activeTab === 'servicos' ? 'bg-white text-primary shadow-premium' : 'text-text-muted hover:text-text-main hover:bg-white/50'}`}
-          >
-            {labels.termoServicoPlural}
-          </button>
+          {/* Item "Consultas" removido a pedido do usuário V5.14 */}
         </div>
 
         <div className="flex items-center gap-4">
           {(selectedProfId || isGeneralView) && (
-            <div className="flex bg-white border border-slate-200 rounded-xl p-1 shadow-sm items-center">
+            <div className="flex bg-white border border-slate-200 rounded-2xl p-2 shadow-premium items-center gap-2">
               <button onClick={() => {
                 const d = new Date(selectedDate);
                 if (activeTab === 'mes') d.setMonth(d.getMonth() - 1);
                 else if (activeTab === 'semana') d.setDate(d.getDate() - 7);
                 else d.setDate(d.getDate() - 1);
                 setSelectedDate(d);
-              }} className="px-3 py-1.5 text-slate-400 hover:text-primary transition-colors">‹</button>
-              <span className="px-4 py-1.5 text-[11px] font-black uppercase text-text-main min-w-[140px] text-center">
-                {formatDate(selectedDate.toISOString())}
-              </span>
+              }} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-50 text-slate-400 hover:text-primary hover:bg-white transition-all shadow-sm">‹</button>
+              
+              <div className="flex items-center gap-1">
+                {/* Dia Selector */}
+                <select 
+                  value={selectedDate.getDate()} 
+                  onChange={(e) => {
+                    const d = new Date(selectedDate);
+                    d.setDate(parseInt(e.target.value));
+                    setSelectedDate(d);
+                  }}
+                  className="bg-transparent border-none text-[10px] font-black uppercase text-primary focus:ring-0 cursor-pointer hover:bg-slate-50 rounded-lg px-2 py-1 appearance-none"
+                >
+                  {Array.from({ length: new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0).getDate() }, (_, i) => i + 1).map(day => (
+                    <option key={day} value={day}>{day.toString().padStart(2, '0')}</option>
+                  ))}
+                </select>
+
+                <span className="text-slate-300 text-[10px] font-black">/</span>
+
+                {/* Mês Selector */}
+                <select 
+                  value={selectedDate.getMonth()} 
+                  onChange={(e) => {
+                    const d = new Date(selectedDate);
+                    d.setMonth(parseInt(e.target.value));
+                    setSelectedDate(d);
+                  }}
+                  className="bg-transparent border-none text-[10px] font-black uppercase text-text-main focus:ring-0 cursor-pointer hover:bg-slate-50 rounded-lg px-2 py-1 appearance-none"
+                >
+                  {MONTHS.map((m, i) => (
+                    <option key={m} value={i}>{m.slice(0, 3)}</option>
+                  ))}
+                </select>
+
+                <span className="text-slate-300 text-[10px] font-black">/</span>
+
+                {/* Ano Selector */}
+                <select 
+                  value={selectedDate.getFullYear()} 
+                  onChange={(e) => {
+                    const d = new Date(selectedDate);
+                    d.setFullYear(parseInt(e.target.value));
+                    setSelectedDate(d);
+                  }}
+                  className="bg-transparent border-none text-[10px] font-black uppercase text-text-muted focus:ring-0 cursor-pointer hover:bg-slate-50 rounded-lg px-2 py-1 appearance-none"
+                >
+                  {[2025, 2026, 2027].map(year => (
+                    <option key={year} value={year}>{year}</option>
+                  ))}
+                </select>
+              </div>
+
               <button onClick={() => {
                 const d = new Date(selectedDate);
                 if (activeTab === 'mes') d.setMonth(d.getMonth() + 1);
                 else if (activeTab === 'semana') d.setDate(d.getDate() + 7);
                 else d.setDate(d.getDate() + 1);
                 setSelectedDate(d);
-              }} className="px-3 py-1.5 text-slate-400 hover:text-primary transition-colors">›</button>
+              }} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-50 text-slate-400 hover:text-primary hover:bg-white transition-all shadow-sm">›</button>
             </div>
           )}
           <button onClick={() => { setSelectedHour(''); setShowModal(true); }} className="btn-primary py-4 px-10 shadow-2xl shadow-primary/30 hidden md:block">
@@ -235,6 +278,27 @@ export default function DashboardPage() {
           </button>
         </div>
       </div>
+      
+      {/* BANNER DE FILTRO ATIVO (V5.13) */}
+      {(selectedProfId || isGeneralView) && (
+        <div className="mb-8 flex items-center justify-between p-4 bg-primary-soft/40 backdrop-blur-xl border border-primary/20 rounded-3xl animate-in slide-in-from-top duration-500">
+           <div className="flex items-center gap-4">
+             <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white text-xl">🔍</div>
+             <div>
+               <p className="text-[11px] font-black text-primary uppercase tracking-widest">Filtro Ativo</p>
+               <p className="text-sm font-bold text-text-main italic">
+                 Visualizando agenda: <span className="text-primary">{isGeneralView ? 'GERAL (Todos os profissionais)' : profissionais.find(p => p.id === selectedProfId)?.nome}</span>
+               </p>
+             </div>
+           </div>
+           <button 
+             onClick={() => { setSelectedProfId(null); setIsGeneralView(false); }}
+             className="px-6 py-2 bg-white border border-primary/20 rounded-full text-[10px] font-black text-primary uppercase tracking-widest hover:bg-primary hover:text-white transition-all shadow-md"
+           >
+             Limpar Filtros
+           </button>
+        </div>
+      )}
 
       <div className="animate-premium">
         {activeTab === 'dia' && (
@@ -305,21 +369,40 @@ export default function DashboardPage() {
               </div>
               {smartSlots.length > 0 ? (
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
-                  {smartSlots.map((h: string) => {
-                    const [hH, hM] = h.split(':').map(Number);
-                    const slotTime = new Date(selectedDate);
-                    slotTime.setHours(hH, hM, 0, 0);
+                  {/* Renderização de agendamentos fora de escala (V5.14) */}
+                  {(() => {
+                    const extraSlots = appointments
+                      .filter((a: Appointment) => {
+                        if (selectedProfId && a.profissional?.id !== selectedProfId) return false;
+                        if (!isSameDay(new Date(a.dataHora), selectedDate)) return false;
+                        const h = new Date(a.dataHora).getHours().toString().padStart(2, '0') + ':' + new Date(a.dataHora).getMinutes().toString().padStart(2, '0');
+                        return !smartSlots.includes(h);
+                      })
+                      .map((a: Appointment) => new Date(a.dataHora).getHours().toString().padStart(2, '0') + ':' + new Date(a.dataHora).getMinutes().toString().padStart(2, '0'));
                     
-                    // Find appointment that COVERS this slot
-                    const appt = appointments.find((a: Appointment) => {
-                      if (selectedProfId && a.profissional?.id !== selectedProfId) return false;
-                      const aStart = new Date(a.dataHora).getTime();
-                      const aEnd = aStart + (a.durationMinutes || 30) * 60000;
-                      return slotTime.getTime() >= aStart && slotTime.getTime() < aEnd;
-                    });
+                    const allSlots = Array.from(new Set([...extraSlots, ...smartSlots])).sort();
 
-                    return <HourCell key={h} hour={h} appt={appt} onClick={() => { setSelectedHour(h); setShowModal(true); }} />;
-                  })}
+                    return allSlots.map((h: string) => {
+                      const [hH, hM] = h.split(':').map(Number);
+                      const slotTime = new Date(selectedDate);
+                      slotTime.setHours(hH, hM, 0, 0);
+                      
+                      const appt = appointments.find((a: Appointment) => {
+                        if (selectedProfId && a.profissional?.id !== selectedProfId) return false;
+                        const aStart = new Date(a.dataHora).getTime();
+                        const aEnd = aStart + (a.durationMinutes || 30) * 60000;
+                        return slotTime.getTime() >= aStart && slotTime.getTime() < aEnd;
+                      });
+
+                      const isExtra = extraSlots.includes(h);
+
+                      return (
+                        <div key={h} className={isExtra ? 'ring-2 ring-primary/20 rounded-3xl' : ''}>
+                          <HourCell hour={h} appt={appt} onClick={() => { setSelectedHour(h); setShowModal(true); }} />
+                        </div>
+                      );
+                    });
+                  })()}
                 </div>
               ) : (
                 <div className="py-24 text-center bg-slate-50/50 rounded-[3rem] border-2 border-dashed border-slate-100 flex flex-col items-center justify-center space-y-4">
@@ -369,20 +452,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {activeTab === 'servicos' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {services.map(s => (
-              <div key={s.id} className="bg-white border border-card-border p-8 rounded-[2.5rem] shadow-premium space-y-4">
-                <h4 className="text-lg font-black uppercase italic tracking-tighter">{s.nome}</h4>
-                <div className="flex gap-4 text-[9px] font-black text-text-placeholder uppercase tracking-widest">
-                  <span>⏱️ {s.duracaoMinutos} MIN</span>
-                  <span>🛡️ {s.bufferTimeMinutes} MIN BUFFER</span>
-                </div>
-                <button onClick={() => { setSelectedServId(s.id); setActiveTab('dia'); }} className="w-full py-4 rounded-2xl bg-primary text-white text-[9px] font-black uppercase tracking-widest shadow-lg shadow-primary/20">Ver horários</button>
-              </div>
-            ))}
-          </div>
-        )}
+        {/* Seção "Consultas" removida V5.14 */}
 
         {activeTab === 'planos' && (
           <div className="space-y-12">

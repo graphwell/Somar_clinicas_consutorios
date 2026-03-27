@@ -30,26 +30,49 @@ export async function POST(request: Request) {
     const tenantId = await getAuthorizedTenantId();
     const prisma = getTenantPrisma();
     const body = await request.json();
-    const { nome, especialidade, registroProfissional, bio, fotoUrl, color, horariosJson, ativo } = body;
-  
-    if (!nome) return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 });
-  
-    const prof = await prisma.profissional.create({
+    
+    // Suporte a ambos os formatos de body (direto ou via bot)
+    const { 
+      pacienteId, profissionalId, servicoId, dataHora, 
+      status, tipoAtendimento, convenio, observacoes, 
+      durationMinutes, categoria 
+    } = body;
+
+    if (!pacienteId || !dataHora) {
+      return NextResponse.json({ error: 'Paciente e data/hora são obrigatórios' }, { status: 400 });
+    }
+
+    const start = new Date(dataHora);
+    const duration = durationMinutes || 30;
+    const end = new Date(start.getTime() + duration * 60000);
+
+    const agendamento = await prisma.agendamento.create({
       data: {
         tenantId,
-        nome,
-        especialidade: especialidade || null,
-        registroProfissional: registroProfissional || null,
-        bio: bio || null,
-        fotoUrl: fotoUrl || null,
-        color: color || '#4a4ae2',
-        horariosJson: horariosJson || null,
-        ativo: ativo ?? true
+        pacienteId,
+        profissionalId: profissionalId || null,
+        servicoId: servicoId || null,
+        dataHora: start,
+        fimDataHora: end,
+        durationMinutes: duration,
+        status: status || 'pendente',
+        tipoAtendimento: tipoAtendimento || 'particular',
+        convenio: convenio || null,
+        observacoes: observacoes || '',
+        // @ts-ignore
+        categoria: categoria || 'consulta',
+        eventoId: `manual_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`
+      },
+      include: {
+        paciente: { select: { nome: true } },
+        profissional: { select: { nome: true } },
+        servico: { select: { nome: true } }
       }
     });
-    return NextResponse.json(prof);
+
+    return NextResponse.json(agendamento);
   } catch (error: any) {
-    console.error('Erro ao criar profissional:', error);
-    return NextResponse.json({ error: 'Erro ao criar profissional' }, { status: 500 });
+    console.error('Erro ao criar agendamento:', error);
+    return NextResponse.json({ error: 'Erro ao criar agendamento' }, { status: 500 });
   }
 }

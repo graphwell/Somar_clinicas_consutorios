@@ -152,6 +152,11 @@ export default function QuickAppointmentForm({
     
     setAvailableSlots(slots);
   }, [form.dataAgendamento, form.profissionalId, form.servicoId, profissionais, services, clinica]);
+  
+  // RESET HORARIO AO MUDAR PROF OU DATA (V5.14)
+  useEffect(() => {
+    setForm(prev => ({ ...prev, horario: '' }));
+  }, [form.profissionalId, form.dataAgendamento]);
 
   // Click outside to close results (V5.6 restored)
   useEffect(() => {
@@ -201,6 +206,13 @@ export default function QuickAppointmentForm({
     if (!form.telefone) newErrors.telefone = true;
     if (!form.dataAgendamento) newErrors.dataAgendamento = true;
     if (!form.horario) newErrors.horario = true;
+    
+    // Validação de escala (V5.14)
+    if (form.horario && !availableSlots.includes(form.horario)) {
+      alert(`O horário ${form.horario} não está mais disponível ou está fora da escala do profissional.`);
+      newErrors.horario = true;
+    }
+
     if (!form.profissionalId) newErrors.profissionalId = true;
     if (form.temPlano && !form.plano) newErrors.plano = true;
     
