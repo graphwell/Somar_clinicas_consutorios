@@ -38,7 +38,7 @@ export default function PublicBookingPage() {
           tenantId: clinic.tenantId,
           pacienteNome: nome,
           pacienteTelefone: telefone,
-          dataHora: `${selectedDate}T${selectedTime}:00`,
+          dataHora: `${selectedDate}T${selectedTime}:00-03:00`,
           profissionalId: selectedProfessional?.id,
           servicoId: selectedService?.id,
           origem: 'public_portal'

@@ -258,7 +258,7 @@ export default function SpecialistPage() {
                   nome: d.get('nome'),
                   pacienteTelefone: d.get('telefone'),
                   pacienteNome: d.get('nome'),
-                  dataHora: `${d.get('date')}T${d.get('hour')}:00`,
+                  dataHora: `${d.get('date')}T${d.get('hour')}:00-03:00`,
                   servicoId: d.get('serv'),
                   profissionalId: id,
                   tipoAtendimento,

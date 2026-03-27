@@ -68,11 +68,14 @@ export async function POST(request: Request) {
       }
     }
 
-    console.log('--- DEBUG AGENDAMENTO ---');
+    console.log('--- DEBUG AGENDAMENTO V5.15 ---');
     console.log('Paciente:', pacienteNome, '(', pacienteTelefone, ')');
-    console.log('Data:', dataHora);
+    console.log('String Recebida:', dataHora);
+    const parsedDebugDate = new Date(dataHora);
+    console.log('Date Parsing (Server):', parsedDebugDate.toString());
+    console.log('Date Parsing (ISO/UTC):', parsedDebugDate.toISOString());
     console.log('Tenant:', tenantId);
-    console.log('-------------------------');
+    console.log('-------------------------------');
 
     if (!pacienteTelefone || !dataHora || !tenantId || !profissionalId) {
       return NextResponse.json({

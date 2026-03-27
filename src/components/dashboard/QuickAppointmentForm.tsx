@@ -232,7 +232,7 @@ export default function QuickAppointmentForm({
           pacienteNome: form.nome,
           pacienteTelefone: form.telefone,
           dataNascimento: form.dataNascimento,
-          dataHora: `${form.dataAgendamento}T${form.horario}:00`,
+          dataHora: `${form.dataAgendamento}T${form.horario}:00-03:00`,
           profissionalId: form.profissionalId,
           servicoId: form.servicoId,
           categoria: form.categoria,
