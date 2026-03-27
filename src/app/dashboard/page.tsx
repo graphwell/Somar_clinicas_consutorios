@@ -479,9 +479,14 @@ export default function DashboardPage() {
                   
                   return (
                     <div key={i} className={`space-y-4 p-4 rounded-[2rem] border transition-all ${isSameDay(day, new Date()) ? 'bg-primary-soft/30 border-primary/20 shadow-inner' : 'bg-slate-50 border-slate-100'}`}>
-                      <div className="text-center pb-2 border-b border-slate-200">
+                      <div className="text-center pb-2 border-b border-slate-200 relative">
                         <p className="text-[10px] font-black text-text-placeholder uppercase tracking-widest">{WEEKDAYS_SHORT[i]}</p>
                         <p className={`text-xl font-black italic tracking-tighter ${isSameDay(day, new Date()) ? 'text-primary' : 'text-text-main'}`}>{day.getDate()}</p>
+                        {dayAppts.length > 0 && (
+                          <span className="absolute -top-1 -right-1 bg-primary text-white text-[8px] font-black w-5 h-5 rounded-full flex items-center justify-center shadow-lg shadow-primary/30 border-2 border-white">
+                            {dayAppts.length}
+                          </span>
+                        )}
                       </div>
                       <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1 no-scrollbar">
                         {dayAppts.length === 0 ? (
@@ -537,14 +542,18 @@ export default function DashboardPage() {
                   return days.map((d, i) => {
                     const dayAppts = appointments.filter(a => isSameDay(new Date(a.dataHora), d.date) && (isGeneralView || a.profissional?.id === selectedProfId));
                     return (
-                      <div key={i} onClick={() => { setSelectedDate(d.date); setActiveTab('dia'); }} className={`aspect-square p-3 rounded-3xl border transition-all cursor-pointer flex flex-col items-center justify-between ${d.current ? 'bg-slate-50 border-slate-100 hover:border-primary/30' : 'bg-white opacity-20 border-transparent'} ${isSameDay(d.date, new Date()) ? 'ring-2 ring-primary ring-offset-4' : ''}`}>
-                         <span className={`text-sm font-black italic tracking-tighter ${d.current ? 'text-text-main' : 'text-text-placeholder'}`}>{d.day}</span>
+                      <div key={i} onClick={() => { setSelectedDate(d.date); setActiveTab('dia'); }} className={`aspect-square p-2 rounded-2xl border transition-all cursor-pointer flex flex-col items-center justify-center space-y-1 relative group ${d.current ? 'bg-slate-50 border-slate-100 hover:border-primary/30 hover:shadow-xl hover:scale-105' : 'bg-white opacity-5 border-transparent'} ${isSameDay(d.date, new Date()) ? 'ring-2 ring-primary ring-offset-2' : ''}`}>
+                         <span className={`text-[12px] font-black italic tracking-tighter ${d.current ? 'text-text-main' : 'text-text-placeholder'}`}>{d.day}</span>
                          {dayAppts.length > 0 && d.current && (
-                           <div className="flex -space-x-1">
-                              {dayAppts.slice(0, 3).map((a, idx) => (
-                                <div key={idx} className="w-2 h-2 rounded-full border border-white shadow-sm" style={{ backgroundColor: STATUS_MAP[a.status]?.bg || '#ccc' }} />
-                              ))}
-                              {dayAppts.length > 3 && <span className="text-[7px] font-black text-primary pl-1">+{dayAppts.length - 3}</span>}
+                           <div className="flex flex-col items-center w-full px-1">
+                              <div className="bg-primary text-white text-[7px] font-black px-1.5 py-0.5 rounded-md shadow-lg shadow-primary/20 w-full text-center">
+                                {dayAppts.length} {dayAppts.length === 1 ? 'AG.' : 'AGS.'}
+                              </div>
+                              <div className="flex gap-0.5 mt-1 justify-center">
+                                 {dayAppts.slice(0, 4).map((a, idx) => (
+                                   <div key={idx} className="w-1.5 h-1.5 rounded-full border border-white shadow-sm" style={{ backgroundColor: STATUS_MAP[a.status]?.bg || '#ccc' }} />
+                                 ))}
+                              </div>
                            </div>
                          )}
                       </div>
