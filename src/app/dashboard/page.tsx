@@ -645,7 +645,9 @@ export default function DashboardPage() {
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xl z-[200] flex items-center justify-center p-4 animate-premium" onClick={() => setShowModal(false)}>
           <div className="bg-white border border-card-border rounded-[3.5rem] p-12 w-full max-w-2xl shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar" onClick={e => e.stopPropagation()}>
             <div className="mb-8">
-              <h3 className="text-2xl font-black italic uppercase tracking-tighter text-text-main">Novo {labels.termoAgenda}</h3>
+              <h3 className="text-2xl font-black italic uppercase tracking-tighter text-text-main">
+                {selectedAppt ? 'Detalhes do' : `Novo ${labels.termoAgenda}`}
+              </h3>
               <p className="text-[9px] font-black text-text-placeholder uppercase tracking-widest mt-1">Configurações de agendamento inteligente V5.6</p>
             </div>
             

@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { fetchWithAuth } from '@/lib/api-utils';
 import { useNicho } from '@/context/NichoContext';
-import { generateSmartSlots } from '@/lib/agenda-utils';
+import { generateSmartSlots, STATUS_MAP } from '@/lib/agenda-utils';
 
 interface Patient {
   id: string;
@@ -61,6 +61,7 @@ export default function QuickAppointmentForm({
 
   const [errors, setErrors] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
+  const [viewMode, setViewMode] = useState<'summary' | 'form'>(initialAppt ? 'summary' : 'form');
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [slotStatus, setSlotStatus] = useState<'loading' | 'no_prof' | 'no_date' | 'no_escala' | 'empty' | 'ok'>('no_prof');
   const [deleting, setDeleting] = useState(false);
@@ -90,6 +91,26 @@ export default function QuickAppointmentForm({
 
     return () => clearTimeout(timer);
   }, [search]);
+
+  // Auto-fill form if editing
+  useEffect(() => {
+    if (initialAppt && viewMode === 'form') {
+      const dt = new Date(initialAppt.dataHora);
+      setForm({
+        nome: initialAppt.paciente?.nome || '',
+        telefone: initialAppt.paciente?.telefone || '',
+        dataNascimento: initialAppt.paciente?.dataNascimento ? new Date(initialAppt.paciente.dataNascimento).toISOString().split('T')[0] : '',
+        dataAgendamento: dt.toISOString().split('T')[0],
+        horario: dt.getHours().toString().padStart(2, '0') + ':' + dt.getMinutes().toString().padStart(2, '0'),
+        profissionalId: initialAppt.profissionalId || '',
+        servicoId: initialAppt.servicoId || '',
+        categoria: (initialAppt.categoria as any) || 'consulta',
+        temPlano: !!initialAppt.convenio,
+        plano: initialAppt.convenio || '',
+        observacoes: initialAppt.observacoes || ''
+      });
+    }
+  }, [initialAppt, viewMode]);
 
   // Available Slots Logic V5.9 (Flexível)
   useEffect(() => {
@@ -290,32 +311,88 @@ export default function QuickAppointmentForm({
 
   return (
     <div className="space-y-8 animate-premium">
-      {/* Informações do Agendamento Existente (Se houver) */}
-      {initialAppt && (
-        <div className="relative bg-slate-900 border border-white/10 p-8 rounded-[2.5rem] mb-10 animate-in fade-in slide-in-from-top-4 duration-500">
-           <button 
-             type="button"
-             onClick={handleDelete}
-             disabled={deleting}
-             className="absolute top-6 right-6 w-8 h-8 bg-white/5 hover:bg-red-500/20 group/del flex items-center justify-center rounded-full transition-all hover:scale-110 active:scale-95 disabled:opacity-20 border border-white/10"
-             title="Excluir Agendamento"
-           >
-             <span className="text-xl font-light text-white/30 group-hover/del:text-red-500 transition-colors">
-               {deleting ? '...' : '×'}
-             </span>
-           </button>
+      {/* MODO RESUMO: Visualização do Agendamento Existente */}
+      {initialAppt && viewMode === 'summary' && (
+        <div className="space-y-10 animate-in fade-in zoom-in duration-500">
+           <div className="relative bg-slate-900 border border-white/10 p-10 rounded-[3.5rem] shadow-2xl relative overflow-hidden group">
+              {/* Background Glow */}
+              <div className="absolute -top-20 -right-20 w-64 h-64 bg-primary/10 blur-[100px] group-hover:bg-primary/20 transition-all" />
+              
+              <button 
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="absolute top-8 right-8 w-10 h-10 bg-white/5 hover:bg-red-500/20 group/del flex items-center justify-center rounded-full transition-all hover:scale-110 active:scale-95 disabled:opacity-20 border border-white/10 z-20"
+                title="Excluir Agendamento"
+              >
+                <span className="text-2xl font-light text-white/30 group-hover/del:text-red-500 transition-colors">
+                  {deleting ? '...' : '×'}
+                </span>
+              </button>
 
-           <div className="flex flex-col gap-1">
-              <p className="text-[10px] font-black text-primary uppercase tracking-[0.3em]">Horário Ocupado</p>
-              <h4 className="text-xl font-black text-white italic uppercase tracking-tighter leading-none mt-1">
-                {initialAppt.paciente?.nome}
-              </h4>
-              <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mt-1">
-                {initialAppt.servico?.nome || 'Procedimento não especificado'}
-              </p>
+              <div className="relative z-10 space-y-8">
+                 <div className="flex items-center gap-6">
+                    <div className="w-20 h-20 rounded-ultra bg-primary/10 border border-primary/20 flex items-center justify-center text-4xl shadow-inner">👤</div>
+                    <div className="space-y-1">
+                       <p className="text-[10px] font-black text-primary uppercase tracking-[0.4em]">Informações do Agendamento</p>
+                       <h4 className="text-3xl font-black text-white italic uppercase tracking-tighter leading-none">{initialAppt.paciente?.nome}</h4>
+                    </div>
+                 </div>
+
+                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 pt-8 border-t border-white/5">
+                    <div>
+                       <p className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-1">Procedimento</p>
+                       <p className="text-sm font-black text-white italic uppercase">{initialAppt.servico?.nome || 'NÃO DEFINIDO'}</p>
+                    </div>
+                    <div>
+                       <p className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-1">Horário</p>
+                       <p className="text-sm font-black text-primary italic uppercase">{new Date(initialAppt.dataHora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}H</p>
+                    </div>
+                    <div>
+                       <p className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-1">WhatsApp</p>
+                       <p className="text-sm font-black text-white/60 italic">{initialAppt.paciente?.telefone}</p>
+                    </div>
+                    <div>
+                       <p className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-1">Status</p>
+                       <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: STATUS_MAP[initialAppt.status]?.bg || '#ccc' }} />
+                          <span className="text-[10px] font-black text-white/80 uppercase tracking-widest">{initialAppt.status}</span>
+                       </div>
+                    </div>
+                 </div>
+              </div>
+           </div>
+
+           <div className="flex gap-4">
+              <button 
+                type="button"
+                onClick={() => setViewMode('form')}
+                className="flex-1 py-6 bg-primary text-white text-xs font-black italic uppercase tracking-widest rounded-3xl shadow-2xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
+              >
+                🗓️ REMARCAR / EDITAR
+              </button>
            </div>
         </div>
       )}
+
+      {/* MODO FORMULÁRIO: Novo Agendamento ou Edição */}
+      {(viewMode === 'form' || !initialAppt) && (
+        <>
+          {/* Header de Edição se tiver inicialAppt */}
+          {initialAppt && (
+             <div className="flex items-center justify-between bg-primary/5 border border-primary/20 p-6 rounded-3xl mb-8 animate-in slide-in-from-left-4 duration-500">
+                <div>
+                   <h5 className="text-[10px] font-black text-primary uppercase tracking-[0.3em]">Modo de Edição Ativo</h5>
+                   <p className="text-xs font-black text-text-main italic uppercase tracking-tighter mt-1">Alterando agendamento de {initialAppt.paciente?.nome}</p>
+                </div>
+                <button 
+                  onClick={() => setViewMode('summary')}
+                  className="px-4 py-2 bg-white border border-card-border rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all"
+                >
+                  Voltar ao Resumo
+                </button>
+             </div>
+          )}
       {/* SECTION: BUSCA RÁPIDA */}
       <div className="relative" ref={searchRef}>
         <div className="flex flex-col gap-2">
@@ -540,6 +617,8 @@ export default function QuickAppointmentForm({
           </button>
         </div>
       </form>
+      </>
+      )}
     </div>
   );
 }
