@@ -564,6 +564,7 @@ export default function DashboardPage() {
             </div>
             
             <QuickAppointmentForm 
+              clinica={clinica}
               profissionais={profissionais}
               services={services}
               onSuccess={() => { fetchAll(); setShowModal(false); }}

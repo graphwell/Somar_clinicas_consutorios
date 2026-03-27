@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { fetchWithAuth } from '@/lib/api-utils';
 import { useNicho } from '@/context/NichoContext';
+import { generateSmartSlots } from '@/lib/agenda-utils';
 
 interface Patient {
   id: string;
@@ -12,6 +13,7 @@ interface Patient {
 }
 
 interface QuickAppointmentFormProps {
+  clinica: any;
   profissionais: any[];
   services: any[];
   onSuccess: () => void;
@@ -22,6 +24,7 @@ interface QuickAppointmentFormProps {
 }
 
 export default function QuickAppointmentForm({ 
+  clinica,
   profissionais, 
   services, 
   onSuccess, 
@@ -56,6 +59,7 @@ export default function QuickAppointmentForm({
 
   const [errors, setErrors] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
+  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
 
   // Debounce Search
   useEffect(() => {
@@ -83,7 +87,51 @@ export default function QuickAppointmentForm({
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Click outside to close results
+  // Available Slots Logic V5.7
+  useEffect(() => {
+    if (!form.dataAgendamento || !form.profissionalId || !form.servicoId) {
+      setAvailableSlots([]);
+      return;
+    }
+
+    const targetProf = profissionais.find(p => p.id === form.profissionalId);
+    if (!targetProf) return;
+
+    const dateObj = new Date(form.dataAgendamento + 'T00:00:00');
+    const dayOfWeek = dateObj.getDay();
+    const escala = targetProf.escalas?.find((e: any) => e.diaSemana === dayOfWeek && e.ativo);
+
+    if (!escala) {
+      setAvailableSlots([]);
+      return;
+    }
+
+    const clinicStart = clinica?.openingTime || "08:00";
+    const clinicEnd = clinica?.closingTime || "18:00";
+    
+    let finalStart = escala.horaInicio || clinicStart;
+    let finalEnd = escala.horaFim || clinicEnd;
+
+    if (finalStart < clinicStart) finalStart = clinicStart;
+    if (finalEnd > clinicEnd) finalEnd = clinicEnd;
+
+    const targetServ = services.find(s => s.id === form.servicoId);
+    const metadata = targetProf.horariosJson as any;
+
+    const slots = generateSmartSlots(
+      finalStart,
+      finalEnd,
+      targetServ,
+      [], // No appointments filtering for simple selection yet
+      dateObj,
+      metadata?.sessionDuration,
+      metadata?.sessionBuffer
+    );
+
+    setAvailableSlots(slots);
+  }, [form.dataAgendamento, form.profissionalId, form.servicoId, profissionais, services, clinica]);
+
+  // Click outside to close results (V5.6 restored)
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
@@ -311,15 +359,11 @@ export default function QuickAppointmentForm({
               className={`input-premium w-full py-5 px-6 bg-slate-50/50 ${errors.horario ? 'border-status-error ring-1 ring-status-error/20' : ''}`}
             >
               <option value="">Selecione...</option>
-              {Array.from({ length: 24 * 2 }).map((_, i) => {
-                const h = Math.floor(i / 2);
-                const m = (i % 2) * 30;
-                const hh = h.toString().padStart(2, '0');
-                const mm = m.toString().padStart(2, '0');
-                const time = `${hh}:${mm}`;
-                if (h < 7 || h > 20) return null; // Limite visual básico
-                return <option key={time} value={time}>{time}</option>;
-              })}
+              {availableSlots.length > 0 ? (
+                availableSlots.map(h => <option key={h} value={h}>{h}</option>)
+              ) : (
+                <option disabled>Nenhum horário disponível</option>
+              )}
             </select>
           </div>
 
