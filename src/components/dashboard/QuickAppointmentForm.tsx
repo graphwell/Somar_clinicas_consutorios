@@ -307,9 +307,12 @@ export default function QuickAppointmentForm({
                 type="button"
                 onClick={handleDelete}
                 disabled={deleting}
-                className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white text-[9px] font-black uppercase tracking-widest rounded-xl transition-all hover:scale-105 active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                className="w-10 h-10 bg-white/5 hover:bg-red-500/20 group/del flex items-center justify-center rounded-full transition-all hover:scale-110 active:scale-95 disabled:opacity-20 border border-white/10"
+                title="Excluir Agendamento"
               >
-                {deleting ? '...' : '🗑️ EXCLUIR'}
+                <span className="text-xl font-light text-white/30 group-hover/del:text-red-500 transition-colors">
+                  {deleting ? '...' : '×'}
+                </span>
               </button>
            </div>
         </div>
