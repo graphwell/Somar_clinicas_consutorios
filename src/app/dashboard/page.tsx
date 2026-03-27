@@ -11,6 +11,7 @@ import {
 } from '@/lib/agenda-utils';
 import HourCell from '@/components/dashboard/HourCell';
 import AgendaSelectionWizard from '@/components/dashboard/AgendaSelectionWizard';
+import QuickAppointmentForm from '@/components/dashboard/QuickAppointmentForm';
 
 const SLOT_INTERVAL_FALLBACK = 30;
 
@@ -556,47 +557,21 @@ export default function DashboardPage() {
 
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xl z-[200] flex items-center justify-center p-4 animate-premium" onClick={() => setShowModal(false)}>
-          <div className="bg-white border border-card-border rounded-[3.5rem] p-12 w-full max-w-xl shadow-2xl relative" onClick={e => e.stopPropagation()}>
-            <h3 className="text-2xl font-black italic uppercase tracking-tighter text-text-main mb-8">Novo {labels.termoAgenda}</h3>
-            <form onSubmit={async (e) => {
-              e.preventDefault();
-              const d = new FormData(e.currentTarget);
-              setLoading(true);
-              await fetchWithAuth('/api/bot/appointments', {
-                method: 'POST',
-                body: JSON.stringify({
-                  nome: d.get('nome'),
-                  pacienteTelefone: d.get('telefone'),
-                  pacienteNome: d.get('nome'),
-                  dataHora: `${d.get('date')}T${d.get('hour')}:00`,
-                  servicoId: d.get('serv'),
-                  profissionalId: d.get('prof'),
-                  tipoAtendimento,
-                  convenio: d.get('convenio'),
-                  observacoes: d.get('observacoes')
-                })
-              });
-              fetchAll(); setLoading(false); setShowModal(false);
-            }} className="space-y-4">
-              <input name="nome" required placeholder={`Nome do ${labels.termoPaciente}`} className="input-premium w-full bg-slate-50 py-4 px-6 rounded-xl" />
-              <input name="telefone" required placeholder="WhatsApp" className="input-premium w-full bg-slate-50 py-4 px-6 rounded-xl" />
-              <div className="grid grid-cols-2 gap-4">
-                <input name="date" type="date" defaultValue={selectedDate.toISOString().split('T')[0]} className="input-premium py-4 px-6 rounded-xl" />
-                <select name="hour" defaultValue={selectedHour} className="input-premium py-4 px-6 rounded-xl">
-                  {selectedHour && <option value={selectedHour}>{selectedHour}</option>}
-                  {smartSlots.filter(h => h !== selectedHour).map(h => <option key={h} value={h}>{h}</option>)}
-                </select>
-              </div>
-              <select name="serv" required className="input-premium w-full py-4 px-6 rounded-xl bg-slate-50">
-                <option value="">Selecione o {labels.termoServico}...</option>
-                {services.map(s => <option key={s.id} value={s.id}>{s.nome}</option>)}
-              </select>
-              <select name="prof" required defaultValue={selectedProfId || ''} className="input-premium w-full py-4 px-6 rounded-xl bg-slate-50">
-                <option value="">Selecione o {labels.termoProfissional}...</option>
-                {profissionais.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
-              </select>
-              <button type="submit" disabled={loading} className="btn-primary w-full py-5 text-[10px] font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-primary/30 mt-4">{loading ? '...' : 'Confirmar'}</button>
-            </form>
+          <div className="bg-white border border-card-border rounded-[3.5rem] p-12 w-full max-w-2xl shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar" onClick={e => e.stopPropagation()}>
+            <div className="mb-8">
+              <h3 className="text-2xl font-black italic uppercase tracking-tighter text-text-main">Novo {labels.termoAgenda}</h3>
+              <p className="text-[9px] font-black text-text-placeholder uppercase tracking-widest mt-1">Configurações de agendamento inteligente V5.6</p>
+            </div>
+            
+            <QuickAppointmentForm 
+              profissionais={profissionais}
+              services={services}
+              onSuccess={() => { fetchAll(); setShowModal(false); }}
+              onCancel={() => setShowModal(false)}
+              initialDate={selectedDate}
+              initialHour={selectedHour}
+              initialProfId={selectedProfId || undefined}
+            />
           </div>
         </div>
       )}

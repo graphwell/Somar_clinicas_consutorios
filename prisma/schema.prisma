@@ -71,6 +71,7 @@ model Paciente {
   id              String        @id @default(uuid())
   nome            String
   telefone        String
+  dataNascimento  DateTime?
   convenio        String?
   tipoAtendimento String        @default("particular")
   
@@ -157,6 +158,7 @@ model Agendamento {
   durationMinutes Int           @default(30)
   status          String        @default("pendente") // confirmado, pendente, cancelado, done
   eventoId        String        @unique 
+  categoria       String?       @default("consulta") // primeira, consulta, retorno
   convenio        String?
   tipoAtendimento String        @default("particular")
   tenantId        String

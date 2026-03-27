@@ -5,10 +5,21 @@ import { getAuthorizedTenantId } from '@/lib/auth-helpers';
 export async function GET(request: Request) {
   try {
     const tenantId = await getAuthorizedTenantId();
-    const prisma = getTenantPrisma(tenantId);
+    const prisma = getTenantPrisma();
+
+    const { searchParams } = new URL(request.url);
+    const query = searchParams.get('q');
+
+    const where: any = { tenantId };
+    if (query) {
+      where.OR = [
+        { nome: { contains: query, mode: 'insensitive' } },
+        { telefone: { contains: query } }
+      ];
+    }
 
     const pacientes = await prisma.paciente.findMany({
-      where: { tenantId },
+      where,
       include: {
         _count: {
           select: { agendamentos: true }
@@ -19,7 +30,8 @@ export async function GET(request: Request) {
           include: { servico: true }
         }
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      take: query ? 5 : undefined
     });
 
     return NextResponse.json(pacientes);
@@ -33,7 +45,7 @@ export async function POST(request: Request) {
   try {
     const tenantId = await getAuthorizedTenantId();
     const prisma = getTenantPrisma(tenantId);
-    const { nome, telefone } = await request.json();
+    const { nome, telefone, dataNascimento } = await request.json();
 
     if (!nome || !telefone) {
       return NextResponse.json({ error: 'Nome e telefone são obrigatórios' }, { status: 400 });
@@ -43,6 +55,8 @@ export async function POST(request: Request) {
       data: {
         nome,
         telefone,
+        // @ts-ignore
+        dataNascimento: dataNascimento ? new Date(dataNascimento) : null,
         tenantId,
       },
     });

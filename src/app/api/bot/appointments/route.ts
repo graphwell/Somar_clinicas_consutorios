@@ -54,6 +54,8 @@ export async function POST(request: Request) {
     const tipoAtendimento = body.tipoAtendimento || searchParams.get('tipoAtendimento') || 'particular';
     const convenio = body.convenio || searchParams.get('convenio');
     const observacoes = body.observacoes || searchParams.get('observacoes');
+    const categoria = body.categoria || searchParams.get('categoria') || 'consulta';
+    const dataNascimento = body.dataNascimento || searchParams.get('dataNascimento');
 
     let tenantId = body.tenantId || searchParams.get('tenantId');
 
@@ -85,7 +87,13 @@ export async function POST(request: Request) {
 
     if (!paciente) {
       paciente = await prisma.paciente.create({
-        data: { nome: pacienteNome || 'Paciente WhatsApp', telefone: pacienteTelefone, tenantId }
+        // @ts-ignore
+        data: { 
+          nome: pacienteNome || 'Paciente WhatsApp', 
+          telefone: pacienteTelefone, 
+          tenantId,
+          dataNascimento: dataNascimento ? new Date(dataNascimento) : undefined
+        }
       });
     }
 
@@ -184,6 +192,8 @@ export async function POST(request: Request) {
         profissionalId: profissionalId || null,
         servicoId: servicoId || null,
         tipoAtendimento,
+        // @ts-ignore
+        categoria,
         convenio,
         observacoes: observacoes || ''
       }
