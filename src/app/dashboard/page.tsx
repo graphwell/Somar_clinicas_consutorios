@@ -351,7 +351,7 @@ export default function DashboardPage() {
                   <div className="flex items-center gap-4 mr-4 border-r border-slate-100 pr-6">
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-status-success"></div>
-                      <span className="text-[8px] font-black uppercase text-text-placeholder">Ativo</span>
+                      <span className="text-[8px] font-black uppercase text-text-placeholder">Confirmado</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-status-warning"></div>
