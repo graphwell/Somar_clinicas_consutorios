@@ -80,3 +80,33 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
+
+export async function DELETE(request: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
+  const { id } = params;
+  const { searchParams } = new URL(request.url);
+  const tenantId = searchParams.get('tenantId');
+
+  if (!tenantId) {
+    return NextResponse.json({ error: 'TenantId é obrigatório para excluir' }, { status: 400 });
+  }
+
+  try {
+    const agendamento = await prisma.agendamento.findFirst({
+      where: { id, tenantId }
+    });
+
+    if (!agendamento) {
+      return NextResponse.json({ error: 'Agendamento não encontrado' }, { status: 404 });
+    }
+
+    await prisma.agendamento.delete({
+      where: { id }
+    });
+
+    return NextResponse.json({ success: true, message: 'Agendamento excluído com sucesso' });
+  } catch (error) {
+    console.error("Erro no DELETE /api/bot/appointments/:id", error);
+    return NextResponse.json({ error: 'Erro ao excluir agendamento' }, { status: 500 });
+  }
+}

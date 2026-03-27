@@ -21,6 +21,7 @@ interface QuickAppointmentFormProps {
   initialDate?: Date;
   initialHour?: string;
   initialProfId?: string;
+  initialAppt?: any;
 }
 
 export default function QuickAppointmentForm({ 
@@ -31,7 +32,8 @@ export default function QuickAppointmentForm({
   onCancel,
   initialDate,
   initialHour,
-  initialProfId
+  initialProfId,
+  initialAppt
 }: QuickAppointmentFormProps) {
   const { labels } = useNicho();
   
@@ -61,6 +63,7 @@ export default function QuickAppointmentForm({
   const [saving, setSaving] = useState(false);
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [slotStatus, setSlotStatus] = useState<'loading' | 'no_prof' | 'no_date' | 'no_escala' | 'empty' | 'ok'>('no_prof');
+  const [deleting, setDeleting] = useState(false);
 
   // Debounce Search
   useEffect(() => {
@@ -255,6 +258,29 @@ export default function QuickAppointmentForm({
     }
   };
 
+  const handleDelete = async () => {
+    if (!initialAppt || !clinica?.tenantId) return;
+    if (!confirm(`Tem certeza que deseja EXCLUIR o agendamento de ${initialAppt.paciente?.nome}?`)) return;
+
+    setDeleting(true);
+    try {
+      const res = await fetchWithAuth(`/api/bot/appointments/${initialAppt.id}?tenantId=${clinica.tenantId}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        onSuccess();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Erro ao excluir agendamento');
+      }
+    } catch (err) {
+      console.error('Erro na exclusão:', err);
+      alert('Falha na comunicação com o servidor');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const age = calculateAge(form.dataNascimento);
 
   const CONVENIOS_LIST = [
@@ -264,6 +290,30 @@ export default function QuickAppointmentForm({
 
   return (
     <div className="space-y-8 animate-premium">
+      {/* Informações do Agendamento Existente (Se houver) */}
+      {initialAppt && (
+        <div className="bg-slate-900 border border-white/10 p-6 rounded-[2.5rem] mb-10 animate-in fade-in slide-in-from-top-4 duration-500">
+           <div className="flex justify-between items-start">
+              <div className="flex flex-col gap-1">
+                <p className="text-[10px] font-black text-primary uppercase tracking-[0.3em]">Horário Ocupado</p>
+                <h4 className="text-xl font-black text-white italic uppercase tracking-tighter leading-none mt-1">
+                  {initialAppt.paciente?.nome}
+                </h4>
+                <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mt-1">
+                  {initialAppt.servico?.nome || 'Procedimento não especificado'}
+                </p>
+              </div>
+              <button 
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white text-[9px] font-black uppercase tracking-widest rounded-xl transition-all hover:scale-105 active:scale-95 disabled:opacity-50 flex items-center gap-2"
+              >
+                {deleting ? '...' : '🗑️ EXCLUIR'}
+              </button>
+           </div>
+        </div>
+      )}
       {/* SECTION: BUSCA RÁPIDA */}
       <div className="relative" ref={searchRef}>
         <div className="flex flex-col gap-2">

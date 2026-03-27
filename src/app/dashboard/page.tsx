@@ -27,6 +27,7 @@ export default function DashboardPage() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showModal, setShowModal] = useState(false);
   const [selectedHour, setSelectedHour] = useState('');
+  const [selectedAppt, setSelectedAppt] = useState<Appointment | null>(null);
   const [tipoAtendimento, setTipoAtendimento] = useState<'particular' | 'convenio'>('particular');
   const [selectedProfId, setSelectedProfId] = useState<string | null>(null);
   const [selectedServId, setSelectedServId] = useState<string>('all');
@@ -398,7 +399,11 @@ export default function DashboardPage() {
 
                       return (
                         <div key={h} className={isExtra ? 'ring-2 ring-primary/20 rounded-3xl' : ''}>
-                          <HourCell hour={h} appt={appt} onClick={() => { setSelectedHour(h); setShowModal(true); }} />
+                          <HourCell hour={h} appt={appt} onClick={() => { 
+                            setSelectedHour(h); 
+                            setSelectedAppt(appt || null);
+                            setShowModal(true); 
+                          }} />
                         </div>
                       );
                     });
@@ -653,6 +658,7 @@ export default function DashboardPage() {
               initialDate={selectedDate}
               initialHour={selectedHour}
               initialProfId={selectedProfId || undefined}
+              initialAppt={selectedAppt || undefined}
             />
           </div>
         </div>
