@@ -199,7 +199,6 @@ export default function QuickAppointmentForm({
     if (!form.telefone) newErrors.telefone = true;
     if (!form.dataAgendamento) newErrors.dataAgendamento = true;
     if (!form.horario) newErrors.horario = true;
-    if (!form.servicoId) newErrors.servicoId = true;
     if (!form.profissionalId) newErrors.profissionalId = true;
     if (form.temPlano && !form.plano) newErrors.plano = true;
     
@@ -407,11 +406,11 @@ export default function QuickAppointmentForm({
 
           {/* Serviço */}
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-text-placeholder uppercase tracking-widest ml-1">Procedimento / {labels.termoServico} *</label>
+            <label className="text-[10px] font-black text-text-placeholder uppercase tracking-widest ml-1">Procedimento / {labels.termoServico}</label>
             <select
               value={form.servicoId}
               onChange={e => setForm({ ...form, servicoId: e.target.value })}
-              className={`input-premium w-full py-5 px-6 bg-slate-50/50 ${errors.servicoId ? 'border-status-error ring-1 ring-status-error/20' : ''}`}
+              className="input-premium w-full py-5 px-6 bg-slate-50/50"
             >
               <option value="">Selecione o procedimento...</option>
               {services.map(s => <option key={s.id} value={s.id}>{s.nome}</option>)}
