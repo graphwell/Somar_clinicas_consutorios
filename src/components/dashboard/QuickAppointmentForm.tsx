@@ -292,28 +292,27 @@ export default function QuickAppointmentForm({
     <div className="space-y-8 animate-premium">
       {/* Informações do Agendamento Existente (Se houver) */}
       {initialAppt && (
-        <div className="bg-slate-900 border border-white/10 p-6 rounded-[2.5rem] mb-10 animate-in fade-in slide-in-from-top-4 duration-500">
-           <div className="flex justify-between items-start">
-              <div className="flex flex-col gap-1">
-                <p className="text-[10px] font-black text-primary uppercase tracking-[0.3em]">Horário Ocupado</p>
-                <h4 className="text-xl font-black text-white italic uppercase tracking-tighter leading-none mt-1">
-                  {initialAppt.paciente?.nome}
-                </h4>
-                <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mt-1">
-                  {initialAppt.servico?.nome || 'Procedimento não especificado'}
-                </p>
-              </div>
-              <button 
-                type="button"
-                onClick={handleDelete}
-                disabled={deleting}
-                className="w-10 h-10 bg-white/5 hover:bg-red-500/20 group/del flex items-center justify-center rounded-full transition-all hover:scale-110 active:scale-95 disabled:opacity-20 border border-white/10"
-                title="Excluir Agendamento"
-              >
-                <span className="text-xl font-light text-white/30 group-hover/del:text-red-500 transition-colors">
-                  {deleting ? '...' : '×'}
-                </span>
-              </button>
+        <div className="relative bg-slate-900 border border-white/10 p-8 rounded-[2.5rem] mb-10 animate-in fade-in slide-in-from-top-4 duration-500">
+           <button 
+             type="button"
+             onClick={handleDelete}
+             disabled={deleting}
+             className="absolute top-6 right-6 w-8 h-8 bg-white/5 hover:bg-red-500/20 group/del flex items-center justify-center rounded-full transition-all hover:scale-110 active:scale-95 disabled:opacity-20 border border-white/10"
+             title="Excluir Agendamento"
+           >
+             <span className="text-xl font-light text-white/30 group-hover/del:text-red-500 transition-colors">
+               {deleting ? '...' : '×'}
+             </span>
+           </button>
+
+           <div className="flex flex-col gap-1">
+              <p className="text-[10px] font-black text-primary uppercase tracking-[0.3em]">Horário Ocupado</p>
+              <h4 className="text-xl font-black text-white italic uppercase tracking-tighter leading-none mt-1">
+                {initialAppt.paciente?.nome}
+              </h4>
+              <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mt-1">
+                {initialAppt.servico?.nome || 'Procedimento não especificado'}
+              </p>
            </div>
         </div>
       )}
