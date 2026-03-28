@@ -163,7 +163,7 @@ REGRAS: Responda SEMPRE em Português Brasil. Use listas numeradas para passo-a-
       systemInstruction: systemPrompt,
     });
 
-    // Converte histórico para formato Gemini
+    // Converte histórico para formato Gemini — deve começar com 'user'
     const safeHistory: { role: 'user' | 'model'; parts: { text: string }[] }[] = [];
     if (Array.isArray(history)) {
       for (const h of history) {
@@ -171,6 +171,10 @@ REGRAS: Responda SEMPRE em Português Brasil. Use listas numeradas para passo-a-
           safeHistory.push({ role: h.role, parts: [{ text: h.parts[0].text }] });
         }
       }
+    }
+    // Remove mensagens 'model' do início (Gemini exige que history comece com 'user')
+    while (safeHistory.length > 0 && safeHistory[0].role === 'model') {
+      safeHistory.shift();
     }
 
     const chat = model.startChat({
