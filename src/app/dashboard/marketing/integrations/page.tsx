@@ -233,7 +233,7 @@ export default function IntegrationsPage() {
       {/* Header V2.2 */}
       <div className="py-10 border-b border-slate-50">
         <h2 className="text-4xl font-black italic uppercase tracking-tighter text-text-main">🔗 Hub de <span className="text-primary">Ecossistema</span></h2>
-        <p className="text-[10px] font-black text-text-placeholder uppercase tracking-[0.4em] mt-3 opacity-60">Expanda o poder da sua unidade • V2.2 Official</p>
+        <p className="text-[10px] font-black text-text-placeholder uppercase tracking-[0.4em] mt-3 opacity-60">Expanda o poder da sua unidade</p>
       </div>
 
       {/* WhatsApp — seção em destaque */}

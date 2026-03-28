@@ -96,7 +96,7 @@ export default function ServicesPage() {
            <div className="w-14 h-14 rounded-3xl bg-primary text-white flex items-center justify-center text-3xl shadow-xl shadow-primary/20 italic font-black">S</div>
            <div>
                <h2 className="text-2xl font-black italic uppercase tracking-tighter text-text-main">Catálogo de <span className="text-primary">{labels.servico}s</span></h2>
-               <p className="text-[10px] font-black text-text-placeholder uppercase tracking-[0.25em] mt-1 opacity-60">Visualização V2.6 Expert Design</p>
+               <p className="text-[10px] font-black text-text-placeholder uppercase tracking-[0.25em] mt-1 opacity-60">Gerencie os serviços oferecidos</p>
            </div>
         </div>
         <button onClick={() => { resetForm(); setShowModal(true); }} className="btn-primary flex items-center justify-center gap-3">
@@ -153,7 +153,7 @@ export default function ServicesPage() {
             <div className="flex items-center justify-between mb-10 pb-8 border-b border-slate-50">
               <div>
                   <h3 className="text-2xl font-black italic uppercase tracking-tighter text-text-main">📌 Definir Procedimento</h3>
-                  <p className="text-[10px] font-black text-text-placeholder uppercase tracking-widest mt-1 opacity-60">Configurações técnicas e comerciais V2.6 EXPERT</p>
+                  <p className="text-[10px] font-black text-text-placeholder uppercase tracking-widest mt-1 opacity-60">Preencha os dados do serviço</p>
               </div>
               <button onClick={() => setShowModal(false)} className="w-10 h-10 rounded-xl hover:bg-slate-50 flex items-center justify-center text-text-placeholder transition-colors italic font-black">✕</button>
             </div>

@@ -17,7 +17,7 @@ export default function HelpCenterPage() {
       {/* Header Search V2.2 */}
       <div className="text-center space-y-6 py-12">
          <h2 className="text-4xl font-black italic uppercase tracking-tighter text-text-main">🧠 Central de <span className="text-primary">Conhecimento</span></h2>
-         <p className="text-[10px] font-black text-text-placeholder uppercase tracking-[0.3em] opacity-60">Assistência Inteligente Synka V2.2</p>
+         <p className="text-[10px] font-black text-text-placeholder uppercase tracking-[0.3em] opacity-60">Assistência Inteligente Synka</p>
          <div className="relative max-w-xl mx-auto mt-12 group">
             <input type="text" placeholder="Qual sua dúvida operacional hoje?" 
               className="input-premium w-full py-6 px-10 rounded-[2.5rem] shadow-xl shadow-slate-200/40 text-base" />

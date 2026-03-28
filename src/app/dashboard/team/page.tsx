@@ -156,7 +156,7 @@ export default function TeamPage() {
            <div className="w-14 h-14 rounded-3xl bg-primary text-white flex items-center justify-center text-3xl shadow-xl shadow-primary/20">🧑‍💼</div>
            <div>
               <h2 className="text-2xl font-black italic uppercase tracking-tighter text-text-main">Gestão de <span className="text-primary">Profissionais</span></h2>
-              <p className="text-[10px] font-black text-text-placeholder uppercase tracking-[0.2em] mt-1 opacity-60">Quadro de {labels.termoProfissional}s • V2.2 Official</p>
+              <p className="text-[10px] font-black text-text-placeholder uppercase tracking-[0.2em] mt-1 opacity-60">Quadro de {labels.termoProfissional}s</p>
            </div>
         </div>
         <button onClick={openAdd} className="w-full md:w-auto px-10 py-5 bg-primary text-white rounded-[1.5rem] text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 hover:scale-105 transition-all text-center">Adicionar Profissional</button>
@@ -208,7 +208,7 @@ export default function TeamPage() {
             <div className="p-10 border-b border-slate-50 flex items-center justify-between">
               <div>
                 <h3 className="text-xl font-black text-text-main tracking-tighter uppercase italic">{editing ? `Refinar` : `Cadastrar`} Profissional</h3>
-                <p className="text-[9px] text-text-placeholder font-black uppercase tracking-widest mt-1">Configurações de identidade corporativa V2.2</p>
+                <p className="text-[9px] text-text-placeholder font-black uppercase tracking-widest mt-1">Preencha os dados do profissional</p>
               </div>
               <button onClick={() => setShowModal(false)} className="w-10 h-10 rounded-xl hover:bg-slate-50 flex items-center justify-center text-text-placeholder transition-colors">✕</button>
             </div>

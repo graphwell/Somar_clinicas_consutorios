@@ -61,7 +61,7 @@ export default function FinancePage() {
            <div className="w-14 h-14 rounded-3xl bg-primary text-white flex items-center justify-center text-3xl shadow-xl shadow-primary/20 italic font-black">B</div>
            <div>
               <h2 className="text-2xl font-black italic uppercase tracking-tighter text-text-main">Gestão de <span className="text-primary">Caixa</span></h2>
-              <p className="text-[10px] font-black text-text-placeholder uppercase tracking-[0.25em] mt-1 opacity-60">Fluxo Financeiro Corporativo • V2.2 Official</p>
+              <p className="text-[10px] font-black text-text-placeholder uppercase tracking-[0.25em] mt-1 opacity-60">Fluxo Financeiro Corporativo</p>
            </div>
         </div>
         <button onClick={() => setShowModal(true)} className="btn-primary flex items-center justify-center gap-3">
@@ -142,7 +142,7 @@ export default function FinancePage() {
             <div className="bg-white border border-card-border rounded-[3.5rem] p-12 w-full max-w-lg shadow-2xl scale-in" onClick={e => e.stopPropagation()}>
                <div className="mb-12 border-b border-slate-50 pb-8">
                   <h3 className="text-2xl font-black italic uppercase tracking-tighter text-text-main">📌 Lançamento Manual</h3>
-                  <p className="text-[10px] font-black text-text-placeholder uppercase tracking-widest mt-1 opacity-60">Inserção auditada V2.2 Official Design</p>
+                  <p className="text-[10px] font-black text-text-placeholder uppercase tracking-widest mt-1 opacity-60">Registre receitas e despesas da empresa</p>
                </div>
                <form onSubmit={handleSave} className="space-y-8">
                   <div className="space-y-2">

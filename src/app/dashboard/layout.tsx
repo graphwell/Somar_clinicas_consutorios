@@ -211,7 +211,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                <div className="flex items-center gap-4 pl-4 border-l border-card-border ml-2">
                   <div className="text-right hidden sm:block">
                      <p className="text-[10px] font-black text-text-main uppercase tracking-tighter">Administrador</p>
-                     <p className="text-[8px] font-black text-primary uppercase tracking-widest opacity-60">V2.3 SaaS</p>
+                     <p className="text-[8px] font-black text-primary uppercase tracking-widest opacity-60">Synka</p>
                   </div>
                   <div className="w-11 h-11 rounded-2xl bg-primary-soft flex items-center justify-center font-black text-primary border border-primary/20 shadow-sm text-sm">A</div>
                </div>

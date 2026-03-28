@@ -504,7 +504,7 @@ export default function DashboardPage() {
             <div className="flex justify-between items-center bg-white border border-card-border p-10 rounded-[3rem] shadow-sm">
               <div>
                 <h3 className="text-xl font-black italic uppercase tracking-tighter text-text-main">Gestão de <span className="text-primary italic">Assinaturas</span></h3>
-                <p className="text-[10px] font-black text-text-muted uppercase tracking-widest mt-1 opacity-60">Status: Sistema de Fidelidade V3.0 Ativo</p>
+                <p className="text-[10px] font-black text-text-muted uppercase tracking-widest mt-1 opacity-60">Programa de fidelidade ativo</p>
               </div>
               <div className="flex items-center gap-4 bg-primary-soft px-6 py-3 rounded-2xl border border-primary/10">
                 <span className="text-[10px] font-black text-primary uppercase">Plano Ativo:</span>
@@ -688,7 +688,7 @@ export default function DashboardPage() {
               <h3 className="text-2xl font-black italic uppercase tracking-tighter text-text-main">
                 {selectedAppt ? 'Detalhes do' : `Novo ${labels.termoAgenda}`}
               </h3>
-              <p className="text-[9px] font-black text-text-placeholder uppercase tracking-widest mt-1">Configurações de agendamento inteligente V5.6</p>
+              <p className="text-[9px] font-black text-text-placeholder uppercase tracking-widest mt-1">Preencha os dados do agendamento</p>
             </div>
             
             <QuickAppointmentForm 

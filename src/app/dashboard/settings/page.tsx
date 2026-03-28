@@ -113,7 +113,7 @@ export default function SettingsPage() {
            <div className="w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center text-xl shadow-lg shadow-primary/10 italic font-black">C</div>
            <div>
               <h2 className="text-lg font-black italic uppercase tracking-tighter text-text-main">Ajustes de <span className="text-primary">Sistema</span></h2>
-              <p className="text-[8px] font-black text-text-placeholder uppercase tracking-[0.2em] mt-0.5 opacity-60">Configuração Estrutural • V2.2</p>
+              <p className="text-[8px] font-black text-text-placeholder uppercase tracking-[0.2em] mt-0.5 opacity-60">Configurações da empresa</p>
            </div>
         </div>
         <button onClick={handleSave} className="btn-primary flex items-center justify-center gap-3">

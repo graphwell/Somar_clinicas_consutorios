@@ -31,7 +31,7 @@ function PatientChart({ patient, onClose }: { patient: Paciente; onClose: () => 
               </div>
               <div>
                  <h3 className="text-2xl font-black italic uppercase tracking-tighter text-text-main">{patient.nome}</h3>
-                 <p className="text-[10px] font-black text-text-muted uppercase tracking-widest mt-1 opacity-60">🩺 {labels.termoProntuario} Digital V3.0</p>
+                 <p className="text-[10px] font-black text-text-muted uppercase tracking-widest mt-1 opacity-60">🩺 {labels.termoProntuario} Digital</p>
               </div>
            </div>
            <button onClick={onClose} className="w-11 h-11 rounded-xl hover:bg-slate-100 flex items-center justify-center text-text-placeholder transition-colors italic font-black">✕</button>
@@ -119,7 +119,7 @@ export default function PatientsPage() {
              <div className="w-14 h-14 rounded-3xl bg-primary text-white flex items-center justify-center text-3xl shadow-xl shadow-primary/20">👥</div>
              <div>
                 <h2 className="text-2xl font-black italic uppercase tracking-tighter text-text-main">Base de <span className="text-primary">{labels.termoPacientePlural}</span></h2>
-                <p className="text-[10px] font-black text-text-placeholder uppercase tracking-[0.2em] mt-1 opacity-60">Sincronização Ativa V3.0 Premium</p>
+                <p className="text-[10px] font-black text-text-placeholder uppercase tracking-[0.2em] mt-1 opacity-60">Sincronização Ativa</p>
              </div>
           </div>
           <button onClick={() => window.location.href='/dashboard'} className="btn-primary flex items-center justify-center gap-2">
