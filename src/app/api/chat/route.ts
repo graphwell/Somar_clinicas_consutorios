@@ -148,55 +148,49 @@ export async function POST(request: Request) {
       ? profissionais.map(p => `- ${p.nome}${p.especialidade ? ` (${p.especialidade})` : ''}`).join('\n')
       : '(nenhum profissional cadastrado ainda)';
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const modelName = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
-    const model = genAI.getGenerativeModel({ model: modelName });
-
     const systemPrompt = `Você é a Synka IA, assistente de suporte da plataforma Synka.
 Você está ajudando um usuário da clínica "${clinica.razaoSocial}" (nicho: ${clinica.nicho}, papel: ${role}).
 
 CONTEXTO DA CLÍNICA:
-- Serviços cadastrados:
-${servicesList}
-- Profissionais cadastrados:
-${profList}
+- Serviços: ${servicesList}
+- Profissionais: ${profList}
 
-CONHECIMENTO DA PLATAFORMA:
 ${SYNKA_KNOWLEDGE}
 
 DIRETRIZES:
 1. Responda SEMPRE em Português Brasil.
-2. Seja direta e objetiva. Use listas numeradas para passo-a-passo.
-3. Formate usando Markdown: **negrito**, listas, \`código\`.
-4. Quando guiar em um passo-a-passo, seja específico sobre onde clicar e o que preencher.
-5. Se a pergunta for sobre uma funcionalidade que não existe no nicho atual (${clinica.nicho}), informe isso claramente.
-6. Máximo 400 tokens por resposta — seja concisa.
-7. Se o usuário agradece ou encerra, responda brevemente e ofereça mais ajuda.`;
+2. Use listas numeradas para passo-a-passo. Formate com **negrito** e \`código\`.
+3. Seja específico sobre onde clicar.
+4. Funcionalidades inexistentes no nicho ${clinica.nicho}: informe claramente.
+5. Respostas concisas — máximo 350 tokens.`;
+
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const modelName = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+
+    const model = genAI.getGenerativeModel({
+      model: modelName,
+      systemInstruction: systemPrompt,
+    });
+
+    // Histórico da conversa (apenas pares user/model anteriores)
+    const safeHistory = (history || []).filter(
+      (h: any) => h?.role && Array.isArray(h?.parts) && h.parts.length > 0
+    );
 
     const chat = model.startChat({
-      generationConfig: { maxOutputTokens: 400 },
-      history: [
-        {
-          role: 'user',
-          parts: [{ text: 'Olá, quem é você e o que pode me ajudar?' }]
-        },
-        {
-          role: 'model',
-          parts: [{
-            text: `Olá! Sou a **Synka IA**, sua assistente de suporte para a plataforma Synka.\n\nPosso te ajudar com:\n- 📅 Criar e gerenciar agendamentos\n- 👤 Configurar profissionais e serviços\n- ⚙️ Configurar integrações (WhatsApp, Stripe)\n- 📊 Entender relatórios e financeiro\n- 🦷 Usar o Odontograma e Prontuários\n\nComo posso te ajudar hoje?`
-          }]
-        },
-        ...(history || [])
-      ]
+      generationConfig: { maxOutputTokens: 500 },
+      history: safeHistory,
     });
 
     const result = await chat.sendMessage(message);
-    const response = await result.response;
-    const text = response.text();
+    const text = result.response.text();
 
     return NextResponse.json({ success: true, text });
   } catch (error: any) {
-    console.error('[CHAT_IA_ERROR]', error);
-    return NextResponse.json({ error: 'Erro ao processar inteligência.' }, { status: 500 });
+    console.error('[CHAT_IA_ERROR]', error?.message || error);
+    const msg = error?.message || '';
+    if (msg.includes('API key')) return NextResponse.json({ error: 'Chave Gemini inválida ou não configurada.' }, { status: 500 });
+    if (msg.includes('quota') || msg.includes('429')) return NextResponse.json({ error: 'Limite de requisições atingido. Tente em alguns instantes.' }, { status: 429 });
+    return NextResponse.json({ error: 'Erro ao processar inteligência. Tente novamente.' }, { status: 500 });
   }
 }
