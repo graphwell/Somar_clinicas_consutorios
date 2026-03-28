@@ -56,10 +56,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             Ops Team
           </div>
           <button 
-            onClick={() => window.location.href = '/dashboard'}
+            onClick={() => window.location.href = '/admin'}
             className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline"
           >
-            Voltar ao Console
+            ← Painel Master
           </button>
         </div>
       </header>
