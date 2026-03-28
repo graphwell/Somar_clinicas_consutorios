@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { requireSynkaAdmin, INSTANCE_SELECT } from '@/lib/wasender';
+import { requireSynkaAdmin, requireTenant, INSTANCE_SELECT } from '@/lib/wasender';
 
 export async function GET(request: Request) {
-  const admin = await requireSynkaAdmin(request);
-  if (!admin) return NextResponse.json({ error: 'Acesso restrito: apenas synka_admin' }, { status: 403 });
+  // Leitura permitida para qualquer usuário autenticado (admin de clínica ou synka_admin)
+  const caller = await requireSynkaAdmin(request) ?? await requireTenant(request);
+  if (!caller) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
 
   const { searchParams } = new URL(request.url);
   const status = searchParams.get('status') as any;
