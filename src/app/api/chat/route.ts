@@ -148,43 +148,40 @@ export async function POST(request: Request) {
       ? profissionais.map(p => `- ${p.nome}${p.especialidade ? ` (${p.especialidade})` : ''}`).join('\n')
       : '(nenhum profissional cadastrado ainda)';
 
-    const systemPrompt = `Você é a Synka IA, assistente de suporte da plataforma Synka.
-Você está ajudando um usuário da clínica "${clinica.razaoSocial}" (nicho: ${clinica.nicho}, papel: ${role}).
-
-CONTEXTO DA CLÍNICA:
-- Serviços: ${servicesList}
-- Profissionais: ${profList}
-
+    // Monta conversa completa como array de conteúdos
+    const systemContext = `Você é a Synka IA, assistente de suporte da plataforma Synka.
+Clínica: "${clinica.razaoSocial}" | Nicho: ${clinica.nicho} | Papel do usuário: ${role}
+Serviços: ${servicesList}
+Profissionais: ${profList}
 ${SYNKA_KNOWLEDGE}
+REGRAS: Responda em Português Brasil. Use listas numeradas para passo-a-passo. Seja conciso (máx 350 tokens).`;
 
-DIRETRIZES:
-1. Responda SEMPRE em Português Brasil.
-2. Use listas numeradas para passo-a-passo. Formate com **negrito** e \`código\`.
-3. Seja específico sobre onde clicar.
-4. Funcionalidades inexistentes no nicho ${clinica.nicho}: informe claramente.
-5. Respostas concisas — máximo 350 tokens.`;
+    const contents: { role: string; parts: { text: string }[] }[] = [];
+
+    // Histórico anterior (somente pares válidos)
+    const safeHistory: any[] = Array.isArray(history) ? history.filter(
+      (h: any) => (h?.role === 'user' || h?.role === 'model') && h?.parts?.[0]?.text
+    ) : [];
+
+    // Contexto injetado como primeira mensagem do usuário
+    contents.push({ role: 'user', parts: [{ text: `[CONTEXTO DO SISTEMA]\n${systemContext}` }] });
+    contents.push({ role: 'model', parts: [{ text: 'Entendido. Sou a Synka IA, pronta para ajudar.' }] });
+
+    // Histórico da conversa
+    contents.push(...safeHistory);
+
+    // Mensagem atual
+    contents.push({ role: 'user', parts: [{ text: message }] });
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const modelName = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-    const model = genAI.getGenerativeModel({
-      model: modelName,
-      systemInstruction: systemPrompt,
+    const result = await model.generateContent({
+      contents,
+      generationConfig: { maxOutputTokens: 500, temperature: 0.7 },
     });
 
-    // Histórico da conversa (apenas pares user/model anteriores)
-    const safeHistory = (history || []).filter(
-      (h: any) => h?.role && Array.isArray(h?.parts) && h.parts.length > 0
-    );
-
-    const chat = model.startChat({
-      generationConfig: { maxOutputTokens: 500 },
-      history: safeHistory,
-    });
-
-    const result = await chat.sendMessage(message);
     const text = result.response.text();
-
     return NextResponse.json({ success: true, text });
   } catch (error: any) {
     const msg = error?.message || String(error);
