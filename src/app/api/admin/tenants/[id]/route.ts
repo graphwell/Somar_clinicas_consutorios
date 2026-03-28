@@ -15,8 +15,8 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
   try {
     const clinica = await prisma.clinica.update({
       where: { tenantId: id },
-      data: { 
-        ...(statusBot && { statusBot }),
+      data: {
+        ...(statusBot !== undefined && { botActive: statusBot === 'ativo' }),
         ...(nicho && { nicho })
       }
     });

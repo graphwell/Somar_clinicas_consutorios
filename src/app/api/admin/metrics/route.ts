@@ -9,7 +9,7 @@ export async function GET(request: Request) {
 
   try {
     const totalClinicas = await prisma.clinica.count();
-    const clinicasAtivas = await prisma.clinica.count({ where: { statusBot: 'ativo' } });
+    const clinicasAtivas = await prisma.clinica.count({ where: { botActive: true } });
     
     // Total de agendamentos no mês atual (simplificado)
     const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);

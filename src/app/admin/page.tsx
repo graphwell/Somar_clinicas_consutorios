@@ -39,8 +39,8 @@ export default function AdminSynkaPage() {
     }
   };
 
-  const toggleStatus = async (id: string, currentStatus: string) => {
-    const newStatus = currentStatus === 'ativo' ? 'inativo' : 'ativo';
+  const toggleStatus = async (id: string, currentBotActive: boolean) => {
+    const newStatus = currentBotActive ? 'inativo' : 'ativo';
     if (!confirm(`Deseja alterar o status desta clínica para ${newStatus}?`)) return;
 
     try {
@@ -49,7 +49,7 @@ export default function AdminSynkaPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ statusBot: newStatus })
       });
-      fetchClinicas(); // recarrega
+      fetchClinicas();
     } catch(e) {
       alert("Erro ao alterar status");
     }
@@ -190,7 +190,7 @@ export default function AdminSynkaPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      {c.statusBot === 'ativo' ? (
+                      {c.botActive ? (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/15 text-green-400 text-xs font-bold border border-green-500/30">
                           <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span> Ativo
                         </span>
@@ -209,14 +209,14 @@ export default function AdminSynkaPage() {
                           Configurar Nicho
                         </button>
                         <button
-                          onClick={() => toggleStatus(c.tenantId, c.statusBot)}
+                          onClick={() => toggleStatus(c.tenantId, c.botActive)}
                           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                            c.statusBot === 'ativo' 
-                              ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20' 
+                            c.botActive
+                              ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
                               : 'bg-green-500/10 text-green-400 hover:bg-green-500/20'
                           }`}
                         >
-                          {c.statusBot === 'ativo' ? 'Suspender' : 'Reativar'}
+                          {c.botActive ? 'Suspender' : 'Reativar'}
                         </button>
                       </div>
                     </td>
