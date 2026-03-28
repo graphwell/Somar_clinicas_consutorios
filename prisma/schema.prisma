@@ -44,6 +44,7 @@ model Clinica {
   prontuarios          ProntuarioRegistro[]
   odontogramaItens     OdontogramaItem[]
   odontogramaHistorico OdontogramaHistorico[]
+  prontuarioTemplates  ProntuarioTemplate[]
 }
 
 enum NichoType {
@@ -97,6 +98,8 @@ model Paciente {
   agendamentos    Agendamento[]
   assinaturas     AssinaturaCliente[]
   prontuarios     ProntuarioRegistro[]
+  alergias        PacienteAlergia[]
+  medicamentos    PacienteMedicamento[]
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
@@ -403,6 +406,7 @@ model ProntuarioRegistro {
 
   // Campos clínicos gerais
   queixaPrincipal     String?
+  evolucao            String?   // texto livre da consulta (campo rico)
   historiaMolestia    String?
   historicoMedico     String?
   medicamentosUso     String?
@@ -411,6 +415,18 @@ model ProntuarioRegistro {
   exameResultado      String?
   hipoteseDiagnostica String?
   conduta             String?
+  retornoEm           DateTime?
+
+  // CID-10
+  cidCodigo    String?
+  cidDescricao String?
+
+  // Métricas vitais
+  pressaoSistolica  Int?
+  pressaoDiastolica Int?
+  temperatura       Float?
+  saturacao         Int?
+  glicemia          Int?
 
   // Campos nutricionais
   historicoAlimentar  String?
@@ -425,10 +441,70 @@ model ProntuarioRegistro {
   profissional Profissional? @relation(fields: [profissionalId], references: [id])
   medidas      MedidaCorporal[]
   odontograma  OdontogramaItem[]
+  arquivos     ProntuarioArquivo[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   @@map("prontuario_registros")
+}
+
+model ProntuarioArquivo {
+  id          String             @id @default(cuid())
+  evolutionId String
+  pacienteId  String
+  tenantId    String
+  nome        String
+  tipo        String             // EXAME | FOTO | DOCUMENTO | RECEITA | ATESTADO
+  url         String
+  descricao   String?
+  evolution   ProntuarioRegistro @relation(fields: [evolutionId], references: [id], onDelete: Cascade)
+  createdAt   DateTime           @default(now())
+
+  @@map("prontuario_arquivos")
+}
+
+model PacienteAlergia {
+  id         String   @id @default(cuid())
+  pacienteId String
+  tenantId   String
+  descricao  String
+  gravidade  String   @default("MODERADA") // LEVE | MODERADA | GRAVE
+  paciente   Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@map("paciente_alergias")
+}
+
+model PacienteMedicamento {
+  id         String    @id @default(cuid())
+  pacienteId String
+  tenantId   String
+  nome       String
+  dosagem    String?
+  frequencia String?
+  uso        String    @default("CONTINUO") // CONTINUO | TEMPORARIO
+  inicio     DateTime?
+  fim        DateTime?
+  ativo      Boolean   @default(true)
+  paciente   Paciente  @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@map("paciente_medicamentos")
+}
+
+model ProntuarioTemplate {
+  id             String   @id @default(cuid())
+  profissionalId String?
+  tenantId       String
+  nome           String
+  especialidade  String?
+  isGlobal       Boolean  @default(false) // templates padrão Synka
+  campos         Json     // estrutura do template
+  clinica        Clinica  @relation(fields: [tenantId], references: [tenantId])
+  createdAt      DateTime @default(now())
+
+  @@map("prontuario_templates")
 }
 
 model MedidaCorporal {
