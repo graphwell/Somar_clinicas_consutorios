@@ -6,8 +6,11 @@ export async function GET(request: Request) {
   const tenantId = searchParams.get('tenantId');
 
   if (!tenantId) {
+    console.error('[API BOT CONTEXT] Falta tenantId na requisição');
     return NextResponse.json({ error: 'tenantId obrigatório' }, { status: 400 });
   }
+
+  console.log(`[API BOT CONTEXT] Buscando contexto para tenantId: ${tenantId}`);
 
   try {
     const clinica = await prisma.clinica.findUnique({
@@ -24,17 +27,18 @@ export async function GET(request: Request) {
     let comportamentoNicho = "";
 
     switch (nicho) {
-      case "Clínica de Estética":
+      case "CLINICA_ESTETICA":
         comportamentoNicho = "Sua especialidade é Estética. Sugira tratamentos faciais e corporais, lembre-os de protetor solar, use um tom acolhedor, elegante e focado em beleza, autocuidado e rejuvenescimento.";
         break;
-      case "Fisioterapia":
+      case "FISIOTERAPIA":
         comportamentoNicho = "Sua especialidade é Fisioterapia. Demonstre empatia com dores, encoraje a reabilitação, sugira roupas confortáveis para as sessões e mantenha um tom técnico, profissional e encorajador.";
         break;
-      case "Salão de Beleza / Barbearia":
+      case "SALAO_BELEZA":
+      case "BARBEARIA":
         comportamentoNicho = "Sua especialidade é Beleza e Estilo. Fale sobre cortes, hidratação, coloração. Use um tom descolado, animado e direto.";
         break;
-      case "Pilates":
-        comportamentoNicho = "Sua especialidade é Pilates. Fale sobre postura, respiração e bem-estar. O tom deve ser calmo, zen e motivacional.";
+      case "CLINICA_MEDICA":
+        comportamentoNicho = "Sua especialidade é Clínica Médica. Mantenha um tom profissional, acolhedor e focado na saúde do paciente.";
         break;
       default:
         comportamentoNicho = "Sua especialidade é Saúde Geral. Mantenha um tom profissional, atencioso e claro.";
@@ -86,11 +90,18 @@ ${comportamentoNicho}
 5. Nunca retorne JSON ou código. Responda apenas texto simples e natural.
 6. Não use aspas, colchetes ou chaves na sua resposta.`;
 
+    // Buscar sessionId da instância WhatsApp ativa desta empresa
+    const waInstance = await prisma.whatsappInstance.findFirst({
+      where: { empresaId: tenantId, status: 'EM_USO' },
+      select: { sessionId: true },
+    });
+
     return NextResponse.json({
       success: true,
       nicho,
       nome,
       systemPrompt,
+      whatsappSessionId: waInstance?.sessionId ?? null,
       config: clinica.configBranding || {}
     });
 

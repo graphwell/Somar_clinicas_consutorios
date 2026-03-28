@@ -94,6 +94,8 @@ export const config = {
     '/api/team/:path*',
     '/api/patients/:path*',
     '/api/convenios/:path*',
-    '/api/bot/:path*'
+    '/api/bot/:path*',
+    '/api/admin/:path*',
+    '/api/whatsapp/:path*'
   ],
 };

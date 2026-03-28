@@ -39,7 +39,8 @@ model Clinica {
 
   @@map("clinicas")
   planosAssinatura PlanoAssinatura[]
-  integracoes      ClinicIntegration[]
+  integracoes         ClinicIntegration[]
+  whatsappInstances   WhatsappInstance[]
 }
 
 enum NichoType {
@@ -82,6 +83,7 @@ model Paciente {
 
   isSubscriber          Boolean  @default(false)
   profissionalPreferidoId String?
+  cpf                   String?   // New field for patient identification
   deletedAt             DateTime?
 
   tenantId        String
@@ -108,6 +110,7 @@ model Profissional {
   clinica      Clinica       @relation(fields: [tenantId], references: [tenantId])
   agendamentos Agendamento[]
   escalas      ProfessionalSchedule[]
+  servicos     Servico[]     // Many-to-many with services
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
@@ -246,6 +249,7 @@ model Servico {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
+  profissionais    Profissional[] // Many-to-many with professionals
   gatilhosUpsell   ComboUpsell[] @relation("GatilhoUpsell")
   ofertasUpsell    ComboUpsell[] @relation("OfertaUpsell")
   agendamentos     Agendamento[]
@@ -345,4 +349,35 @@ model ClinicIntegration {
   updatedAt DateTime @updatedAt
 
   @@map("clinic_integrations")
+}
+
+enum WhatsappStatus {
+  LIVRE
+  EM_USO
+  DEMO
+  OFFLINE
+  AGUARDANDO
+}
+
+enum WhatsappPlataforma {
+  WASENDERAPI
+  ULTRAMSG
+}
+
+model WhatsappInstance {
+  id           String              @id @default(cuid())
+  empresaId    String?
+  sessionId    String              @unique
+  bearerToken  String
+  numeroWa     String?
+  status       WhatsappStatus      @default(LIVRE)
+  plataforma   WhatsappPlataforma  @default(WASENDERAPI)
+  webhookUrl   String?
+  observacoes  String?
+  criadoEm     DateTime            @default(now())
+  conectadoEm  DateTime?
+  ultimoPing   DateTime?
+  empresa      Clinica?            @relation(fields: [empresaId], references: [tenantId])
+
+  @@map("whatsapp_instances")
 }

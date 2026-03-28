@@ -64,14 +64,8 @@ export default function DashboardPage() {
         setUser(u);
         
         // Se profissional, tentar auto-selecionar
-        const isProf = ['profissional', 'medico', 'especialista', 'dentista', 'barbeiro'].includes(u.role?.toLowerCase());
-        if (isProf) {
-          // Tentaremos parear pelo email ou nome assim que os profissionais carregarem
-        } else {
-          // Se admin/recepcao, recuperar última seleção da sessão se houver
-          const lastProf = sessionStorage.getItem('synka-selected-prof');
-          if (lastProf) setSelectedProfId(lastProf);
-        }
+        // Profissionais são auto-selecionados após carregar a lista (ver efeito abaixo)
+        // Admin e recepção sempre passam pelo Wizard ao abrir a página
       }
     }
   }, [fetchAll]);
@@ -82,8 +76,8 @@ export default function DashboardPage() {
       const isProf = ['profissional', 'medico', 'especialista', 'dentista', 'barbeiro', 'esteticista'].includes(user.role?.toLowerCase());
       const isAdmin = ['admin', 'gestor'].includes(user.role?.toLowerCase());
       
-      // Se for admin, NUNCA seleciona automaticamente para forçar o Wizard
-      if (isAdmin) {
+      // Admin e recepção NUNCA são auto-selecionados — devem passar pelo Wizard
+      if (isAdmin || !isProf) {
         setSelectedProfId(null);
         return;
       }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import os from 'os';
 import { getMasterPrisma } from '@/lib/prisma';
+import prisma from '@/lib/prisma';
 
 export async function GET() {
   try {
@@ -23,13 +24,23 @@ export async function GET() {
       queueSize: 0
     };
 
-    // 3. WhatsApp Mock (Em produção, chamar via Evolution/UltraMsg)
+    // 3. WhatsApp — dados reais do pool
+    const [waTotal, waLivre, waEmUso, waDemo, waOffline, waAguardando] = await Promise.all([
+      prisma.whatsappInstance.count(),
+      prisma.whatsappInstance.count({ where: { status: 'LIVRE' } }),
+      prisma.whatsappInstance.count({ where: { status: 'EM_USO' } }),
+      prisma.whatsappInstance.count({ where: { status: 'DEMO' } }),
+      prisma.whatsappInstance.count({ where: { status: 'OFFLINE' } }),
+      prisma.whatsappInstance.count({ where: { status: 'AGUARDANDO' } }),
+    ]);
     const waStats = {
-      activeInstances: 4,
-      totalInstances: 5,
-      msgsSentToday: 1243,
-      deliveryRate: 98.4,
-      alerts: 1
+      activeInstances: waEmUso,
+      totalInstances: waTotal,
+      freeInstances: waLivre,
+      demoInstances: waDemo,
+      offlineInstances: waOffline,
+      waitingInstances: waAguardando,
+      alertaEstoque: waLivre <= 2,
     };
 
     // 4. Payment & Storage

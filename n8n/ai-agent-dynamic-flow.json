@@ -15,7 +15,7 @@
     },
     {
       "parameters": {
-        "url": "https://api.somar.ia.br/api/bot/context?tenantId=clinica_id_default",
+        "url": "https://api.somar.ia.br/api/bot/context?tenantId=tenant_einstein_demo",
         "options": {}
       },
       "id": "fetch-context",
@@ -61,15 +61,76 @@
     },
     {
       "parameters": {
-        "name": "consultar_horarios",
-        "description": "Retorna os horários disponíveis para uma data (GET). Parâmetros: date (YYYY-MM-DD)",
+        "name": "tool_list",
+        "description": "Lista especialidades, serviços ou profissionais da clínica. Parâmetro obrigatório: tipo — use 'especialidades' para clínicas médicas/multi, 'servicos' para salões/estéticas/fisio, 'profissionais' para ver todos os profissionais.",
         "method": "GET",
-        "url": "https://api.somar.ia.br/api/bot/availability",
+        "url": "https://api.somar.ia.br/api/n8n/list-metadata",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "tenantId", "value": "tenant_einstein_demo" },
+            { "name": "tipo", "value": "={{ $fromAI('tipo') }}" }
+          ]
+        }
+      },
+      "id": "tool-list",
+      "name": "Ferramenta: Listar Opções",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1,
+      "position": [ 750, 420 ]
+    },
+    {
+      "parameters": {
+        "name": "tool_list_by_service",
+        "description": "Retorna os profissionais que atendem um serviço específico. Parâmetro obrigatório: servicoId (ID do serviço obtido via tool_list).",
+        "method": "GET",
+        "url": "https://api.somar.ia.br/api/n8n/professionals-by-service",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "tenantId", "value": "tenant_einstein_demo" },
+            { "name": "servicoId", "value": "={{ $fromAI('servicoId') }}" }
+          ]
+        }
+      },
+      "id": "tool-list-by-service",
+      "name": "Ferramenta: Profissionais por Serviço",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1,
+      "position": [ 900, 480 ]
+    },
+    {
+      "parameters": {
+        "name": "tool_client_info",
+        "description": "Verifica se o cliente já é cadastrado, retorna profissional preferido e se é assinante ativo. Parâmetro obrigatório: whatsapp (número do remetente da conversa).",
+        "method": "GET",
+        "url": "https://api.somar.ia.br/api/n8n/client-info",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "tenantId", "value": "tenant_einstein_demo" },
+            { "name": "whatsapp", "value": "={{ $fromAI('whatsapp') }}" }
+          ]
+        }
+      },
+      "id": "tool-client-info",
+      "name": "Ferramenta: Info do Cliente",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1,
+      "position": [ 1050, 540 ]
+    },
+    {
+      "parameters": {
+        "name": "tool_availability",
+        "description": "Retorna os horários disponíveis para uma data. Parâmetros obrigatórios: date (YYYY-MM-DD), profissionalId (ID do profissional escolhido).",
+        "method": "GET",
+        "url": "https://api.somar.ia.br/api/n8n/availability",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
             { "name": "date", "value": "={{ $fromAI('date') }}" },
-            { "name": "tenantId", "value": "clinica_id_default" }
+            { "name": "profissionalId", "value": "={{ $fromAI('profissionalId') }}" },
+            { "name": "tenantId", "value": "tenant_einstein_demo" }
           ]
         }
       },
@@ -77,32 +138,32 @@
       "name": "Ferramenta: Ver Horários",
       "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
       "typeVersion": 1,
-      "position": [ 750, 400 ]
+      "position": [ 1200, 420 ]
     },
     {
       "parameters": {
-        "name": "consultar_meus_agendamentos",
-        "description": "Busca agendamentos atuais pelo telefone do paciente para ver o ID (GET). Exige: phone.",
+        "name": "tool_get_appointments",
+        "description": "Busca agendamentos existentes pelo telefone do paciente (para obter o ID antes de remarcar ou cancelar). Parâmetro obrigatório: phone.",
         "method": "GET",
         "url": "https://api.somar.ia.br/api/bot/appointments",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
             { "name": "phone", "value": "={{ $fromAI('phone') }}" },
-            { "name": "tenantId", "value": "clinica_id_default" }
+            { "name": "tenantId", "value": "tenant_einstein_demo" }
           ]
         }
       },
       "id": "tool-get-appointments",
-      "name": "Ferramenta: Consultar Meus Agendamentos",
+      "name": "Ferramenta: Consultar Agendamentos",
       "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
       "typeVersion": 1,
-      "position": [ 900, 450 ]
+      "position": [ 1050, 620 ]
     },
     {
       "parameters": {
-        "name": "novo_agendamento",
-        "description": "Cria um agendamento novo (POST). Requer: pacienteTelefone, pacienteNome, dataHora ISO.",
+        "name": "tool_book",
+        "description": "Cria um novo agendamento. PROIBIDO usar antes do cliente confirmar com SIM. Parâmetros obrigatórios: pacienteTelefone, pacienteNome, dataHora (ISO 8601), profissionalId, servicoId.",
         "method": "POST",
         "url": "https://api.somar.ia.br/api/bot/appointments",
         "sendBody": true,
@@ -111,21 +172,22 @@
             { "name": "pacienteTelefone", "value": "={{ $fromAI('pacienteTelefone') }}" },
             { "name": "pacienteNome", "value": "={{ $fromAI('pacienteNome') }}" },
             { "name": "dataHora", "value": "={{ $fromAI('dataHora') }}" },
+            { "name": "profissionalId", "value": "={{ $fromAI('profissionalId') }}" },
             { "name": "servicoId", "value": "={{ $fromAI('servicoId') }}" },
-            { "name": "tenantId", "value": "clinica_id_default" }
+            { "name": "tenantId", "value": "tenant_einstein_demo" }
           ]
         }
       },
-      "id": "tool-schedule",
-      "name": "Ferramenta: Agendar Novo",
+      "id": "tool-book",
+      "name": "Ferramenta: Criar Agendamento",
       "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
       "typeVersion": 1,
-      "position": [ 1050, 500 ]
+      "position": [ 1350, 480 ]
     },
     {
       "parameters": {
-        "name": "atualizar_agendamento",
-        "description": "Remarca ou Cancela (PUT). Exige: id (obtido em consultar_meus_agendamentos), e OPCIONAL: status ('cancelado') OU dataHora (para remarcar).",
+        "name": "tool_update_appointment",
+        "description": "Remarca ou cancela um agendamento existente. Parâmetro obrigatório: id (obtido via tool_get_appointments). Opcional: status='cancelado' para cancelar, ou dataHora (ISO 8601) para remarcar.",
         "method": "PUT",
         "url": "https://api.somar.ia.br/api/bot/appointments/{{ $fromAI('id') }}",
         "sendBody": true,
@@ -133,16 +195,15 @@
           "parameters": [
             { "name": "status", "value": "={{ $fromAI('status') }}" },
             { "name": "dataHora", "value": "={{ $fromAI('dataHora') }}" },
-            { "name": "servicoId", "value": "={{ $fromAI('servicoId') }}" },
-            { "name": "tenantId", "value": "clinica_id_default" }
+            { "name": "tenantId", "value": "tenant_einstein_demo" }
           ]
         }
       },
       "id": "tool-update",
-      "name": "Ferramenta: Atualizar/Cancelar via ID",
+      "name": "Ferramenta: Remarcar ou Cancelar",
       "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
       "typeVersion": 1,
-      "position": [ 1200, 550 ]
+      "position": [ 1350, 600 ]
     },
     {
       "parameters": {
@@ -160,7 +221,7 @@
         "options": {}
       },
       "id": "send-wa",
-      "name": "Disparar Resposta UltraMsg",
+      "name": "Disparar Resposta WhatsApp",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [ 850, 300 ]
@@ -192,12 +253,37 @@
         [ { "node": "Agente Autônomo Especializado", "type": "ai_memory", "index": 0 } ]
       ]
     },
+    "Ferramenta: Listar Opções": {
+      "ai_tool": [
+        [ { "node": "Agente Autônomo Especializado", "type": "ai_tool", "index": 0 } ]
+      ]
+    },
+    "Ferramenta: Profissionais por Serviço": {
+      "ai_tool": [
+        [ { "node": "Agente Autônomo Especializado", "type": "ai_tool", "index": 0 } ]
+      ]
+    },
+    "Ferramenta: Info do Cliente": {
+      "ai_tool": [
+        [ { "node": "Agente Autônomo Especializado", "type": "ai_tool", "index": 0 } ]
+      ]
+    },
     "Ferramenta: Ver Horários": {
       "ai_tool": [
         [ { "node": "Agente Autônomo Especializado", "type": "ai_tool", "index": 0 } ]
       ]
     },
-    "Ferramenta: Gestão Agendamento": {
+    "Ferramenta: Consultar Agendamentos": {
+      "ai_tool": [
+        [ { "node": "Agente Autônomo Especializado", "type": "ai_tool", "index": 0 } ]
+      ]
+    },
+    "Ferramenta: Criar Agendamento": {
+      "ai_tool": [
+        [ { "node": "Agente Autônomo Especializado", "type": "ai_tool", "index": 0 } ]
+      ]
+    },
+    "Ferramenta: Remarcar ou Cancelar": {
       "ai_tool": [
         [ { "node": "Agente Autônomo Especializado", "type": "ai_tool", "index": 0 } ]
       ]

@@ -7,6 +7,7 @@ export default function AdminSynkaPage() {
   const [metrics, setMetrics] = useState<any>(null);
   const [clinicas, setClinicas] = useState<any[]>([]);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const [editingNicho, setEditingNicho] = useState<any>(null);
   const [newNicho, setNewNicho] = useState('');
   const [newLabels, setNewLabels] = useState<any>({});
