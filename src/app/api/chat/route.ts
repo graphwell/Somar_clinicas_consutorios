@@ -132,7 +132,7 @@ export async function POST(request: Request) {
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      return NextResponse.json({ error: 'Configuração de IA pendente (GEMINI_API_KEY).' }, { status: 500 });
+      return NextResponse.json({ error: 'GEMINI_API_KEY não configurada.' }, { status: 500 });
     }
 
     const clinica = await prisma.clinica.findUnique({ where: { tenantId } });
@@ -148,44 +148,42 @@ export async function POST(request: Request) {
       ? profissionais.map(p => `- ${p.nome}${p.especialidade ? ` (${p.especialidade})` : ''}`).join('\n')
       : '(nenhum profissional cadastrado ainda)';
 
-    // Monta conversa completa como array de conteúdos
-    const systemContext = `Você é a Synka IA, assistente de suporte da plataforma Synka.
-Clínica: "${clinica.razaoSocial}" | Nicho: ${clinica.nicho} | Papel do usuário: ${role}
+    const systemPrompt = `Você é a Synka IA, assistente de suporte da plataforma Synka.
+Clínica: "${clinica.razaoSocial}" | Nicho: ${clinica.nicho} | Papel: ${role}
 Serviços: ${servicesList}
 Profissionais: ${profList}
+
 ${SYNKA_KNOWLEDGE}
-REGRAS: Responda em Português Brasil. Use listas numeradas para passo-a-passo. Seja conciso (máx 350 tokens).`;
 
-    const contents: { role: string; parts: { text: string }[] }[] = [];
-
-    // Histórico anterior (somente pares válidos)
-    const safeHistory: any[] = Array.isArray(history) ? history.filter(
-      (h: any) => (h?.role === 'user' || h?.role === 'model') && h?.parts?.[0]?.text
-    ) : [];
-
-    // Contexto injetado como primeira mensagem do usuário
-    contents.push({ role: 'user', parts: [{ text: `[CONTEXTO DO SISTEMA]\n${systemContext}` }] });
-    contents.push({ role: 'model', parts: [{ text: 'Entendido. Sou a Synka IA, pronta para ajudar.' }] });
-
-    // Histórico da conversa
-    contents.push(...safeHistory);
-
-    // Mensagem atual
-    contents.push({ role: 'user', parts: [{ text: message }] });
+REGRAS: Responda SEMPRE em Português Brasil. Use listas numeradas para passo-a-passo. Formate com **negrito**. Respostas concisas (máx 400 tokens).`;
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.0-flash',
+      systemInstruction: systemPrompt,
+    });
 
-    const result = await model.generateContent({
-      contents,
+    // Converte histórico para formato Gemini
+    const safeHistory: { role: 'user' | 'model'; parts: { text: string }[] }[] = [];
+    if (Array.isArray(history)) {
+      for (const h of history) {
+        if ((h?.role === 'user' || h?.role === 'model') && h?.parts?.[0]?.text) {
+          safeHistory.push({ role: h.role, parts: [{ text: h.parts[0].text }] });
+        }
+      }
+    }
+
+    const chat = model.startChat({
+      history: safeHistory,
       generationConfig: { maxOutputTokens: 500, temperature: 0.7 },
     });
 
+    const result = await chat.sendMessage(message);
     const text = result.response.text();
     return NextResponse.json({ success: true, text });
   } catch (error: any) {
     const msg = error?.message || String(error);
     console.error('[CHAT_IA_ERROR]', msg);
-    return NextResponse.json({ error: msg || 'Erro desconhecido' }, { status: 500 });
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
