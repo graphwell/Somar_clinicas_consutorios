@@ -27,11 +27,14 @@ export async function POST(request: Request) {
   if (!admin) return NextResponse.json({ error: 'Acesso restrito: apenas synka_admin' }, { status: 403 });
 
   const body = await request.json();
-  const { sessionId, bearerToken, plataforma, observacoes } = body;
+  const { sessionId, bearerToken, plataforma, observacoes, status } = body;
 
   if (!sessionId || !bearerToken) {
     return NextResponse.json({ error: 'sessionId e bearerToken são obrigatórios' }, { status: 400 });
   }
+
+  const statusValidos = ['LIVRE', 'DEMO', 'EM_USO', 'OFFLINE', 'AGUARDANDO'];
+  const statusFinal = statusValidos.includes(status) ? status : 'LIVRE';
 
   const jaExiste = await prisma.whatsappInstance.findUnique({ where: { sessionId }, select: { id: true } });
   if (jaExiste) {
@@ -44,7 +47,7 @@ export async function POST(request: Request) {
       bearerToken,
       plataforma: plataforma || 'WASENDERAPI',
       observacoes: observacoes || null,
-      status: 'LIVRE',
+      status: statusFinal,
     },
     select: INSTANCE_SELECT,
   });

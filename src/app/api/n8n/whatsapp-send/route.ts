@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { wasenderPost } from '@/lib/wasender';
+import { sendWhatsAppMessage } from '@/lib/wasender';
 
 function validateN8nKey(request: Request) {
   const key = request.headers.get('x-api-key') || request.headers.get('authorization')?.replace('Bearer ', '');
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
 
   const instancia = await prisma.whatsappInstance.findUnique({
     where: { sessionId },
-    select: { bearerToken: true, status: true },
+    select: { bearerToken: true, status: true, plataforma: true },
   });
 
   if (!instancia) {
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: `Instância não está disponível (status: ${instancia.status})` }, { status: 503 });
   }
 
-  const { ok, data } = await wasenderPost(instancia.bearerToken, '/messages/send', { to, message });
+  const { ok, data } = await sendWhatsAppMessage(instancia.plataforma, sessionId, instancia.bearerToken, to, message);
 
   if (!ok) {
     return NextResponse.json({ error: 'Falha ao enviar mensagem via WasenderAPI', detalhe: data }, { status: 502 });
