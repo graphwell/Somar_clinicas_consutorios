@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
+import { fetchWithAuth } from '@/lib/api-utils';
 
 const INTEGRATIONS = [
   { id: 'stripe', name: 'Stripe', logo: '💳', status: 'connected', description: 'Pagamentos internacionais e recorrência automática.' },
@@ -40,7 +41,7 @@ function WhatsAppCard() {
   async function checkCurrentStatus() {
     setWa({ status: 'loading' });
     try {
-      const res = await fetch('/api/whatsapp/minha-instancia');
+      const res = await fetchWithAuth('/api/whatsapp/minha-instancia');
       const json = await res.json();
       if (!json.instancia) {
         setWa({ status: 'sem_instancia' });
@@ -64,7 +65,7 @@ function WhatsAppCard() {
     stopPolling();
     pollRef.current = setInterval(async () => {
       try {
-        const res = await fetch('/api/whatsapp/status');
+        const res = await fetchWithAuth('/api/whatsapp/status');
         const json = await res.json();
         if (json.conectado || json.status === 'EM_USO') {
           stopPolling();
@@ -77,7 +78,7 @@ function WhatsAppCard() {
   async function ativar() {
     setWa({ status: 'loading' });
     try {
-      const res = await fetch('/api/whatsapp/ativar', { method: 'POST' });
+      const res = await fetchWithAuth('/api/whatsapp/ativar', { method: 'POST' });
       const json = await res.json();
 
       if (json.status === 'ja_configurado') {
@@ -85,7 +86,7 @@ function WhatsAppCard() {
 
       } else if (json.status === 'aguardando_scan') {
         // já estava aguardando — buscar QR atual
-        const qrRes = await fetch('/api/whatsapp/qrcode');
+        const qrRes = await fetchWithAuth('/api/whatsapp/qrcode');
         const qrJson = await qrRes.json();
         setWa({ status: 'aguardando_scan', qrCode: qrJson.qrCode ?? undefined });
         startPolling();
@@ -112,7 +113,7 @@ function WhatsAppCard() {
   async function reconectar() {
     setWa({ status: 'loading' });
     try {
-      const res = await fetch('/api/whatsapp/reconectar', { method: 'POST' });
+      const res = await fetchWithAuth('/api/whatsapp/reconectar', { method: 'POST' });
       const json = await res.json();
       setWa({ status: 'aguardando_scan', qrCode: json.qrCode ?? undefined });
       startPolling();

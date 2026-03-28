@@ -47,9 +47,14 @@ export default function OpsCenterPage() {
     setWaLoading(true);
     try {
       const qs = statusFilter ? `?status=${statusFilter}` : '';
-      const res = await fetchWithAuth(`/api/admin/whatsapp${qs}`);
+      const res = await fetch(`/api/admin/whatsapp${qs}`, {
+        headers: { 'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('synka-token') : ''}` }
+      });
+      if (!res.ok) { setWaLoading(false); return; }
       const json = await res.json();
       setWaInstancias(json.instancias ?? []);
+    } catch {
+      // silenciar — usuário sem permissão synka_admin
     } finally {
       setWaLoading(false);
     }
@@ -75,11 +80,21 @@ export default function OpsCenterPage() {
     return () => { if (waPollRef.current) { clearInterval(waPollRef.current); waPollRef.current = null; } };
   }, [activeTab]);
 
+  const adminFetch = (path: string, options?: RequestInit) =>
+    fetch(path, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('synka-token') : ''}`,
+        ...(options?.headers ?? {}),
+      },
+    });
+
   async function handleReconectar(instancia: WaInstancia) {
     setQrLoading(true);
     setQrModal({ id: instancia.id, sessionId: instancia.sessionId });
     try {
-      const res = await fetchWithAuth(`/api/admin/whatsapp/${instancia.id}/reconectar`, { method: 'POST' });
+      const res = await adminFetch(`/api/admin/whatsapp/${instancia.id}/reconectar`, { method: 'POST' });
       const json = await res.json();
       setQrModal({ id: instancia.id, sessionId: instancia.sessionId, qrCode: json.qrCode ?? undefined });
     } finally {
@@ -89,7 +104,7 @@ export default function OpsCenterPage() {
 
   async function handleDesvincular(id: string) {
     if (!confirm('Desvincular instância desta empresa? Ela voltará ao pool como LIVRE.')) return;
-    await fetchWithAuth(`/api/admin/whatsapp/${id}/desvincular`, { method: 'PUT' });
+    await adminFetch(`/api/admin/whatsapp/${id}/desvincular`, { method: 'PUT' });
     fetchWaInstancias(waFilterRef.current || undefined);
   }
 
