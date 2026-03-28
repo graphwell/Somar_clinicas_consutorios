@@ -187,10 +187,8 @@ DIRETRIZES:
 
     return NextResponse.json({ success: true, text });
   } catch (error: any) {
-    console.error('[CHAT_IA_ERROR]', error?.message || error);
-    const msg = error?.message || '';
-    if (msg.includes('API key')) return NextResponse.json({ error: 'Chave Gemini inválida ou não configurada.' }, { status: 500 });
-    if (msg.includes('quota') || msg.includes('429')) return NextResponse.json({ error: 'Limite de requisições atingido. Tente em alguns instantes.' }, { status: 429 });
-    return NextResponse.json({ error: 'Erro ao processar inteligência. Tente novamente.' }, { status: 500 });
+    const msg = error?.message || String(error);
+    console.error('[CHAT_IA_ERROR]', msg);
+    return NextResponse.json({ error: msg || 'Erro desconhecido' }, { status: 500 });
   }
 }
