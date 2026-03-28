@@ -140,7 +140,7 @@ export async function POST(request: Request) {
 
     const services = await prisma.servico.findMany({ where: { tenantId }, take: 20 });
     const servicesList = services.length > 0
-      ? services.map(s => `- ${s.nome}: R$ ${s.preco.toFixed(2)} (${s.duracao}min)`).join('\n')
+      ? services.map(s => `- ${s.nome}: R$ ${s.preco.toFixed(2)} (${s.duracaoMinutos}min)`).join('\n')
       : '(nenhum serviço cadastrado ainda)';
 
     const profissionais = await prisma.profissional.findMany({ where: { tenantId }, take: 10 });

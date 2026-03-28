@@ -23,7 +23,8 @@ export async function middleware(request: NextRequest) {
     '/api/convenios',
     '/api/prontuario',
     '/api/odontograma',
-    '/api/specialties'
+    '/api/specialties',
+    '/api/chat'
   ];
 
   if (protectedPrefixes.some(prefix => pathname.startsWith(prefix))) {
@@ -104,6 +105,7 @@ export const config = {
     '/api/whatsapp/:path*',
     '/api/prontuario/:path*',
     '/api/odontograma/:path*',
-    '/api/specialties/:path*'
+    '/api/specialties/:path*',
+    '/api/chat/:path*'
   ],
 };
