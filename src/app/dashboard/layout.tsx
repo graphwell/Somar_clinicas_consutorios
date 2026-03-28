@@ -39,12 +39,18 @@ const NavigationLinks = ({ isCollapsed }: { isCollapsed: boolean }) => {
     } catch {}
   }, []);
 
-  const isAdmin = userRole === 'admin' || userRole === 'synka_admin';
-  const isRecepcao = userRole === 'recepcao';
+  const isAdmin      = userRole === 'admin' || userRole === 'synka_admin';
+  const isRecepcao   = userRole === 'recepcao';
   const isProfissional = userRole === 'profissional';
+
+  // Ícone para o prontuário varia por tipo
+  const prontuarioIcon = labels.tipoProntuario === 'ODONTOLOGICO' ? '🦷'
+    : labels.tipoProntuario === 'NUTRICIONAL' ? '🥗' : '🩺';
 
   return (
     <div className="flex flex-col gap-1 flex-1 overflow-y-auto no-scrollbar py-1">
+
+      {/* Principal */}
       <section className="space-y-0.5">
         <p className={`text-[9px] font-black uppercase tracking-[0.2em] text-text-placeholder mb-3 px-4 ${isCollapsed ? 'hidden' : 'block'}`}>Principal</p>
         <NavItem href="/dashboard" label={labels.termoAgenda} icon="📅" isCollapsed={isCollapsed} active={pathname === '/dashboard'} />
@@ -53,35 +59,56 @@ const NavigationLinks = ({ isCollapsed }: { isCollapsed: boolean }) => {
           <NavItem href="/dashboard/team" label={labels.termoProfissionalPlural} icon="🧑‍💼" isCollapsed={isCollapsed} active={pathname === '/dashboard/team'} />
         )}
         {!isProfissional && (
-          <NavItem href="/dashboard/services" label={labels.termoServicoPlural} icon="📦" isCollapsed={isCollapsed} active={pathname === '/dashboard/services'} />
+          <NavItem href="/dashboard/services" label={labels.termoAtendimentoPlural} icon="📦" isCollapsed={isCollapsed} active={pathname === '/dashboard/services'} />
+        )}
+        {/* Especialidades — apenas CLINICA_MULTI */}
+        {labels.temEspecialidades && !isProfissional && (
+          <NavItem href="/dashboard/specialties" label="Especialidades" icon="🏥" isCollapsed={isCollapsed} active={pathname.startsWith('/dashboard/specialties')} />
         )}
       </section>
 
+      {/* Clínico / Operação */}
       <section className="space-y-0.5">
         <p className={`text-[9px] font-black uppercase tracking-[0.2em] text-text-placeholder mb-2 px-4 ${isCollapsed ? 'hidden' : 'block'}`}>Operação</p>
+
         {labels.temProntuario && (
-          <NavItem href="/dashboard/clinical-records" label="Prontuário" icon="🩺" isCollapsed={isCollapsed} active={pathname.startsWith('/dashboard/clinical-records')} />
+          <NavItem href="/dashboard/clinical-records" label={labels.termoProntuario} icon={prontuarioIcon} isCollapsed={isCollapsed} active={pathname.startsWith('/dashboard/clinical-records')} />
         )}
+
+        {/* Odontograma — exclusivo ODONTOLOGIA */}
+        {labels.temOdontograma && (
+          <NavItem href="/dashboard/odontograma" label="Odontograma" icon="🦷" isCollapsed={isCollapsed} active={pathname.startsWith('/dashboard/odontograma')} />
+        )}
+
+        {/* Plano Alimentar — exclusivo NUTRICAO */}
+        {labels.temPlanoAlimentar && (
+          <NavItem href="/dashboard/nutrition-plan" label="Plano Alimentar" icon="🥗" isCollapsed={isCollapsed} active={pathname.startsWith('/dashboard/nutrition-plan')} />
+        )}
+
         {labels.temConvenio && !isProfissional && (
           <NavItem href="/dashboard/insurance" label="Convênios" icon="💳" isCollapsed={isCollapsed} active={pathname.startsWith('/dashboard/insurance')} />
         )}
+
         {labels.temAssinatura && !isProfissional && (
-          <NavItem href="/dashboard/subscriptions" label="Planos e Assinaturas" icon="🎟️" isCollapsed={isCollapsed} active={pathname.startsWith('/dashboard/subscriptions')} />
+          <NavItem href="/dashboard/subscriptions" label="Planos de Assinatura" icon="🎟️" isCollapsed={isCollapsed} active={pathname.startsWith('/dashboard/subscriptions')} />
         )}
+
         {isAdmin && (
           <NavItem href="/dashboard/reports" label="Relatórios" icon="📊" isCollapsed={isCollapsed} active={pathname === '/dashboard/reports'} />
         )}
       </section>
 
+      {/* Marketing & IA — só admin e recepcao */}
       {(isAdmin || isRecepcao) && (
         <section className="space-y-0.5 border-t border-slate-50 pt-1">
           <p className={`text-[8px] font-black uppercase tracking-[0.2em] text-text-placeholder mb-1 px-3 ${isCollapsed ? 'hidden' : 'block'}`}>Marketing & IA</p>
           <NavItem href="/dashboard/help" label="Central de Ajuda" icon="🧠" isCollapsed={isCollapsed} active={pathname === '/dashboard/help'} />
-          {isAdmin && <NavItem href="/dashboard/marketing/campaigns" label="Campanhas" icon="📢" isCollapsed={isCollapsed} active={pathname === '/dashboard/marketing/campaigns'} />}
+          {isAdmin && <NavItem href="/dashboard/marketing/campaigns" label="Avisos e Lembretes" icon="📢" isCollapsed={isCollapsed} active={pathname === '/dashboard/marketing/campaigns'} />}
           {isAdmin && <NavItem href="/dashboard/marketing/integrations" label="Integrações" icon="🔗" isCollapsed={isCollapsed} active={pathname === '/dashboard/marketing/integrations'} />}
         </section>
       )}
 
+      {/* Gestão */}
       <section className="space-y-0.5 border-t border-slate-50 pt-1">
         <p className={`text-[8px] font-black uppercase tracking-[0.2em] text-text-placeholder mb-1 px-3 ${isCollapsed ? 'hidden' : 'block'}`}>Gestão</p>
         {isAdmin && <NavItem href="/dashboard/finance" label="Financeiro" icon="🏦" isCollapsed={isCollapsed} active={pathname === '/dashboard/finance'} />}

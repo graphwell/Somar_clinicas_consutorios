@@ -24,26 +24,100 @@ export async function GET(request: Request) {
     const nicho = clinica.nicho;
     const nome = clinica.nome;
 
-    let comportamentoNicho = "";
+    // Linguagem e palavras proibidas por nicho
+    type NichoPromptConfig = {
+      termoAtendimento: string;
+      termoPaciente: string;
+      termoProfissional: string;
+      tratamento: string;
+      comportamento: string;
+      palavrasProibidas: string[];
+    };
 
-    switch (nicho) {
-      case "CLINICA_ESTETICA":
-        comportamentoNicho = "Sua especialidade é Estética. Sugira tratamentos faciais e corporais, lembre-os de protetor solar, use um tom acolhedor, elegante e focado em beleza, autocuidado e rejuvenescimento.";
-        break;
-      case "FISIOTERAPIA":
-        comportamentoNicho = "Sua especialidade é Fisioterapia. Demonstre empatia com dores, encoraje a reabilitação, sugira roupas confortáveis para as sessões e mantenha um tom técnico, profissional e encorajador.";
-        break;
-      case "SALAO_BELEZA":
-      case "BARBEARIA":
-        comportamentoNicho = "Sua especialidade é Beleza e Estilo. Fale sobre cortes, hidratação, coloração. Use um tom descolado, animado e direto.";
-        break;
-      case "CLINICA_MEDICA":
-        comportamentoNicho = "Sua especialidade é Clínica Médica. Mantenha um tom profissional, acolhedor e focado na saúde do paciente.";
-        break;
-      default:
-        comportamentoNicho = "Sua especialidade é Saúde Geral. Mantenha um tom profissional, atencioso e claro.";
-        break;
-    }
+    const NICHO_PROMPTS: Record<string, NichoPromptConfig> = {
+      CLINICA_MEDICA: {
+        termoAtendimento: 'consulta',
+        termoPaciente: 'paciente',
+        termoProfissional: 'médico',
+        tratamento: 'Dr./Dra.',
+        comportamento: 'Você é a atendente virtual de uma clínica médica. Mantenha tom profissional, acolhedor e focado na saúde. Use sempre "consulta", "paciente", "médico", "Dr./Dra.". Demonstre empatia com queixas de saúde.',
+        palavrasProibidas: ['cliente', 'serviço', 'corte', 'beleza']
+      },
+      CLINICA_MULTI: {
+        termoAtendimento: 'consulta',
+        termoPaciente: 'paciente',
+        termoProfissional: 'especialista',
+        tratamento: 'Dr./Dra.',
+        comportamento: 'Você é a atendente virtual de uma clínica com múltiplas especialidades. Use sempre "consulta", "paciente", "especialista", "Dr./Dra.". Quando o paciente não souber qual especialidade, ajude a identificar a mais adequada.',
+        palavrasProibidas: ['cliente', 'serviço', 'corte', 'beleza']
+      },
+      ODONTOLOGIA: {
+        termoAtendimento: 'atendimento',
+        termoPaciente: 'paciente',
+        termoProfissional: 'dentista',
+        tratamento: 'Dr./Dra.',
+        comportamento: 'Você é a atendente virtual de um consultório odontológico. Use sempre "atendimento", "paciente", "dentista", "Dr./Dra.". Seja tranquilizador — muitos pacientes têm ansiedade com dentistas. Nunca use "consulta médica" ou termos médicos gerais.',
+        palavrasProibidas: ['cliente', 'serviço', 'corte', 'médico', 'prontuário médico']
+      },
+      FISIOTERAPIA: {
+        termoAtendimento: 'sessão',
+        termoPaciente: 'paciente',
+        termoProfissional: 'fisioterapeuta',
+        tratamento: '',
+        comportamento: 'Você é a atendente virtual de uma clínica de fisioterapia. Use sempre "sessão", "paciente", "fisioterapeuta". Demonstre empatia com dores e lesões. Encoraje a reabilitação. Sugira roupas confortáveis para as sessões.',
+        palavrasProibidas: ['cliente', 'corte', 'beleza', 'médico']
+      },
+      NUTRICAO: {
+        termoAtendimento: 'consulta',
+        termoPaciente: 'paciente',
+        termoProfissional: 'nutricionista',
+        tratamento: '',
+        comportamento: 'Você é a atendente virtual de um consultório de nutrição. Use sempre "consulta", "paciente", "nutricionista". Seja encorajador com objetivos de saúde. Não use "médico" ou "diagnóstico clínico" — apenas orientações nutricionais.',
+        palavrasProibidas: ['cliente', 'corte', 'beleza', 'médico', 'diagnóstico']
+      },
+      CLINICA_ESTETICA: {
+        termoAtendimento: 'procedimento',
+        termoPaciente: 'cliente',
+        termoProfissional: 'esteticista',
+        tratamento: '',
+        comportamento: 'Você é a atendente virtual de uma clínica estética. Use sempre "procedimento", "cliente", "esteticista". Tom acolhedor, elegante e focado em beleza e autocuidado. Sugira protetor solar. Nunca use "consulta médica", "paciente" ou "médico".',
+        palavrasProibidas: ['paciente', 'médico', 'consulta médica', 'prontuário', 'Dr.', 'Dra.']
+      },
+      SALAO_BELEZA: {
+        termoAtendimento: 'serviço',
+        termoPaciente: 'cliente',
+        termoProfissional: 'profissional',
+        tratamento: '',
+        comportamento: 'Você é a atendente virtual de um salão de beleza. Use sempre "serviço", "cliente", nome do profissional diretamente. Tom descolado, animado e direto. Fale sobre cortes, coloração, hidratação. NUNCA use "paciente", "consulta", "médico", "prontuário", "Dr." ou "Dra.".',
+        palavrasProibidas: ['paciente', 'médico', 'consulta', 'prontuário', 'Dr.', 'Dra.', 'clínica médica']
+      },
+      BARBEARIA: {
+        termoAtendimento: 'serviço',
+        termoPaciente: 'cliente',
+        termoProfissional: 'barbeiro',
+        tratamento: '',
+        comportamento: 'Você é a atendente virtual de uma barbearia. Use sempre "serviço", "cliente", "barbeiro" ou nome do barbeiro diretamente. Tom descontraído, direto e amigável. NUNCA use "paciente", "consulta", "médico", "prontuário", "Dr." ou "Dra.".',
+        palavrasProibidas: ['paciente', 'médico', 'consulta', 'prontuário', 'Dr.', 'Dra.', 'clínica médica']
+      }
+    };
+
+    const cfg = NICHO_PROMPTS[nicho] || {
+      termoAtendimento: 'serviço',
+      termoPaciente: 'cliente',
+      termoProfissional: 'profissional',
+      tratamento: '',
+      comportamento: 'Mantenha tom profissional, atencioso e claro.',
+      palavrasProibidas: []
+    };
+
+    const proibidas = cfg.palavrasProibidas.length > 0
+      ? `\nPALAVRAS PROIBIDAS — nunca use: ${cfg.palavrasProibidas.map(p => `"${p}"`).join(', ')}.`
+      : '';
+
+    const comportamentoNicho = `${cfg.comportamento}${proibidas}
+Ao falar de atendimentos use sempre "${cfg.termoAtendimento}".
+Ao falar de quem atende use sempre "${cfg.termoProfissional}"${cfg.tratamento ? ` com tratamento ${cfg.tratamento}` : ''}.
+Ao falar do cliente/paciente use sempre "${cfg.termoPaciente}".`;
 
     // Data e hora atual no fuso de Brasília (-03:00)
     const agora = new Date();

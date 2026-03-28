@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { getNomenclature } from '@/lib/nomenclatures';
 
 interface Servico {
   id: string;
@@ -31,16 +32,8 @@ interface ClinicaData {
 type Step = 'servico' | 'profissional' | 'data' | 'horario' | 'dados' | 'confirmacao';
 
 const STEPS: Step[] = ['servico', 'profissional', 'data', 'horario', 'dados', 'confirmacao'];
-const STEP_LABELS: Record<Step, string> = {
-  servico: 'Serviço',
-  profissional: 'Profissional',
-  data: 'Data',
-  horario: 'Horário',
-  dados: 'Seus Dados',
-  confirmacao: 'Confirmação',
-};
 
-function StepIndicator({ current, steps }: { current: Step; steps: Step[] }) {
+function StepIndicator({ current, steps, stepLabels }: { current: Step; steps: Step[]; stepLabels: Record<Step, string> }) {
   const idx = steps.indexOf(current);
   return (
     <div className="flex items-center gap-1 mb-8">
@@ -53,7 +46,7 @@ function StepIndicator({ current, steps }: { current: Step; steps: Step[] }) {
                 'bg-white border-slate-200 text-slate-400'}`}>
               {i < idx ? '✓' : i + 1}
             </div>
-            <span className="text-[8px] font-black uppercase tracking-wider text-slate-500 hidden sm:block">{STEP_LABELS[s]}</span>
+            <span className="text-[8px] font-black uppercase tracking-wider text-slate-500 hidden sm:block">{stepLabels[s]}</span>
           </div>
           {i < steps.length - 1 && (
             <div className={`flex-1 h-0.5 mb-4 transition-all ${i < idx ? 'bg-emerald-500' : 'bg-slate-100'}`} />
@@ -187,6 +180,16 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
 
   const branding = clinica.branding as any;
   const primaryColor = branding?.primaryColor || '#6366f1';
+  const labels = getNomenclature(clinica.nicho);
+
+  const STEP_LABELS: Record<Step, string> = {
+    servico:      labels.termoAtendimento,
+    profissional: labels.termoProfissional,
+    data:         'Data',
+    horario:      'Horário',
+    dados:        'Seus Dados',
+    confirmacao:  'Confirmação',
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
@@ -203,25 +206,25 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
           )}
           <div>
             <h1 className="font-black text-slate-800 text-lg uppercase tracking-tight">{clinica.nome}</h1>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Agendamento Online</p>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{labels.termoAgendar}</p>
           </div>
         </div>
       </div>
 
       <div className="max-w-lg mx-auto px-4 py-8">
         {step !== 'confirmacao' && (
-          <StepIndicator current={step} steps={STEPS.filter(s => s !== 'confirmacao')} />
+          <StepIndicator current={step} steps={STEPS.filter(s => s !== 'confirmacao')} stepLabels={STEP_LABELS} />
         )}
 
-        {/* ETAPA 1: Serviço */}
+        {/* ETAPA 1: Serviço/Atendimento */}
         {step === 'servico' && (
           <div className="space-y-4">
             <div className="mb-6">
-              <h2 className="text-2xl font-black uppercase tracking-tight text-slate-800">Escolha o Serviço</h2>
+              <h2 className="text-2xl font-black uppercase tracking-tight text-slate-800">Escolha o {labels.termoAtendimento}</h2>
               <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider mt-1">Selecione o que deseja agendar</p>
             </div>
             {clinica.servicos.length === 0 && (
-              <p className="text-center text-slate-400 font-black uppercase text-xs py-12">Nenhum serviço disponível</p>
+              <p className="text-center text-slate-400 font-black uppercase text-xs py-12">Nenhum {labels.termoAtendimento.toLowerCase()} disponível</p>
             )}
             {clinica.servicos.map(s => (
               <button key={s.id} onClick={() => { setSelectedServico(s); setStep('profissional'); }}
@@ -254,8 +257,8 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
             <div className="mb-6 flex items-center gap-3">
               <button onClick={() => setStep('servico')} className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors">←</button>
               <div>
-                <h2 className="text-2xl font-black uppercase tracking-tight text-slate-800">Escolha o Profissional</h2>
-                <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider mt-1">Serviço: {selectedServico?.nome}</p>
+                <h2 className="text-2xl font-black uppercase tracking-tight text-slate-800">Escolha o {labels.termoProfissional}</h2>
+                <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider mt-1">{labels.termoAtendimento}: {selectedServico?.nome}</p>
               </div>
             </div>
             <button onClick={() => { setSelectedProfissional(null); setStep('data'); }}
@@ -264,7 +267,7 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
                 <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 font-black text-lg">?</div>
                 <div>
                   <p className="font-black text-slate-600 uppercase tracking-tight">Sem preferência</p>
-                  <p className="text-[11px] text-slate-400 mt-0.5 font-medium">Qualquer profissional disponível</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5 font-medium">Qualquer {labels.termoProfissional.toLowerCase()} disponível</p>
                 </div>
               </div>
             </button>
@@ -298,7 +301,7 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
               <div>
                 <h2 className="text-2xl font-black uppercase tracking-tight text-slate-800">Escolha a Data</h2>
                 <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider mt-1">
-                  {selectedProfissional?.nome || 'Qualquer profissional'} · {selectedServico?.nome}
+                  {selectedProfissional ? `${labels.tratamentoProfissional ? labels.tratamentoProfissional + ' ' : ''}${selectedProfissional.nome}` : `Qualquer ${labels.termoProfissional.toLowerCase()}`} · {selectedServico?.nome}
                 </p>
               </div>
             </div>
@@ -366,12 +369,12 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
             <div className="bg-white border border-slate-100 rounded-3xl p-6 space-y-3 shadow-sm">
               <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-3">Resumo do Agendamento</p>
               <div className="flex justify-between items-center">
-                <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider">Serviço</span>
+                <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider">{labels.termoAtendimento}</span>
                 <span className="text-[12px] font-black text-slate-700">{selectedServico?.nome}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider">Profissional</span>
-                <span className="text-[12px] font-black text-slate-700">{selectedProfissional?.nome || 'Qualquer'}</span>
+                <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider">{labels.termoProfissional}</span>
+                <span className="text-[12px] font-black text-slate-700">{selectedProfissional?.nome || `Qualquer ${labels.termoProfissional.toLowerCase()}`}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider">Data & Hora</span>
@@ -439,14 +442,16 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
               </div>
               {selectedServico && (
                 <div className="flex justify-between">
-                  <span className="text-[11px] font-black text-slate-400 uppercase">Serviço</span>
+                  <span className="text-[11px] font-black text-slate-400 uppercase">{labels.termoAtendimento}</span>
                   <span className="text-[12px] font-black text-slate-700">{selectedServico.nome}</span>
                 </div>
               )}
               {selectedProfissional && (
                 <div className="flex justify-between">
-                  <span className="text-[11px] font-black text-slate-400 uppercase">Profissional</span>
-                  <span className="text-[12px] font-black text-slate-700">{selectedProfissional.nome}</span>
+                  <span className="text-[11px] font-black text-slate-400 uppercase">{labels.termoProfissional}</span>
+                  <span className="text-[12px] font-black text-slate-700">
+                    {labels.tratamentoProfissional ? `${labels.tratamentoProfissional} ` : ''}{selectedProfissional.nome}
+                  </span>
                 </div>
               )}
               <div className="flex justify-between">

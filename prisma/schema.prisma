@@ -38,9 +38,12 @@ model Clinica {
   updatedAt      DateTime      @updatedAt
 
   @@map("clinicas")
-  planosAssinatura PlanoAssinatura[]
-  integracoes         ClinicIntegration[]
-  whatsappInstances   WhatsappInstance[]
+  planosAssinatura     PlanoAssinatura[]
+  integracoes          ClinicIntegration[]
+  whatsappInstances    WhatsappInstance[]
+  prontuarios          ProntuarioRegistro[]
+  odontogramaItens     OdontogramaItem[]
+  odontogramaHistorico OdontogramaHistorico[]
 }
 
 enum NichoType {
@@ -51,6 +54,7 @@ enum NichoType {
   BARBEARIA
   FISIOTERAPIA
   ODONTOLOGIA
+  NUTRICAO
   OUTRO
 }
 
@@ -92,6 +96,7 @@ model Paciente {
   clinica         Clinica       @relation(fields: [tenantId], references: [tenantId])
   agendamentos    Agendamento[]
   assinaturas     AssinaturaCliente[]
+  prontuarios     ProntuarioRegistro[]
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
@@ -114,6 +119,7 @@ model Profissional {
   escalas      ProfessionalSchedule[]
   servicos     Servico[]     // Many-to-many with services
   usuarios     Usuario[]
+  prontuarios  ProntuarioRegistro[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
@@ -383,4 +389,108 @@ model WhatsappInstance {
   empresa      Clinica?            @relation(fields: [empresaId], references: [tenantId])
 
   @@map("whatsapp_instances")
+}
+
+// ─── Prontuário Digital ──────────────────────────────────────
+
+model ProntuarioRegistro {
+  id             String   @id @default(cuid())
+  pacienteId     String
+  tenantId       String
+  profissionalId String?
+  tipo           String   // CLINICO | ODONTOLOGICO | NUTRICIONAL
+  agendamentoId  String?
+
+  // Campos clínicos gerais
+  queixaPrincipal     String?
+  historiaMolestia    String?
+  historicoMedico     String?
+  medicamentosUso     String?
+  alergias            String?
+  exameSolicitado     String?
+  exameResultado      String?
+  hipoteseDiagnostica String?
+  conduta             String?
+
+  // Campos nutricionais
+  historicoAlimentar  String?
+  restricoes          String?
+  objetivoPaciente    String?
+  planoAlimentar      String?
+  recordatorio24h     String?
+  metas               String?
+
+  paciente     Paciente      @relation(fields: [pacienteId], references: [id])
+  clinica      Clinica       @relation(fields: [tenantId], references: [tenantId])
+  profissional Profissional? @relation(fields: [profissionalId], references: [id])
+  medidas      MedidaCorporal[]
+  odontograma  OdontogramaItem[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("prontuario_registros")
+}
+
+model MedidaCorporal {
+  id            String             @id @default(cuid())
+  prontuarioId  String
+  peso          Float?
+  altura        Float?
+  imc           Float?
+  percGordura   Float?
+  circAbdominal Float?
+  circQuadril   Float?
+  circBraco     Float?
+  circCoxa      Float?
+  prontuario    ProntuarioRegistro @relation(fields: [prontuarioId], references: [id], onDelete: Cascade)
+  createdAt     DateTime           @default(now())
+
+  @@map("medidas_corporais")
+}
+
+enum StatusDente {
+  HIGIDO
+  CARIE
+  RESTAURADO
+  EXTRACAO_INDICADA
+  EXTRAIDO
+  COROA
+  IMPLANTE
+  CANAL
+  FRATURA
+}
+
+model OdontogramaItem {
+  id             String             @id @default(cuid())
+  prontuarioId   String
+  pacienteId     String
+  tenantId       String
+  numeroDente    Int                // 11 a 48 (ISO 3950)
+  status         StatusDente        @default(HIGIDO)
+  facesAfetadas  Json?              // ["mesial","distal","oclusal","vestibular","lingual"]
+  observacao     String?
+  atualizadoPor  String?
+  prontuario     ProntuarioRegistro @relation(fields: [prontuarioId], references: [id], onDelete: Cascade)
+  clinica        Clinica            @relation(fields: [tenantId], references: [tenantId])
+  atualizadoEm   DateTime           @updatedAt
+  createdAt      DateTime           @default(now())
+
+  @@unique([prontuarioId, numeroDente])
+  @@map("odontograma_itens")
+}
+
+// Histórico de alterações do odontograma
+model OdontogramaHistorico {
+  id            String      @id @default(cuid())
+  numeroDente   Int
+  statusAnterior StatusDente?
+  statusNovo    StatusDente
+  observacao    String?
+  alteradoPor   String?
+  tenantId      String
+  pacienteId    String
+  clinica       Clinica     @relation(fields: [tenantId], references: [tenantId])
+  createdAt     DateTime    @default(now())
+
+  @@map("odontograma_historico")
 }
