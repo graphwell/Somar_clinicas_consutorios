@@ -5,7 +5,7 @@ export async function GET(request: Request) {
   // Simples Auth via Header ou Parâmetro (em produção usar NextAuth role=ADMIN)
   const { searchParams } = new URL(request.url);
   const secret = searchParams.get('secret');
-  if (secret !== 'synka-master-2026') return NextResponse.json({ error: 'Unauthorized '}, { status: 401 });
+  if (secret !== '13201320') return NextResponse.json({ error: 'Unauthorized '}, { status: 401 });
 
   try {
     const totalClinicas = await prisma.clinica.count();

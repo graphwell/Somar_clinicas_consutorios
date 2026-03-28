@@ -4,7 +4,7 @@ import prisma from '@/lib/prisma';
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const secret = searchParams.get('secret');
-  if (secret !== 'synka-master-2026') return NextResponse.json({ error: 'Unauthorized '}, { status: 401 });
+  if (secret !== '13201320') return NextResponse.json({ error: 'Unauthorized '}, { status: 401 });
 
   try {
     const clinicas = await prisma.clinica.findMany({

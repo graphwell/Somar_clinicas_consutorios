@@ -7,7 +7,7 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
   const { searchParams } = new URL(request.url);
   const secret = searchParams.get('secret');
   
-  if (secret !== 'synka-master-2026') return NextResponse.json({ error: 'Unauthorized '}, { status: 401 });
+  if (secret !== '13201320') return NextResponse.json({ error: 'Unauthorized '}, { status: 401 });
 
   const body = await request.json();
   const { statusBot, nicho } = body;
