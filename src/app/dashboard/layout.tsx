@@ -27,15 +27,34 @@ const NavItem = ({ href, label, icon, isCollapsed, active }: { href: string; lab
 const NavigationLinks = ({ isCollapsed }: { isCollapsed: boolean }) => {
   const { labels } = useNicho();
   const pathname = usePathname();
-  
+  const [userRole, setUserRole] = React.useState<string>('admin');
+
+  React.useEffect(() => {
+    try {
+      const stored = localStorage.getItem('synka-user');
+      if (stored) {
+        const u = JSON.parse(stored);
+        if (u?.role) setUserRole(u.role);
+      }
+    } catch {}
+  }, []);
+
+  const isAdmin = userRole === 'admin' || userRole === 'synka_admin';
+  const isRecepcao = userRole === 'recepcao';
+  const isProfissional = userRole === 'profissional';
+
   return (
     <div className="flex flex-col gap-1 flex-1 overflow-y-auto no-scrollbar py-1">
       <section className="space-y-0.5">
         <p className={`text-[9px] font-black uppercase tracking-[0.2em] text-text-placeholder mb-3 px-4 ${isCollapsed ? 'hidden' : 'block'}`}>Principal</p>
         <NavItem href="/dashboard" label={labels.termoAgenda} icon="📅" isCollapsed={isCollapsed} active={pathname === '/dashboard'} />
         <NavItem href="/dashboard/patients" label={labels.termoPacientePlural} icon="👥" isCollapsed={isCollapsed} active={pathname.startsWith('/dashboard/patients')} />
-        <NavItem href="/dashboard/team" label="Profissionais" icon="🧑‍💼" isCollapsed={isCollapsed} active={pathname === '/dashboard/team'} />
-        <NavItem href="/dashboard/services" label={labels.termoServicoPlural} icon="📦" isCollapsed={isCollapsed} active={pathname === '/dashboard/services'} />
+        {!isProfissional && (
+          <NavItem href="/dashboard/team" label={labels.termoProfissionalPlural} icon="🧑‍💼" isCollapsed={isCollapsed} active={pathname === '/dashboard/team'} />
+        )}
+        {!isProfissional && (
+          <NavItem href="/dashboard/services" label={labels.termoServicoPlural} icon="📦" isCollapsed={isCollapsed} active={pathname === '/dashboard/services'} />
+        )}
       </section>
 
       <section className="space-y-0.5">
@@ -43,26 +62,30 @@ const NavigationLinks = ({ isCollapsed }: { isCollapsed: boolean }) => {
         {labels.temProntuario && (
           <NavItem href="/dashboard/clinical-records" label="Prontuário" icon="🩺" isCollapsed={isCollapsed} active={pathname.startsWith('/dashboard/clinical-records')} />
         )}
-        {labels.temConvenio && (
+        {labels.temConvenio && !isProfissional && (
           <NavItem href="/dashboard/insurance" label="Convênios" icon="💳" isCollapsed={isCollapsed} active={pathname.startsWith('/dashboard/insurance')} />
         )}
-        {labels.temAssinatura && (
+        {labels.temAssinatura && !isProfissional && (
           <NavItem href="/dashboard/subscriptions" label="Planos e Assinaturas" icon="🎟️" isCollapsed={isCollapsed} active={pathname.startsWith('/dashboard/subscriptions')} />
         )}
-        <NavItem href="/dashboard/reports" label="Relatórios" icon="📊" isCollapsed={isCollapsed} active={pathname === '/dashboard/reports'} />
+        {isAdmin && (
+          <NavItem href="/dashboard/reports" label="Relatórios" icon="📊" isCollapsed={isCollapsed} active={pathname === '/dashboard/reports'} />
+        )}
       </section>
 
-      <section className="space-y-0.5 border-t border-slate-50 pt-1">
-        <p className={`text-[8px] font-black uppercase tracking-[0.2em] text-text-placeholder mb-1 px-3 ${isCollapsed ? 'hidden' : 'block'}`}>Marketing & IA</p>
-        <NavItem href="/dashboard/help" label="Central de Ajuda" icon="🧠" isCollapsed={isCollapsed} active={pathname === '/dashboard/help'} />
-        <NavItem href="/dashboard/marketing/campaigns" label="Campanhas" icon="📢" isCollapsed={isCollapsed} active={pathname === '/dashboard/marketing/campaigns'} />
-        <NavItem href="/dashboard/marketing/integrations" label="Integrações" icon="🔗" isCollapsed={isCollapsed} active={pathname === '/dashboard/marketing/integrations'} />
-      </section>
+      {(isAdmin || isRecepcao) && (
+        <section className="space-y-0.5 border-t border-slate-50 pt-1">
+          <p className={`text-[8px] font-black uppercase tracking-[0.2em] text-text-placeholder mb-1 px-3 ${isCollapsed ? 'hidden' : 'block'}`}>Marketing & IA</p>
+          <NavItem href="/dashboard/help" label="Central de Ajuda" icon="🧠" isCollapsed={isCollapsed} active={pathname === '/dashboard/help'} />
+          {isAdmin && <NavItem href="/dashboard/marketing/campaigns" label="Campanhas" icon="📢" isCollapsed={isCollapsed} active={pathname === '/dashboard/marketing/campaigns'} />}
+          {isAdmin && <NavItem href="/dashboard/marketing/integrations" label="Integrações" icon="🔗" isCollapsed={isCollapsed} active={pathname === '/dashboard/marketing/integrations'} />}
+        </section>
+      )}
 
       <section className="space-y-0.5 border-t border-slate-50 pt-1">
         <p className={`text-[8px] font-black uppercase tracking-[0.2em] text-text-placeholder mb-1 px-3 ${isCollapsed ? 'hidden' : 'block'}`}>Gestão</p>
-        <NavItem href="/dashboard/finance" label="Financeiro" icon="🏦" isCollapsed={isCollapsed} active={pathname === '/dashboard/finance'} />
-        <NavItem href="/dashboard/settings" label="Configurações" icon="⚙️" isCollapsed={isCollapsed} active={pathname === '/dashboard/settings'} />
+        {isAdmin && <NavItem href="/dashboard/finance" label="Financeiro" icon="🏦" isCollapsed={isCollapsed} active={pathname === '/dashboard/finance'} />}
+        {!isProfissional && <NavItem href="/dashboard/settings" label="Configurações" icon="⚙️" isCollapsed={isCollapsed} active={pathname === '/dashboard/settings'} />}
       </section>
     </div>
   );
@@ -79,6 +102,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   const [onboardingDone, setOnboardingDone] = useState(false);
   const [loading, setLoading] = useState(true);
   const [hasMounted, setHasMounted] = useState(false);
+  const [currentUser, setCurrentUser] = useState<{ nome?: string; email?: string; role?: string } | null>(null);
 
   useEffect(() => {
     setHasMounted(true);
@@ -97,10 +121,15 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     if (!hasMounted) return;
     
     const token = getAuthToken();
-    if (!token) return; // O outro useEffect cuidará do redirecionamento se necessário
+    if (!token) return;
 
     const stored = localStorage.getItem('synka-sidebar-collapsed');
     if (stored === 'true') setIsCollapsed(true);
+
+    try {
+      const storedUser = localStorage.getItem('synka-user');
+      if (storedUser) setCurrentUser(JSON.parse(storedUser));
+    } catch {}
 
     // Busca branding via /api/settings (mais confiável e unificado)
     fetchWithAuth('/api/settings')
@@ -210,10 +239,10 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                </button>
                <div className="flex items-center gap-4 pl-4 border-l border-card-border ml-2">
                   <div className="text-right hidden sm:block">
-                     <p className="text-[10px] font-black text-text-main uppercase tracking-tighter">Administrador</p>
-                     <p className="text-[8px] font-black text-primary uppercase tracking-widest opacity-60">Synka</p>
+                     <p className="text-[10px] font-black text-text-main uppercase tracking-tighter">{currentUser?.nome || currentUser?.email?.split('@')[0] || 'Usuário'}</p>
+                     <p className="text-[8px] font-black text-primary uppercase tracking-widest opacity-60">{currentUser?.role || 'admin'}</p>
                   </div>
-                  <div className="w-11 h-11 rounded-2xl bg-primary-soft flex items-center justify-center font-black text-primary border border-primary/20 shadow-sm text-sm">A</div>
+                  <div className="w-11 h-11 rounded-2xl bg-primary-soft flex items-center justify-center font-black text-primary border border-primary/20 shadow-sm text-sm">{(currentUser?.nome || currentUser?.email || 'A').charAt(0).toUpperCase()}</div>
                </div>
             </div>
           </div>

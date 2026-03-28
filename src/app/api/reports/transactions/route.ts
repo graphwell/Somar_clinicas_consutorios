@@ -1,9 +1,15 @@
 import { NextResponse } from 'next/server';
+import { headers } from 'next/headers';
 import { getTenantPrisma } from '@/lib/prisma';
 import { getAuthorizedTenantId } from '@/lib/auth-helpers';
 
 export async function GET(request: Request) {
   try {
+    const headerList = await headers();
+    const role = headerList.get('x-user-role') || '';
+    if (role === 'recepcao' || role === 'profissional') {
+      return NextResponse.json({ error: 'Acesso restrito a administradores' }, { status: 403 });
+    }
     const tenantId = await getAuthorizedTenantId();
     const prisma = getTenantPrisma(tenantId);
 
@@ -33,6 +39,11 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const headerList = await headers();
+    const role = headerList.get('x-user-role') || '';
+    if (role === 'recepcao' || role === 'profissional') {
+      return NextResponse.json({ error: 'Acesso restrito a administradores' }, { status: 403 });
+    }
     const tenantId = await getAuthorizedTenantId();
     const prisma = getTenantPrisma(tenantId);
     const body = await request.json();

@@ -64,6 +64,9 @@ export async function middleware(request: NextRequest) {
       requestHeaders.set('x-tenant-id', payload.tenantId);
       requestHeaders.set('x-user-id', payload.userId);
       requestHeaders.set('x-user-role', payload.role);
+      if (payload.profissionalId) {
+        requestHeaders.set('x-profissional-id', payload.profissionalId);
+      }
 
       return NextResponse.next({
         request: {

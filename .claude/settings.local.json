@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -E \"^[^/]*$|/[^/]*$|/[^/]*/[^/]*$|/[^/]*/[^/]*/[^/]*$\")",
+      "Bash(find /c/SOMAR/projeto-somar-n8n -type f -name *agenda* -o -type f -name *schedule* -o -type f -name *appointment*2)",
+      "Bash(find /c/SOMAR/projeto-somar-n8n/src -type f -path *agenda* -o -path *schedule*2)",
+      "Bash(find /c/SOMAR/projeto-somar-n8n/src/app/api -type f -name *.ts2)",
+      "Bash(find /c/SOMAR/projeto-somar-n8n/src -name *context* -o -name *NichoContext*2)",
+      "Bash(find /c/SOMAR/projeto-somar-n8n/src -name *auth* -type f2)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git add:*)",
+      "WebFetch(domain:somar-clinicas-consutorios.vercel.app)",
+      "Bash(node -e \":*)",
+      "Bash(grep -r -i -n \"dev\\\\|demo\\\\|test\\\\|beta\\\\|alpha\\\\|staging\\\\|preview\\\\|official\\\\|wip\\\\|todo\\\\|fixme\" /c/SOMAR/projeto-somar-n8n/src/app --include=*.tsx --include=*.ts --include=*.jsx --include=*.js)",
+      "Bash(xargs grep:*)",
+      "Bash(npx prisma:*)"
+    ]
+  }
+}

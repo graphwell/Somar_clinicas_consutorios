@@ -11,6 +11,7 @@ export interface AuthPayload {
   email: string;
   role: string;
   tenantId: string;
+  profissionalId?: string;
 }
 
 export async function hashPassword(password: string): Promise<string> {

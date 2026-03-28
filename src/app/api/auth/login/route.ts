@@ -24,15 +24,18 @@ export async function POST(request: Request) {
       email: usuario.email,
       role: usuario.role,
       tenantId: usuario.tenantId,
+      profissionalId: usuario.profissionalId || undefined,
     });
 
     return NextResponse.json({
       token,
       user: {
         id: usuario.id,
+        nome: usuario.nome,
         email: usuario.email,
         role: usuario.role,
         tenantId: usuario.tenantId,
+        profissionalId: usuario.profissionalId || null,
         clinica: usuario.clinica.nome,
         slug: usuario.clinica.slug,
       },

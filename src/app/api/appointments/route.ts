@@ -1,14 +1,19 @@
 import { NextResponse } from 'next/server';
 import { getTenantPrisma } from '@/lib/prisma';
-import { getAuthorizedTenantId } from '@/lib/auth-helpers';
+import { getSessionInfo } from '@/lib/auth-helpers';
 
 export async function GET(request: Request) {
   try {
-    const tenantId = await getAuthorizedTenantId();
+    const { tenantId, role, profissionalId } = await getSessionInfo();
     const prisma = getTenantPrisma();
 
+    const where: any = { tenantId };
+    if (role === 'profissional' && profissionalId) {
+      where.profissionalId = profissionalId;
+    }
+
     const appointments = await prisma.agendamento.findMany({
-      where: { tenantId },
+      where,
       include: { 
         paciente: { select: { nome: true, telefone: true } },
         servico: true,
@@ -27,7 +32,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const tenantId = await getAuthorizedTenantId();
+    const { tenantId } = await getSessionInfo();
     const prisma = getTenantPrisma();
     const body = await request.json();
     

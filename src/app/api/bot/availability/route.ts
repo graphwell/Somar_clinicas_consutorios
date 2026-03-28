@@ -4,7 +4,8 @@ import prisma from '@/lib/prisma';
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const dateStr = searchParams.get('date');
-  const tenantId = searchParams.get('tenantId'); // A IA/n8n deve passar o tenantId correspondente ao número WhatsApp
+  const tenantId = searchParams.get('tenantId');
+  const profissionalId = searchParams.get('profissionalId') || null;
 
   if (!dateStr || !tenantId) {
     return NextResponse.json({ error: 'Faltam parâmetros: date ou tenantId' }, { status: 400 });
@@ -28,15 +29,15 @@ export async function GET(request: Request) {
     const endOfDay = new Date(dateStr);
     endOfDay.setUTCHours(23, 59, 59, 999);
 
+    const whereAgendamentos: any = {
+      tenantId,
+      dataHora: { gte: startOfDay, lte: endOfDay },
+      status: { not: 'cancelado' }
+    };
+    if (profissionalId) whereAgendamentos.profissionalId = profissionalId;
+
     const agendamentosExistentes = await prisma.agendamento.findMany({
-      where: {
-        tenantId,
-        dataHora: {
-          gte: startOfDay,
-          lte: endOfDay,
-        },
-        status: { not: 'cancelado' }
-      },
+      where: whereAgendamentos,
     });
 
     const ocupados = agendamentosExistentes.map(a => a.dataHora.toISOString());

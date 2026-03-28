@@ -59,13 +59,19 @@ export async function POST(request: Request) {
 
     let tenantId = body.tenantId || searchParams.get('tenantId');
 
-    // Bios-healing: se não veio no body/query, busca da sessão
+    // Se não veio no body/query, tenta buscar da sessão JWT
     if (!tenantId) {
       try {
         tenantId = await getAuthorizedTenantId();
       } catch (e) {
         console.error('TenantId não encontrado na sessão:', (e as Error).message);
       }
+    }
+
+    if (!tenantId) {
+      return NextResponse.json({
+        error: 'tenantId obrigatório. Envie via body, query param ou token JWT.',
+      }, { status: 400 });
     }
 
     console.log('--- DEBUG AGENDAMENTO V5.15 ---');

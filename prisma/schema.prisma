@@ -55,15 +55,17 @@ enum NichoType {
 }
 
 model Usuario {
-  id        String   @id @default(uuid())
-  nome      String?
-  email     String   @unique
-  senhaHash String
-  role      String   @default("recepcao") // admin, recepcao
-  tenantId  String
-  clinica   Clinica  @relation(fields: [tenantId], references: [tenantId])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String        @id @default(uuid())
+  nome           String?
+  email          String        @unique
+  senhaHash      String
+  role           String        @default("recepcao") // admin, recepcao, profissional
+  tenantId       String
+  profissionalId String?       // preenchido quando role=profissional
+  clinica        Clinica       @relation(fields: [tenantId], references: [tenantId])
+  profissional   Profissional? @relation(fields: [profissionalId], references: [id])
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   @@map("usuarios")
 }
@@ -111,6 +113,7 @@ model Profissional {
   agendamentos Agendamento[]
   escalas      ProfessionalSchedule[]
   servicos     Servico[]     // Many-to-many with services
+  usuarios     Usuario[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 

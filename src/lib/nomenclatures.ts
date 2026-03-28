@@ -1,18 +1,19 @@
 import { NichoType } from '@prisma/client';
 
 export interface NichoLabels {
-  termoPaciente:      string; // "Paciente" | "Cliente"
-  termoPacientePlural: string; // "Pacientes" | "Clientes"
-  termoServico:       string; // "Consulta" | "Serviço" | "Procedimento"
-  termoServicoPlural:  string;
-  termoProfissional:  string; // "Médico" | "Profissional" | "Especialista"
-  termoAgenda:        string; // "Agenda" | "Atendimentos"
-  termoProntuario:    string; // "Prontuário" | "Ficha" | "Anamnese"
-  temProntuario:      boolean;
-  temConvenio:        boolean;
-  temAssinatura:      boolean;
-  temEspecialidades:  boolean;
-  temMultiProf:       boolean;
+  termoPaciente:           string; // "Paciente" | "Cliente"
+  termoPacientePlural:     string; // "Pacientes" | "Clientes"
+  termoServico:            string; // "Consulta" | "Serviço" | "Procedimento"
+  termoServicoPlural:      string;
+  termoProfissional:       string; // "Médico" | "Profissional" | "Especialista"
+  termoProfissionalPlural: string; // "Médicos" | "Profissionais" | "Especialistas"
+  termoAgenda:             string; // "Agenda" | "Atendimentos"
+  termoProntuario:         string; // "Prontuário" | "Ficha" | "Anamnese"
+  temProntuario:           boolean;
+  temConvenio:             boolean;
+  temAssinatura:           boolean;
+  temEspecialidades:       boolean;
+  temMultiProf:            boolean;
 }
 
 export function getNomenclature(nicho: NichoType | string): NichoLabels {
@@ -22,13 +23,16 @@ export function getNomenclature(nicho: NichoType | string): NichoLabels {
   switch (n) {
     case NichoType.CLINICA_MEDICA:
     case NichoType.FISIOTERAPIA:
-    case NichoType.ODONTOLOGIA:
+    case NichoType.ODONTOLOGIA: {
+      const prof = n === 'ODONTOLOGIA' ? 'Dentista' : (n === 'FISIOTERAPIA' ? 'Fisioterapeuta' : 'Médico');
+      const profPlural = n === 'ODONTOLOGIA' ? 'Dentistas' : (n === 'FISIOTERAPIA' ? 'Fisioterapeutas' : 'Médicos');
       return {
         termoPaciente: 'Paciente',
         termoPacientePlural: 'Pacientes',
         termoServico: 'Consulta',
         termoServicoPlural: 'Consultas',
-        termoProfissional: n === 'ODONTOLOGIA' ? 'Dentista' : (n === 'FISIOTERAPIA' ? 'Fisioterapeuta' : 'Médico'),
+        termoProfissional: prof,
+        termoProfissionalPlural: profPlural,
         termoAgenda: 'Agenda',
         termoProntuario: 'Prontuário',
         temProntuario: true,
@@ -37,6 +41,7 @@ export function getNomenclature(nicho: NichoType | string): NichoLabels {
         temEspecialidades: false,
         temMultiProf: true
       };
+    }
 
     case NichoType.CLINICA_MULTI:
       return {
@@ -45,6 +50,7 @@ export function getNomenclature(nicho: NichoType | string): NichoLabels {
         termoServico: 'Consulta',
         termoServicoPlural: 'Consultas',
         termoProfissional: 'Especialista',
+        termoProfissionalPlural: 'Especialistas',
         termoAgenda: 'Agenda',
         termoProntuario: 'Prontuário',
         temProntuario: true,
@@ -61,6 +67,7 @@ export function getNomenclature(nicho: NichoType | string): NichoLabels {
         termoServico: 'Procedimento',
         termoServicoPlural: 'Procedimentos',
         termoProfissional: 'Esteticista',
+        termoProfissionalPlural: 'Esteticistas',
         termoAgenda: 'Agenda',
         termoProntuario: 'Anamnese',
         temProntuario: false,
@@ -78,6 +85,7 @@ export function getNomenclature(nicho: NichoType | string): NichoLabels {
         termoServico: 'Serviço',
         termoServicoPlural: 'Serviços',
         termoProfissional: n === 'BARBEARIA' ? 'Barbeiro' : 'Profissional',
+        termoProfissionalPlural: n === 'BARBEARIA' ? 'Barbeiros' : 'Profissionais',
         termoAgenda: 'Agenda',
         termoProntuario: 'Ficha',
         temProntuario: false,
@@ -94,6 +102,7 @@ export function getNomenclature(nicho: NichoType | string): NichoLabels {
         termoServico: 'Serviço',
         termoServicoPlural: 'Serviços',
         termoProfissional: 'Profissional',
+        termoProfissionalPlural: 'Profissionais',
         termoAgenda: 'Agenda',
         termoProntuario: 'Ficha',
         temProntuario: false,
