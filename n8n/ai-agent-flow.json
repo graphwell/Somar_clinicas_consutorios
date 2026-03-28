@@ -58,7 +58,7 @@
         "queryParameters": {
           "parameters": [
             { "name": "date", "value": "={{ $fromAI('date') }}" },
-            { "name": "tenantId", "value": "clinica_id_default" }
+            { "name": "tenantId", "value": "tenant_einstein_demo" }
           ]
         }
       },
@@ -80,7 +80,7 @@
             { "name": "pacienteTelefone", "value": "={{ $fromAI('pacienteTelefone') }}" },
             { "name": "pacienteNome", "value": "={{ $fromAI('pacienteNome') }}" },
             { "name": "dataHora", "value": "={{ $fromAI('dataHora') }}" },
-            { "name": "tenantId", "value": "clinica_id_default" }
+            { "name": "tenantId", "value": "tenant_einstein_demo" }
           ]
         }
       },

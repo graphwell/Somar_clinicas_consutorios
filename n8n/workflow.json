@@ -16,28 +16,28 @@
     },
     {
       "parameters": {
-        "url": "https://somar-clinicas-consutorios.vercel.app/api/bot/context",
+        "url": "https://somar-clinicas-consutorios.vercel.app/api/n8n/empresa-by-whatsapp",
         "method": "GET",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
             {
-              "name": "tenantId",
-              "value": "={{ $node[\"Webhook\"].json.data?.from ? ($node[\"Webhook\"].json.query?.tenantId || $node[\"Webhook\"].json.body?.tenantId || $node[\"Webhook\"].json.instanceId || 'clinica_id_default') : ($node[\"Webhook\"].json.body?.tenantId || $node[\"Webhook\"].json.instanceId || 'clinica_id_default') }}"
+              "name": "numero_wa",
+              "value": "={{ $node[\"Webhook\"].json.body?.to || $node[\"Webhook\"].json.to || $node[\"Webhook\"].json.data?.to || $node[\"Webhook\"].json.destination }}"
             }
           ]
         },
         "options": {}
       },
-      "id": "Contexto",
-      "name": "Contexto",
+      "id": "IdentificarEmpresa",
+      "name": "Identificar Empresa",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [420, 300]
     },
     {
       "parameters": {
-        "jsCode": "const wh = $node['Webhook'].json; const rawFrom = wh?.data?.from || wh?.body?.data?.from || wh?.body?.from || wh?.from || wh?.sender_number || ''; const sessionId = rawFrom.split('@')[0] || 'default_session'; const message = wh?.data?.body || wh?.body?.data?.body || wh?.body?.message || wh?.body?.body || wh?.message || String(wh?.body || ''); const ctx = $node['Contexto'].json; return [{ json: { sessionId, from: rawFrom, message, systemPrompt: ctx.systemPrompt || '', tenantId: ctx.tenantId || 'clinica_id_default', instanceId: (ctx.config && ctx.config.instanceId) ? ctx.config.instanceId : 'instance156799', ultraMsgToken: (ctx.config && ctx.config.ultraMsgToken) ? ctx.config.ultraMsgToken : 'nbk60ugo4t1craq9' } }];"
+        "jsCode": "const wh = $node['Webhook'].json;\nconst emp = $node['Identificar Empresa'].json;\n\n// Identificação do Remetente (Cliente)\nconst rawFrom = wh?.data?.from || wh?.body?.data?.from || wh?.body?.from || wh?.from || wh?.sender_number || '';\nconst sessionId = rawFrom.split('@')[0] || 'default_session';\n\n// Mensagem do Cliente\nconst message = wh?.data?.body || wh?.body?.data?.body || wh?.body?.message || wh?.body?.body || wh?.message || String(wh?.body || '');\n\n// Dados da Empresa (Identificados dinamicamente)\nreturn [{\n  json: {\n    sessionId,\n    from: rawFrom,\n    message,\n    tenantId: emp.empresa_id,\n    nomeEmpresa: emp.nome_empresa,\n    systemPrompt: emp.instrucoes_ia,\n    // Fallbacks para instâncias de envio se não mapeado no DB\n    instanceId: emp.config?.instanceId || 'instance156799',\n    ultraMsgToken: emp.config?.ultraMsgToken || 'nbk60ugo4t1craq9'\n  }\n}];"
       },
       "id": "PrepareData",
       "name": "PrepareData",
@@ -50,7 +50,9 @@
         "promptType": "define",
         "text": "={{ $json.message }}",
         "options": {
-          "systemMessage": "={{ $json.systemPrompt }}"
+          "systemMessage": "={{ $json.systemPrompt }}",
+          "agent": "tools",
+          "maxIterations": 10
         }
       },
       "id": "Maya",
@@ -92,15 +94,20 @@
     },
     {
       "parameters": {
-        "name": "ver_horarios",
-        "description": "Busca horarios disponiveis no Synka para uma data. Parametro {date} em formato YYYY-MM-DD.",
-        "url": "https://somar-clinicas-consutorios.vercel.app/api/bot/availability?date={date}&tenantId={{ $json.tenantId }}",
+        "name": "tool_availability",
+        "description": "Busca horarios disponiveis no Synka para uma data e profissional. Parametros: {date} (YYYY-MM-DD) e {profissionalId}.",
+        "url": "https://somar-clinicas-consutorios.vercel.app/api/bot/availability?date={date}&profissionalId={profissionalId}&tenantId={{ $json.tenantId }}",
         "method": "GET",
         "placeholderDefinitions": {
           "values": [
             {
               "name": "date",
               "description": "Data desejada no formato YYYY-MM-DD. Ex: 2026-03-24",
+              "type": "string"
+            },
+            {
+              "name": "profissionalId",
+              "description": "ID do profissional",
               "type": "string"
             }
           ]
@@ -136,10 +143,10 @@
     },
     {
       "parameters": {
-        "name": "agendar_novo",
-        "description": "Cria um novo agendamento no Synka. Parametros: {nome} nome do paciente, {dataHora} data e hora no formato ISO 8601 (ex: 2026-03-24T15:00:00).",
+        "name": "tool_book",
+        "description": "Cria um novo agendamento no Synka. Parametros: {nome}, {dataHora} (ISO 8601), {profissionalId} e {servicoId}.",
         "method": "POST",
-        "url": "https://somar-clinicas-consutorios.vercel.app/api/bot/appointments?nome={nome}&dataHora={dataHora}&pacienteTelefone={{ $json.sessionId }}&tenantId={{ $json.tenantId }}",
+        "url": "https://somar-clinicas-consutorios.vercel.app/api/bot/appointments?nome={nome}&dataHora={dataHora}&profissionalId={profissionalId}&servicoId={servicoId}&pacienteTelefone={{ $json.sessionId }}&tenantId={{ $json.tenantId }}",
         "placeholderDefinitions": {
           "values": [
             {
@@ -150,6 +157,16 @@
             {
               "name": "dataHora",
               "description": "Data e hora do agendamento no formato ISO 8601. Ex: 2026-03-24T15:00:00",
+              "type": "string"
+            },
+            {
+              "name": "profissionalId",
+              "description": "ID do profissional selecionado",
+              "type": "string"
+            },
+            {
+              "name": "servicoId",
+              "description": "ID do serviço selecionado",
               "type": "string"
             }
           ]
@@ -228,14 +245,14 @@
       "main": [
         [
           {
-            "node": "Contexto",
+            "node": "Identificar Empresa",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Contexto": {
+    "Identificar Empresa": {
       "main": [
         [
           {
@@ -324,6 +341,39 @@
       ]
     },
     "tool_cancel": {
+      "ai_tool": [
+        [
+          {
+            "node": "Maya",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "tool_metadata": {
+      "ai_tool": [
+        [
+          {
+            "node": "Maya",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "tool_professionals_by_service": {
+      "ai_tool": [
+        [
+          {
+            "node": "Maya",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "tool_client_info": {
       "ai_tool": [
         [
           {

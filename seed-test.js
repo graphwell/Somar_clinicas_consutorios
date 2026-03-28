@@ -12,7 +12,7 @@ async function main() {
       tenantId,
       slug,
       nome: 'Clínica Somar Teste',
-      nicho: 'Clínica Médica',
+      nicho: 'CLINICA_MEDICA',
       botActive: true,
       configBranding: {
         logoUrl: 'https://somar.ia.br/logo.png',
