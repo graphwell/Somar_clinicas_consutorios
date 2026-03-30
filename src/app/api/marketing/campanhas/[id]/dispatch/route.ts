@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { sendAndLog } from '@/lib/marketing-helpers';
 import { processarTemplate } from '@/lib/marketing-utils';
+import { delayHumano, detectarBloqueio, sleep } from '@/lib/marketing-antiaban';
 
 async function getTargetPatients(tenantId: string, campanha: any) {
   const base = { tenantId, deletedAt: null, telefone: { not: null } } as any;
@@ -76,6 +77,7 @@ export async function POST(
 
       let enviados = 0;
       let erros = 0;
+      const historico: { success: boolean }[] = [];
 
       for (const paciente of pacientes) {
         if (!paciente.telefone) { erros++; continue; }
@@ -94,10 +96,19 @@ export async function POST(
         });
 
         if (result.success) enviados++; else erros++;
+        historico.push({ success: result.success });
 
-        emit({ type: 'progress', enviados, erros, total: pacientes.length, nome: paciente.nome });
+        emit({ type: 'progress', enviados, erros, total: pacientes.length, nome: paciente.nome, bloqueado: result.bloqueado });
 
-        await new Promise(r => setTimeout(r, 1500));
+        // — Detecção de bloqueio: ≥4 erros nos últimos 5 → pausa de 2 min
+        if (detectarBloqueio(historico)) {
+          emit({ type: 'aviso', msg: 'Possível bloqueio detectado — pausando 2 minutos para segurança...' });
+          await sleep(120_000);
+          historico.length = 0;  // reseta histórico após pausa
+        }
+
+        // Delay humanizado entre envios
+        await delayHumano();
       }
 
       await prisma.marketingCampanha.update({

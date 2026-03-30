@@ -1,6 +1,13 @@
 import prisma from '@/lib/prisma';
 import { sendWhatsAppMessage, wasenderPost, getWasenderConfig } from '@/lib/wasender';
 import { formatarTelefone } from '@/lib/marketing-utils';
+import {
+  checkRateLimits,
+  calcularRisco,
+  horarioSeguro,
+  motivoHorarioInseguro,
+  RISCO_BLOQUEIO,
+} from '@/lib/marketing-antiaban';
 
 /** Busca a instância WhatsApp ativa do tenant */
 export async function getTenantWhatsappInstance(tenantId: string) {
@@ -17,30 +24,99 @@ interface SendAndLogParams {
   clienteTelefone: string;
   mensagemEnviada: string;
   comboId?: string;
+  /** Se true, pula a verificação de horário seguro (para testes manuais) */
+  forcarHorario?: boolean;
+  /** Se true, pula score de risco (para envios explicitamente aprovados) */
+  ignorarRisco?: boolean;
 }
 
 /**
- * Envia mensagem WhatsApp e loga o resultado em MarketingEnvio.
+ * Envia mensagem WhatsApp com proteções anti-ban e loga o resultado.
  *
- * Hierarquia de instâncias:
- *  1. WhatsappInstance ativa do tenant (via plataforma configurada)
- *  2. wasenderApiKey do MarketingConfig (API Key própria da clínica)
- *  3. Fallback → instância demo (WASENDER_DEMO_API_KEY)
+ * Proteções aplicadas (em ordem):
+ *  1. Verificação de horário seguro (08h–21h Brasília)
+ *  2. Score de risco anti-spam
+ *  3. Rate limiting diário e por hora (com lock transacional)
+ *  4. Hierarquia de instâncias: WhatsApp Instance → API Key própria → Demo
  */
-export async function sendAndLog(params: SendAndLogParams): Promise<{ success: boolean; msgId?: string; error?: string }> {
+export async function sendAndLog(params: SendAndLogParams): Promise<{
+  success: boolean;
+  msgId?: string;
+  error?: string;
+  bloqueado?: boolean;
+  motivo?: string;
+}> {
   const to = formatarTelefone(params.clienteTelefone);
 
-  // ── Nível 1: Instância WhatsApp vinculada ao tenant ──────────────────────
+  // ── Guard 1: Horário seguro ───────────────────────────────────────────────
+  if (!params.forcarHorario && !horarioSeguro()) {
+    await prisma.marketingEnvio.create({
+      data: {
+        tenantId: params.tenantId,
+        tipo: params.tipo,
+        clienteNome: params.clienteNome,
+        clienteTelefone: params.clienteTelefone,
+        mensagemEnviada: params.mensagemEnviada,
+        status: 'pendente',
+        erroDetalhe: motivoHorarioInseguro(),
+        comboId: params.comboId,
+      },
+    });
+    return { success: false, bloqueado: true, motivo: motivoHorarioInseguro() };
+  }
+
+  // ── Guard 2: Score de risco ───────────────────────────────────────────────
+  if (!params.ignorarRisco) {
+    const risco = calcularRisco({
+      mensagem: params.mensagemEnviada,
+      temNome: !!params.clienteNome,
+    });
+
+    if (risco >= RISCO_BLOQUEIO) {
+      await prisma.marketingEnvio.create({
+        data: {
+          tenantId: params.tenantId,
+          tipo: params.tipo,
+          clienteNome: params.clienteNome,
+          clienteTelefone: params.clienteTelefone,
+          mensagemEnviada: params.mensagemEnviada,
+          status: 'bloqueado',
+          erroDetalhe: `Score de risco ${risco}/${RISCO_BLOQUEIO} — envio bloqueado preventivamente`,
+          comboId: params.comboId,
+        },
+      });
+      return { success: false, bloqueado: true, motivo: `Risco anti-spam: score ${risco}` };
+    }
+  }
+
+  // ── Guard 3: Rate limits (com lock transacional) ──────────────────────────
+  const rateCheck = await checkRateLimits(params.tenantId);
+  if (!rateCheck.ok) {
+    await prisma.marketingEnvio.create({
+      data: {
+        tenantId: params.tenantId,
+        tipo: params.tipo,
+        clienteNome: params.clienteNome,
+        clienteTelefone: params.clienteTelefone,
+        mensagemEnviada: params.mensagemEnviada,
+        status: 'bloqueado',
+        erroDetalhe: rateCheck.error,
+        comboId: params.comboId,
+      },
+    });
+    return { success: false, bloqueado: true, motivo: rateCheck.error };
+  }
+
+  // ── Nível 1: Instância WhatsApp vinculada ao tenant ───────────────────────
   const instance = await getTenantWhatsappInstance(params.tenantId);
 
-  // ── Nível 2/3: API Key própria ou demo ───────────────────────────────────
+  // ── Nível 2/3: API Key própria ou demo ────────────────────────────────────
   const mc = !instance
     ? await prisma.marketingConfig.findUnique({ where: { tenantId: params.tenantId } })
     : null;
 
   const wasenderCfg = !instance ? getWasenderConfig(mc?.wasenderApiKey) : null;
 
-  // Se demo não tem chave e não tem instância → erro
   if (!instance && !wasenderCfg?.apiKey) {
     await prisma.marketingEnvio.create({
       data: {
@@ -50,7 +126,7 @@ export async function sendAndLog(params: SendAndLogParams): Promise<{ success: b
         clienteTelefone: params.clienteTelefone,
         mensagemEnviada: params.mensagemEnviada,
         status: 'erro',
-        erroDetalhe: 'Nenhuma instância WhatsApp ativa e sem API key configurada (nem demo)',
+        erroDetalhe: 'Nenhuma instância WhatsApp configurada (nem demo)',
         comboId: params.comboId,
       },
     });
