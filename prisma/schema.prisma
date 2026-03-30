@@ -34,6 +34,8 @@ model Clinica {
   combosUpsell   ComboUpsell[]
   campanhasAviso CampanhaAviso[]
   transacoes     TransacaoFinanceira[]
+  marketingConfig  MarketingConfig?
+  marketingEnvios  MarketingEnvio[]
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
@@ -293,9 +295,14 @@ model CampanhaAviso {
   mensagem             String
   segmentoFiltrosJson  String?  // JSON string
   dataEnvio            DateTime?
-  status               String   @default("pendente") // pendente, enviado, cancelado
+  status               String   @default("pendente") // rascunho, enviando, concluida, cancelado
   totalEnviado         Int      @default(0)
-  
+  totalErros           Int      @default(0)
+  tipo                 String   @default("todos") // todos | aniversariantes | inativos | servico
+  filtroServico        String?
+  filtroInativoDias    Int?
+  concluidoEm          DateTime?
+
   clinica              Clinica  @relation(fields: [tenantId], references: [tenantId])
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
@@ -553,6 +560,47 @@ model OdontogramaItem {
 
   @@unique([prontuarioId, numeroDente])
   @@map("odontograma_itens")
+}
+
+// ─── Marketing / WhatsApp Automação ─────────────────────────────
+
+model MarketingConfig {
+  id                   String   @id @default(cuid())
+  tenantId             String   @unique
+  // Lembrete de consulta
+  lembreteAtivo        Boolean  @default(false)
+  lembreteAntecedencia Int      @default(24)  // horas antes do agendamento
+  lembreteTemplate     String?
+  // Aniversário
+  aniversarioAtivo     Boolean  @default(false)
+  aniversarioDesconto  Int      @default(15)  // % de desconto oferecido
+  aniversarioTemplate  String?
+  // Geral
+  linkConfirmacao      String?
+  clinica              Clinica  @relation(fields: [tenantId], references: [tenantId])
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@map("marketing_configs")
+}
+
+model MarketingEnvio {
+  id               String   @id @default(cuid())
+  tenantId         String
+  tipo             String   // lembrete | aniversario | combo | campanha
+  pacienteId       String?
+  pacienteNome     String?
+  pacienteTelefone String?
+  mensagem         String
+  wasenderMsgId    String?
+  status           String   @default("enviado") // enviado | erro
+  erroDetalhe      String?
+  campanhaId       String?
+  comboId          String?
+  clinica          Clinica  @relation(fields: [tenantId], references: [tenantId])
+  enviadoEm        DateTime @default(now())
+
+  @@map("marketing_envios")
 }
 
 // Histórico de alterações do odontograma

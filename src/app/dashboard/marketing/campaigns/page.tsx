@@ -1,41 +1,181 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNicho } from '@/context/NichoContext';
 import { fetchWithAuth } from '@/lib/api-utils';
 
+// ─── Types ────────────────────────────────────────────────────────────────────
 type Service = { id: string; nome: string; preco: number };
+type Campanha = {
+  id: string; titulo: string; mensagem: string; tipo: string;
+  status: string; totalEnviado: number; totalErros: number;
+  filtroServico?: string; filtroInativoDias?: number; createdAt: string;
+};
+type MarketingConfig = {
+  lembreteAtivo: boolean; lembreteAntecedencia: number; lembreteTemplate: string | null;
+  aniversarioAtivo: boolean; aniversarioDesconto: number; aniversarioTemplate: string | null;
+  linkConfirmacao: string | null;
+};
+type WhatsappInstance = { sessionId: string; numeroWa: string | null; status: string; plataforma: string } | null;
+type Metrics = {
+  summary: Record<string, { enviado: number; erro: number }>;
+  totalEnviados: number; totalErros: number; campanhasConcluidas: number;
+  enviosRecentes: any[];
+};
 
-export default function MarketingHubPage() {
+const DEFAULT_LEMBRETE = `Olá, {nome}! 👋
+
+Passando para lembrar do seu agendamento:
+📅 *{data}* às *{hora}*
+💆 {servico} com {profissional}
+
+Para confirmar sua presença, responda *SIM*.
+Para cancelar, responda *NÃO*.
+
+_Equipe {clinica}_`;
+
+const DEFAULT_ANIVERSARIO = `🎂 *Feliz Aniversário, {nome}!*
+
+A equipe {clinica} deseja a você um dia muito especial! 🎉
+
+Como presente, preparamos um desconto exclusivo:
+🎁 *{desconto}% OFF* na sua próxima visita!
+
+Este desconto é válido por 30 dias. 💖
+
+Com carinho,
+_Equipe {clinica}_ 🌟`;
+
+// ─── Component ────────────────────────────────────────────────────────────────
+export default function MarketingCentralPage() {
   const { labels } = useNicho();
-  const [activeTab, setActiveTab] = useState<'campaigns' | 'combos'>('campaigns');
+  const [tab, setTab] = useState<'automacoes' | 'campanhas' | 'combos' | 'historico'>('automacoes');
+
+  // Data
+  const [config, setConfig] = useState<MarketingConfig | null>(null);
+  const [instance, setInstance] = useState<WhatsappInstance>(null);
+  const [campanhas, setCampanhas] = useState<Campanha[]>([]);
   const [services, setServices] = useState<Service[]>([]);
-  const [campaigns, setCampaigns] = useState<any[]>([]);
+  const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // States for the Combo Builder
-  const [step, setStep] = useState(1);
-  const [selectedMain, setSelectedMain] = useState<string>('');
-  const [selectedUpsell, setSelectedUpsell] = useState<string>('');
-  const [discount, setDiscount] = useState(15);
-  const [showIAPanel, setShowIAPanel] = useState(false);
+  // Automações local state
+  const [localConfig, setLocalConfig] = useState<Partial<MarketingConfig>>({});
+  const [savingConfig, setSavingConfig] = useState(false);
+  const [configSaved, setConfigSaved] = useState(false);
 
-  // States for New Service Modal
+  // Campanhas
+  const [showNovaCampanha, setShowNovaCampanha] = useState(false);
+  const [novaCampanha, setNovaCampanha] = useState({ titulo: '', mensagem: '', tipo: 'todos', filtroServico: '', filtroInativoDias: '30' });
+  const [creatingCampanha, setCreatingCampanha] = useState(false);
+  const [dispatchingId, setDispatchingId] = useState<string | null>(null);
+  const [dispatchProgress, setDispatchProgress] = useState<{ enviados: number; erros: number; total: number; nome: string } | null>(null);
+
+  // Combos
+  const [step, setStep] = useState(1);
+  const [selectedMain, setSelectedMain] = useState('');
+  const [selectedUpsell, setSelectedUpsell] = useState('');
+  const [discount, setDiscount] = useState(15);
   const [showNewServiceModal, setShowNewServiceModal] = useState(false);
   const [newServiceName, setNewServiceName] = useState('');
   const [newServicePrice, setNewServicePrice] = useState('0');
 
   useEffect(() => {
-    setLoading(true);
     Promise.all([
-      fetchWithAuth('/api/services').then(res => res.json()),
-      fetchWithAuth('/api/campaigns').then(res => res.json()),
-      fetchWithAuth('/api/settings/upsell').then(res => res.json())
-    ]).then(([svcs, camps, cmbs]) => {
+      fetchWithAuth('/api/marketing/config').then(r => r.json()),
+      fetchWithAuth('/api/marketing/campanhas').then(r => r.json()),
+      fetchWithAuth('/api/marketing/metrics').then(r => r.json()),
+      fetchWithAuth('/api/services').then(r => r.json()),
+    ]).then(([cfg, camps, met, svcs]) => {
+      if (cfg.config) { setConfig(cfg.config); setLocalConfig(cfg.config); }
+      if (cfg.instance) setInstance(cfg.instance);
+      if (Array.isArray(camps)) setCampanhas(camps);
+      if (met.totalEnviados !== undefined) setMetrics(met);
       if (Array.isArray(svcs)) setServices(svcs);
-      if (Array.isArray(camps)) setCampaigns(camps);
     }).finally(() => setLoading(false));
   }, []);
 
+  // ── Config save ────────────────────────────────────────────────
+  const handleSaveConfig = async () => {
+    setSavingConfig(true);
+    try {
+      const res = await fetchWithAuth('/api/marketing/config', {
+        method: 'PATCH',
+        body: JSON.stringify(localConfig),
+      });
+      if (res.ok) {
+        setConfigSaved(true);
+        setTimeout(() => setConfigSaved(false), 2500);
+      }
+    } finally {
+      setSavingConfig(false);
+    }
+  };
+
+  // ── Criar campanha ─────────────────────────────────────────────
+  const handleCreateCampanha = async () => {
+    if (!novaCampanha.titulo || !novaCampanha.mensagem) return;
+    setCreatingCampanha(true);
+    try {
+      const res = await fetchWithAuth('/api/marketing/campanhas', {
+        method: 'POST',
+        body: JSON.stringify({
+          ...novaCampanha,
+          filtroInativoDias: novaCampanha.tipo === 'inativos' ? Number(novaCampanha.filtroInativoDias) : undefined,
+          filtroServico: novaCampanha.tipo === 'servico' ? novaCampanha.filtroServico : undefined,
+        }),
+      });
+      if (res.ok) {
+        const nova = await res.json();
+        setCampanhas(prev => [nova, ...prev]);
+        setShowNovaCampanha(false);
+        setNovaCampanha({ titulo: '', mensagem: '', tipo: 'todos', filtroServico: '', filtroInativoDias: '30' });
+      }
+    } finally {
+      setCreatingCampanha(false);
+    }
+  };
+
+  // ── Disparar campanha (streaming) ──────────────────────────────
+  const handleDispatch = async (campanhaId: string) => {
+    setDispatchingId(campanhaId);
+    setDispatchProgress(null);
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('synka_token') : null;
+      const res = await fetch(`/api/marketing/campanhas/${campanhaId}/dispatch`, {
+        method: 'POST',
+        headers: { Authorization: token ? `Bearer ${token}` : '' },
+      });
+      if (!res.body) return;
+      const reader = res.body.getReader();
+      const dec = new TextDecoder();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = dec.decode(value);
+        for (const line of chunk.split('\n')) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const data = JSON.parse(line.slice(6));
+            if (data.type === 'progress') {
+              setDispatchProgress({ enviados: data.enviados, erros: data.erros, total: data.total, nome: data.nome });
+            }
+            if (data.type === 'done') {
+              setCampanhas(prev => prev.map(c =>
+                c.id === campanhaId
+                  ? { ...c, status: 'concluida', totalEnviado: data.enviados, totalErros: data.erros }
+                  : c
+              ));
+              setDispatchProgress(null);
+            }
+          } catch {}
+        }
+      }
+    } finally {
+      setDispatchingId(null);
+    }
+  };
+
+  // ── Combo Builder ──────────────────────────────────────────────
   const mainService = services.find(s => s.id === selectedMain);
   const upsellService = services.find(s => s.id === selectedUpsell);
   const totalPrice = (mainService?.preco || 0) + (upsellService?.preco || 0);
@@ -51,147 +191,339 @@ export default function MarketingHubPage() {
         servicoOferecidoId: selectedUpsell,
         descricaoOferta: `Aproveite! Adicione ${upsellService?.nome} por apenas R$ ${(upsellService!.preco - savings).toFixed(2)}`,
         desconto: discount,
-        ativo: true
-      })
+        ativo: true,
+      }),
     });
-    if (res.ok) {
-      alert('🚀 Combo ativado! O Robô já pode oferecê-lo via WhatsApp.');
-      window.location.reload();
-    }
+    if (res.ok) { alert('🚀 Combo ativado!'); window.location.reload(); }
   };
 
   const handleAddService = async () => {
     if (!newServiceName) return;
     const res = await fetchWithAuth('/api/services', {
       method: 'POST',
-      body: JSON.stringify({ nome: newServiceName, preco: Number(newServicePrice) })
+      body: JSON.stringify({ nome: newServiceName, preco: Number(newServicePrice) }),
     });
     if (res.ok) {
-        const created = await res.json();
-        setServices([...services, created]);
-        setShowNewServiceModal(false);
-        setNewServiceName('');
-        setNewServicePrice('0');
+      const created = await res.json();
+      setServices(prev => [...prev, created]);
+      setShowNewServiceModal(false);
+      setNewServiceName(''); setNewServicePrice('0');
     }
   };
 
+  // ── Helpers ────────────────────────────────────────────────────
+  const statusBadge = (status: string) => {
+    const map: Record<string, string> = {
+      rascunho: 'bg-[var(--foreground)]/10 text-[var(--text-muted)]',
+      enviando: 'bg-yellow-500/10 text-yellow-500',
+      concluida: 'bg-emerald-500/10 text-emerald-500',
+      cancelado: 'bg-red-500/10 text-red-500',
+    };
+    const labels: Record<string, string> = { rascunho: 'Rascunho', enviando: 'Enviando...', concluida: 'Concluída', cancelado: 'Cancelada' };
+    return (
+      <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wide ${map[status] || map.rascunho}`}>
+        {labels[status] || status}
+      </span>
+    );
+  };
+
+  const tipoBadge = (tipo: string) => {
+    const map: Record<string, string> = {
+      todos: '👥 Todos', aniversariantes: '🎂 Aniversariantes', inativos: '💤 Inativos', servico: '🔧 Serviço',
+    };
+    return map[tipo] || tipo;
+  };
+
+  const instanceStatus = instance ? (
+    instance.status === 'EM_USO' || instance.status === 'AGUARDANDO'
+      ? { label: 'WhatsApp Conectado', color: 'bg-emerald-500', text: 'text-emerald-500', dot: 'bg-emerald-500' }
+      : { label: 'WhatsApp Desconectado', color: 'bg-red-500', text: 'text-red-500', dot: 'bg-red-500' }
+  ) : { label: 'WhatsApp não configurado', color: 'bg-yellow-500', text: 'text-yellow-500', dot: 'bg-yellow-500' };
+
+  const TABS = [
+    { id: 'automacoes', label: '🤖 Automações' },
+    { id: 'campanhas', label: '📢 Campanhas' },
+    { id: 'combos', label: '🚀 Combos' },
+    { id: 'historico', label: '📋 Histórico' },
+  ] as const;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="w-8 h-8 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-7xl mx-auto space-y-10 pb-10 animate-in fade-in duration-500">
-      
+    <div className="max-w-7xl mx-auto space-y-8 pb-10 animate-in fade-in duration-500">
+
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 bg-[var(--card-bg)] border border-[var(--border)] p-8 rounded-[2.5rem] shadow-sm">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-[var(--card-bg)] border border-[var(--border)] p-8 rounded-[2.5rem] shadow-sm">
         <div>
-          <h2 className="text-3xl font-black tracking-tight text-[var(--foreground)]">
-            Central de Marketing 2.0
-          </h2>
-          <p className="text-[var(--text-muted)] mt-1 font-medium italic">Aumente seu faturamento com avisos inteligentes e combos de {labels.servico}s.</p>
+          <h2 className="text-3xl font-black tracking-tight text-[var(--foreground)]">Central de Marketing</h2>
+          <p className="text-[var(--text-muted)] mt-1 font-medium italic">
+            Automações, campanhas WhatsApp e combos para sua clínica.
+          </p>
         </div>
-        <div className="flex gap-2 p-1.5 bg-[var(--foreground)]/5 border border-[var(--border)] rounded-[1.5rem]">
-          <button 
-            onClick={() => setActiveTab('campaigns')}
-            className={`px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'campaigns' ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20' : 'text-[var(--text-muted)] hover:text-[var(--foreground)]'}`}
-          >
-            📢 Campanhas
-          </button>
-          <button 
-            onClick={() => setActiveTab('combos')}
-            className={`px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'combos' ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20' : 'text-[var(--text-muted)] hover:text-[var(--foreground)]'}`}
-          >
-            🚀 Combo Builder
-          </button>
+        {/* WhatsApp status */}
+        <div className={`flex items-center gap-3 px-6 py-3 rounded-2xl border ${instance?.status === 'EM_USO' || instance?.status === 'AGUARDANDO' ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-yellow-500/30 bg-yellow-500/5'}`}>
+          <span className={`w-2.5 h-2.5 rounded-full ${instanceStatus.dot} animate-pulse`} />
+          <span className={`text-xs font-black uppercase tracking-widest ${instanceStatus.text}`}>
+            {instanceStatus.label}
+          </span>
+          {instance?.numeroWa && (
+            <span className="text-[10px] text-[var(--text-muted)] font-medium">{instance.numeroWa}</span>
+          )}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* Main Content Area */}
-        <div className="lg:col-span-2 space-y-8">
-          
-          {activeTab === 'campaigns' && (
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+
+        {/* Main */}
+        <div className="lg:col-span-3 space-y-6">
+
+          {/* Tabs */}
+          <div className="flex gap-1 p-1.5 bg-[var(--foreground)]/5 border border-[var(--border)] rounded-[1.5rem] overflow-x-auto">
+            {TABS.map(t => (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className={`flex-1 min-w-max px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${tab === t.id ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20' : 'text-[var(--text-muted)] hover:text-[var(--foreground)]'}`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          {/* ── Tab: Automações ─────────────────────────────────── */}
+          {tab === 'automacoes' && (
             <div className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="bg-[var(--card-bg)] border border-[var(--border)] p-8 rounded-[2.5rem] hover:border-[var(--accent)]/40 transition-all group shadow-sm">
-                  <div className="w-14 h-14 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-3xl mb-6 group-hover:scale-110 transition-transform shadow-inner">⏰</div>
-                  <h3 className="font-black text-lg text-[var(--foreground)] tracking-tight">Lembrete de {labels.servico}</h3>
-                  <p className="text-xs text-[var(--text-muted)] mt-2 font-medium leading-relaxed">Envio automático 24h antes para confirmação. Reduz faltas em até 40%.</p>
-                  <button className="mt-6 text-[10px] font-black text-[var(--accent)] uppercase tracking-widest hover:underline">Configurar Automação →</button>
+              {!instance && (
+                <div className="bg-yellow-500/5 border border-yellow-500/30 rounded-[2rem] p-6 text-sm text-yellow-500 font-medium">
+                  ⚠️ Nenhuma instância WhatsApp configurada. Vá em <strong>Configurações → Integrações</strong> para conectar.
                 </div>
-                <div className="bg-[var(--card-bg)] border border-[var(--border)] p-8 rounded-[2.5rem] hover:border-emerald-500/40 transition-all group shadow-sm">
-                  <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-3xl mb-6 group-hover:scale-110 transition-transform shadow-inner">♻️</div>
-                  <h3 className="font-black text-lg text-[var(--foreground)] tracking-tight">Reativação de {labels.cliente}s</h3>
-                  <p className="text-xs text-[var(--text-muted)] mt-2 font-medium leading-relaxed">Identifica quem não volta há mais de 30 dias e envia um convite especial.</p>
-                  <button className="mt-6 text-[10px] font-black text-emerald-500 uppercase tracking-widest hover:underline">Ver Público Alvo →</button>
+              )}
+
+              {/* Lembrete */}
+              <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] p-8 space-y-6 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-2xl">⏰</div>
+                    <div>
+                      <h3 className="font-black text-[var(--foreground)] tracking-tight">Lembrete de Consulta</h3>
+                      <p className="text-xs text-[var(--text-muted)] font-medium">Envia mensagem automática antes do agendamento</p>
+                    </div>
+                  </div>
+                  {/* Toggle */}
+                  <button
+                    onClick={() => setLocalConfig(prev => ({ ...prev, lembreteAtivo: !prev.lembreteAtivo }))}
+                    className={`relative w-14 h-7 rounded-full transition-all ${localConfig.lembreteAtivo ? 'bg-[var(--accent)]' : 'bg-[var(--foreground)]/10'}`}
+                  >
+                    <span className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-all ${localConfig.lembreteAtivo ? 'left-8' : 'left-1'}`} />
+                  </button>
                 </div>
+
+                {localConfig.lembreteAtivo && (
+                  <div className="space-y-5 pt-2">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Antecedência</label>
+                      <select
+                        value={localConfig.lembreteAntecedencia ?? 24}
+                        onChange={e => setLocalConfig(prev => ({ ...prev, lembreteAntecedencia: Number(e.target.value) }))}
+                        className="w-full max-w-xs bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-5 py-3 text-sm focus:outline-none focus:border-[var(--accent)] font-medium"
+                      >
+                        {[1, 2, 4, 6, 12, 24, 48].map(h => (
+                          <option key={h} value={h}>{h === 1 ? '1 hora antes' : `${h} horas antes`}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">
+                        Template da mensagem
+                      </label>
+                      <p className="text-[10px] text-[var(--text-muted)] pl-1">
+                        Variáveis: <code className="bg-[var(--foreground)]/5 px-1 rounded">{'{nome}'}</code> <code className="bg-[var(--foreground)]/5 px-1 rounded">{'{data}'}</code> <code className="bg-[var(--foreground)]/5 px-1 rounded">{'{hora}'}</code> <code className="bg-[var(--foreground)]/5 px-1 rounded">{'{servico}'}</code> <code className="bg-[var(--foreground)]/5 px-1 rounded">{'{profissional}'}</code> <code className="bg-[var(--foreground)]/5 px-1 rounded">{'{clinica}'}</code>
+                      </p>
+                      <textarea
+                        rows={7}
+                        value={localConfig.lembreteTemplate ?? DEFAULT_LEMBRETE}
+                        onChange={e => setLocalConfig(prev => ({ ...prev, lembreteTemplate: e.target.value }))}
+                        className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-5 py-4 text-sm font-medium focus:outline-none focus:border-[var(--accent)] resize-none leading-relaxed"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
-              <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] overflow-hidden shadow-sm">
-                <div className="p-8 border-b border-[var(--border)] flex justify-between items-center bg-[var(--foreground)]/[0.01]">
-                  <h3 className="font-black text-[var(--foreground)] uppercase tracking-tighter">Histórico de Campanhas</h3>
-                  <button className="px-4 py-2 bg-[var(--foreground)]/5 hover:bg-[var(--foreground)]/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Sincronizar</button>
+              {/* Aniversário */}
+              <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] p-8 space-y-6 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-2xl">🎂</div>
+                    <div>
+                      <h3 className="font-black text-[var(--foreground)] tracking-tight">Mensagem de Aniversário</h3>
+                      <p className="text-xs text-[var(--text-muted)] font-medium">Parabeniza automaticamente no dia do aniversário</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setLocalConfig(prev => ({ ...prev, aniversarioAtivo: !prev.aniversarioAtivo }))}
+                    className={`relative w-14 h-7 rounded-full transition-all ${localConfig.aniversarioAtivo ? 'bg-emerald-500' : 'bg-[var(--foreground)]/10'}`}
+                  >
+                    <span className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-all ${localConfig.aniversarioAtivo ? 'left-8' : 'left-1'}`} />
+                  </button>
                 </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm">
-                    <thead className="bg-[var(--foreground)]/[0.02] text-[var(--text-muted)] text-[10px] uppercase font-black tracking-widest">
-                      <tr>
-                        <th className="px-8 py-5">Nome</th>
-                        <th className="px-8 py-5">Público</th>
-                        <th className="px-8 py-5">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[var(--border)]">
-                      {campaigns.length === 0 ? (
-                        <tr><td colSpan={3} className="px-8 py-16 text-center text-[var(--text-muted)] font-black uppercase tracking-widest text-xs opacity-50">Nenhuma campanha enviada recentemente.</td></tr>
-                      ) : (
-                        campaigns.map(c => (
-                          <tr key={c.id} className="hover:bg-[var(--foreground)]/5 transition-colors">
-                            <td className="px-8 py-5 font-black text-[var(--foreground)]">{c.titulo}</td>
-                            <td className="px-8 py-5 text-[var(--text-muted)] font-medium text-xs">{c.segmentoFiltrosJson || 'Todos'}</td>
-                            <td className="px-8 py-5"><span className="bg-emerald-500/10 text-emerald-500 px-3 py-1 rounded-lg text-[10px] font-black uppercase shadow-inner">{c.totalEnviado || 0} envios</span></td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+
+                {localConfig.aniversarioAtivo && (
+                  <div className="space-y-5 pt-2">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Desconto oferecido (%)</label>
+                      <div className="flex items-center gap-4">
+                        <input
+                          type="range" min={0} max={50} step={5}
+                          value={localConfig.aniversarioDesconto ?? 15}
+                          onChange={e => setLocalConfig(prev => ({ ...prev, aniversarioDesconto: Number(e.target.value) }))}
+                          className="flex-1 accent-emerald-500"
+                        />
+                        <span className="text-2xl font-black text-emerald-500 w-16 text-center">{localConfig.aniversarioDesconto ?? 15}%</span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Template da mensagem</label>
+                      <p className="text-[10px] text-[var(--text-muted)] pl-1">
+                        Variáveis: <code className="bg-[var(--foreground)]/5 px-1 rounded">{'{nome}'}</code> <code className="bg-[var(--foreground)]/5 px-1 rounded">{'{desconto}'}</code> <code className="bg-[var(--foreground)]/5 px-1 rounded">{'{clinica}'}</code>
+                      </p>
+                      <textarea
+                        rows={7}
+                        value={localConfig.aniversarioTemplate ?? DEFAULT_ANIVERSARIO}
+                        onChange={e => setLocalConfig(prev => ({ ...prev, aniversarioTemplate: e.target.value }))}
+                        className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-5 py-4 text-sm font-medium focus:outline-none focus:border-[var(--accent)] resize-none leading-relaxed"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
+
+              <button
+                onClick={handleSaveConfig}
+                disabled={savingConfig}
+                className="w-full py-5 bg-[var(--accent)] hover:opacity-90 disabled:opacity-60 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-[var(--accent)]/20 transition-all active:scale-[0.99]"
+              >
+                {savingConfig ? 'Salvando...' : configSaved ? '✅ Configurações Salvas!' : 'Salvar Configurações'}
+              </button>
             </div>
           )}
 
-          {activeTab === 'combos' && (
+          {/* ── Tab: Campanhas ──────────────────────────────────── */}
+          {tab === 'campanhas' && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <p className="text-sm text-[var(--text-muted)] font-medium">{campanhas.length} campanha{campanhas.length !== 1 ? 's' : ''}</p>
+                <button
+                  onClick={() => setShowNovaCampanha(true)}
+                  className="px-6 py-3 bg-[var(--accent)] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[var(--accent)]/20 hover:opacity-90 transition-all"
+                >
+                  + Nova Campanha
+                </button>
+              </div>
+
+              {campanhas.length === 0 ? (
+                <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] p-16 text-center">
+                  <div className="text-5xl mb-4">📢</div>
+                  <p className="font-black text-[var(--text-muted)] uppercase tracking-widest text-xs">Nenhuma campanha criada</p>
+                  <p className="text-xs text-[var(--text-muted)] mt-2 font-medium">Crie uma campanha para disparar mensagens em lote</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {campanhas.map(c => (
+                    <div key={c.id} className="bg-[var(--card-bg)] border border-[var(--border)] rounded-[2rem] p-6 space-y-4 shadow-sm hover:border-[var(--accent)]/30 transition-all">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="space-y-1">
+                          <h4 className="font-black text-[var(--foreground)] tracking-tight">{c.titulo}</h4>
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <span className="text-[10px] font-black text-[var(--text-muted)] bg-[var(--foreground)]/5 px-2 py-1 rounded-lg">{tipoBadge(c.tipo)}</span>
+                            {statusBadge(c.status)}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {c.status !== 'concluida' && c.status !== 'enviando' && (
+                            <button
+                              onClick={() => handleDispatch(c.id)}
+                              disabled={!!dispatchingId}
+                              className="px-5 py-2.5 bg-[var(--accent)]/10 hover:bg-[var(--accent)]/20 text-[var(--accent)] rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-50 transition-all"
+                            >
+                              {dispatchingId === c.id ? 'Disparando...' : '▶ Disparar'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Progress bar durante dispatch */}
+                      {dispatchingId === c.id && dispatchProgress && (
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-[10px] font-black text-[var(--text-muted)]">
+                            <span>Enviando para {dispatchProgress.nome}…</span>
+                            <span>{dispatchProgress.enviados + dispatchProgress.erros}/{dispatchProgress.total}</span>
+                          </div>
+                          <div className="h-2 bg-[var(--foreground)]/5 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-[var(--accent)] rounded-full transition-all"
+                              style={{ width: `${((dispatchProgress.enviados + dispatchProgress.erros) / dispatchProgress.total) * 100}%` }}
+                            />
+                          </div>
+                          <div className="flex gap-4 text-[10px] font-medium">
+                            <span className="text-emerald-500">✓ {dispatchProgress.enviados} enviados</span>
+                            {dispatchProgress.erros > 0 && <span className="text-red-400">✗ {dispatchProgress.erros} erros</span>}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Stats pós-envio */}
+                      {c.status === 'concluida' && (
+                        <div className="flex gap-6 text-[11px] font-medium pt-1">
+                          <span className="text-emerald-500 font-black">✓ {c.totalEnviado} enviados</span>
+                          {c.totalErros > 0 && <span className="text-red-400 font-black">✗ {c.totalErros} erros</span>}
+                        </div>
+                      )}
+
+                      <p className="text-xs text-[var(--text-muted)] font-medium line-clamp-2 opacity-60">{c.mensagem}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── Tab: Combos ─────────────────────────────────────── */}
+          {tab === 'combos' && (
             <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] p-10 space-y-10 relative overflow-hidden shadow-sm">
               <div className="absolute top-0 right-0 w-80 h-80 bg-[var(--accent)]/5 blur-[120px] pointer-events-none" />
-              
+
+              {/* Steps */}
               <div className="flex items-center gap-4">
-                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-xs ${step >= 1 ? 'bg-[var(--accent)] text-white shadow-lg' : 'bg-[var(--foreground)]/5 text-[var(--text-muted)]'}`}>1</div>
-                <div className={`h-1 flex-1 rounded-full ${step >= 2 ? 'bg-[var(--accent)]' : 'bg-[var(--border)]'}`} />
-                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-xs ${step >= 2 ? 'bg-[var(--accent)] text-white shadow-lg' : 'bg-[var(--foreground)]/5 text-[var(--text-muted)]'}`}>2</div>
-                <div className={`h-1 flex-1 rounded-full ${step >= 3 ? 'bg-[var(--accent)]' : 'bg-[var(--border)]'}`} />
-                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-xs ${step >= 3 ? 'bg-emerald-500 text-white shadow-lg' : 'bg-[var(--foreground)]/5 text-[var(--text-muted)]'}`}>3</div>
+                {[1, 2, 3].map((n, i) => (
+                  <React.Fragment key={n}>
+                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-xs ${step >= n ? (n === 3 ? 'bg-emerald-500' : 'bg-[var(--accent)]') + ' text-white shadow-lg' : 'bg-[var(--foreground)]/5 text-[var(--text-muted)]'}`}>{n}</div>
+                    {i < 2 && <div className={`h-1 flex-1 rounded-full ${step > n ? 'bg-[var(--accent)]' : 'bg-[var(--border)]'}`} />}
+                  </React.Fragment>
+                ))}
               </div>
 
               {step === 1 && (
-                <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center">
                     <div>
                       <h3 className="text-2xl font-black text-[var(--foreground)] tracking-tight">Serviço Principal</h3>
                       <p className="text-[var(--text-muted)] text-sm font-medium">O robô oferecerá o combo quando este item for agendado.</p>
                     </div>
-                    <button 
-                      onClick={() => setShowNewServiceModal(true)}
-                      className="px-6 py-3 bg-[var(--foreground)]/5 hover:bg-[var(--foreground)]/10 border border-[var(--border)] rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all"
-                    >
-                      + Cadastrar Item
-                    </button>
+                    <button onClick={() => setShowNewServiceModal(true)} className="px-6 py-3 bg-[var(--foreground)]/5 hover:bg-[var(--foreground)]/10 border border-[var(--border)] rounded-2xl text-[10px] font-black uppercase tracking-widest">+ Novo</button>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-72 overflow-y-auto pr-2 custom-scrollbar">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-72 overflow-y-auto pr-2">
                     {services.map(s => (
-                      <button 
-                        key={s.id} 
-                        onClick={() => { setSelectedMain(s.id); setStep(2); }}
-                        className={`p-6 border rounded-[1.5rem] text-left transition-all ${selectedMain === s.id ? 'border-[var(--accent)] bg-[var(--accent)]/[0.03] ring-4 ring-[var(--accent)]/5' : 'border-[var(--border)] hover:border-[var(--accent)]/40 hover:bg-[var(--foreground)]/[0.02]'}`}
-                      >
+                      <button key={s.id} onClick={() => { setSelectedMain(s.id); setStep(2); }}
+                        className={`p-6 border rounded-[1.5rem] text-left transition-all ${selectedMain === s.id ? 'border-[var(--accent)] bg-[var(--accent)]/[0.03] ring-4 ring-[var(--accent)]/5' : 'border-[var(--border)] hover:border-[var(--accent)]/40'}`}>
                         <p className="font-black text-[var(--foreground)] text-sm">{s.nome}</p>
-                        <p className="text-[10px] font-black text-[var(--accent)] uppercase tracking-widest mt-1">R$ {s.preco.toFixed(2)}</p>
+                        <p className="text-[10px] font-black text-[var(--accent)] mt-1">R$ {s.preco.toFixed(2)}</p>
                       </button>
                     ))}
                   </div>
@@ -199,23 +531,20 @@ export default function MarketingHubPage() {
               )}
 
               {step === 2 && (
-                <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                  <div className="flex items-center justify-between">
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center">
                     <div>
-                      <h3 className="text-2xl font-black text-[var(--foreground)] tracking-tight">O que oferecer de Upsell?</h3>
-                      <p className="text-[var(--text-muted)] text-sm font-medium italic">Selecione o complemento perfeito para o combo.</p>
+                      <h3 className="text-2xl font-black text-[var(--foreground)] tracking-tight">Serviço de Upsell</h3>
+                      <p className="text-[var(--text-muted)] text-sm font-medium">O complemento perfeito para o combo.</p>
                     </div>
-                    <button onClick={() => setStep(1)} className="text-[10px] font-black text-[var(--text-muted)] hover:text-[var(--foreground)] uppercase tracking-widest">← Voltar</button>
+                    <button onClick={() => setStep(1)} className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">← Voltar</button>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-72 overflow-y-auto pr-2 custom-scrollbar">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-72 overflow-y-auto pr-2">
                     {services.filter(s => s.id !== selectedMain).map(s => (
-                      <button 
-                        key={s.id} 
-                        onClick={() => { setSelectedUpsell(s.id); setStep(3); }}
-                        className={`p-6 border rounded-[1.5rem] text-left transition-all ${selectedUpsell === s.id ? 'border-[var(--accent)] bg-[var(--accent)]/[0.03]' : 'border-[var(--border)] hover:border-[var(--accent)]/40'}`}
-                      >
+                      <button key={s.id} onClick={() => { setSelectedUpsell(s.id); setStep(3); }}
+                        className={`p-6 border rounded-[1.5rem] text-left transition-all ${selectedUpsell === s.id ? 'border-[var(--accent)] bg-[var(--accent)]/[0.03]' : 'border-[var(--border)] hover:border-[var(--accent)]/40'}`}>
                         <p className="font-black text-[var(--foreground)] text-sm">{s.nome}</p>
-                        <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mt-1">R$ {s.preco.toFixed(2)}</p>
+                        <p className="text-[10px] font-black text-emerald-500 mt-1">R$ {s.preco.toFixed(2)}</p>
                       </button>
                     ))}
                   </div>
@@ -223,61 +552,41 @@ export default function MarketingHubPage() {
               )}
 
               {step === 3 && (
-                <div className="space-y-8 animate-in zoom-in-95 duration-300">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-xl font-black text-[var(--foreground)] tracking-tight">Prévia da Oferta Especial</h3>
-                    <button onClick={() => setStep(2)} className="text-[10px] font-black text-[var(--text-muted)] hover:text-[var(--foreground)] uppercase tracking-widest">← Voltar</button>
+                <div className="space-y-8">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-xl font-black text-[var(--foreground)] tracking-tight">Prévia do Combo</h3>
+                    <button onClick={() => setStep(2)} className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">← Voltar</button>
                   </div>
-
                   <div className="flex flex-col md:flex-row gap-10 items-center justify-center">
-                    {/* The Visual Preview Card */}
-                    <div className="w-full max-w-sm bg-[var(--sidebar-bg)] border border-[var(--accent)]/30 rounded-[3rem] p-10 shadow-2xl relative group hover:-rotate-1 transition-all">
-                      <div className="absolute -top-4 -right-4 bg-yellow-400 text-black font-black px-5 py-2.5 rounded-2xl text-[10px] rotate-12 shadow-xl uppercase tracking-widest">
-                        -{discount}% OFF
-                      </div>
-                      <div className="flex flex-col items-center text-center space-y-6">
-                        <div className="w-24 h-24 bg-gradient-to-tr from-[var(--accent)] to-[var(--accent)]/60 rounded-3xl flex items-center justify-center text-5xl shadow-2xl shadow-[var(--accent)]/40">✨</div>
-                        <h4 className="text-2xl font-black italic uppercase tracking-tighter text-[var(--foreground)]">Super Combo</h4>
-                        <div className="space-y-1">
-                          <p className="text-xs font-bold text-[var(--text-muted)] line-through opacity-50">De R$ {totalPrice.toFixed(2)}</p>
-                          <p className="text-5xl font-black text-[var(--foreground)] tracking-tighter">R$ {finalPrice.toFixed(2)}</p>
-                          <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Economize R$ {savings.toFixed(2)}</p>
+                    <div className="w-full max-w-sm bg-[var(--sidebar-bg)] border border-[var(--accent)]/30 rounded-[3rem] p-10 shadow-2xl relative">
+                      <div className="absolute -top-4 -right-4 bg-yellow-400 text-black font-black px-5 py-2 rounded-2xl text-[10px] rotate-12 shadow-xl">-{discount}% OFF</div>
+                      <div className="flex flex-col items-center text-center space-y-5">
+                        <div className="w-20 h-20 bg-gradient-to-tr from-[var(--accent)] to-[var(--accent)]/60 rounded-3xl flex items-center justify-center text-4xl shadow-2xl">✨</div>
+                        <h4 className="text-xl font-black italic uppercase tracking-tighter text-[var(--foreground)]">Super Combo</h4>
+                        <div>
+                          <p className="text-xs text-[var(--text-muted)] line-through opacity-50">R$ {totalPrice.toFixed(2)}</p>
+                          <p className="text-4xl font-black text-[var(--foreground)]">R$ {finalPrice.toFixed(2)}</p>
+                          <p className="text-[10px] font-black text-emerald-500 uppercase">Economize R$ {savings.toFixed(2)}</p>
                         </div>
-                        <div className="w-full pt-6 space-y-3">
-                           <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] bg-[var(--foreground)]/5 p-3 rounded-2xl border border-[var(--border)]">
-                              <span className="text-[var(--accent)]">✔</span> {mainService?.nome}
-                           </div>
-                           <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] bg-[var(--foreground)]/5 p-3 rounded-2xl border border-[var(--border)]">
-                              <span className="text-[var(--accent)]">✔</span> {upsellService?.nome}
-                           </div>
+                        <div className="w-full space-y-2">
+                          {[mainService, upsellService].map((s, i) => s && (
+                            <div key={i} className="flex items-center gap-2 text-[10px] font-black uppercase text-[var(--text-muted)] bg-[var(--foreground)]/5 p-3 rounded-2xl border border-[var(--border)]">
+                              <span className="text-[var(--accent)]">✔</span> {s.nome}
+                            </div>
+                          ))}
                         </div>
                       </div>
                     </div>
-
-                    <div className="flex-1 space-y-8">
+                    <div className="flex-1 space-y-6">
                       <div className="space-y-3">
-                        <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Margem de Desconto 2º item</label>
-                        <input 
-                          type="range" min="5" max="50" step="5" value={discount} onChange={e => setDiscount(Number(e.target.value))}
-                          className="w-full accent-[var(--accent)]"
-                        />
-                        <div className="flex justify-between text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest opacity-50">
-                          <span>Econômico (5%)</span>
-                          <span>Agressivo (50%)</span>
+                        <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">Desconto no 2º item</label>
+                        <input type="range" min={5} max={50} step={5} value={discount} onChange={e => setDiscount(Number(e.target.value))} className="w-full accent-[var(--accent)]" />
+                        <div className="flex justify-between text-[9px] font-black text-[var(--text-muted)] opacity-50">
+                          <span>Leve (5%)</span><span>Agressivo (50%)</span>
                         </div>
                       </div>
-
-                      <div className="bg-[var(--accent)]/5 border border-[var(--accent)]/20 rounded-[1.5rem] p-6">
-                        <p className="text-[11px] text-[var(--accent)] font-medium leading-relaxed italic">
-                          "O combo <strong>{mainService?.nome} + {upsellService?.nome}</strong> tem um ticket médio alto. {discount}% é perfeito para converter no WhatsApp!"
-                        </p>
-                      </div>
-
-                      <button 
-                        onClick={handleSaveCombo}
-                        className="w-full py-5 bg-[var(--accent)] hover:opacity-90 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-2xl shadow-[var(--accent)]/20 active:scale-95"
-                      >
-                        🚀 Ativar Combo no Robô
+                      <button onClick={handleSaveCombo} className="w-full py-5 bg-[var(--accent)] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-[var(--accent)]/20 hover:opacity-90 active:scale-95 transition-all">
+                        🚀 Ativar Combo
                       </button>
                     </div>
                   </div>
@@ -285,131 +594,205 @@ export default function MarketingHubPage() {
               )}
             </div>
           )}
+
+          {/* ── Tab: Histórico ──────────────────────────────────── */}
+          {tab === 'historico' && (
+            <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] overflow-hidden shadow-sm">
+              <div className="p-6 border-b border-[var(--border)] bg-[var(--foreground)]/[0.01]">
+                <h3 className="font-black text-[var(--foreground)] uppercase tracking-tighter">Histórico de Envios</h3>
+                <p className="text-xs text-[var(--text-muted)] font-medium mt-1">Últimas 20 mensagens disparadas pelo sistema</p>
+              </div>
+              {!metrics?.enviosRecentes?.length ? (
+                <div className="p-16 text-center">
+                  <p className="text-[var(--text-muted)] font-black uppercase tracking-widest text-xs opacity-50">Nenhum envio registrado</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead className="bg-[var(--foreground)]/[0.02] text-[var(--text-muted)] text-[10px] uppercase font-black tracking-widest">
+                      <tr>
+                        <th className="px-6 py-4">Tipo</th>
+                        <th className="px-6 py-4">Paciente</th>
+                        <th className="px-6 py-4">Status</th>
+                        <th className="px-6 py-4">Data</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[var(--border)]">
+                      {metrics.enviosRecentes.map((e: any) => {
+                        const tipoMap: Record<string, string> = { lembrete: '⏰', aniversario: '🎂', combo: '✨', campanha: '📢' };
+                        return (
+                          <tr key={e.id} className="hover:bg-[var(--foreground)]/[0.02] transition-colors">
+                            <td className="px-6 py-4">
+                              <span className="text-[10px] font-black bg-[var(--foreground)]/5 px-3 py-1 rounded-lg">
+                                {tipoMap[e.tipo] || '📩'} {e.tipo}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 font-medium text-[var(--foreground)] text-xs">{e.pacienteNome || '—'}</td>
+                            <td className="px-6 py-4">
+                              <span className={`text-[10px] font-black px-2 py-1 rounded-lg ${e.status === 'enviado' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-400'}`}>
+                                {e.status}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-xs text-[var(--text-muted)] font-medium">
+                              {new Date(e.enviadoEm).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* IA Sidekick Panel */}
+        {/* ── Sidebar ────────────────────────────────────────────── */}
         <div className="space-y-6">
-          <div className="bg-gradient-to-br from-[var(--sidebar-bg)] to-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] p-8 shadow-xl relative overflow-hidden group">
-            <div className="absolute -top-16 -right-16 w-48 h-48 bg-[var(--accent)]/10 rounded-full blur-[60px]" />
-            
-            <div className="flex items-center gap-4 mb-8">
-              <div className="w-14 h-14 rounded-2xl bg-[var(--accent)] flex items-center justify-center text-3xl shadow-xl shadow-[var(--accent)]/30 animate-in zoom-in duration-500">🤖</div>
-              <div>
-                <h4 className="font-black text-xs uppercase tracking-widest text-[var(--foreground)]">Consultor Synka IA</h4>
-                <div className="flex items-center gap-1.5 mt-1">
-                  <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_#10b981]" />
-                  <p className="text-[9px] text-emerald-500 font-black tracking-widest uppercase">Analisando Dados</p>
+          {/* Métricas */}
+          <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] p-7 shadow-sm">
+            <h4 className="font-black text-[10px] uppercase tracking-widest text-[var(--text-muted)] mb-5 opacity-70">Resumo Geral</h4>
+            <div className="space-y-4">
+              {[
+                { label: 'Total Enviados', value: metrics?.totalEnviados ?? 0, color: 'text-[var(--accent)]' },
+                { label: 'Lembretes', value: metrics?.summary?.lembrete?.enviado ?? 0, color: 'text-blue-400' },
+                { label: 'Aniversários', value: metrics?.summary?.aniversario?.enviado ?? 0, color: 'text-emerald-500' },
+                { label: 'Campanhas OK', value: metrics?.campanhasConcluidas ?? 0, color: 'text-purple-400' },
+              ].map(item => (
+                <div key={item.label} className="flex justify-between items-center">
+                  <span className="text-xs text-[var(--text-muted)] font-medium">{item.label}</span>
+                  <span className={`text-xl font-black ${item.color}`}>{item.value}</span>
                 </div>
-              </div>
-            </div>
-
-            <div className="space-y-6">
-              <div className="bg-[var(--foreground)]/5 p-5 rounded-[1.5rem] text-[11px] text-[var(--text-muted)] border border-[var(--border)] italic leading-relaxed font-medium">
-                "Analisando o comportamento dos seus <strong>{labels.cliente}s</strong>. Sugiro um combo de <strong>{services[0]?.nome || 'Novos Serviços'}</strong> com desconto agressivo para esta semana!"
-              </div>
-              
-              <div className="space-y-3">
-                <p className="text-[9px] font-black uppercase text-[var(--text-muted)] tracking-widest px-1 opacity-50">Sugestões Rápidas:</p>
-                {services.length > 1 ? (
-                  <>
-                    <button onClick={() => { setSelectedMain(services[0].id); setSelectedUpsell(services[1].id); setStep(3); setActiveTab('combos'); }} className="w-full p-4 bg-[var(--foreground)]/5 hover:bg-[var(--accent)]/10 hover:border-[var(--accent)]/30 text-left rounded-2xl text-[10px] text-[var(--text-muted)] hover:text-[var(--accent)] transition-all border border-[var(--border)] font-black uppercase tracking-widest">
-                      ⚡ Combo Expresso
-                    </button>
-                    <button className="w-full p-4 bg-[var(--foreground)]/5 hover:bg-[var(--foreground)]/10 text-left rounded-2xl text-[10px] text-[var(--text-muted)] transition-all border border-[var(--border)] font-black uppercase tracking-widest">
-                      📩 Reativar {labels.cliente.toLowerCase()}s
-                    </button>
-                  </>
-                ) : (
-                  <button onClick={() => setActiveTab('combos')} className="w-full p-4 bg-[var(--accent)]/10 text-[var(--accent)] rounded-2xl text-[10px] font-black uppercase tracking-widest border border-[var(--accent)]/20">
-                    ✨ Criar primeiro Combo
-                  </button>
-                )}
-                <button 
-                  onClick={() => setShowIAPanel(true)}
-                  className="w-full p-4 bg-[var(--accent)] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-[var(--accent)]/20 hover:scale-[1.02] active:scale-95 text-center mt-2"
-                >
-                  💬 Consultar Estratégia
-                </button>
-              </div>
+              ))}
+              {(metrics?.totalErros ?? 0) > 0 && (
+                <div className="flex justify-between items-center pt-2 border-t border-[var(--border)]">
+                  <span className="text-xs text-red-400 font-medium">Erros</span>
+                  <span className="text-xl font-black text-red-400">{metrics?.totalErros ?? 0}</span>
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] p-8 shadow-sm">
-            <h4 className="font-black text-[10px] uppercase tracking-widest text-[var(--text-muted)] mb-6 pl-1 opacity-70">Métricas do Mês</h4>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 bg-[var(--foreground)]/5 rounded-2xl text-center shadow-inner">
-                <p className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-widest">Upsells</p>
-                <p className="text-2xl font-black text-[var(--accent)] mt-1 tracking-tighter">12</p>
-              </div>
-              <div className="p-4 bg-[var(--foreground)]/5 rounded-2xl text-center shadow-inner">
-                <p className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-widest">Retorno</p>
-                <p className="text-2xl font-black text-emerald-500 mt-1 tracking-tighter">R$ 450</p>
+          {/* Dicas */}
+          <div className="bg-gradient-to-br from-[var(--sidebar-bg)] to-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] p-7 space-y-4 shadow-sm">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-2xl bg-[var(--accent)] flex items-center justify-center text-xl shadow-lg">💡</div>
+              <div>
+                <h4 className="font-black text-xs uppercase tracking-widest text-[var(--foreground)]">Dica Synka</h4>
               </div>
             </div>
+            <div className="space-y-3 text-[11px] text-[var(--text-muted)] font-medium leading-relaxed">
+              <p>📊 Lembretes 24h antes reduzem faltas em até <strong className="text-[var(--foreground)]">40%</strong>.</p>
+              <p>🎂 Pacientes que recebem parabéns retornam <strong className="text-[var(--foreground)]">2x mais</strong> no mês seguinte.</p>
+              <p>⚡ Campanhas para inativos de <strong className="text-[var(--foreground)]">30 dias</strong> têm a melhor taxa de conversão.</p>
+            </div>
+          </div>
+
+          {/* Atalhos */}
+          <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] p-7 space-y-3 shadow-sm">
+            <h4 className="font-black text-[10px] uppercase tracking-widest text-[var(--text-muted)] mb-3 opacity-70">Ações Rápidas</h4>
+            <button onClick={() => { setTab('campanhas'); setShowNovaCampanha(true); }}
+              className="w-full p-4 bg-[var(--foreground)]/5 hover:bg-[var(--accent)]/10 hover:border-[var(--accent)]/30 text-left rounded-2xl text-[10px] text-[var(--text-muted)] hover:text-[var(--accent)] transition-all border border-[var(--border)] font-black uppercase tracking-widest">
+              📢 Nova Campanha
+            </button>
+            <button onClick={() => setTab('automacoes')}
+              className="w-full p-4 bg-[var(--foreground)]/5 hover:bg-[var(--foreground)]/10 text-left rounded-2xl text-[10px] text-[var(--text-muted)] transition-all border border-[var(--border)] font-black uppercase tracking-widest">
+              ⚙️ Configurar Automações
+            </button>
+            <button onClick={() => setTab('combos')}
+              className="w-full p-4 bg-[var(--foreground)]/5 hover:bg-[var(--foreground)]/10 text-left rounded-2xl text-[10px] text-[var(--text-muted)] transition-all border border-[var(--border)] font-black uppercase tracking-widest">
+              🚀 Criar Combo Upsell
+            </button>
           </div>
         </div>
       </div>
 
-      {/* New Service Modal */}
+      {/* ── Modal: Nova Campanha ─────────────────────────────────── */}
+      {showNovaCampanha && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowNovaCampanha(false)} />
+          <div className="relative w-full max-w-lg bg-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] p-10 shadow-2xl animate-in zoom-in-95 duration-200 space-y-6">
+            <div className="flex justify-between items-center">
+              <h3 className="text-xl font-black text-[var(--foreground)] tracking-tight">Nova Campanha</h3>
+              <button onClick={() => setShowNovaCampanha(false)} className="w-10 h-10 flex items-center justify-center rounded-2xl hover:bg-[var(--foreground)]/5 text-[var(--text-muted)] font-black transition-all">✕</button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Nome da campanha</label>
+                <input value={novaCampanha.titulo} onChange={e => setNovaCampanha(p => ({ ...p, titulo: e.target.value }))}
+                  placeholder="Ex: Promoção de Inverno" className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-5 py-4 text-sm focus:outline-none focus:border-[var(--accent)] font-medium" />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Público-alvo</label>
+                <select value={novaCampanha.tipo} onChange={e => setNovaCampanha(p => ({ ...p, tipo: e.target.value }))}
+                  className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-5 py-4 text-sm focus:outline-none focus:border-[var(--accent)] font-medium">
+                  <option value="todos">👥 Todos os {labels.cliente.toLowerCase()}s</option>
+                  <option value="aniversariantes">🎂 Aniversariantes de hoje</option>
+                  <option value="inativos">💤 Inativos (sem visita há X dias)</option>
+                  <option value="servico">🔧 Por serviço específico</option>
+                </select>
+              </div>
+
+              {novaCampanha.tipo === 'inativos' && (
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Inativo há (dias)</label>
+                  <input type="number" value={novaCampanha.filtroInativoDias} onChange={e => setNovaCampanha(p => ({ ...p, filtroInativoDias: e.target.value }))}
+                    className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-5 py-4 text-sm focus:outline-none focus:border-[var(--accent)] font-medium" min={1} />
+                </div>
+              )}
+
+              {novaCampanha.tipo === 'servico' && (
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Nome do serviço</label>
+                  <input value={novaCampanha.filtroServico} onChange={e => setNovaCampanha(p => ({ ...p, filtroServico: e.target.value }))}
+                    placeholder="Ex: Limpeza de pele" className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-5 py-4 text-sm focus:outline-none focus:border-[var(--accent)] font-medium" />
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Mensagem</label>
+                <p className="text-[10px] text-[var(--text-muted)] pl-1">
+                  Variáveis: <code className="bg-[var(--foreground)]/5 px-1 rounded">{'{nome}'}</code> <code className="bg-[var(--foreground)]/5 px-1 rounded">{'{clinica}'}</code>
+                </p>
+                <textarea rows={5} value={novaCampanha.mensagem} onChange={e => setNovaCampanha(p => ({ ...p, mensagem: e.target.value }))}
+                  placeholder="Olá {nome}! Temos uma novidade especial para você..." className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-5 py-4 text-sm focus:outline-none focus:border-[var(--accent)] font-medium resize-none leading-relaxed" />
+              </div>
+            </div>
+
+            <button onClick={handleCreateCampanha} disabled={creatingCampanha || !novaCampanha.titulo || !novaCampanha.mensagem}
+              className="w-full py-5 bg-[var(--accent)] hover:opacity-90 disabled:opacity-50 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-[var(--accent)]/20 transition-all">
+              {creatingCampanha ? 'Criando...' : '✅ Criar Campanha'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal: Novo Serviço ──────────────────────────────────── */}
       {showNewServiceModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowNewServiceModal(false)} />
-          <div className="relative w-full max-w-md bg-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] p-10 shadow-2xl animate-in zoom-in-95">
-            <h3 className="text-2xl font-black mb-8 text-[var(--foreground)] tracking-tight italic uppercase">Novo {labels.servico}</h3>
-            <div className="space-y-6">
+          <div className="relative w-full max-w-md bg-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] p-10 shadow-2xl animate-in zoom-in-95 space-y-6">
+            <h3 className="text-xl font-black text-[var(--foreground)] tracking-tight italic uppercase">Novo {labels.servico}</h3>
+            <div className="space-y-4">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Nome do Item</label>
-                <input 
-                  value={newServiceName} onChange={e => setNewServiceName(e.target.value)}
-                  className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-6 py-5 text-sm focus:outline-none focus:border-[var(--accent)] transition-all font-medium" placeholder="Ex: Hidratação profunda" 
-                />
+                <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Nome</label>
+                <input value={newServiceName} onChange={e => setNewServiceName(e.target.value)} placeholder="Ex: Hidratação profunda"
+                  className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-6 py-5 text-sm focus:outline-none focus:border-[var(--accent)] font-medium" />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Preço Base (R$)</label>
-                <input 
-                  type="number" value={newServicePrice} onChange={e => setNewServicePrice(e.target.value)}
-                  className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-6 py-5 text-sm focus:outline-none focus:border-[var(--accent)] transition-all font-medium" 
-                />
+                <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Preço (R$)</label>
+                <input type="number" value={newServicePrice} onChange={e => setNewServicePrice(e.target.value)}
+                  className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-6 py-5 text-sm focus:outline-none focus:border-[var(--accent)] font-medium" />
               </div>
-              <button 
-                onClick={handleAddService}
-                className="w-full py-5 bg-[var(--accent)] hover:opacity-90 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all mt-4 shadow-xl shadow-[var(--accent)]/20"
-              >
-                CADASTRAR E VOLTAR
+              <button onClick={handleAddService} className="w-full py-5 bg-[var(--accent)] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-[var(--accent)]/20">
+                Cadastrar
               </button>
             </div>
           </div>
         </div>
       )}
-
-      {/* AI Chat Modal */}
-      {showIAPanel && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowIAPanel(false)} />
-          <div className="relative w-full max-w-lg bg-[var(--card-bg)] border border-[var(--border)] rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95">
-             <div className="p-8 border-b border-[var(--border)] bg-[var(--accent)]/[0.03] flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-[var(--accent)] flex items-center justify-center text-2xl shadow-lg">🤖</div>
-                  <div>
-                    <h4 className="font-black text-sm uppercase tracking-tight text-[var(--foreground)]">Consultor Synka IA</h4>
-                    <p className="text-[9px] text-emerald-500 font-black tracking-widest uppercase">Estratégia Ativa</p>
-                  </div>
-                </div>
-                <button onClick={() => setShowIAPanel(false)} className="text-[var(--text-muted)] p-3 hover:bg-[var(--foreground)]/5 rounded-2xl transition-all font-black">✕</button>
-             </div>
-             <div className="p-10 h-96 flex flex-col justify-end space-y-6">
-                <div className="bg-[var(--foreground)]/5 p-6 rounded-[2rem] rounded-bl-none max-w-[90%] text-xs text-[var(--text-muted)] border border-[var(--border)] font-medium leading-relaxed">
-                  "Detectamos que 42 clientes de {labels.servico.toLowerCase()}s estão inativos há 30 dias. Recomendo uma campanha de reativação com cupom de R$ 20. Deseja que eu gere o texto agora?"
-                </div>
-                <div className="flex gap-3">
-                  <input className="flex-1 bg-[var(--foreground)]/5 border border-[var(--border)] rounded-[1.5rem] px-6 text-sm focus:outline-none focus:border-[var(--accent)] font-medium shadow-inner" placeholder="Digite sua dúvida..." />
-                  <button className="w-14 h-14 bg-[var(--accent)] rounded-[1.5rem] text-white shadow-xl shadow-[var(--accent)]/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center text-xl">➤</button>
-                </div>
-             </div>
-          </div>
-        </div>
-      )}
-
     </div>
   );
 }
