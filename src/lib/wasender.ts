@@ -2,6 +2,47 @@ import { verifyToken } from '@/lib/auth';
 
 const WASENDER_BASE = process.env.WASENDER_BASE_URL || 'https://wasenderapi.com/api';
 
+// ── Seleção de Instância ───────────────────────────────────────────────────────
+
+export interface WasenderConfig {
+  apiKey: string;
+  /** true quando está usando a instância demo compartilhada */
+  isDemo: boolean;
+}
+
+/**
+ * Determina qual API Key WaSender usar.
+ *
+ * Prioridade:
+ * 1. MARKETING_DEMO_MODE=true → sempre usa instância demo
+ * 2. clinicaApiKey fornecida  → usa a API Key própria da clínica
+ * 3. Fallback                 → instância demo (homologação compartilhada)
+ */
+export function getWasenderConfig(clinicaApiKey?: string | null): WasenderConfig {
+  const demoKey = process.env.WASENDER_DEMO_API_KEY ?? '';
+
+  // Modo demo forçado (env)
+  if (process.env.MARKETING_DEMO_MODE === 'true') {
+    return { apiKey: demoKey, isDemo: true };
+  }
+
+  // Clínica tem API Key própria
+  if (clinicaApiKey) {
+    return { apiKey: clinicaApiKey, isDemo: false };
+  }
+
+  // Fallback: instância demo
+  return { apiKey: demoKey, isDemo: true };
+}
+
+/** Retorna true se a clínica tem API Key própria configurada (não demo) */
+export function clinicaTemInstanciaPropria(clinicaApiKey?: string | null): boolean {
+  if (process.env.MARKETING_DEMO_MODE === 'true') return false;
+  return !!clinicaApiKey;
+}
+
+
+
 export async function wasenderGet(bearerToken: string, path: string) {
   const res = await fetch(`${WASENDER_BASE}${path}`, {
     headers: { 'Authorization': `Bearer ${bearerToken}`, 'Content-Type': 'application/json' },

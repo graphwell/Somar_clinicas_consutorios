@@ -20,13 +20,27 @@ export async function GET() {
       }),
     ]);
 
+    const temApiKeyPropria = !!config.wasenderApiKey;
+    const forceDemo = process.env.MARKETING_DEMO_MODE === 'true';
+    const temDemo = !!process.env.WASENDER_DEMO_API_KEY;
+
+    // Determina qual instância está ativa
+    let instanciaStatus: 'instancia' | 'propria' | 'demo' | 'nenhuma' = 'nenhuma';
+    if (instance && instance.status !== 'OFFLINE') instanciaStatus = 'instancia';
+    else if (!forceDemo && temApiKeyPropria) instanciaStatus = 'propria';
+    else if (temDemo) instanciaStatus = 'demo';
+
     // Nunca expor a API key completa — retorna mascarada
     const configPublico = {
       ...config,
       wasenderApiKey: config.wasenderApiKey
         ? `${'•'.repeat(Math.max(0, config.wasenderApiKey.length - 4))}${config.wasenderApiKey.slice(-4)}`
         : null,
-      _temApiKey: !!config.wasenderApiKey,
+      _temApiKey: temApiKeyPropria,
+      _instanciaStatus: instanciaStatus,
+      _forceDemo: forceDemo,
+      _temDemo: temDemo,
+      _demoPhone: process.env.WASENDER_DEMO_PHONE ?? null,
     };
 
     return NextResponse.json({ config: configPublico, instance });
@@ -34,6 +48,7 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
 
 export async function PATCH(req: Request) {
   try {

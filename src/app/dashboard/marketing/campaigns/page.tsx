@@ -27,6 +27,10 @@ type Config = {
   aniversarioAtivo: boolean; aniversarioHorario: string; aniversarioDescontoPct: number; aniversarioTemplate: string | null;
   linkConfirmacao: string | null; nomeClinica: string | null;
   wasenderApiKey: string | null; _temApiKey: boolean;
+  _instanciaStatus?: 'instancia' | 'propria' | 'demo' | 'nenhuma';
+  _forceDemo?: boolean;
+  _temDemo?: boolean;
+  _demoPhone?: string | null;
 };
 type WaInstance = { status: string; numeroWa: string | null } | null;
 type Envio = {
@@ -85,6 +89,8 @@ export default function MarketingPage() {
   const [savingConfig, setSavingConfig] = useState(false);
   const [testandoConexao, setTestandoConexao] = useState(false);
   const [statusConexao, setStatusConexao] = useState<'idle' | 'conectado' | 'erro' | 'nao_configurado'>('idle');
+  const [testandoDemo, setTestandoDemo] = useState(false);
+  const [statusDemo, setStatusDemo] = useState<'idle' | 'ok' | 'erro'>('idle');
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [sendingAll, setSendingAll] = useState(false);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
@@ -719,7 +725,36 @@ export default function MarketingPage() {
           {tab === 'config' && (
             <div className="space-y-5">
               <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] p-8 space-y-6 shadow-sm">
-                <h3 className="font-black text-[var(--foreground)] tracking-tight">Configurações da API WhatsApp</h3>
+                <div className="flex items-start justify-between gap-4">
+                  <h3 className="font-black text-[var(--foreground)] tracking-tight">Configurações da API WhatsApp</h3>
+                  {/* Badge de instância ativa */}
+                  {config && (() => {
+                    const s = config._instanciaStatus;
+                    const badges = {
+                      instancia: { icon: '🟢', label: 'Instância vinculada', cls: 'bg-emerald-500/10 text-emerald-600 border-emerald-200' },
+                      propria:   { icon: '🟢', label: 'API Key própria', cls: 'bg-emerald-500/10 text-emerald-600 border-emerald-200' },
+                      demo:      { icon: '🟡', label: 'Instância demo', cls: 'bg-amber-500/10 text-amber-600 border-amber-200' },
+                      nenhuma:   { icon: '🔴', label: 'Não configurada', cls: 'bg-red-500/10 text-red-600 border-red-200' },
+                    };
+                    const b = badges[s ?? 'nenhuma'];
+                    return (
+                      <span className={`text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl border ${b.cls} shrink-0`}>
+                        {b.icon} {b.label}
+                      </span>
+                    );
+                  })()}
+                </div>
+
+                {/* Aviso de modo demo */}
+                {config?._forceDemo && (
+                  <div className="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-500/10 rounded-2xl border border-amber-200 dark:border-amber-500/30">
+                    <span className="text-lg shrink-0">⚠️</span>
+                    <div>
+                      <p className="text-[10px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-widest">Modo Demo Forçado</p>
+                      <p className="text-[11px] text-amber-600 dark:text-amber-500 mt-0.5">MARKETING_DEMO_MODE=true — todos os envios usam a instância demo, ignorando API Keys de clínicas.</p>
+                    </div>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">WaSender API Key</label>
@@ -737,6 +772,39 @@ export default function MarketingPage() {
                     </div>
                   )}
                 </div>
+
+                {/* Card: Instância Demo */}
+                {config?._temDemo && (
+                  <div className="border border-dashed border-amber-300 dark:border-amber-500/40 rounded-2xl p-5 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest">🧪 Instância Demo Compartilhada</p>
+                        <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Use apenas para homologação. Não envie mensagens reais de pacientes por esta instância.</p>
+                      </div>
+                    </div>
+                    {config._demoPhone && (
+                      <p className="text-[10px] text-[var(--text-muted)]">Número demo: <code className="bg-[var(--foreground)]/5 px-1.5 py-0.5 rounded-lg font-mono">{config._demoPhone}</code></p>
+                    )}
+                    <button
+                      onClick={async () => {
+                        setTestandoDemo(true); setStatusDemo('idle');
+                        try {
+                          const r = await fetchWithAuth('/api/marketing/testar-demo', { method: 'POST' });
+                          const d = await r.json();
+                          setStatusDemo(d.status === 'ok' ? 'ok' : 'erro');
+                          showToast(d.message, d.status === 'ok');
+                        } catch { setStatusDemo('erro'); }
+                        finally { setTestandoDemo(false); }
+                      }}
+                      disabled={testandoDemo}
+                      className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors disabled:opacity-50"
+                    >
+                      {testandoDemo ? '⏳ Enviando...' : '📨 Testar instância demo'}
+                    </button>
+                    {statusDemo === 'ok' && <p className="text-[10px] font-black text-emerald-600">✓ Mensagem de teste enviada!</p>}
+                    {statusDemo === 'erro' && <p className="text-[10px] font-black text-red-500">✗ Erro ao enviar. Verifique os logs.</p>}
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Nome da Clínica (usado nos templates)</label>

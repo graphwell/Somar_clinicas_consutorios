@@ -9,6 +9,8 @@ export interface NichoLabels {
   // Cliente / Paciente
   termoPaciente:            string; // "Paciente" | "Cliente"
   termoPacientePlural:      string;
+  /** Alias de termoPaciente — para retrocompatibilidade com páginas de marketing */
+  cliente:                  string;
 
   // Serviço / Atendimento
   termoServico:             string; // alias de termoAtendimento (retrocompatibilidade)
@@ -34,9 +36,12 @@ export interface NichoLabels {
 
 export function getNomenclature(nicho: NichoType | string): NichoLabels {
   const n = typeof nicho === 'string' ? nicho as NichoType : nicho;
+  const base = getNomenclatureBase(n);
+  return { ...base, cliente: base.termoPaciente };
+}
 
+function getNomenclatureBase(n: NichoType): Omit<NichoLabels, 'cliente'> {
   switch (n) {
-
     // ─── CLÍNICA MÉDICA ──────────────────────────────────────
     case NichoType.CLINICA_MEDICA:
       return {

@@ -1,5 +1,5 @@
 import prisma from '@/lib/prisma';
-import { sendWhatsAppMessage } from '@/lib/wasender';
+import { sendWhatsAppMessage, wasenderPost, getWasenderConfig } from '@/lib/wasender';
 import { formatarTelefone } from '@/lib/marketing-utils';
 
 /** Busca a instância WhatsApp ativa do tenant */
@@ -21,27 +21,27 @@ interface SendAndLogParams {
 
 /**
  * Envia mensagem WhatsApp e loga o resultado em MarketingEnvio.
- * Usa a instância WhatsApp associada ao tenant (WhatsappInstance).
- * Se não houver instância ativa, tenta usar wasenderApiKey do MarketingConfig.
+ *
+ * Hierarquia de instâncias:
+ *  1. WhatsappInstance ativa do tenant (via plataforma configurada)
+ *  2. wasenderApiKey do MarketingConfig (API Key própria da clínica)
+ *  3. Fallback → instância demo (WASENDER_DEMO_API_KEY)
  */
 export async function sendAndLog(params: SendAndLogParams): Promise<{ success: boolean; msgId?: string; error?: string }> {
   const to = formatarTelefone(params.clienteTelefone);
 
-  // Busca instância WhatsApp padrão do tenant
-  let instance = await getTenantWhatsappInstance(params.tenantId);
+  // ── Nível 1: Instância WhatsApp vinculada ao tenant ──────────────────────
+  const instance = await getTenantWhatsappInstance(params.tenantId);
 
-  // Fallback: usa wasenderApiKey do MarketingConfig se não há instância
-  let useDirectKey = false;
-  let directApiKey: string | null = null;
-  if (!instance) {
-    const mc = await prisma.marketingConfig.findUnique({ where: { tenantId: params.tenantId } });
-    if (mc?.wasenderApiKey) {
-      useDirectKey = true;
-      directApiKey = mc.wasenderApiKey;
-    }
-  }
+  // ── Nível 2/3: API Key própria ou demo ───────────────────────────────────
+  const mc = !instance
+    ? await prisma.marketingConfig.findUnique({ where: { tenantId: params.tenantId } })
+    : null;
 
-  if (!instance && !useDirectKey) {
+  const wasenderCfg = !instance ? getWasenderConfig(mc?.wasenderApiKey) : null;
+
+  // Se demo não tem chave e não tem instância → erro
+  if (!instance && !wasenderCfg?.apiKey) {
     await prisma.marketingEnvio.create({
       data: {
         tenantId: params.tenantId,
@@ -50,28 +50,30 @@ export async function sendAndLog(params: SendAndLogParams): Promise<{ success: b
         clienteTelefone: params.clienteTelefone,
         mensagemEnviada: params.mensagemEnviada,
         status: 'erro',
-        erroDetalhe: 'Nenhuma instância WhatsApp ativa e sem API key configurada',
+        erroDetalhe: 'Nenhuma instância WhatsApp ativa e sem API key configurada (nem demo)',
         comboId: params.comboId,
       },
     });
-    return { success: false, error: 'Nenhuma instância WhatsApp ativa' };
+    return { success: false, error: 'Nenhuma instância WhatsApp configurada' };
   }
 
+  // ── Envio ─────────────────────────────────────────────────────────────────
   let result: { ok: boolean; data: any };
-  if (useDirectKey && directApiKey) {
-    const { wasenderPost } = await import('@/lib/wasender');
-    result = await wasenderPost(directApiKey, '/messages/send', { to, message: params.mensagemEnviada });
-  } else {
+
+  if (instance) {
     result = await sendWhatsAppMessage(
-      instance!.plataforma,
-      instance!.sessionId,
-      instance!.bearerToken,
+      instance.plataforma,
+      instance.sessionId,
+      instance.bearerToken,
       to,
       params.mensagemEnviada
     );
+  } else {
+    result = await wasenderPost(wasenderCfg!.apiKey, '/messages/send', { to, message: params.mensagemEnviada });
   }
 
   const msgId = result.ok ? String((result.data as any)?.data?.msgId ?? '') : undefined;
+  const usandoDemo = !instance && (wasenderCfg?.isDemo ?? false);
 
   await prisma.marketingEnvio.create({
     data: {
@@ -82,7 +84,9 @@ export async function sendAndLog(params: SendAndLogParams): Promise<{ success: b
       mensagemEnviada: params.mensagemEnviada,
       wasenderMsgId: msgId,
       status: result.ok ? 'enviado' : 'erro',
-      erroDetalhe: result.ok ? undefined : JSON.stringify(result.data),
+      erroDetalhe: result.ok
+        ? (usandoDemo ? '[via instância demo]' : undefined)
+        : JSON.stringify(result.data),
       comboId: params.comboId,
     },
   });
