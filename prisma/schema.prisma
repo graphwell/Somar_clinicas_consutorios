@@ -45,6 +45,7 @@ model Clinica {
   odontogramaItens     OdontogramaItem[]
   odontogramaHistorico OdontogramaHistorico[]
   prontuarioTemplates  ProntuarioTemplate[]
+  permissoes           PermissaoRole[]
 }
 
 enum NichoType {
@@ -638,6 +639,21 @@ model MarketingCampanha {
   concluidoEm         DateTime?
 
   @@map("marketing_campanhas")
+}
+
+// ─── Permissões Granulares por Role ──────────────────────────────
+
+model PermissaoRole {
+  id       String  @id @default(uuid())
+  tenantId String
+  role     String  // admin | recepcao | profissional
+  recurso  String  // agenda | pacientes | financeiro | relatorios | prontuario | equipe | marketing | configuracoes
+  acao     String  // ver | criar | editar | deletar
+  ativo    Boolean @default(true)
+  clinica  Clinica @relation(fields: [tenantId], references: [tenantId])
+
+  @@unique([tenantId, role, recurso, acao])
+  @@map("permissoes_role")
 }
 
 // Histórico de alterações do odontograma

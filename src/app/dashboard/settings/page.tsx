@@ -106,7 +106,22 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-12 pb-40 animate-premium">
-      
+
+      {/* Link rápido para permissões */}
+      <a
+        href="/dashboard/settings/permissoes"
+        className="flex items-center justify-between bg-white border border-warm-200 rounded-xl px-5 py-3 shadow-card hover:shadow-card-hover transition-all hover:-translate-y-px"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-sage-50 flex items-center justify-center text-sage-500 text-sm">🔐</div>
+          <div>
+            <p className="text-sm font-medium text-slate-700">Permissões por função</p>
+            <p className="text-[11px] text-slate-100">Controle o que recepção e profissionais podem acessar</p>
+          </div>
+        </div>
+        <span className="text-slate-100 text-sm">→</span>
+      </a>
+
       {/* Header Premium V2.2 - 3x Smaller */}
       <div className="bg-white border border-card-border p-6 rounded-3xl shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
         <div className="flex items-center gap-4">

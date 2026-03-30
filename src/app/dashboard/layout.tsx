@@ -1,135 +1,28 @@
 "use client";
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { useTheme } from '@/context/ThemeContext';
-import { usePathname, useRouter } from 'next/navigation';
-import { NichoProvider, useNicho } from '@/context/NichoContext';
-import { fetchWithAuth, getAuthToken, clearAuthSession } from '@/lib/api-utils';
-import SynkaChatModal from '@/components/dashboard/SynkaChatModal';
-
-const NavItem = ({ href, label, icon, isCollapsed, active }: { href: string; label: string; icon: string; isCollapsed: boolean; active: boolean }) => (
-  <Link 
-    href={href} 
-    className={`flex items-center gap-2 pl-3 pr-2 py-1.5 rounded-xl transition-all text-[11px] font-bold group relative
-      ${active ? 'bg-primary-soft text-primary shadow-sm border border-primary/10' : 'text-text-muted hover:bg-slate-50 hover:text-text-main'}`}
-    title={isCollapsed ? label : ''}
-  >
-    <span className="text-lg">{icon}</span>
-    {!isCollapsed && <span className="truncate">{label}</span>}
-    {isCollapsed && (
-      <div className="absolute left-full ml-4 px-3 py-2 bg-text-main text-white text-[10px] font-black rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 shadow-xl uppercase tracking-widest">
-        {label}
-      </div>
-    )}
-  </Link>
-);
-
-const NavigationLinks = ({ isCollapsed }: { isCollapsed: boolean }) => {
-  const { labels } = useNicho();
-  const pathname = usePathname();
-  const [userRole, setUserRole] = React.useState<string>('admin');
-
-  React.useEffect(() => {
-    try {
-      const stored = localStorage.getItem('synka-user');
-      if (stored) {
-        const u = JSON.parse(stored);
-        if (u?.role) setUserRole(u.role);
-      }
-    } catch {}
-  }, []);
-
-  const isAdmin      = userRole === 'admin' || userRole === 'synka_admin';
-  const isRecepcao   = userRole === 'recepcao';
-  const isProfissional = userRole === 'profissional';
-
-  // Ícone para o prontuário varia por tipo
-  const prontuarioIcon = labels.tipoProntuario === 'ODONTOLOGICO' ? '🦷'
-    : labels.tipoProntuario === 'NUTRICIONAL' ? '🥗' : '🩺';
-
-  return (
-    <div className="flex flex-col gap-1 flex-1 overflow-y-auto no-scrollbar py-1">
-
-      {/* Principal */}
-      <section className="space-y-0.5">
-        <p className={`text-[9px] font-black uppercase tracking-[0.2em] text-text-placeholder mb-3 px-4 ${isCollapsed ? 'hidden' : 'block'}`}>Principal</p>
-        <NavItem href="/dashboard" label={labels.termoAgenda} icon="📅" isCollapsed={isCollapsed} active={pathname === '/dashboard'} />
-        <NavItem href="/dashboard/patients" label={labels.termoPacientePlural} icon="👥" isCollapsed={isCollapsed} active={pathname.startsWith('/dashboard/patients')} />
-        {!isProfissional && (
-          <NavItem href="/dashboard/team" label={labels.termoProfissionalPlural} icon="🧑‍💼" isCollapsed={isCollapsed} active={pathname === '/dashboard/team'} />
-        )}
-        {!isProfissional && (
-          <NavItem href="/dashboard/services" label={labels.termoAtendimentoPlural} icon="📦" isCollapsed={isCollapsed} active={pathname === '/dashboard/services'} />
-        )}
-        {/* Especialidades — apenas CLINICA_MULTI */}
-        {labels.temEspecialidades && !isProfissional && (
-          <NavItem href="/dashboard/specialties" label="Especialidades" icon="🏥" isCollapsed={isCollapsed} active={pathname.startsWith('/dashboard/specialties')} />
-        )}
-      </section>
-
-      {/* Clínico / Operação */}
-      <section className="space-y-0.5">
-        <p className={`text-[9px] font-black uppercase tracking-[0.2em] text-text-placeholder mb-2 px-4 ${isCollapsed ? 'hidden' : 'block'}`}>Operação</p>
-
-        {labels.temProntuario && (
-          <NavItem href="/dashboard/clinical-records" label={labels.termoProntuario} icon={prontuarioIcon} isCollapsed={isCollapsed} active={pathname.startsWith('/dashboard/clinical-records')} />
-        )}
-
-        {/* Odontograma — exclusivo ODONTOLOGIA */}
-        {labels.temOdontograma && (
-          <NavItem href="/dashboard/odontograma" label="Odontograma" icon="🦷" isCollapsed={isCollapsed} active={pathname.startsWith('/dashboard/odontograma')} />
-        )}
-
-        {/* Plano Alimentar — exclusivo NUTRICAO */}
-        {labels.temPlanoAlimentar && (
-          <NavItem href="/dashboard/nutrition-plan" label="Plano Alimentar" icon="🥗" isCollapsed={isCollapsed} active={pathname.startsWith('/dashboard/nutrition-plan')} />
-        )}
-
-        {labels.temConvenio && !isProfissional && (
-          <NavItem href="/dashboard/insurance" label="Convênios" icon="💳" isCollapsed={isCollapsed} active={pathname.startsWith('/dashboard/insurance')} />
-        )}
-
-        {labels.temAssinatura && !isProfissional && (
-          <NavItem href="/dashboard/subscriptions" label="Planos de Assinatura" icon="🎟️" isCollapsed={isCollapsed} active={pathname.startsWith('/dashboard/subscriptions')} />
-        )}
-
-        {isAdmin && (
-          <NavItem href="/dashboard/reports" label="Relatórios" icon="📊" isCollapsed={isCollapsed} active={pathname === '/dashboard/reports'} />
-        )}
-      </section>
-
-      {/* Marketing & IA — só admin e recepcao */}
-      {(isAdmin || isRecepcao) && (
-        <section className="space-y-0.5 border-t border-slate-50 pt-1">
-          <p className={`text-[8px] font-black uppercase tracking-[0.2em] text-text-placeholder mb-1 px-3 ${isCollapsed ? 'hidden' : 'block'}`}>Marketing & IA</p>
-          <NavItem href="/dashboard/help" label="Central de Ajuda" icon="🧠" isCollapsed={isCollapsed} active={pathname === '/dashboard/help'} />
-          {isAdmin && <NavItem href="/dashboard/marketing/campaigns" label="Avisos e Lembretes" icon="📢" isCollapsed={isCollapsed} active={pathname === '/dashboard/marketing/campaigns'} />}
-          {isAdmin && <NavItem href="/dashboard/marketing/integrations" label="Integrações" icon="🔗" isCollapsed={isCollapsed} active={pathname === '/dashboard/marketing/integrations'} />}
-        </section>
-      )}
-
-      {/* Gestão */}
-      <section className="space-y-0.5 border-t border-slate-50 pt-1">
-        <p className={`text-[8px] font-black uppercase tracking-[0.2em] text-text-placeholder mb-1 px-3 ${isCollapsed ? 'hidden' : 'block'}`}>Gestão</p>
-        {isAdmin && <NavItem href="/dashboard/finance" label="Financeiro" icon="🏦" isCollapsed={isCollapsed} active={pathname === '/dashboard/finance'} />}
-        {!isProfissional && <NavItem href="/dashboard/settings" label="Configurações" icon="⚙️" isCollapsed={isCollapsed} active={pathname === '/dashboard/settings'} />}
-      </section>
-    </div>
-  );
-};
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { NichoProvider, useNicho } from "@/context/NichoContext";
+import { fetchWithAuth, getAuthToken } from "@/lib/api-utils";
+import SynkaChatModal from "@/components/dashboard/SynkaChatModal";
+import Sidebar from "@/components/layout/Sidebar";
+import Topbar from "@/components/layout/Topbar";
+import BottomNav from "@/components/layout/BottomNav";
+import { ToastProvider } from "@/components/ui/Toast";
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
-  const { theme } = useTheme();
   const { onboardingCompleted, loading: nichoLoading } = useNicho();
   const router = useRouter();
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [clientLogo, setClientLogo] = useState<string | null>(null);
-  const [clientName, setClientName] = useState<string | null>(null);
-  const [onboardingDone, setOnboardingDone] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [hasMounted, setHasMounted] = useState(false);
-  const [currentUser, setCurrentUser] = useState<{ nome?: string; email?: string; role?: string } | null>(null);
+
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [clientLogo, setClientLogo]   = useState<string | null>(null);
+  const [clientName, setClientName]   = useState<string | null>(null);
+  const [loading, setLoading]         = useState(true);
+  const [hasMounted, setHasMounted]   = useState(false);
+  const [currentUser, setCurrentUser] = useState<{
+    nome?: string;
+    email?: string;
+    role?: string;
+  } | null>(null);
 
   useEffect(() => {
     setHasMounted(true);
@@ -137,165 +30,86 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!hasMounted) return;
-    // Redireciona para onboarding se não concluído
     if (!nichoLoading && onboardingCompleted === false) {
-      window.location.href = '/onboarding';
-      return;
+      window.location.href = "/onboarding";
     }
   }, [onboardingCompleted, nichoLoading, hasMounted]);
 
   useEffect(() => {
     if (!hasMounted) return;
-    
+
     const token = getAuthToken();
     if (!token) return;
 
-    const stored = localStorage.getItem('synka-sidebar-collapsed');
-    if (stored === 'true') setIsCollapsed(true);
-
     try {
-      const storedUser = localStorage.getItem('synka-user');
+      const storedUser = localStorage.getItem("synka-user");
       if (storedUser) setCurrentUser(JSON.parse(storedUser));
     } catch {}
 
-    // Busca branding via /api/settings (mais confiável e unificado)
-    fetchWithAuth('/api/settings')
-      .then(response => {
-        if (response.ok) return response.json();
-        throw new Error('Falha na resposta da API');
-      })
-      .then(data => {
+    fetchWithAuth("/api/settings")
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((data) => {
         if (data.success && data.clinica) {
           const clinica = data.clinica;
           const branding = clinica.configBranding as any;
-          if (branding?.logoUrl) {
-            setClientLogo(branding.logoUrl);
-          }
-          if (clinica.nome || clinica.razaoSocial) {
+          if (branding?.logoUrl) setClientLogo(branding.logoUrl);
+          if (clinica.nome || clinica.razaoSocial)
             setClientName(clinica.nome || clinica.razaoSocial);
-          }
-          if (clinica.onboardingCompleted) {
-            setOnboardingDone(true);
-          }
         }
       })
-      .catch((err) => {
-        console.error('[LAYOUT_BRANDING_DEBUG] Erro:', err);
-      })
+      .catch(() => {})
       .finally(() => setLoading(false));
-  }, [hasMounted]); // IMPORTANTE: hasMounted agora é dependência
+  }, [hasMounted]);
 
-  const toggleSidebar = () => {
-    const newState = !isCollapsed;
-    setIsCollapsed(newState);
-    localStorage.setItem('synka-sidebar-collapsed', String(newState));
-  };
-  
-  if (!hasMounted) return <div className="min-h-screen bg-slate-50 flex items-center justify-center animate-pulse font-black text-[10px] uppercase tracking-widest text-text-placeholder">Inicializando Synka...</div>;
-  if (loading && !getAuthToken()) return null; // Prevenção de flash de conteúdo não autorizado
+  if (!hasMounted) {
+    return (
+      <div className="min-h-screen bg-warm-100 flex items-center justify-center">
+        <div className="text-[11px] font-medium text-slate-100 uppercase tracking-widest animate-pulse">
+          Carregando Synka…
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className={`min-h-screen bg-background text-text-main flex`}>
-      
-      {mobileOpen && <div className="fixed inset-0 bg-slate-900/10 backdrop-blur-sm z-30 md:hidden animate-in fade-in" onClick={() => setMobileOpen(false)} />}
+    <ToastProvider>
+      <div className="min-h-screen bg-warm-100 text-text-main flex">
+        {/* Sidebar */}
+        <Sidebar
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          currentUser={currentUser}
+          clientLogo={clientLogo}
+          clientName={clientName}
+        />
 
-      <nav className={`fixed left-0 top-0 h-full bg-white border-r border-card-border pl-3 pr-1 py-6 flex flex-col z-40 transition-all duration-500 shadow-sm ${isCollapsed ? 'w-24' : 'w-56'} ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
-        <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-start'} h-20 mb-4 transition-all border-b border-slate-50 pb-4`}>
-          {/* Sidebar Header Branding - Clean Minimalist Mode - Increased 200% */}
-          <div className="flex items-center gap-3 overflow-hidden min-h-[80px] w-full">
-            {clientLogo ? (
-               <img src={clientLogo} alt="Project Logo" className="h-20 w-auto shrink-0 object-contain rounded-lg animate-premium mx-auto" />
-            ) : (
-              <div className="flex items-center gap-3">
-                <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-400 uppercase italic border border-slate-200">
-                  LOGO
-                </div>
-                {!isCollapsed && (
-                  <div className="flex flex-col">
-                    <span className="text-[11px] font-black uppercase tracking-tighter text-text-main line-clamp-1 italic">
-                      {clientName || 'Sua Unidade'}
-                    </span>
-                    <span className="text-[7px] font-black uppercase tracking-widest text-primary animate-pulse">
-                      Configuração Pendente
-                    </span>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+        {/* Main */}
+        <div className="flex-1 lg:ml-[220px] flex flex-col min-h-screen">
+          <Topbar
+            onMenuClick={() => setSidebarOpen(true)}
+            currentUser={currentUser}
+            clientName={clientName}
+          />
+
+          <main className="flex-1 p-4 lg:p-6 pb-20 lg:pb-6">
+            <div className="max-w-7xl mx-auto fade-up">{children}</div>
+          </main>
         </div>
 
-        <NavigationLinks isCollapsed={isCollapsed} />
-        
-        <div className="mt-6 space-y-4 pt-6 border-t border-slate-50">
-          <button onClick={toggleSidebar} className="w-full h-12 flex items-center justify-center rounded-2xl bg-slate-50 hover:bg-slate-100 text-text-placeholder transition-all font-black text-xs border border-card-border">
-            {isCollapsed ? '→' : '←'}
-          </button>
-          <button onClick={() => clearAuthSession()} className="w-full h-12 flex items-center justify-center rounded-2xl bg-red-50 hover:bg-red-100 text-red-500 transition-all font-black text-xs border border-red-100">
-             {isCollapsed ? '🚪' : 'SAIR DO CONSOLE'}
-          </button>
-        </div>
-      </nav>
+        {/* Bottom Nav mobile */}
+        <BottomNav />
 
-      <div className={`flex-1 flex flex-col min-h-screen transition-all duration-500 ${isCollapsed ? 'md:pl-24' : 'md:pl-56'}`}>
-        <header className="h-[76px] glass-header flex items-center px-6 md:px-12 justify-between">
-          <div className="flex items-center gap-6">
-            <button onClick={() => setMobileOpen(!mobileOpen)} className="md:hidden p-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-card-border">
-               <span className="block w-5 h-0.5 bg-text-muted mb-1"></span>
-               <span className="block w-5 h-0.5 bg-text-muted mb-1"></span>
-               <span className="block w-5 h-0.5 bg-text-muted"></span>
-            </button>
-            
-            <div className="flex items-center h-full min-h-[40px]">
-               <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-text-placeholder italic">
-                  {clientName || 'Console Clinical OS'}
-               </h2>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="hidden lg:flex items-center gap-2 px-4 py-2 bg-status-success-bg rounded-full border border-status-success/10 text-[9px] font-black text-status-success uppercase tracking-[0.2em]">
-              <span className="w-1.5 h-1.5 bg-status-success rounded-full animate-pulse shadow-[0_0_8px_var(--color-status-success)]"></span> Ativo
-            </div>
-
-            <div className="w-px h-6 bg-card-border mx-2 hidden md:block" />
-
-            <div className="flex items-center gap-3">
-               <button className="w-11 h-11 rounded-xl flex items-center justify-center bg-white border border-card-border hover:bg-slate-50 transition-all relative shadow-sm">
-                  🔔 <span className="absolute top-3 right-3 w-2 h-2 bg-status-error rounded-full border-2 border-white"></span>
-               </button>
-               <div className="flex items-center gap-4 pl-4 border-l border-card-border ml-2">
-                  <div className="text-right hidden sm:block">
-                     <p className="text-[10px] font-black text-text-main uppercase tracking-tighter">{currentUser?.nome || currentUser?.email?.split('@')[0] || 'Usuário'}</p>
-                     <p className="text-[8px] font-black text-primary uppercase tracking-widest opacity-60">{currentUser?.role || 'admin'}</p>
-                  </div>
-                  <div className="w-11 h-11 rounded-2xl bg-primary-soft flex items-center justify-center font-black text-primary border border-primary/20 shadow-sm text-sm">{(currentUser?.nome || currentUser?.email || 'A').charAt(0).toUpperCase()}</div>
-               </div>
-            </div>
-          </div>
-        </header>
-
-        <main className="flex-1 p-6 md:p-14 animate-premium">
-          <div className="max-w-7xl mx-auto">
-            {children}
-          </div>
-        </main>
-
-        <footer className="py-12 text-[9px] font-black text-text-placeholder uppercase tracking-[0.5em] bg-white border-t border-slate-50 text-center">
-          © 2025 SYNKA CLINICAL OS — V2.3 MULTI-TENANT REAL
-        </footer>
-        
-        {/* Inteligência Synka IA Global */}
+        {/* Chat IA flutuante */}
         <SynkaChatModal />
       </div>
-    </div>
+    </ToastProvider>
   );
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <NichoProvider>
-       <DashboardContent>{children}</DashboardContent>
+      <DashboardContent>{children}</DashboardContent>
     </NichoProvider>
   );
 }

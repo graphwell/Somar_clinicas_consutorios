@@ -1,707 +1,221 @@
 "use client";
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNicho } from '@/context/NichoContext';
-import { fetchWithAuth } from '@/lib/api-utils';
-import KpiSection from '@/components/dashboard/KpiSection';
-
-import { 
-  Service, Profissional, Appointment, 
-  generateSmartSlots, STATUS_MAP, WEEKDAYS_SHORT, MONTHS, 
-  formatTime, formatDate, isSameDay 
-} from '@/lib/agenda-utils';
-import HourCell from '@/components/dashboard/HourCell';
-import AgendaSelectionWizard from '@/components/dashboard/AgendaSelectionWizard';
-import QuickAppointmentForm from '@/components/dashboard/QuickAppointmentForm';
-
-const SLOT_INTERVAL_FALLBACK = 30;
+import React, { useState, useEffect, useCallback } from "react";
+import { useNicho } from "@/context/NichoContext";
+import { fetchWithAuth } from "@/lib/api-utils";
+import KpiSection from "@/components/dashboard/KpiSection";
+import AgendaConsolidada, {
+  ProfissionalComAgenda,
+  AgendamentoItem,
+} from "@/components/agenda/AgendaConsolidada";
+import ModalAgendamento from "@/components/agenda/ModalAgendamento";
+import SynkaPanel from "@/components/synka/SynkaPanel";
+import Card from "@/components/ui/Card";
 
 export default function DashboardPage() {
   const { labels } = useNicho();
-  const [activeTab, setActiveTab] = useState<'dia' | 'semana' | 'mes' | 'profissionais' | 'servicos' | 'planos'>('dia');
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [profissionais, setProfissionais] = useState<Profissional[]>([]);
-  const [services, setServices] = useState<Service[]>([]);
-  const [convenios, setConvenios] = useState<any[]>([]);
-  const [clinica, setClinica] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [showModal, setShowModal] = useState(false);
-  const [selectedHour, setSelectedHour] = useState('');
-  const [selectedAppt, setSelectedAppt] = useState<Appointment | null>(null);
-  const [tipoAtendimento, setTipoAtendimento] = useState<'particular' | 'convenio'>('particular');
-  const [selectedProfId, setSelectedProfId] = useState<string | null>(null);
-  const [selectedServId, setSelectedServId] = useState<string>('all');
-  const [isGeneralView, setIsGeneralView] = useState(false);
-  const [wizardStep, setWizardStep] = useState<'specialty' | 'professional'>('specialty');
-  const [user, setUser] = useState<any>(null);
 
-  const fetchAll = useCallback(async () => {
+  const [data, setData] = useState(new Date());
+  const [profissionais, setProfissionais] = useState<ProfissionalComAgenda[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<{ nome?: string; email?: string; role?: string } | null>(null);
+
+  // Modal de agendamento
+  const [modalOpen, setModalOpen] = useState(false);
+  const [slotProfId, setSlotProfId] = useState<string | undefined>();
+  const [slotHorario, setSlotHorario] = useState<string | undefined>();
+
+  // Modal de detalhe de agendamento
+  const [agendamentoSelecionado, setAgendamentoSelecionado] = useState<AgendamentoItem | null>(null);
+  const [profSelecionado, setProfSelecionado] = useState<ProfissionalComAgenda | null>(null);
+
+  // Usuário logado
+  useEffect(() => {
     try {
-      const [apptsRes, teamRes, servRes, convRes, settingsRes] = await Promise.all([
-        fetchWithAuth('/api/appointments'),
-        fetchWithAuth('/api/team'),
-        fetchWithAuth('/api/services'),
-        fetchWithAuth('/api/convenios'),
-        fetchWithAuth('/api/settings')
-      ]);
-      const appts = await apptsRes.json(); setAppointments(Array.isArray(appts) ? appts : appts.appointments || []);
-      const team = await teamRes.json(); setProfissionais(Array.isArray(team) ? team : []);
-      const servs = await servRes.json(); setServices(Array.isArray(servs) ? servs : []);
-      const convs = await convRes.json(); setConvenios(Array.isArray(convs) ? convs : []);
-      const settings = await settingsRes.json(); setClinica(settings.clinica || null);
-    } catch (e) {
-      console.error("Error fetching agenda data:", e);
-    } finally { setLoading(false); }
+      const stored = localStorage.getItem("synka-user");
+      if (stored) setUser(JSON.parse(stored));
+    } catch {}
   }, []);
 
-  useEffect(() => { 
-    fetchAll(); 
-    // Recuperar usuário e última seleção
-    if (typeof window !== 'undefined') {
-      const storedUser = localStorage.getItem('synka-user');
-      if (storedUser) {
-        const u = JSON.parse(storedUser);
-        setUser(u);
-        
-        // Se profissional, tentar auto-selecionar
-        // Profissionais são auto-selecionados após carregar a lista (ver efeito abaixo)
-        // Admin e recepção sempre passam pelo Wizard ao abrir a página
-      }
+  // Buscar agenda do dia
+  const fetchAgenda = useCallback(async (d: Date) => {
+    setLoading(true);
+    try {
+      const ds = d.toISOString().split("T")[0];
+      const res = await fetchWithAuth(`/api/appointments/agenda?data=${ds}`);
+      const json = await res.json();
+      setProfissionais(json.profissionais || []);
+    } catch (e) {
+      console.error("Erro ao buscar agenda:", e);
+    } finally {
+      setLoading(false);
     }
-  }, [fetchAll]);
+  }, []);
 
-  // Efeito para auto-selecionar profissional logado
   useEffect(() => {
-    if (user && profissionais.length > 0 && !selectedProfId) {
-      const isProf = ['profissional', 'medico', 'especialista', 'dentista', 'barbeiro', 'esteticista'].includes(user.role?.toLowerCase());
-      const isAdmin = ['admin', 'gestor'].includes(user.role?.toLowerCase());
-      
-      // Admin e recepção NUNCA são auto-selecionados — devem passar pelo Wizard
-      if (isAdmin || !isProf) {
-        setSelectedProfId(null);
-        return;
-      }
+    fetchAgenda(data);
+  }, [data, fetchAgenda]);
 
-      if (isProf) {
-        const matched = profissionais.find(p => p.nome.toLowerCase() === user.nome?.toLowerCase() || p.nome.toLowerCase() === user.email?.split('@')[0].toLowerCase());
-        if (matched) {
-          setSelectedProfId(matched.id);
-        }
-      }
-    }
-  }, [user, profissionais, selectedProfId]);
+  function handleSlotClick(profissionalId: string, horario: string) {
+    setSlotProfId(profissionalId);
+    setSlotHorario(horario);
+    setModalOpen(true);
+  }
 
-  const handleProfSelect = (id: string) => {
-    setSelectedProfId(id);
-    setIsGeneralView(false);
-    if (typeof window !== 'undefined') sessionStorage.setItem('synka-selected-prof', id);
-  };
+  function handleNovoAgendamento() {
+    setSlotProfId(undefined);
+    setSlotHorario(undefined);
+    setModalOpen(true);
+  }
 
-  const smartSlots = useMemo(() => {
-    if (!clinica) return [];
-    const targetProf = profissionais.find((p: Profissional) => p.id === selectedProfId);
-    if (!targetProf && !isGeneralView) return []; // Não gera slots se não houver prof ou visão geral
-    
-    const dayOfWeek = selectedDate.getDay();
-    const escala = targetProf?.escalas?.find((e: any) => e.diaSemana === dayOfWeek && e.ativo);
-    
-    // Sincronização Estrita: Se profissional selecionado NÃO tem escala ativa neste dia, não mostramos slots
-    if (selectedProfId && !escala) return [];
-
-    // Sincronização Estrita V5.5: Profissional deve estar dentro do horário da clínica
-    const clinicStart = clinica?.openingTime || "08:00";
-    const clinicEnd = clinica?.closingTime || "18:00";
-    
-    let finalStart = escala?.horaInicio || clinicStart;
-    let finalEnd = escala?.horaFim || clinicEnd;
-
-    // Garante que o profissional não comece antes ou termine depois da clínica
-    if (finalStart < clinicStart) finalStart = clinicStart;
-    if (finalEnd > clinicEnd) finalEnd = clinicEnd;
-
-    const targetServ = services.find((s: Service) => s.id === selectedServId) || services[0];
-    const currentDayAppts = appointments.filter((a: Appointment) => isSameDay(new Date(a.dataHora), selectedDate));
-    
-    // Prof Metadata V5.4
-    const metadata = targetProf?.horariosJson as any;
-
-    return generateSmartSlots(
-      finalStart, 
-      finalEnd, 
-      targetServ,
-      currentDayAppts,
-      selectedDate,
-      metadata?.sessionDuration,
-      metadata?.sessionBuffer,
-      escala?.lunchStart,
-      escala?.lunchEnd
-    );
-  }, [clinica, profissionais, services, appointments, selectedDate, selectedProfId, selectedServId, isGeneralView]);
-
-  // 🕒 Status Dinâmico do Profissional V5.21
-  const profStatus = useMemo(() => {
-    if (!selectedProfId || isGeneralView) return null;
-    const prof = profissionais.find(p => p.id === selectedProfId);
-    if (!prof) return null;
-
-    const now = new Date();
-    const dayOfWeek = now.getDay();
-    const escala = prof.escalas?.find((e: any) => e.diaSemana === dayOfWeek && e.ativo);
-
-    if (!escala) return { label: 'FORA DE ESCALA', color: 'bg-slate-300', text: 'text-slate-400' };
-
-    const [hStart, mStart] = escala.horaInicio.split(':').map(Number);
-    const [hEnd, mEnd] = escala.horaFim.split(':').map(Number);
-    const startMinutes = hStart * 60 + mStart;
-    const endMinutes = hEnd * 60 + mEnd;
-    const nowMinutes = now.getHours() * 60 + now.getMinutes();
-
-    // Verificação de Almoço/Intervalo
-    if (escala.lunchStart && escala.lunchEnd) {
-      const [hLStart, mLStart] = escala.lunchStart.split(':').map(Number);
-      const [hLEnd, mLEnd] = escala.lunchEnd.split(':').map(Number);
-      const lStartMinutes = hLStart * 60 + mLStart;
-      const lEndMinutes = hLEnd * 60 + mLEnd;
-      if (nowMinutes >= lStartMinutes && nowMinutes < lEndMinutes) {
-        return { label: 'EM INTERVALO', color: 'bg-amber-400', text: 'text-amber-500' };
-      }
-    }
-
-    if (nowMinutes < startMinutes || nowMinutes >= endMinutes) {
-      return { label: 'FORA DE HORÁRIO', color: 'bg-slate-300', text: 'text-slate-400' };
-    }
-
-    // Verificação de Ocupação Real (Now)
-    const nowTime = now.getTime();
-    const isBusy = appointments.some(a => {
-      if (a.profissional?.id !== selectedProfId) return false;
-      if (a.status === 'cancelado') return false;
-      const aStart = new Date(a.dataHora).getTime();
-      const aEnd = aStart + (a.durationMinutes || 30) * 60000;
-      return nowTime >= aStart && nowTime < aEnd;
-    });
-
-    if (isBusy) return { label: 'OCUPADO', color: 'bg-status-error', text: 'text-status-error' };
-
-    return { label: 'DISPONÍVEL', color: 'bg-status-success', text: 'text-status-success' };
-  }, [selectedProfId, isGeneralView, profissionais, appointments]);
+  function handleAgendamentoClick(ag: AgendamentoItem, prof: ProfissionalComAgenda) {
+    setAgendamentoSelecionado(ag);
+    setProfSelecionado(prof);
+  }
 
   return (
-    <div className="max-w-full px-4 lg:px-8 pb-40 animate-premium">
-      {/* 📊 Fase 3: KPIs em tempo real */}
-      <KpiSection selectedDate={selectedDate} />
+    <div className="space-y-6">
+      {/* ── KPIs ── */}
+      <KpiSection selectedDate={data} />
 
-      {/* 🚀 Header Inteligente e Dinâmico */}
-      <div className="bg-white border border-card-border p-6 rounded-[2rem] shadow-premium flex flex-col xl:flex-row justify-between items-center gap-6 sticky top-4 z-[50] backdrop-blur-xl bg-white/90 mb-8">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center text-xl shadow-lg italic font-black">S</div>
-          <h2 className="text-xl font-black italic uppercase tracking-tighter text-text-main">
-            {(!selectedProfId && !isGeneralView) ? "Início do Agendamento" : labels.termoAgenda}
-          </h2>
+      {/* ── Agenda + Painel Synka ── */}
+      <div className="flex gap-4 items-start">
+        {/* Agenda (70%) */}
+        <div className="flex-1 min-w-0">
+          <Card className="p-4 lg:p-5">
+            <AgendaConsolidada
+              data={data}
+              profissionais={profissionais}
+              loading={loading}
+              role={user?.role || "admin"}
+              profissionalId={undefined}
+              onDataChange={(d) => setData(d)}
+              onSlotClick={handleSlotClick}
+              onAgendamentoClick={handleAgendamentoClick}
+              onNovoAgendamento={handleNovoAgendamento}
+            />
+          </Card>
         </div>
 
-        {/* MODO DINÂMICO: Abas de Fluxo e Navegação */}
-        <div className="bg-slate-100 p-1 rounded-[1.5rem] flex gap-0.5 border border-slate-200 shadow-inner overflow-x-auto no-scrollbar max-w-full">
-          <button 
-            onClick={() => { setSelectedProfId(null); setIsGeneralView(false); setWizardStep('specialty'); setActiveTab('dia'); }} 
-            className={`px-3 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all 
-              ${(!selectedProfId && !isGeneralView && wizardStep === 'specialty') ? 'bg-white text-primary shadow-premium' : 'text-text-muted hover:text-text-main hover:bg-white/50'}`}
-          >
-            Especialidades
-          </button>
-          <button 
-            onClick={() => { setSelectedProfId(null); setIsGeneralView(false); setWizardStep('professional'); setActiveTab('dia'); }} 
-            className={`px-3 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all 
-              ${(!selectedProfId && !isGeneralView && wizardStep === 'professional') ? 'bg-white text-primary shadow-premium' : 'text-text-muted hover:text-text-main hover:bg-white/50'}`}
-          >
-            {labels.termoProfissional === 'Médico' ? 'Médicos' : 'Profissionais'}
-          </button>
-
-          {(selectedProfId || isGeneralView) && (
-            <>
-              {/* Divisor Visual */}
-              <div className="w-[1px] bg-slate-200 mx-2 self-stretch my-2" />
-
-              {/* Abas Temporais (Aparecem só após a escolha) */}
-              {[
-                { id: 'dia', label: 'Hoje' },
-                { id: 'semana', label: 'Semana' },
-                { id: 'mes', label: 'Mês' }
-              ].map(tab => (
-                <button 
-                  key={tab.id} 
-                  onClick={() => setActiveTab(tab.id as any)} 
-                      className={`px-3 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all 
-                    ${activeTab === tab.id ? 'bg-white text-primary shadow-premium' : 'text-text-muted hover:text-text-main hover:bg-white/50'}`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </>
-          )}
-
-          <div className="w-[1px] bg-slate-200 mx-2 self-stretch my-2" />
-          
-          {/* Item "Consultas" removido a pedido do usuário V5.14 */}
-        </div>
-
-        <div className="flex items-center gap-4">
-          {(selectedProfId || isGeneralView) && (
-            <div className="flex bg-white border border-slate-200 rounded-2xl p-2 shadow-premium items-center gap-2">
-              <button onClick={() => {
-                const d = new Date(selectedDate);
-                if (activeTab === 'mes') d.setMonth(d.getMonth() - 1);
-                else if (activeTab === 'semana') d.setDate(d.getDate() - 7);
-                else d.setDate(d.getDate() - 1);
-                setSelectedDate(d);
-              }} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-50 text-slate-400 hover:text-primary hover:bg-white transition-all shadow-sm">‹</button>
-              
-              <div className="flex items-center gap-1">
-                {/* Dia Selector */}
-                <select 
-                  value={selectedDate.getDate()} 
-                  onChange={(e) => {
-                    const d = new Date(selectedDate);
-                    d.setDate(parseInt(e.target.value));
-                    setSelectedDate(d);
-                  }}
-                  className="bg-transparent border-none text-[10px] font-black uppercase text-primary focus:ring-0 cursor-pointer hover:bg-slate-50 rounded-lg px-2 py-1 appearance-none"
-                >
-                  {Array.from({ length: new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0).getDate() }, (_, i) => i + 1).map(day => (
-                    <option key={day} value={day}>{day.toString().padStart(2, '0')}</option>
-                  ))}
-                </select>
-
-                <span className="text-slate-300 text-[10px] font-black">/</span>
-
-                {/* Mês Selector */}
-                <select 
-                  value={selectedDate.getMonth()} 
-                  onChange={(e) => {
-                    const d = new Date(selectedDate);
-                    d.setMonth(parseInt(e.target.value));
-                    setSelectedDate(d);
-                  }}
-                  className="bg-transparent border-none text-[10px] font-black uppercase text-text-main focus:ring-0 cursor-pointer hover:bg-slate-50 rounded-lg px-2 py-1 appearance-none"
-                >
-                  {MONTHS.map((m, i) => (
-                    <option key={m} value={i}>{m.slice(0, 3)}</option>
-                  ))}
-                </select>
-
-                <span className="text-slate-300 text-[10px] font-black">/</span>
-
-                {/* Ano Selector */}
-                <select 
-                  value={selectedDate.getFullYear()} 
-                  onChange={(e) => {
-                    const d = new Date(selectedDate);
-                    d.setFullYear(parseInt(e.target.value));
-                    setSelectedDate(d);
-                  }}
-                  className="bg-transparent border-none text-[10px] font-black uppercase text-text-muted focus:ring-0 cursor-pointer hover:bg-slate-50 rounded-lg px-2 py-1 appearance-none"
-                >
-                  {[2025, 2026, 2027].map(year => (
-                    <option key={year} value={year}>{year}</option>
-                  ))}
-                </select>
-              </div>
-
-              <button onClick={() => {
-                const d = new Date(selectedDate);
-                if (activeTab === 'mes') d.setMonth(d.getMonth() + 1);
-                else if (activeTab === 'semana') d.setDate(d.getDate() + 7);
-                else d.setDate(d.getDate() + 1);
-                setSelectedDate(d);
-              }} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-50 text-slate-400 hover:text-primary hover:bg-white transition-all shadow-sm">›</button>
-            </div>
-          )}
-          <button onClick={() => { setSelectedHour(''); setShowModal(true); }} className="btn-primary py-4 px-10 shadow-2xl shadow-primary/30 hidden md:block">
-            + AGENDAR
-          </button>
+        {/* Synka Panel (30%) — oculto em mobile */}
+        <div className="hidden xl:block w-[300px] shrink-0">
+          <SynkaPanel
+            profissionais={profissionais}
+            data={data}
+          />
         </div>
       </div>
-      
-      {/* BANNER DE FILTRO ATIVO (V5.13) */}
-      {(selectedProfId || isGeneralView) && (
-        <div className="mb-8 flex items-center justify-between p-4 bg-primary-soft/40 backdrop-blur-xl border border-primary/20 rounded-3xl animate-in slide-in-from-top duration-500">
-           <div className="flex items-center gap-4">
-             <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white text-xl">🔍</div>
-             <div>
-               <p className="text-[11px] font-black text-primary uppercase tracking-widest">Filtro Ativo</p>
-               <p className="text-sm font-bold text-text-main italic">
-                 Visualizando agenda: <span className="text-primary">{isGeneralView ? 'GERAL (Todos os profissionais)' : profissionais.find(p => p.id === selectedProfId)?.nome}</span>
-               </p>
-             </div>
-           </div>
-           <button 
-             onClick={() => { setSelectedProfId(null); setIsGeneralView(false); }}
-             className="px-6 py-2 bg-white border border-primary/20 rounded-full text-[10px] font-black text-primary uppercase tracking-widest hover:bg-primary hover:text-white transition-all shadow-md"
-           >
-             Limpar Filtros
-           </button>
-        </div>
-      )}
 
-      <div className="animate-premium">
-        {activeTab === 'dia' && (
-          !selectedProfId && !isGeneralView ? (
-            <AgendaSelectionWizard 
-              profissionais={profissionais}
-              labels={labels}
-              onSelect={handleProfSelect}
-              isMultiSpecialty={labels.temEspecialidades}
-              isAdmin={['admin', 'gestor'].includes(user?.role?.toLowerCase())}
-              onViewGeneral={() => setIsGeneralView(true)}
-              step={wizardStep}
-              setStep={setWizardStep}
-            />
-          ) : (
-            <div className="bg-white border border-card-border rounded-[3rem] p-10 shadow-premium space-y-10">
-              <div className="flex flex-col md:flex-row justify-between items-center gap-6 border-b border-slate-50 pb-8">
-                <div className="flex items-center gap-6">
-                  {selectedProfId && !isGeneralView && (
-                    <div className="flex items-center gap-4 pr-10 border-r border-slate-100">
-                      <div className="w-16 h-16 rounded-full border-4 border-white shadow-xl ring-2 ring-slate-100 overflow-hidden bg-slate-50 flex items-center justify-center">
-                         {profissionais.find(p => p.id === selectedProfId)?.fotoUrl ? (
-                           <img src={profissionais.find(p => p.id === selectedProfId)?.fotoUrl!} alt="Prof" className="w-full h-full object-cover" />
-                         ) : (
-                           <span className="text-xl font-black text-primary/30 uppercase italic">{profissionais.find(p => p.id === selectedProfId)?.nome[0]}</span>
-                         )}
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-[11px] font-black uppercase italic tracking-tighter text-text-main">
-                          {profissionais.find(p => p.id === selectedProfId)?.nome}
-                        </span>
-                        <span className="text-[8px] font-black text-primary uppercase tracking-[0.2em]">
-                          {profissionais.find(p => p.id === selectedProfId)?.especialidade || labels.termoProfissional}
-                        </span>
-                        <button onClick={() => setSelectedProfId(null)} className="text-[7px] font-black text-text-placeholder uppercase tracking-widest hover:text-primary mt-1 text-left">
-                          Trocar {labels.termoProfissional}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                  <div>
-                    <h3 className="text-xl font-black italic uppercase tracking-tighter text-text-main">
-                      {isGeneralView ? 'Agenda' : 'Linha do'} <span className="text-primary italic">{isGeneralView ? 'Geral' : 'Tempo'}</span>
-                    </h3>
-                    <p className="text-[10px] font-black text-text-placeholder uppercase mt-2 tracking-widest">{labels.termoServico} + Buffer</p>
-                  </div>
-                </div>
-                <div className="flex gap-4 items-center">
-                  {(selectedProfId && !isGeneralView && profStatus) && (
-                    <div className="flex items-center gap-3 mr-4 border-r border-slate-100 pr-6">
-                      <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">
-                        <div className={`w-2 h-2 rounded-full ${profStatus.color} animate-pulse`}></div>
-                        <span className={`text-[8px] font-black uppercase tracking-widest ${profStatus.text}`}>{profStatus.label}</span>
-                      </div>
-                    </div>
-                  )}
-                  <select 
-                    value={selectedProfId || 'all'} 
-                    onChange={(e) => handleProfSelect(e.target.value)} 
-                    className="bg-slate-100 border-none rounded-xl px-4 py-2 text-[10px] font-black uppercase text-text-main cursor-pointer"
-                  >
-                    <option value="all">Filtro por Especialista</option>
-                    {profissionais.map((p: Profissional) => <option key={p.id} value={p.id}>{p.nome}</option>)}
-                  </select>
-                </div>
-              </div>
-              {smartSlots.length > 0 ? (
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
-                  {/* Renderização de agendamentos fora de escala (V5.14) */}
-                  {(() => {
-                    const extraSlots = appointments
-                      .filter((a: Appointment) => {
-                        if (selectedProfId && a.profissional?.id !== selectedProfId) return false;
-                        if (!isSameDay(new Date(a.dataHora), selectedDate)) return false;
-                        const h = new Date(a.dataHora).getHours().toString().padStart(2, '0') + ':' + new Date(a.dataHora).getMinutes().toString().padStart(2, '0');
-                        return !smartSlots.includes(h);
-                      })
-                      .map((a: Appointment) => new Date(a.dataHora).getHours().toString().padStart(2, '0') + ':' + new Date(a.dataHora).getMinutes().toString().padStart(2, '0'));
-                    
-                    const allSlots = Array.from(new Set([...extraSlots, ...smartSlots])).sort();
-
-                    return allSlots.map((h: string) => {
-                      const [hH, hM] = h.split(':').map(Number);
-                      const slotTime = new Date(selectedDate);
-                      slotTime.setHours(hH, hM, 0, 0);
-                      
-                      const appt = appointments.find((a: Appointment) => {
-                        if (selectedProfId && a.profissional?.id !== selectedProfId) return false;
-                        const aStart = new Date(a.dataHora).getTime();
-                        const aEnd = aStart + (a.durationMinutes || 30) * 60000;
-                        return slotTime.getTime() >= aStart && slotTime.getTime() < aEnd;
-                      });
-
-                      const isExtra = extraSlots.includes(h);
-
-                      return (
-                        <div key={h} className={isExtra ? 'ring-2 ring-primary/20 rounded-3xl' : ''}>
-                          <HourCell hour={h} appt={appt} onClick={() => { 
-                            setSelectedHour(h); 
-                            setSelectedAppt(appt || null);
-                            setShowModal(true); 
-                          }} />
-                        </div>
-                      );
-                    });
-                  })()}
-                </div>
-              ) : (
-                <div className="py-24 text-center bg-slate-50/50 rounded-[3rem] border-2 border-dashed border-slate-100 flex flex-col items-center justify-center space-y-4">
-                   <div className="text-4xl opacity-20">📅</div>
-                   <p className="text-[10px] font-black text-text-placeholder uppercase tracking-[0.3em] opacity-60 italic">
-                      Este {labels.termoProfissional} não possui horários configurados para este dia
-                   </p>
-                </div>
-              )}
-            </div>
-          )
-        )}
-
-        {activeTab === 'profissionais' && (
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
-            {profissionais.map((p: Profissional) => {
-              const scale = p.escalas?.find((e: any) => e.diaSemana === selectedDate.getDay() && e.ativo);
-              const pAppts = appointments.filter((a: Appointment) => isSameDay(new Date(a.dataHora), selectedDate) && a.profissional?.id === p.id);
-              const isWorking = !!scale;
-              const isCurrentlyBusy = pAppts.some((a: Appointment) => {
-                const start = new Date(a.dataHora).getTime();
-                const end = start + (a.durationMinutes || 30) * 60000;
-                const now = new Date().getTime();
-                return now >= start && now < end;
-              });
-
-              return (
-                <div key={p.id} className="bg-white border border-card-border p-4 rounded-[2rem] shadow-sm flex flex-col items-center text-center space-y-3 group hover:shadow-md transition-all relative">
-                  <div className="relative">
-                    <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center font-black text-primary text-xl border-2 border-white shadow-sm ring-1 ring-slate-100 overflow-hidden">
-                      {p.color ? (
-                        <div className="w-full h-full" style={{ backgroundColor: p.color }} />
-                      ) : p.nome[0].toUpperCase()}
-                    </div>
-                    <div className={`absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-white shadow-sm ${!isWorking ? 'bg-slate-300' : (isCurrentlyBusy ? 'bg-status-error' : 'bg-status-success')}`}></div>
-                  </div>
-                  <div>
-                    <h4 className="text-[10px] font-black uppercase italic tracking-tighter text-text-main truncate w-full max-w-[100px]">{p.nome}</h4>
-                    <p className="text-[7px] font-bold text-primary uppercase tracking-widest">{p.especialidade || labels.termoProfissional}</p>
-                  </div>
-                  <div className="pt-2 border-t border-slate-50 w-full">
-                    <p className="text-[7px] font-black text-text-placeholder uppercase">{pAppts.length} {labels.termoAgenda}s</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Seção "Consultas" removida V5.14 */}
-
-        {activeTab === 'planos' && (
-          <div className="space-y-12">
-            <div className="flex justify-between items-center bg-white border border-card-border p-10 rounded-[3rem] shadow-sm">
-              <div>
-                <h3 className="text-xl font-black italic uppercase tracking-tighter text-text-main">Gestão de <span className="text-primary italic">Assinaturas</span></h3>
-                <p className="text-[10px] font-black text-text-muted uppercase tracking-widest mt-1 opacity-60">Programa de fidelidade ativo</p>
-              </div>
-              <div className="flex items-center gap-4 bg-primary-soft px-6 py-3 rounded-2xl border border-primary/10">
-                <span className="text-[10px] font-black text-primary uppercase">Plano Ativo:</span>
-                <span className="text-[12px] font-black text-primary uppercase italic tracking-tighter animate-pulse">OURO PREMIUM</span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {/* Bronze */}
-              <div className="bg-white border border-card-border p-10 rounded-[3.5rem] shadow-sm flex flex-col items-center text-center space-y-6 relative overflow-hidden group hover:border-bronze/40 transition-all">
-                <div className="w-16 h-16 rounded-3xl bg-amber-100/50 flex items-center justify-center text-3xl">🥉</div>
-                <div>
-                  <h4 className="text-lg font-black uppercase italic tracking-tighter text-amber-800">Bronze</h4>
-                  <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Essencial para iniciar</p>
-                </div>
-                <div className="text-2xl font-black text-text-main tracking-tighter italic">R$ 49<span className="text-[10px] text-text-muted">/mês</span></div>
-                <ul className="space-y-3 w-full text-left">
-                  {['Agendamentos Ilimitados', 'Lembretes via WhatsApp', 'Relatórios Básicos'].map(b => (
-                    <li key={b} className="text-[9px] font-black uppercase text-text-muted flex items-center gap-3 opacity-60">
-                      <span className="text-amber-500">✓</span> {b}
-                    </li>
-                  ))}
-                </ul>
-                <button className="w-full py-4 rounded-2xl bg-slate-50 border border-slate-100 text-[9px] font-black uppercase tracking-widest text-text-placeholder">Plano Atual</button>
-              </div>
-
-              {/* Prata */}
-              <div className="bg-white border-2 border-slate-200 p-10 rounded-[3.5rem] shadow-xl flex flex-col items-center text-center space-y-6 relative overflow-hidden group scale-105 z-10">
-                <div className="absolute top-6 right-6 bg-slate-900 text-white text-[8px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest">Mais Popular</div>
-                <div className="w-16 h-16 rounded-3xl bg-slate-100 flex items-center justify-center text-3xl">🥈</div>
-                <div>
-                  <h4 className="text-lg font-black uppercase italic tracking-tighter text-slate-700">Prata Plus</h4>
-                  <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Gestão completa</p>
-                </div>
-                <div className="text-2xl font-black text-text-main tracking-tighter italic">R$ 89<span className="text-[10px] text-text-muted">/mês</span></div>
-                <ul className="space-y-4 w-full text-left bg-slate-50/50 p-6 rounded-2xl">
-                  {['Tudo do Bronze', 'Ranking de Clientes', 'Filtro de Assinantes ⭐', 'Suporte Prioritário'].map(b => (
-                    <li key={b} className="text-[9px] font-black uppercase text-text-main flex items-center gap-3">
-                      <span className="text-slate-500">✓</span> {b}
-                    </li>
-                  ))}
-                </ul>
-                <button className="w-full py-4 rounded-2xl bg-slate-900 text-white text-[9px] font-black uppercase tracking-widest shadow-xl shadow-slate-900/20 hover:scale-105 transition-all">Migrar Agora</button>
-              </div>
-
-              {/* Ouro */}
-              <div className="bg-white border border-card-border p-10 rounded-[3.5rem] shadow-sm flex flex-col items-center text-center space-y-6 relative overflow-hidden group hover:border-primary/40 transition-all">
-                <div className="w-16 h-16 rounded-3xl bg-primary-soft flex items-center justify-center text-3xl">🥇</div>
-                <div>
-                  <h4 className="text-lg font-black uppercase italic tracking-tighter text-primary">Ouro VIP</h4>
-                  <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Experiência Máxima</p>
-                </div>
-                <div className="text-2xl font-black text-text-main tracking-tighter italic">R$ 149<span className="text-[10px] text-text-muted">/mês</span></div>
-                <ul className="space-y-3 w-full text-left">
-                  {['Tudo do Prata', 'Profissionais Ilimitados', 'Acesso Multi-Unidade', 'IA de Atendimento Gold'].map(b => (
-                    <li key={b} className="text-[9px] font-black uppercase text-text-muted flex items-center gap-3 opacity-60">
-                      <span className="text-primary">✓</span> {b}
-                    </li>
-                  ))}
-                </ul>
-                <button className="w-full py-4 rounded-2xl bg-white border border-primary/20 text-primary text-[9px] font-black uppercase tracking-widest hover:bg-primary-soft transition-all">Consultar Upgrade</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-
-        {activeTab === 'semana' && (
-          !selectedProfId && !isGeneralView ? (
-            <AgendaSelectionWizard 
-              profissionais={profissionais}
-              labels={labels}
-              onSelect={handleProfSelect}
-              isMultiSpecialty={labels.temEspecialidades}
-              isAdmin={['admin', 'gestor'].includes(user?.role?.toLowerCase())}
-              onViewGeneral={() => setIsGeneralView(true)}
-              step={wizardStep}
-              setStep={setWizardStep}
-            />
-          ) : (
-            <div className="bg-white border border-card-border rounded-[3rem] p-6 shadow-premium overflow-x-auto">
-              <div className="min-w-[1000px] grid grid-cols-7 gap-4">
-                {Array.from({ length: 7 }).map((_, i) => {
-                  const day = new Date(selectedDate);
-                  day.setDate(day.getDate() - day.getDay() + i);
-                  const dayAppts = appointments.filter(a => isSameDay(new Date(a.dataHora), day) && (isGeneralView || a.profissional?.id === selectedProfId));
-                  
-                  return (
-                    <div key={i} className={`space-y-4 p-4 rounded-[2rem] border transition-all ${isSameDay(day, new Date()) ? 'bg-primary-soft/30 border-primary/20 shadow-inner' : 'bg-slate-50 border-slate-100'}`}>
-                      <div className="text-center pb-2 border-b border-slate-200 relative">
-                        <p className="text-[10px] font-black text-text-placeholder uppercase tracking-widest">{WEEKDAYS_SHORT[i]}</p>
-                        <p className={`text-xl font-black italic tracking-tighter ${isSameDay(day, new Date()) ? 'text-primary' : 'text-text-main'}`}>{day.getDate()}</p>
-                        {dayAppts.length > 0 && (
-                          <span className="absolute -top-1 -right-1 bg-primary text-white text-[8px] font-black w-5 h-5 rounded-full flex items-center justify-center shadow-lg shadow-primary/30 border-2 border-white">
-                            {dayAppts.length}
-                          </span>
-                        )}
-                      </div>
-                      <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1 no-scrollbar">
-                        {dayAppts.length === 0 ? (
-                          <div className="py-10 text-center opacity-20 italic text-[10px] font-black uppercase tracking-widest">Livre</div>
-                        ) : dayAppts.sort((a,b) => a.dataHora.localeCompare(b.dataHora)).map(a => (
-                          <div key={a.id} className="p-3 bg-white border border-card-border rounded-2xl shadow-sm hover:shadow-md transition-all cursor-pointer group" style={{ borderLeft: `4px solid ${STATUS_MAP[a.status]?.bg || '#ccc'}` }}>
-                             <p className="text-[10px] font-black text-text-main leading-tight truncate">{a.paciente.nome}</p>
-                             <p className="text-[8px] font-black text-primary uppercase tracking-widest mt-1">{formatTime(a.dataHora)}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )
-        )}
-
-        {activeTab === 'mes' && (
-          !selectedProfId && !isGeneralView ? (
-            <AgendaSelectionWizard 
-              profissionais={profissionais}
-              labels={labels}
-              onSelect={handleProfSelect}
-              isMultiSpecialty={labels.temEspecialidades}
-              isAdmin={['admin', 'gestor'].includes(user?.role?.toLowerCase())}
-              onViewGeneral={() => setIsGeneralView(true)}
-              step={wizardStep}
-              setStep={setWizardStep}
-            />
-          ) : (
-            <div className="bg-white border border-card-border rounded-[3rem] p-10 shadow-premium">
-              <div className="grid grid-cols-7 gap-4 mb-6">
-                {WEEKDAYS_SHORT.map(w => <div key={w} className="text-center text-[9px] font-black text-text-placeholder uppercase tracking-[0.3em]">{w}</div>)}
-              </div>
-              <div className="grid grid-cols-7 gap-4">
-                {(() => {
-                  const firstDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
-                  const lastDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0);
-                  const prevLastDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 0);
-                  const days = [];
-                  
-                  // Prefill prev month days
-                  for (let i = firstDay.getDay(); i > 0; i--) {
-                    days.push({ day: prevLastDay.getDate() - i + 1, current: false, date: new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 1, prevLastDay.getDate() - i + 1) });
-                  }
-                  // Current month
-                  for (let i = 1; i <= lastDay.getDate(); i++) {
-                    days.push({ day: i, current: true, date: new Date(selectedDate.getFullYear(), selectedDate.getMonth(), i) });
-                  }
-                  
-                  return days.map((d, i) => {
-                    const dayAppts = appointments.filter(a => isSameDay(new Date(a.dataHora), d.date) && (isGeneralView || a.profissional?.id === selectedProfId));
-                    return (
-                      <div key={i} onClick={() => { setSelectedDate(d.date); setActiveTab('dia'); }} className={`aspect-square p-2 rounded-2xl border transition-all cursor-pointer flex flex-col items-center justify-center space-y-1 relative group ${d.current ? 'bg-slate-50 border-slate-100 hover:border-primary/30 hover:shadow-xl hover:scale-105' : 'bg-white opacity-5 border-transparent'} ${isSameDay(d.date, new Date()) ? 'ring-2 ring-primary ring-offset-2' : ''}`}>
-                         <span className={`text-[12px] font-black italic tracking-tighter ${d.current ? 'text-text-main' : 'text-text-placeholder'}`}>{d.day}</span>
-                         {dayAppts.length > 0 && d.current && (
-                           <div className="flex flex-col items-center w-full px-1">
-                              <div className="bg-primary text-white text-[7px] font-black px-1.5 py-0.5 rounded-md shadow-lg shadow-primary/20 w-full text-center">
-                                {dayAppts.length} {dayAppts.length === 1 ? 'AG.' : 'AGS.'}
-                              </div>
-                              <div className="flex gap-0.5 mt-1 justify-center">
-                                 {dayAppts.slice(0, 4).map((a, idx) => (
-                                   <div key={idx} className="w-1.5 h-1.5 rounded-full border border-white shadow-sm" style={{ backgroundColor: STATUS_MAP[a.status]?.bg || '#ccc' }} />
-                                 ))}
-                              </div>
-                           </div>
-                         )}
-                      </div>
-                    );
-                  });
-                })()}
-              </div>
-            </div>
-          )
-        )}
+      {/* Synka Panel mobile — accordion */}
+      <div className="xl:hidden">
+        <SynkaPanel profissionais={profissionais} data={data} collapsed />
       </div>
 
-      {showModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xl z-[200] flex items-center justify-center p-4 animate-premium" onClick={() => setShowModal(false)}>
-          <div className="bg-white border border-card-border rounded-[3.5rem] p-12 w-full max-w-2xl shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar" onClick={e => e.stopPropagation()}>
-            <div className="mb-8">
-              <h3 className="text-2xl font-black italic uppercase tracking-tighter text-text-main">
-                {selectedAppt ? 'Detalhes do' : `Novo ${labels.termoAgenda}`}
+      {/* Modal de agendamento */}
+      <ModalAgendamento
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        profissionalId={slotProfId}
+        horario={slotHorario}
+        data={data}
+        profissionais={profissionais}
+        onSuccess={() => fetchAgenda(data)}
+      />
+
+      {/* Modal de detalhe de agendamento */}
+      {agendamentoSelecionado && profSelecionado && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+          onClick={() => setAgendamentoSelecionado(null)}
+        >
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
+          <div
+            className="relative bg-white w-full max-w-sm rounded-t-2xl sm:rounded-2xl shadow-2xl sm:mx-4 z-10 slide-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Handle mobile */}
+            <div className="flex justify-center pt-3 sm:hidden">
+              <div className="w-10 h-1 bg-warm-300 rounded-full" />
+            </div>
+
+            <div className="px-5 py-4">
+              <div
+                className="w-full h-1 rounded-full mb-4"
+                style={{
+                  background: agendamentoSelecionado.servico?.color || profSelecionado.color,
+                }}
+              />
+              <h3 className="font-display text-lg text-slate-700 mb-4">
+                {agendamentoSelecionado.pacienteNome}
               </h3>
-              <p className="text-[9px] font-black text-text-placeholder uppercase tracking-widest mt-1">Preencha os dados do agendamento</p>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-slate-100">Horário</span>
+                  <span className="text-slate-700 font-medium">
+                    {new Date(agendamentoSelecionado.dataHora).toLocaleTimeString("pt-BR", {
+                      hour: "2-digit", minute: "2-digit",
+                    })}
+                    {" – "}
+                    {new Date(agendamentoSelecionado.fimDataHora).toLocaleTimeString("pt-BR", {
+                      hour: "2-digit", minute: "2-digit",
+                    })}
+                  </span>
+                </div>
+                {agendamentoSelecionado.servico && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-100">Serviço</span>
+                    <span className="text-slate-700 font-medium">
+                      {agendamentoSelecionado.servico.nome}
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-slate-100">Profissional</span>
+                  <span className="text-slate-700 font-medium">{profSelecionado.nome}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-100">Status</span>
+                  <span
+                    className={`font-medium capitalize ${
+                      agendamentoSelecionado.status === "confirmado"
+                        ? "text-sage-500"
+                        : agendamentoSelecionado.status === "pendente"
+                        ? "text-gold-500"
+                        : "text-red-500"
+                    }`}
+                  >
+                    {agendamentoSelecionado.status}
+                  </span>
+                </div>
+                {agendamentoSelecionado.pacienteTelefone && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-100">Telefone</span>
+                    <a
+                      href={`https://wa.me/55${agendamentoSelecionado.pacienteTelefone.replace(/\D/g, "")}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sage-600 font-medium hover:underline"
+                    >
+                      {agendamentoSelecionado.pacienteTelefone}
+                    </a>
+                  </div>
+                )}
+                {agendamentoSelecionado.observacoes && (
+                  <div>
+                    <span className="text-slate-100 block mb-1">Observações</span>
+                    <p className="text-slate-700 text-xs bg-warm-100 rounded-lg px-3 py-2">
+                      {agendamentoSelecionado.observacoes}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={() => setAgendamentoSelecionado(null)}
+                className="mt-4 w-full h-10 rounded-lg border border-warm-300 text-slate-300 text-sm hover:bg-warm-100 transition-colors"
+              >
+                Fechar
+              </button>
             </div>
-            
-            <QuickAppointmentForm 
-              clinica={clinica}
-              profissionais={profissionais}
-              services={services}
-              onSuccess={() => { fetchAll(); setShowModal(false); }}
-              onCancel={() => setShowModal(false)}
-              initialDate={selectedDate}
-              initialHour={selectedHour}
-              initialProfId={selectedProfId || undefined}
-              initialAppt={selectedAppt || undefined}
-            />
           </div>
         </div>
       )}

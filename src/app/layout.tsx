@@ -1,27 +1,32 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { DM_Sans, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/context/ThemeContext";
 import PWARegister from "@/components/PWARegister";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const dmSans = DM_Sans({
   subsets: ["latin"],
+  weight: ["300", "400", "500", "600"],
+  variable: "--font-dm-sans",
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const playfair = Playfair_Display({
   subsets: ["latin"],
+  weight: ["500", "600"],
+  variable: "--font-playfair",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
   title: "Synka — Agendamento Inteligente para Clínicas",
-  description: "Synka é a plataforma de agendamento automático com IA nativa no WhatsApp, desenvolvida pela Somar. Escalone o atendimento da sua clínica em piloto automático.",
+  description:
+    "Synka é a plataforma de agendamento automático com IA nativa no WhatsApp, desenvolvida pela Somar. Escalone o atendimento da sua clínica em piloto automático.",
   manifest: "/manifest.json",
   icons: {
     icon: "/icon-192.png",
     apple: "/icon-192.png",
-  }
+  },
 };
 
 export default function RootLayout({
@@ -31,8 +36,8 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      lang="pt-BR"
+      className={`${dmSans.variable} ${playfair.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <ThemeProvider>
