@@ -160,29 +160,32 @@ REGRAS: Responda SEMPRE em Português Brasil. Use listas numeradas para passo-a-
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
       model: process.env.GEMINI_MODEL || 'gemini-2.0-flash',
-      systemInstruction: systemPrompt,
     });
 
-    // Converte histórico para formato Gemini — deve começar com 'user'
-    const safeHistory: { role: 'user' | 'model'; parts: { text: string }[] }[] = [];
+    // Monta contents com contexto + histórico + mensagem atual
+    const contents: { role: 'user' | 'model'; parts: { text: string }[] }[] = [];
+
+    // Injeta contexto como troca inicial user/model
+    contents.push({ role: 'user', parts: [{ text: systemPrompt }] });
+    contents.push({ role: 'model', parts: [{ text: 'Entendido. Sou a Synka IA, pronta para ajudar.' }] });
+
+    // Histórico anterior válido
     if (Array.isArray(history)) {
       for (const h of history) {
         if ((h?.role === 'user' || h?.role === 'model') && h?.parts?.[0]?.text) {
-          safeHistory.push({ role: h.role, parts: [{ text: h.parts[0].text }] });
+          contents.push({ role: h.role, parts: [{ text: h.parts[0].text }] });
         }
       }
     }
-    // Remove mensagens 'model' do início (Gemini exige que history comece com 'user')
-    while (safeHistory.length > 0 && safeHistory[0].role === 'model') {
-      safeHistory.shift();
-    }
 
-    const chat = model.startChat({
-      history: safeHistory,
+    // Mensagem atual
+    contents.push({ role: 'user', parts: [{ text: message }] });
+
+    const result = await model.generateContent({
+      contents,
       generationConfig: { maxOutputTokens: 500, temperature: 0.7 },
     });
 
-    const result = await chat.sendMessage(message);
     const text = result.response.text();
     return NextResponse.json({ success: true, text });
   } catch (error: any) {
