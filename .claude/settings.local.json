@@ -14,7 +14,8 @@
       "Bash(node -e \":*)",
       "Bash(grep -r -i -n \"dev\\\\|demo\\\\|test\\\\|beta\\\\|alpha\\\\|staging\\\\|preview\\\\|official\\\\|wip\\\\|todo\\\\|fixme\" /c/SOMAR/projeto-somar-n8n/src/app --include=*.tsx --include=*.ts --include=*.jsx --include=*.js)",
       "Bash(xargs grep:*)",
-      "Bash(npx prisma:*)"
+      "Bash(npx prisma:*)",
+      "Bash(npx tsc:*)"
     ]
   }
 }

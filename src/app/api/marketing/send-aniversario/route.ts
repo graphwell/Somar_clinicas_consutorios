@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getSessionInfo } from '@/lib/auth-helpers';
 import prisma from '@/lib/prisma';
-import { sendAndLog, applyTemplate, DEFAULT_ANIVERSARIO_TEMPLATE } from '@/lib/marketing-helpers';
+import { sendAndLog } from '@/lib/marketing-helpers';
+import { processarTemplate, TEMPLATE_ANIVERSARIO_PADRAO } from '@/lib/marketing-utils';
 
 export async function POST(req: Request) {
   try {
@@ -18,22 +19,22 @@ export async function POST(req: Request) {
     if (!paciente) return NextResponse.json({ error: 'Paciente não encontrado' }, { status: 404 });
     if (!paciente.telefone) return NextResponse.json({ error: 'Paciente sem telefone' }, { status: 422 });
 
-    const desconto = config?.aniversarioDesconto ?? 15;
-    const template = config?.aniversarioTemplate || DEFAULT_ANIVERSARIO_TEMPLATE;
+    const desconto = config?.aniversarioDescontoPct ?? 15;
+    const nomeClinica = config?.nomeClinica || clinica?.nome || 'Clínica';
+    const template = config?.aniversarioTemplate || TEMPLATE_ANIVERSARIO_PADRAO;
 
-    const mensagem = applyTemplate(template, {
+    const mensagem = processarTemplate(template, {
       nome: paciente.nome.split(' ')[0],
       desconto: String(desconto),
-      clinica: clinica?.nome ?? 'Clínica',
+      clinica: nomeClinica,
     });
 
     const result = await sendAndLog({
       tenantId,
       tipo: 'aniversario',
-      pacienteId,
-      pacienteNome: paciente.nome,
-      pacienteTelefone: paciente.telefone,
-      mensagem,
+      clienteNome: paciente.nome,
+      clienteTelefone: paciente.telefone,
+      mensagemEnviada: mensagem,
     });
 
     return NextResponse.json(result);

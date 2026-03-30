@@ -5,9 +5,9 @@ import prisma from '@/lib/prisma';
 export async function GET() {
   try {
     const { tenantId } = await getSessionInfo();
-    const campanhas = await prisma.campanhaAviso.findMany({
+    const campanhas = await prisma.marketingCampanha.findMany({
       where: { tenantId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { criadoEm: 'desc' },
     });
     return NextResponse.json(campanhas);
   } catch (error: any) {
@@ -18,21 +18,20 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const { tenantId } = await getSessionInfo();
-    const { titulo, mensagem, tipo, filtroServico, filtroInativoDias, segmentoFiltrosJson } = await req.json();
+    const { nome, tipo, filtroServico, filtroInativoDias, template } = await req.json();
 
-    if (!titulo || !mensagem) {
-      return NextResponse.json({ error: 'titulo e mensagem são obrigatórios' }, { status: 400 });
+    if (!nome || !template) {
+      return NextResponse.json({ error: 'nome e template são obrigatórios' }, { status: 400 });
     }
 
-    const campanha = await prisma.campanhaAviso.create({
+    const campanha = await prisma.marketingCampanha.create({
       data: {
         tenantId,
-        titulo,
-        mensagem,
+        nome,
         tipo: tipo ?? 'todos',
         filtroServico: filtroServico ?? null,
         filtroInativoDias: filtroInativoDias ? Number(filtroInativoDias) : null,
-        segmentoFiltrosJson: segmentoFiltrosJson ? JSON.stringify(segmentoFiltrosJson) : null,
+        template,
         status: 'rascunho',
       },
     });
@@ -49,8 +48,7 @@ export async function DELETE(req: Request) {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     if (!id) return NextResponse.json({ error: 'id obrigatório' }, { status: 400 });
-
-    await prisma.campanhaAviso.deleteMany({ where: { id, tenantId } });
+    await prisma.marketingCampanha.deleteMany({ where: { id, tenantId } });
     return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

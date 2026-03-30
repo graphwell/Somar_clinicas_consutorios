@@ -29,6 +29,17 @@ interface ClinicaData {
   profissionais: Profissional[];
 }
 
+interface ComboSugestao {
+  id: string;
+  nome: string;
+  descricao: string | null;
+  servicos: string[];
+  precoOriginal: string | null;
+  precoCombo: string;
+  descontoPct: number | null;
+  validadeDias: number;
+}
+
 type Step = 'servico' | 'profissional' | 'data' | 'horario' | 'dados' | 'confirmacao';
 
 const STEPS: Step[] = ['servico', 'profissional', 'data', 'horario', 'dados', 'confirmacao'];
@@ -75,6 +86,12 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
   const [telefone, setTelefone] = useState('');
   const [saving, setSaving] = useState(false);
   const [agendamentoCriado, setAgendamentoCriado] = useState<any>(null);
+
+  // ── Combo Upsell ────────────────────────────────────────────────
+  const [combosSugeridos, setCombosSugeridos] = useState<ComboSugestao[]>([]);
+  const [showComboModal, setShowComboModal] = useState(false);
+  const [comboAceito, setComboAceito] = useState<ComboSugestao | null>(null);
+  const [proximoStep, setProximoStep] = useState<Step>('profissional');
 
   useEffect(() => {
     params.then(p => setSlug(p.slug));
@@ -129,10 +146,49 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
     setStep('horario');
   };
 
+  // Busca combos sugeridos ao selecionar serviço (rota pública)
+  const buscarCombos = async (servico: Servico, nextStep: Step) => {
+    setSelectedServico(servico);
+    setProximoStep(nextStep);
+    if (!slug) { setStep(nextStep); return; }
+    try {
+      const res = await fetch(
+        `/api/public/combos?slug=${encodeURIComponent(slug)}&servico=${encodeURIComponent(servico.nome)}`
+      );
+      const data = await res.json();
+      const combos: ComboSugestao[] = data.combos ?? [];
+      if (combos.length > 0) {
+        setCombosSugeridos(combos);
+        setShowComboModal(true);
+      } else {
+        setStep(nextStep);
+      }
+    } catch {
+      setStep(nextStep);
+    }
+  };
+
+  const handleAceitarCombo = (combo: ComboSugestao) => {
+    setComboAceito(combo);
+    setShowComboModal(false);
+    setStep(proximoStep);
+  };
+
+  const handleRecusarCombo = () => {
+    setComboAceito(null);
+    setShowComboModal(false);
+    setStep(proximoStep);
+  };
+
   const handleSubmit = async () => {
     if (!clinica || !selectedSlot || !nome || !telefone) return;
     setSaving(true);
     try {
+      // Inclui info do combo aceito no campo observacoes
+      const observacoes = comboAceito
+        ? `[Combo aceito] ${comboAceito.nome} — R$ ${Number(comboAceito.precoCombo).toFixed(2)}${comboAceito.descontoPct ? ` (${comboAceito.descontoPct}% OFF)` : ''}`
+        : undefined;
+
       const res = await fetch('/api/bot/appointments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -143,6 +199,7 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
           dataHora: selectedSlot,
           profissionalId: selectedProfissional?.id || null,
           servicoId: selectedServico?.id || null,
+          observacoes,
         })
       });
       const data = await res.json();
@@ -227,7 +284,7 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
               <p className="text-center text-slate-400 font-black uppercase text-xs py-12">Nenhum {labels.termoAtendimento.toLowerCase()} disponível</p>
             )}
             {clinica.servicos.map(s => (
-              <button key={s.id} onClick={() => { setSelectedServico(s); setStep('profissional'); }}
+              <button key={s.id} onClick={() => buscarCombos(s, 'profissional')}
                 className="w-full bg-white border-2 border-slate-100 rounded-3xl p-6 text-left hover:border-opacity-60 transition-all hover:-translate-y-0.5 shadow-sm hover:shadow-md"
                 style={{ '--hover-border': s.color } as any}>
                 <div className="flex items-center justify-between">
@@ -470,6 +527,21 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
                 <span className="text-[11px] font-black text-slate-400 uppercase">Status</span>
                 <span className="text-[11px] font-black uppercase px-3 py-1 bg-amber-50 text-amber-600 rounded-lg border border-amber-100">Pendente</span>
               </div>
+              {comboAceito && (
+                <div className="mt-3 pt-3 border-t border-slate-50">
+                  <div className="flex items-start gap-3 p-3 bg-indigo-50 rounded-2xl border border-indigo-100">
+                    <span className="text-lg">✨</span>
+                    <div>
+                      <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Combo adicionado</p>
+                      <p className="text-[12px] font-black text-slate-700 mt-0.5">{comboAceito.nome}</p>
+                      <p className="text-[11px] text-indigo-500 font-bold">
+                        R$ {Number(comboAceito.precoCombo).toFixed(2)}
+                        {comboAceito.descontoPct ? ` · ${comboAceito.descontoPct}% OFF` : ''}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <p className="text-[11px] text-slate-400 font-medium">
@@ -482,6 +554,7 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
               setSelectedDate(''); setSelectedSlot('');
               setNome(''); setTelefone('');
               setAgendamentoCriado(null);
+              setComboAceito(null); setCombosSugeridos([]);
             }}
               className="text-[11px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-colors underline underline-offset-4">
               Fazer outro agendamento
@@ -493,6 +566,84 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
       <footer className="py-8 text-center text-[9px] font-black uppercase tracking-widest text-slate-300">
         Powered by Synka
       </footer>
+
+      {/* ── Modal: Combo Sugerido ──────────────────────────────── */}
+      {showComboModal && combosSugeridos.length > 0 && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={handleRecusarCombo} />
+          <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-300">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-6 text-white">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center text-xl">
+                  💡
+                </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest opacity-80">Oferta especial</p>
+                  <h3 className="font-black text-lg leading-tight">Que tal aproveitar também?</h3>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {combosSugeridos.map(combo => (
+                <div key={combo.id}
+                  className="border-2 border-indigo-100 rounded-2xl p-4 space-y-3 hover:border-indigo-300 transition-colors cursor-pointer"
+                  onClick={() => handleAceitarCombo(combo)}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                      <h4 className="font-black text-slate-800 text-sm">{combo.nome}</h4>
+                      {combo.descricao && (
+                        <p className="text-[11px] text-slate-500 mt-0.5 font-medium">{combo.descricao}</p>
+                      )}
+                    </div>
+                    {combo.descontoPct && (
+                      <span className="shrink-0 text-[10px] font-black bg-emerald-100 text-emerald-700 px-2 py-1 rounded-xl">
+                        {combo.descontoPct}% OFF
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5">
+                    {combo.servicos.map((s, i) => (
+                      <span key={i} className="text-[9px] font-black bg-indigo-50 text-indigo-600 px-2 py-1 rounded-lg uppercase tracking-wide">
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-50">
+                    <div>
+                      {combo.precoOriginal && (
+                        <p className="text-[10px] text-slate-400 line-through">
+                          R$ {Number(combo.precoOriginal).toFixed(2)}
+                        </p>
+                      )}
+                      <p className="font-black text-slate-800 text-base">
+                        R$ {Number(combo.precoCombo).toFixed(2)}
+                      </p>
+                    </div>
+                    <button
+                      onClick={e => { e.stopPropagation(); handleAceitarCombo(combo); }}
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors"
+                    >
+                      Adicionar →
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+              <button
+                onClick={handleRecusarCombo}
+                className="w-full py-3 text-[11px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                Não, obrigado
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

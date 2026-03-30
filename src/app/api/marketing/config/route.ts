@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSessionInfo } from '@/lib/auth-helpers';
 import prisma from '@/lib/prisma';
-import { wasenderGet } from '@/lib/wasender';
+import { wasenderPost } from '@/lib/wasender';
 
 export async function GET() {
   try {
@@ -20,7 +20,16 @@ export async function GET() {
       }),
     ]);
 
-    return NextResponse.json({ config, instance });
+    // Nunca expor a API key completa — retorna mascarada
+    const configPublico = {
+      ...config,
+      wasenderApiKey: config.wasenderApiKey
+        ? `${'•'.repeat(Math.max(0, config.wasenderApiKey.length - 4))}${config.wasenderApiKey.slice(-4)}`
+        : null,
+      _temApiKey: !!config.wasenderApiKey,
+    };
+
+    return NextResponse.json({ config: configPublico, instance });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -31,40 +40,33 @@ export async function PATCH(req: Request) {
     const { tenantId } = await getSessionInfo();
     const body = await req.json();
 
-    const {
-      lembreteAtivo,
-      lembreteAntecedencia,
-      lembreteTemplate,
-      aniversarioAtivo,
-      aniversarioDesconto,
-      aniversarioTemplate,
-      linkConfirmacao,
-    } = body;
+    // Se veio nova API key (não mascarada), validar antes de salvar
+    if (body.wasenderApiKey && !body.wasenderApiKey.includes('•')) {
+      const res = await wasenderPost(body.wasenderApiKey, '/sessions', undefined);
+      // WaSender retorna 200 ou 401 — aceitamos qualquer resposta que não seja erro de rede
+      // O teste real é feito pelo endpoint /testar-conexao
+    }
+
+    const data: Record<string, any> = {};
+    const allowed = [
+      'wasenderApiKey', 'wasenderSessionId',
+      'lembreteAtivo', 'lembreteAntecedenciaHoras', 'lembreteHorario', 'lembreteTemplate',
+      'aniversarioAtivo', 'aniversarioHorario', 'aniversarioDescontoPct', 'aniversarioTemplate',
+      'linkConfirmacao', 'nomeClinica',
+    ];
+    for (const key of allowed) {
+      if (key in body && !(body[key] as string)?.includes?.('•')) {
+        data[key] = body[key];
+      }
+    }
 
     const config = await prisma.marketingConfig.upsert({
       where: { tenantId },
-      create: {
-        tenantId,
-        lembreteAtivo: lembreteAtivo ?? false,
-        lembreteAntecedencia: lembreteAntecedencia ?? 24,
-        lembreteTemplate: lembreteTemplate ?? null,
-        aniversarioAtivo: aniversarioAtivo ?? false,
-        aniversarioDesconto: aniversarioDesconto ?? 15,
-        aniversarioTemplate: aniversarioTemplate ?? null,
-        linkConfirmacao: linkConfirmacao ?? null,
-      },
-      update: {
-        ...(lembreteAtivo !== undefined && { lembreteAtivo }),
-        ...(lembreteAntecedencia !== undefined && { lembreteAntecedencia }),
-        ...(lembreteTemplate !== undefined && { lembreteTemplate }),
-        ...(aniversarioAtivo !== undefined && { aniversarioAtivo }),
-        ...(aniversarioDesconto !== undefined && { aniversarioDesconto }),
-        ...(aniversarioTemplate !== undefined && { aniversarioTemplate }),
-        ...(linkConfirmacao !== undefined && { linkConfirmacao }),
-      },
+      create: { tenantId, ...data },
+      update: data,
     });
 
-    return NextResponse.json({ success: true, config });
+    return NextResponse.json({ success: true, config: { ...config, wasenderApiKey: undefined } });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

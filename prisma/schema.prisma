@@ -34,8 +34,6 @@ model Clinica {
   combosUpsell   ComboUpsell[]
   campanhasAviso CampanhaAviso[]
   transacoes     TransacaoFinanceira[]
-  marketingConfig  MarketingConfig?
-  marketingEnvios  MarketingEnvio[]
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
@@ -565,42 +563,81 @@ model OdontogramaItem {
 // ─── Marketing / WhatsApp Automação ─────────────────────────────
 
 model MarketingConfig {
-  id                   String   @id @default(cuid())
-  tenantId             String   @unique
-  // Lembrete de consulta
-  lembreteAtivo        Boolean  @default(false)
-  lembreteAntecedencia Int      @default(24)  // horas antes do agendamento
-  lembreteTemplate     String?
-  // Aniversário
-  aniversarioAtivo     Boolean  @default(false)
-  aniversarioDesconto  Int      @default(15)  // % de desconto oferecido
-  aniversarioTemplate  String?
-  // Geral
-  linkConfirmacao      String?
-  clinica              Clinica  @relation(fields: [tenantId], references: [tenantId])
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  id                        String   @id @default(uuid())
+  tenantId                  String   @unique
+  wasenderApiKey            String?
+  wasenderSessionId         String?
+  lembreteAtivo             Boolean  @default(true)
+  lembreteAntecedenciaHoras Int      @default(24)
+  lembreteHorario           String   @default("09:00")
+  lembreteTemplate          String?
+  aniversarioAtivo          Boolean  @default(true)
+  aniversarioHorario        String   @default("08:00")
+  aniversarioDescontoPct    Int      @default(15)
+  aniversarioTemplate       String?
+  linkConfirmacao           String?
+  nomeClinica               String?
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
 
   @@map("marketing_configs")
 }
 
-model MarketingEnvio {
-  id               String   @id @default(cuid())
+model MarketingCombo {
+  id               String   @id @default(uuid())
   tenantId         String
-  tipo             String   // lembrete | aniversario | combo | campanha
-  pacienteId       String?
-  pacienteNome     String?
-  pacienteTelefone String?
-  mensagem         String
-  wasenderMsgId    String?
-  status           String   @default("enviado") // enviado | erro
-  erroDetalhe      String?
-  campanhaId       String?
+  nome             String
+  descricao        String?
+  servicos         String[]
+  gatilhoServico   String?
+  precoOriginal    Decimal?  @db.Decimal(10,2)
+  precoCombo       Decimal   @db.Decimal(10,2)
+  descontoPct      Int?
+  ativo            Boolean  @default(true)
+  validadeDias     Int      @default(30)
+  templateWhatsapp String?
+  createdAt        DateTime @default(now())
+
+  envios MarketingEnvio[]
+
+  @@map("marketing_combos")
+}
+
+model MarketingEnvio {
+  id               String    @id @default(uuid())
+  tenantId         String
+  tipo             String    // 'lembrete' | 'aniversario' | 'combo' | 'campanha'
+  clienteNome      String?
+  clienteTelefone  String
+  mensagemEnviada  String?
   comboId          String?
-  clinica          Clinica  @relation(fields: [tenantId], references: [tenantId])
-  enviadoEm        DateTime @default(now())
+  wasenderMsgId    String?
+  status           String    @default("enviado") // 'enviado' | 'erro' | 'pendente'
+  erroDetalhe      String?
+  enviadoEm        DateTime  @default(now())
+
+  combo MarketingCombo? @relation(fields: [comboId], references: [id])
 
   @@map("marketing_envios")
+}
+
+model MarketingCampanha {
+  id                  String    @id @default(uuid())
+  tenantId            String
+  nome                String
+  tipo                String?   // 'todos' | 'aniversariantes' | 'inativos' | 'servico'
+  filtroServico       String?
+  filtroInativoDias   Int?
+  template            String
+  totalDestinatarios  Int       @default(0)
+  totalEnviados       Int       @default(0)
+  totalErros          Int       @default(0)
+  status              String    @default("rascunho")
+  agendadoPara        DateTime?
+  criadoEm            DateTime  @default(now())
+  concluidoEm         DateTime?
+
+  @@map("marketing_campanhas")
 }
 
 // Histórico de alterações do odontograma

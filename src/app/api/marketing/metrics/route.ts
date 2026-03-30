@@ -2,39 +2,43 @@ import { NextResponse } from 'next/server';
 import { getSessionInfo } from '@/lib/auth-helpers';
 import prisma from '@/lib/prisma';
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const { tenantId } = await getSessionInfo();
+    const { searchParams } = new URL(req.url);
+    const page = Math.max(1, Number(searchParams.get('page') ?? 1));
+    const perPage = 20;
+    const filtroTipo = searchParams.get('tipo') ?? undefined;
+    const filtroStatus = searchParams.get('status') ?? undefined;
 
-    const [enviosPorTipo, totalCampanhas, recenteEnvios] = await Promise.all([
+    const where: any = { tenantId };
+    if (filtroTipo) where.tipo = filtroTipo;
+    if (filtroStatus) where.status = filtroStatus;
+
+    const [enviosPorTipo, totalCampanhas, envios, totalCount] = await Promise.all([
       prisma.marketingEnvio.groupBy({
         by: ['tipo', 'status'],
         where: { tenantId },
         _count: true,
       }),
-      prisma.campanhaAviso.aggregate({
+      prisma.marketingCampanha.aggregate({
         where: { tenantId, status: 'concluida' },
-        _sum: { totalEnviado: true },
+        _sum: { totalEnviados: true },
         _count: true,
       }),
       prisma.marketingEnvio.findMany({
-        where: { tenantId },
+        where,
         orderBy: { enviadoEm: 'desc' },
-        take: 20,
+        skip: (page - 1) * perPage,
+        take: perPage,
         select: {
-          id: true,
-          tipo: true,
-          pacienteNome: true,
-          pacienteTelefone: true,
-          mensagem: true,
-          status: true,
-          erroDetalhe: true,
-          enviadoEm: true,
+          id: true, tipo: true, clienteNome: true, clienteTelefone: true,
+          mensagemEnviada: true, status: true, erroDetalhe: true, enviadoEm: true,
         },
       }),
+      prisma.marketingEnvio.count({ where }),
     ]);
 
-    // Sumariza por tipo
     const summary: Record<string, { enviado: number; erro: number }> = {};
     for (const row of enviosPorTipo) {
       if (!summary[row.tipo]) summary[row.tipo] = { enviado: 0, erro: 0 };
@@ -50,7 +54,10 @@ export async function GET() {
       totalEnviados,
       totalErros,
       campanhasConcluidas: totalCampanhas._count,
-      enviosRecentes: recenteEnvios,
+      envios,
+      totalCount,
+      page,
+      totalPages: Math.ceil(totalCount / perPage),
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

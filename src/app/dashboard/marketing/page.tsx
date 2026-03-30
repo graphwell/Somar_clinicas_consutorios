@@ -1,5 +1,5 @@
-import ComingSoonPage from '@/components/dashboard/ComingSoon';
+import { redirect } from 'next/navigation';
 
 export default function MarketingPage() {
-  return <ComingSoonPage title="Central de Campanhas" description="Crie e dispare campanhas de reengajamento e fidelização para seus pacientes." />;
+  redirect('/dashboard/marketing/campaigns');
 }

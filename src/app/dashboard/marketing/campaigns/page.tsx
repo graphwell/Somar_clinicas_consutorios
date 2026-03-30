@@ -2,491 +2,649 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNicho } from '@/context/NichoContext';
 import { fetchWithAuth } from '@/lib/api-utils';
+import { processarTemplate, TEMPLATE_LEMBRETE_PADRAO, TEMPLATE_ANIVERSARIO_PADRAO, TEMPLATE_COMBO_PADRAO } from '@/lib/marketing-utils';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-type Service = { id: string; nome: string; preco: number };
+// ─── Types ────────────────────────────────────────────────────────
+type Agendamento = {
+  id: string; dataHora: string;
+  paciente: { nome: string; telefone: string | null };
+  servico: string | null; profissional: string | null;
+  lembreteEnviado: boolean;
+};
+type Aniversariante = { id: string; nome: string; telefone: string | null; dataNascimento: string; mensagemEnviada: boolean };
+type Combo = {
+  id: string; nome: string; descricao: string | null; servicos: string[];
+  gatilhoServico: string | null; precoOriginal: string | null; precoCombo: string;
+  descontoPct: number | null; ativo: boolean; validadeDias: number; templateWhatsapp: string | null;
+};
 type Campanha = {
-  id: string; titulo: string; mensagem: string; tipo: string;
-  status: string; totalEnviado: number; totalErros: number;
-  filtroServico?: string; filtroInativoDias?: number; createdAt: string;
+  id: string; nome: string; tipo: string | null; status: string;
+  totalDestinatarios: number; totalEnviados: number; totalErros: number;
+  template: string; criadoEm: string; concluidoEm: string | null;
 };
-type MarketingConfig = {
-  lembreteAtivo: boolean; lembreteAntecedencia: number; lembreteTemplate: string | null;
-  aniversarioAtivo: boolean; aniversarioDesconto: number; aniversarioTemplate: string | null;
-  linkConfirmacao: string | null;
+type Config = {
+  lembreteAtivo: boolean; lembreteAntecedenciaHoras: number; lembreteHorario: string; lembreteTemplate: string | null;
+  aniversarioAtivo: boolean; aniversarioHorario: string; aniversarioDescontoPct: number; aniversarioTemplate: string | null;
+  linkConfirmacao: string | null; nomeClinica: string | null;
+  wasenderApiKey: string | null; _temApiKey: boolean;
 };
-type WhatsappInstance = { sessionId: string; numeroWa: string | null; status: string; plataforma: string } | null;
-type Metrics = {
-  summary: Record<string, { enviado: number; erro: number }>;
-  totalEnviados: number; totalErros: number; campanhasConcluidas: number;
-  enviosRecentes: any[];
+type WaInstance = { status: string; numeroWa: string | null } | null;
+type Envio = {
+  id: string; tipo: string; clienteNome: string | null; clienteTelefone: string;
+  mensagemEnviada: string | null; status: string; erroDetalhe: string | null; enviadoEm: string;
 };
 
-const DEFAULT_LEMBRETE = `Olá, {nome}! 👋
+// ─── WhatsApp Preview ─────────────────────────────────────────────
+function WhatsAppBubble({ mensagem }: { mensagem: string }) {
+  if (!mensagem) return null;
+  return (
+    <div className="bg-[#128C7E]/5 border border-[#128C7E]/20 rounded-2xl p-4 space-y-3">
+      <p className="text-[9px] font-black text-[#128C7E] uppercase tracking-widest flex items-center gap-2">
+        <span>💬</span> Pré-visualização WhatsApp
+      </p>
+      <div className="bg-[#DCF8C6] rounded-2xl rounded-tl-none px-4 py-3 max-w-[90%] shadow-sm">
+        <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed font-medium">{mensagem}</p>
+        <p className="text-[10px] text-gray-400 text-right mt-1">09:00 ✓✓</p>
+      </div>
+    </div>
+  );
+}
 
-Passando para lembrar do seu agendamento:
-📅 *{data}* às *{hora}*
-💆 {servico} com {profissional}
+// ─── Toggle ───────────────────────────────────────────────────────
+function Toggle({ value, onChange, color = 'bg-[var(--accent)]' }: { value: boolean; onChange: (v: boolean) => void; color?: string }) {
+  return (
+    <button onClick={() => onChange(!value)} className={`relative w-14 h-7 rounded-full transition-all ${value ? color : 'bg-[var(--foreground)]/10'}`}>
+      <span className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-all ${value ? 'left-8' : 'left-1'}`} />
+    </button>
+  );
+}
 
-Para confirmar sua presença, responda *SIM*.
-Para cancelar, responda *NÃO*.
-
-_Equipe {clinica}_`;
-
-const DEFAULT_ANIVERSARIO = `🎂 *Feliz Aniversário, {nome}!*
-
-A equipe {clinica} deseja a você um dia muito especial! 🎉
-
-Como presente, preparamos um desconto exclusivo:
-🎁 *{desconto}% OFF* na sua próxima visita!
-
-Este desconto é válido por 30 dias. 💖
-
-Com carinho,
-_Equipe {clinica}_ 🌟`;
-
-// ─── Component ────────────────────────────────────────────────────────────────
-export default function MarketingCentralPage() {
+// ─── Page ─────────────────────────────────────────────────────────
+export default function MarketingPage() {
   const { labels } = useNicho();
-  const [tab, setTab] = useState<'automacoes' | 'campanhas' | 'combos' | 'historico'>('automacoes');
+  const [tab, setTab] = useState<'lembretes' | 'aniversarios' | 'combos' | 'campanhas' | 'config' | 'log'>('lembretes');
 
   // Data
-  const [config, setConfig] = useState<MarketingConfig | null>(null);
-  const [instance, setInstance] = useState<WhatsappInstance>(null);
+  const [config, setConfig] = useState<Config | null>(null);
+  const [localConfig, setLocalConfig] = useState<Partial<Config>>({});
+  const [waInstance, setWaInstance] = useState<WaInstance>(null);
+  const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
+  const [aniversariantes, setAniversariantes] = useState<Aniversariante[]>([]);
+  const [combos, setCombos] = useState<Combo[]>([]);
   const [campanhas, setCampanhas] = useState<Campanha[]>([]);
-  const [services, setServices] = useState<Service[]>([]);
-  const [metrics, setMetrics] = useState<Metrics | null>(null);
+  const [envios, setEnvios] = useState<Envio[]>([]);
+  const [totalEnvios, setTotalEnvios] = useState(0);
+  const [pageLog, setPageLog] = useState(1);
+  const [totalPagesLog, setTotalPagesLog] = useState(1);
+  const [filtroTipo, setFiltroTipo] = useState('');
+  const [filtroStatus, setFiltroStatus] = useState('');
+  const [metrics, setMetrics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // Automações local state
-  const [localConfig, setLocalConfig] = useState<Partial<MarketingConfig>>({});
+  // UI state
   const [savingConfig, setSavingConfig] = useState(false);
-  const [configSaved, setConfigSaved] = useState(false);
+  const [testandoConexao, setTestandoConexao] = useState(false);
+  const [statusConexao, setStatusConexao] = useState<'idle' | 'conectado' | 'erro' | 'nao_configurado'>('idle');
+  const [sendingId, setSendingId] = useState<string | null>(null);
+  const [sendingAll, setSendingAll] = useState(false);
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
 
   // Campanhas
   const [showNovaCampanha, setShowNovaCampanha] = useState(false);
-  const [novaCampanha, setNovaCampanha] = useState({ titulo: '', mensagem: '', tipo: 'todos', filtroServico: '', filtroInativoDias: '30' });
-  const [creatingCampanha, setCreatingCampanha] = useState(false);
+  const [novaCamp, setNovaCamp] = useState({ nome: '', tipo: 'todos', filtroServico: '', filtroInativoDias: '30', template: '' });
+  const [alcance, setAlcance] = useState<number | null>(null);
+  const [estimando, setEstimando] = useState(false);
   const [dispatchingId, setDispatchingId] = useState<string | null>(null);
   const [dispatchProgress, setDispatchProgress] = useState<{ enviados: number; erros: number; total: number; nome: string } | null>(null);
 
   // Combos
-  const [step, setStep] = useState(1);
-  const [selectedMain, setSelectedMain] = useState('');
-  const [selectedUpsell, setSelectedUpsell] = useState('');
-  const [discount, setDiscount] = useState(15);
-  const [showNewServiceModal, setShowNewServiceModal] = useState(false);
-  const [newServiceName, setNewServiceName] = useState('');
-  const [newServicePrice, setNewServicePrice] = useState('0');
+  const [showNovoCombo, setShowNovoCombo] = useState(false);
+  const [editCombo, setEditCombo] = useState<Combo | null>(null);
+  const [comboForm, setComboForm] = useState({
+    nome: '', descricao: '', servicos: [] as string[], servicoInput: '',
+    gatilhoServico: '', precoOriginal: '', precoCombo: '',
+    descontoPct: '', validadeDias: '30', templateWhatsapp: ''
+  });
+  const [savingCombo, setSavingCombo] = useState(false);
+  const [showEnviarCombo, setShowEnviarCombo] = useState<Combo | null>(null);
+  const [comboPacienteBusca, setComboPacienteBusca] = useState('');
+  const [comboPacientes, setComboPacientes] = useState<any[]>([]);
+  const [comboPacienteSel, setComboPacienteSel] = useState<any>(null);
 
+  // Pré-visualização
+  const [previewLembrete, setPreviewLembrete] = useState(false);
+  const [previewAniv, setPreviewAniv] = useState(false);
+
+  const showToast = (msg: string, ok = true) => {
+    setToast({ msg, ok });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  // ── Load inicial ────────────────────────────────────────────────
   useEffect(() => {
     Promise.all([
       fetchWithAuth('/api/marketing/config').then(r => r.json()),
+      fetchWithAuth('/api/marketing/agendamentos-pendentes').then(r => r.json()),
+      fetchWithAuth('/api/marketing/aniversariantes').then(r => r.json()),
+      fetchWithAuth('/api/marketing/combos').then(r => r.json()),
       fetchWithAuth('/api/marketing/campanhas').then(r => r.json()),
-      fetchWithAuth('/api/marketing/metrics').then(r => r.json()),
-      fetchWithAuth('/api/services').then(r => r.json()),
-    ]).then(([cfg, camps, met, svcs]) => {
+    ]).then(([cfg, ags, anivs, cbs, camps]) => {
       if (cfg.config) { setConfig(cfg.config); setLocalConfig(cfg.config); }
-      if (cfg.instance) setInstance(cfg.instance);
+      if (cfg.instance) setWaInstance(cfg.instance);
+      if (Array.isArray(ags)) setAgendamentos(ags);
+      if (Array.isArray(anivs)) setAniversariantes(anivs);
+      if (Array.isArray(cbs)) setCombos(cbs);
       if (Array.isArray(camps)) setCampanhas(camps);
-      if (met.totalEnviados !== undefined) setMetrics(met);
-      if (Array.isArray(svcs)) setServices(svcs);
     }).finally(() => setLoading(false));
   }, []);
 
-  // ── Config save ────────────────────────────────────────────────
+  // ── Load log ────────────────────────────────────────────────────
+  useEffect(() => {
+    if (tab !== 'log') return;
+    const params = new URLSearchParams({ page: String(pageLog) });
+    if (filtroTipo) params.set('tipo', filtroTipo);
+    if (filtroStatus) params.set('status', filtroStatus);
+    fetchWithAuth(`/api/marketing/metrics?${params}`).then(r => r.json()).then(d => {
+      if (d.envios) setEnvios(d.envios);
+      if (d.totalCount !== undefined) setTotalEnvios(d.totalCount);
+      if (d.totalPages !== undefined) setTotalPagesLog(d.totalPages);
+      setMetrics(d);
+    });
+  }, [tab, pageLog, filtroTipo, filtroStatus]);
+
+  // ── Salvar config ────────────────────────────────────────────────
   const handleSaveConfig = async () => {
     setSavingConfig(true);
     try {
-      const res = await fetchWithAuth('/api/marketing/config', {
-        method: 'PATCH',
-        body: JSON.stringify(localConfig),
-      });
-      if (res.ok) {
-        setConfigSaved(true);
-        setTimeout(() => setConfigSaved(false), 2500);
-      }
-    } finally {
-      setSavingConfig(false);
-    }
+      const res = await fetchWithAuth('/api/marketing/config', { method: 'PATCH', body: JSON.stringify(localConfig) });
+      if (res.ok) showToast('Configurações salvas!');
+      else showToast('Erro ao salvar', false);
+    } finally { setSavingConfig(false); }
   };
 
-  // ── Criar campanha ─────────────────────────────────────────────
-  const handleCreateCampanha = async () => {
-    if (!novaCampanha.titulo || !novaCampanha.mensagem) return;
-    setCreatingCampanha(true);
+  // ── Testar conexão ───────────────────────────────────────────────
+  const handleTestarConexao = async () => {
+    setTestandoConexao(true);
     try {
-      const res = await fetchWithAuth('/api/marketing/campanhas', {
-        method: 'POST',
-        body: JSON.stringify({
-          ...novaCampanha,
-          filtroInativoDias: novaCampanha.tipo === 'inativos' ? Number(novaCampanha.filtroInativoDias) : undefined,
-          filtroServico: novaCampanha.tipo === 'servico' ? novaCampanha.filtroServico : undefined,
-        }),
-      });
-      if (res.ok) {
-        const nova = await res.json();
-        setCampanhas(prev => [nova, ...prev]);
-        setShowNovaCampanha(false);
-        setNovaCampanha({ titulo: '', mensagem: '', tipo: 'todos', filtroServico: '', filtroInativoDias: '30' });
+      const res = await fetchWithAuth('/api/marketing/testar-conexao');
+      const data = await res.json();
+      setStatusConexao(data.status === 'conectado' ? 'conectado' : data.status === 'nao_configurado' ? 'nao_configurado' : 'erro');
+    } finally { setTestandoConexao(false); }
+  };
+
+  // ── Enviar lembrete individual ────────────────────────────────────
+  const handleEnviarLembrete = async (agendamentoId: string) => {
+    setSendingId(agendamentoId);
+    try {
+      const res = await fetchWithAuth('/api/marketing/send-lembrete', { method: 'POST', body: JSON.stringify({ agendamentoId }) });
+      const data = await res.json();
+      if (data.success) {
+        showToast('Lembrete enviado!');
+        setAgendamentos(prev => prev.map(a => a.id === agendamentoId ? { ...a, lembreteEnviado: true } : a));
+      } else showToast(data.error || 'Erro ao enviar', false);
+    } finally { setSendingId(null); }
+  };
+
+  const handleEnviarTodosLembretes = async () => {
+    setSendingAll(true);
+    const pendentes = agendamentos.filter(a => !a.lembreteEnviado && a.paciente.telefone);
+    let ok = 0;
+    for (const ag of pendentes) {
+      const res = await fetchWithAuth('/api/marketing/send-lembrete', { method: 'POST', body: JSON.stringify({ agendamentoId: ag.id }) });
+      const data = await res.json();
+      if (data.success) { ok++; setAgendamentos(prev => prev.map(a => a.id === ag.id ? { ...a, lembreteEnviado: true } : a)); }
+      await new Promise(r => setTimeout(r, 300));
+    }
+    showToast(`${ok}/${pendentes.length} lembretes enviados`);
+    setSendingAll(false);
+  };
+
+  // ── Enviar aniversário ────────────────────────────────────────────
+  const handleEnviarAniversario = async (pacienteId: string) => {
+    setSendingId(pacienteId);
+    try {
+      const res = await fetchWithAuth('/api/marketing/send-aniversario', { method: 'POST', body: JSON.stringify({ pacienteId }) });
+      const data = await res.json();
+      if (data.success) {
+        showToast('Mensagem enviada! 🎂');
+        setAniversariantes(prev => prev.map(a => a.id === pacienteId ? { ...a, mensagemEnviada: true } : a));
+      } else showToast(data.error || 'Erro ao enviar', false);
+    } finally { setSendingId(null); }
+  };
+
+  const handleEnviarTodosAniversarios = async () => {
+    setSendingAll(true);
+    const pendentes = aniversariantes.filter(a => !a.mensagemEnviada && a.telefone);
+    let ok = 0;
+    for (const a of pendentes) {
+      const res = await fetchWithAuth('/api/marketing/send-aniversario', { method: 'POST', body: JSON.stringify({ pacienteId: a.id }) });
+      const data = await res.json();
+      if (data.success) { ok++; setAniversariantes(prev => prev.map(x => x.id === a.id ? { ...x, mensagemEnviada: true } : x)); }
+      await new Promise(r => setTimeout(r, 300));
+    }
+    showToast(`${ok}/${pendentes.length} enviados`);
+    setSendingAll(false);
+  };
+
+  // ── Combos ────────────────────────────────────────────────────────
+  const openNovoCombo = () => {
+    setEditCombo(null);
+    setComboForm({ nome: '', descricao: '', servicos: [], servicoInput: '', gatilhoServico: '', precoOriginal: '', precoCombo: '', descontoPct: '', validadeDias: '30', templateWhatsapp: '' });
+    setShowNovoCombo(true);
+  };
+
+  const openEditCombo = (c: Combo) => {
+    setEditCombo(c);
+    setComboForm({
+      nome: c.nome, descricao: c.descricao ?? '', servicos: c.servicos,
+      servicoInput: '', gatilhoServico: c.gatilhoServico ?? '',
+      precoOriginal: c.precoOriginal ?? '', precoCombo: c.precoCombo,
+      descontoPct: String(c.descontoPct ?? ''), validadeDias: String(c.validadeDias),
+      templateWhatsapp: c.templateWhatsapp ?? ''
+    });
+    setShowNovoCombo(true);
+  };
+
+  const addServico = () => {
+    if (!comboForm.servicoInput.trim()) return;
+    setComboForm(prev => ({ ...prev, servicos: [...prev.servicos, prev.servicoInput.trim()], servicoInput: '' }));
+  };
+
+  const removeServico = (i: number) => setComboForm(prev => ({ ...prev, servicos: prev.servicos.filter((_, idx) => idx !== i) }));
+
+  // Calcula desconto automático
+  useEffect(() => {
+    const orig = Number(comboForm.precoOriginal);
+    const combo = Number(comboForm.precoCombo);
+    if (orig > 0 && combo > 0 && combo < orig) {
+      setComboForm(prev => ({ ...prev, descontoPct: String(Math.round((1 - combo / orig) * 100)) }));
+    }
+  }, [comboForm.precoOriginal, comboForm.precoCombo]);
+
+  const handleSaveCombo = async () => {
+    if (!comboForm.nome || !comboForm.precoCombo || comboForm.servicos.length === 0) return;
+    setSavingCombo(true);
+    try {
+      const body = { nome: comboForm.nome, descricao: comboForm.descricao || null, servicos: comboForm.servicos, gatilhoServico: comboForm.gatilhoServico || null, precoOriginal: comboForm.precoOriginal || null, precoCombo: comboForm.precoCombo, descontoPct: comboForm.descontoPct || null, validadeDias: comboForm.validadeDias, templateWhatsapp: comboForm.templateWhatsapp || null };
+      if (editCombo) {
+        const res = await fetchWithAuth(`/api/marketing/combos/${editCombo.id}`, { method: 'PATCH', body: JSON.stringify(body) });
+        if (res.ok) { const updated = await res.json(); setCombos(prev => prev.map(c => c.id === editCombo.id ? updated : c)); showToast('Combo atualizado!'); }
+      } else {
+        const res = await fetchWithAuth('/api/marketing/combos', { method: 'POST', body: JSON.stringify(body) });
+        if (res.ok) { const novo = await res.json(); setCombos(prev => [novo, ...prev]); showToast('Combo criado!'); }
+        else showToast('Erro ao criar combo', false);
       }
-    } finally {
-      setCreatingCampanha(false);
+      setShowNovoCombo(false);
+    } finally { setSavingCombo(false); }
+  };
+
+  const handleDeleteCombo = async (id: string) => {
+    if (!confirm('Excluir este combo?')) return;
+    await fetchWithAuth(`/api/marketing/combos/${id}`, { method: 'DELETE' });
+    setCombos(prev => prev.filter(c => c.id !== id));
+    showToast('Combo excluído');
+  };
+
+  const handleToggleCombo = async (c: Combo) => {
+    await fetchWithAuth(`/api/marketing/combos/${c.id}`, { method: 'PATCH', body: JSON.stringify({ ativo: !c.ativo }) });
+    setCombos(prev => prev.map(x => x.id === c.id ? { ...x, ativo: !c.ativo } : x));
+  };
+
+  // Busca pacientes para enviar combo
+  useEffect(() => {
+    if (comboPacienteBusca.length < 2) { setComboPacientes([]); return; }
+    const t = setTimeout(() => {
+      fetchWithAuth(`/api/patients?q=${encodeURIComponent(comboPacienteBusca)}`).then(r => r.json()).then(d => setComboPacientes(Array.isArray(d) ? d : []));
+    }, 350);
+    return () => clearTimeout(t);
+  }, [comboPacienteBusca]);
+
+  const handleEnviarCombo = async () => {
+    if (!showEnviarCombo || !comboPacienteSel) return;
+    setSendingId(showEnviarCombo.id);
+    const res = await fetchWithAuth(`/api/marketing/combos/${showEnviarCombo.id}`, { method: 'POST', body: JSON.stringify({ pacienteId: comboPacienteSel.id }) });
+    const data = await res.json();
+    if (data.success) { showToast('Combo enviado! ✨'); setShowEnviarCombo(null); setComboPacienteSel(null); setComboPacienteBusca(''); }
+    else showToast(data.error || 'Erro', false);
+    setSendingId(null);
+  };
+
+  // ── Campanhas ─────────────────────────────────────────────────────
+  const handleEstimarAlcance = async () => {
+    setEstimando(true);
+    try {
+      const res = await fetchWithAuth('/api/marketing/alcance', { method: 'POST', body: JSON.stringify({ tipo: novaCamp.tipo, filtroServico: novaCamp.filtroServico, filtroInativoDias: novaCamp.filtroInativoDias }) });
+      const data = await res.json();
+      setAlcance(data.total ?? 0);
+    } finally { setEstimando(false); }
+  };
+
+  const handleCriarCampanha = async () => {
+    if (!novaCamp.nome || !novaCamp.template) return;
+    const res = await fetchWithAuth('/api/marketing/campanhas', { method: 'POST', body: JSON.stringify({ nome: novaCamp.nome, tipo: novaCamp.tipo, filtroServico: novaCamp.filtroServico || null, filtroInativoDias: novaCamp.tipo === 'inativos' ? Number(novaCamp.filtroInativoDias) : null, template: novaCamp.template }) });
+    if (res.ok) {
+      const nova = await res.json();
+      setCampanhas(prev => [nova, ...prev]);
+      setShowNovaCampanha(false);
+      setNovaCamp({ nome: '', tipo: 'todos', filtroServico: '', filtroInativoDias: '30', template: '' });
+      setAlcance(null);
+      showToast('Campanha criada!');
     }
   };
 
-  // ── Disparar campanha (streaming) ──────────────────────────────
   const handleDispatch = async (campanhaId: string) => {
     setDispatchingId(campanhaId);
     setDispatchProgress(null);
-    try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('synka_token') : null;
-      const res = await fetch(`/api/marketing/campanhas/${campanhaId}/dispatch`, {
-        method: 'POST',
-        headers: { Authorization: token ? `Bearer ${token}` : '' },
-      });
-      if (!res.body) return;
-      const reader = res.body.getReader();
-      const dec = new TextDecoder();
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = dec.decode(value);
-        for (const line of chunk.split('\n')) {
-          if (!line.startsWith('data: ')) continue;
-          try {
-            const data = JSON.parse(line.slice(6));
-            if (data.type === 'progress') {
-              setDispatchProgress({ enviados: data.enviados, erros: data.erros, total: data.total, nome: data.nome });
-            }
-            if (data.type === 'done') {
-              setCampanhas(prev => prev.map(c =>
-                c.id === campanhaId
-                  ? { ...c, status: 'concluida', totalEnviado: data.enviados, totalErros: data.erros }
-                  : c
-              ));
-              setDispatchProgress(null);
-            }
-          } catch {}
-        }
+    const token = typeof window !== 'undefined' ? localStorage.getItem('synka_token') : null;
+    const res = await fetch(`/api/marketing/campanhas/${campanhaId}/dispatch`, { method: 'POST', headers: { Authorization: token ? `Bearer ${token}` : '' } });
+    if (!res.body) { setDispatchingId(null); return; }
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      for (const line of dec.decode(value).split('\n')) {
+        if (!line.startsWith('data: ')) continue;
+        try {
+          const d = JSON.parse(line.slice(6));
+          if (d.type === 'progress') setDispatchProgress({ enviados: d.enviados, erros: d.erros, total: d.total, nome: d.nome });
+          if (d.type === 'done') { setCampanhas(prev => prev.map(c => c.id === campanhaId ? { ...c, status: 'concluida', totalEnviados: d.enviados, totalErros: d.erros } : c)); setDispatchProgress(null); showToast(`Campanha concluída — ${d.enviados} enviados`); }
+        } catch {}
       }
-    } finally {
-      setDispatchingId(null);
     }
+    setDispatchingId(null);
   };
 
-  // ── Combo Builder ──────────────────────────────────────────────
-  const mainService = services.find(s => s.id === selectedMain);
-  const upsellService = services.find(s => s.id === selectedUpsell);
-  const totalPrice = (mainService?.preco || 0) + (upsellService?.preco || 0);
-  const savings = (upsellService?.preco || 0) * (discount / 100);
-  const finalPrice = totalPrice - savings;
-
-  const handleSaveCombo = async () => {
-    if (!selectedMain || !selectedUpsell) return;
-    const res = await fetchWithAuth('/api/settings/upsell', {
-      method: 'POST',
-      body: JSON.stringify({
-        servicoGatilhoId: selectedMain,
-        servicoOferecidoId: selectedUpsell,
-        descricaoOferta: `Aproveite! Adicione ${upsellService?.nome} por apenas R$ ${(upsellService!.preco - savings).toFixed(2)}`,
-        desconto: discount,
-        ativo: true,
-      }),
-    });
-    if (res.ok) { alert('🚀 Combo ativado!'); window.location.reload(); }
+  // ── Helpers visuais ───────────────────────────────────────────────
+  const conexaoInfo = {
+    conectado: { label: 'Conectado', cls: 'text-emerald-500 bg-emerald-500/10', dot: 'bg-emerald-500' },
+    erro: { label: 'Erro de conexão', cls: 'text-red-400 bg-red-400/10', dot: 'bg-red-400' },
+    nao_configurado: { label: 'Não configurado', cls: 'text-yellow-500 bg-yellow-500/10', dot: 'bg-yellow-500' },
+    idle: { label: 'Testar conexão', cls: 'text-[var(--text-muted)] bg-[var(--foreground)]/5', dot: 'bg-[var(--text-muted)]' },
   };
 
-  const handleAddService = async () => {
-    if (!newServiceName) return;
-    const res = await fetchWithAuth('/api/services', {
-      method: 'POST',
-      body: JSON.stringify({ nome: newServiceName, preco: Number(newServicePrice) }),
-    });
-    if (res.ok) {
-      const created = await res.json();
-      setServices(prev => [...prev, created]);
-      setShowNewServiceModal(false);
-      setNewServiceName(''); setNewServicePrice('0');
-    }
-  };
-
-  // ── Helpers ────────────────────────────────────────────────────
-  const statusBadge = (status: string) => {
-    const map: Record<string, string> = {
-      rascunho: 'bg-[var(--foreground)]/10 text-[var(--text-muted)]',
-      enviando: 'bg-yellow-500/10 text-yellow-500',
-      concluida: 'bg-emerald-500/10 text-emerald-500',
-      cancelado: 'bg-red-500/10 text-red-500',
-    };
-    const labels: Record<string, string> = { rascunho: 'Rascunho', enviando: 'Enviando...', concluida: 'Concluída', cancelado: 'Cancelada' };
-    return (
-      <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wide ${map[status] || map.rascunho}`}>
-        {labels[status] || status}
-      </span>
-    );
-  };
-
-  const tipoBadge = (tipo: string) => {
-    const map: Record<string, string> = {
-      todos: '👥 Todos', aniversariantes: '🎂 Aniversariantes', inativos: '💤 Inativos', servico: '🔧 Serviço',
-    };
-    return map[tipo] || tipo;
-  };
-
-  const instanceStatus = instance ? (
-    instance.status === 'EM_USO' || instance.status === 'AGUARDANDO'
-      ? { label: 'WhatsApp Conectado', color: 'bg-emerald-500', text: 'text-emerald-500', dot: 'bg-emerald-500' }
-      : { label: 'WhatsApp Desconectado', color: 'bg-red-500', text: 'text-red-500', dot: 'bg-red-500' }
-  ) : { label: 'WhatsApp não configurado', color: 'bg-yellow-500', text: 'text-yellow-500', dot: 'bg-yellow-500' };
+  const waStatus = waInstance
+    ? (waInstance.status === 'EM_USO' || waInstance.status === 'AGUARDANDO' ? 'conectado' : 'erro')
+    : (config?._temApiKey ? 'idle' : 'nao_configurado');
 
   const TABS = [
-    { id: 'automacoes', label: '🤖 Automações' },
+    { id: 'lembretes', label: '⏰ Lembretes' },
+    { id: 'aniversarios', label: '🎂 Aniversários' },
+    { id: 'combos', label: '✨ Combos' },
     { id: 'campanhas', label: '📢 Campanhas' },
-    { id: 'combos', label: '🚀 Combos' },
-    { id: 'historico', label: '📋 Histórico' },
+    { id: 'config', label: '⚙️ Configurações' },
+    { id: 'log', label: '📋 Log' },
   ] as const;
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  const lembretePreview = processarTemplate(
+    localConfig.lembreteTemplate || TEMPLATE_LEMBRETE_PADRAO,
+    { nome: 'Maria', data: '28/03/2026', hora: '14:30', servico: 'Consulta', profissional: 'Dr. Silva', profissional_linha: ' com Dr. Silva', clinica: localConfig.nomeClinica || 'Clínica', link: '' }
+  );
+
+  const anivPreview = processarTemplate(
+    localConfig.aniversarioTemplate || TEMPLATE_ANIVERSARIO_PADRAO,
+    { nome: 'João', desconto: String(localConfig.aniversarioDescontoPct ?? 15), clinica: localConfig.nomeClinica || 'Clínica' }
+  );
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="w-8 h-8 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 pb-10 animate-in fade-in duration-500">
+    <div className="max-w-7xl mx-auto space-y-6 pb-12 animate-in fade-in duration-500">
+
+      {/* Toast */}
+      {toast && (
+        <div className={`fixed top-6 right-6 z-[200] px-6 py-4 rounded-2xl text-sm font-black shadow-2xl animate-in slide-in-from-top-4 duration-300 ${toast.ok ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'}`}>
+          {toast.ok ? '✓' : '✗'} {toast.msg}
+        </div>
+      )}
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-[var(--card-bg)] border border-[var(--border)] p-8 rounded-[2.5rem] shadow-sm">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[var(--card-bg)] border border-[var(--border)] p-8 rounded-[2.5rem] shadow-sm">
         <div>
           <h2 className="text-3xl font-black tracking-tight text-[var(--foreground)]">Central de Marketing</h2>
-          <p className="text-[var(--text-muted)] mt-1 font-medium italic">
-            Automações, campanhas WhatsApp e combos para sua clínica.
-          </p>
+          <p className="text-[var(--text-muted)] mt-1 font-medium italic">Automações WhatsApp, combos e campanhas para sua clínica.</p>
         </div>
-        {/* WhatsApp status */}
-        <div className={`flex items-center gap-3 px-6 py-3 rounded-2xl border ${instance?.status === 'EM_USO' || instance?.status === 'AGUARDANDO' ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-yellow-500/30 bg-yellow-500/5'}`}>
-          <span className={`w-2.5 h-2.5 rounded-full ${instanceStatus.dot} animate-pulse`} />
-          <span className={`text-xs font-black uppercase tracking-widest ${instanceStatus.text}`}>
-            {instanceStatus.label}
-          </span>
-          {instance?.numeroWa && (
-            <span className="text-[10px] text-[var(--text-muted)] font-medium">{instance.numeroWa}</span>
-          )}
+        <div className={`flex items-center gap-3 px-5 py-3 rounded-2xl border ${waStatus === 'conectado' ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-yellow-500/30 bg-yellow-500/5'}`}>
+          <span className={`w-2.5 h-2.5 rounded-full animate-pulse ${conexaoInfo[waStatus].dot}`} />
+          <span className={`text-xs font-black uppercase tracking-widest ${conexaoInfo[waStatus].cls.split(' ')[0]}`}>WhatsApp {conexaoInfo[waStatus].label}</span>
+          {waInstance?.numeroWa && <span className="text-[10px] text-[var(--text-muted)]">{waInstance.numeroWa}</span>}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Main */}
-        <div className="lg:col-span-3 space-y-6">
+        <div className="lg:col-span-3 space-y-5">
 
           {/* Tabs */}
-          <div className="flex gap-1 p-1.5 bg-[var(--foreground)]/5 border border-[var(--border)] rounded-[1.5rem] overflow-x-auto">
+          <div className="flex gap-1 p-1 bg-[var(--foreground)]/5 border border-[var(--border)] rounded-[1.5rem] overflow-x-auto">
             {TABS.map(t => (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                className={`flex-1 min-w-max px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${tab === t.id ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20' : 'text-[var(--text-muted)] hover:text-[var(--foreground)]'}`}
-              >
+              <button key={t.id} onClick={() => setTab(t.id)}
+                className={`flex-1 min-w-max px-4 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${tab === t.id ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20' : 'text-[var(--text-muted)] hover:text-[var(--foreground)]'}`}>
                 {t.label}
               </button>
             ))}
           </div>
 
-          {/* ── Tab: Automações ─────────────────────────────────── */}
-          {tab === 'automacoes' && (
-            <div className="space-y-6">
-              {!instance && (
-                <div className="bg-yellow-500/5 border border-yellow-500/30 rounded-[2rem] p-6 text-sm text-yellow-500 font-medium">
-                  ⚠️ Nenhuma instância WhatsApp configurada. Vá em <strong>Configurações → Integrações</strong> para conectar.
-                </div>
-              )}
-
-              {/* Lembrete */}
+          {/* ══ Aba: Lembretes ═══════════════════════════════════════ */}
+          {tab === 'lembretes' && (
+            <div className="space-y-5">
               <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] p-8 space-y-6 shadow-sm">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-2xl">⏰</div>
-                    <div>
-                      <h3 className="font-black text-[var(--foreground)] tracking-tight">Lembrete de Consulta</h3>
-                      <p className="text-xs text-[var(--text-muted)] font-medium">Envia mensagem automática antes do agendamento</p>
-                    </div>
+                  <div>
+                    <h3 className="font-black text-lg text-[var(--foreground)] tracking-tight">Lembrete automático de consulta</h3>
+                    <p className="text-xs text-[var(--text-muted)] font-medium mt-1">Envia via WhatsApp X horas antes do agendamento</p>
                   </div>
-                  {/* Toggle */}
-                  <button
-                    onClick={() => setLocalConfig(prev => ({ ...prev, lembreteAtivo: !prev.lembreteAtivo }))}
-                    className={`relative w-14 h-7 rounded-full transition-all ${localConfig.lembreteAtivo ? 'bg-[var(--accent)]' : 'bg-[var(--foreground)]/10'}`}
-                  >
-                    <span className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-all ${localConfig.lembreteAtivo ? 'left-8' : 'left-1'}`} />
-                  </button>
+                  <Toggle value={!!localConfig.lembreteAtivo} onChange={v => setLocalConfig(p => ({ ...p, lembreteAtivo: v }))} />
                 </div>
-
                 {localConfig.lembreteAtivo && (
-                  <div className="space-y-5 pt-2">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Antecedência</label>
-                      <select
-                        value={localConfig.lembreteAntecedencia ?? 24}
-                        onChange={e => setLocalConfig(prev => ({ ...prev, lembreteAntecedencia: Number(e.target.value) }))}
-                        className="w-full max-w-xs bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-5 py-3 text-sm focus:outline-none focus:border-[var(--accent)] font-medium"
-                      >
-                        {[1, 2, 4, 6, 12, 24, 48].map(h => (
-                          <option key={h} value={h}>{h === 1 ? '1 hora antes' : `${h} horas antes`}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">
-                        Template da mensagem
-                      </label>
-                      <p className="text-[10px] text-[var(--text-muted)] pl-1">
-                        Variáveis: <code className="bg-[var(--foreground)]/5 px-1 rounded">{'{nome}'}</code> <code className="bg-[var(--foreground)]/5 px-1 rounded">{'{data}'}</code> <code className="bg-[var(--foreground)]/5 px-1 rounded">{'{hora}'}</code> <code className="bg-[var(--foreground)]/5 px-1 rounded">{'{servico}'}</code> <code className="bg-[var(--foreground)]/5 px-1 rounded">{'{profissional}'}</code> <code className="bg-[var(--foreground)]/5 px-1 rounded">{'{clinica}'}</code>
-                      </p>
-                      <textarea
-                        rows={7}
-                        value={localConfig.lembreteTemplate ?? DEFAULT_LEMBRETE}
-                        onChange={e => setLocalConfig(prev => ({ ...prev, lembreteTemplate: e.target.value }))}
-                        className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-5 py-4 text-sm font-medium focus:outline-none focus:border-[var(--accent)] resize-none leading-relaxed"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Aniversário */}
-              <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] p-8 space-y-6 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-2xl">🎂</div>
-                    <div>
-                      <h3 className="font-black text-[var(--foreground)] tracking-tight">Mensagem de Aniversário</h3>
-                      <p className="text-xs text-[var(--text-muted)] font-medium">Parabeniza automaticamente no dia do aniversário</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setLocalConfig(prev => ({ ...prev, aniversarioAtivo: !prev.aniversarioAtivo }))}
-                    className={`relative w-14 h-7 rounded-full transition-all ${localConfig.aniversarioAtivo ? 'bg-emerald-500' : 'bg-[var(--foreground)]/10'}`}
-                  >
-                    <span className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-all ${localConfig.aniversarioAtivo ? 'left-8' : 'left-1'}`} />
-                  </button>
-                </div>
-
-                {localConfig.aniversarioAtivo && (
-                  <div className="space-y-5 pt-2">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Desconto oferecido (%)</label>
-                      <div className="flex items-center gap-4">
-                        <input
-                          type="range" min={0} max={50} step={5}
-                          value={localConfig.aniversarioDesconto ?? 15}
-                          onChange={e => setLocalConfig(prev => ({ ...prev, aniversarioDesconto: Number(e.target.value) }))}
-                          className="flex-1 accent-emerald-500"
-                        />
-                        <span className="text-2xl font-black text-emerald-500 w-16 text-center">{localConfig.aniversarioDesconto ?? 15}%</span>
+                  <div className="space-y-5 pt-2 border-t border-[var(--border)]">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Antecedência</label>
+                        <select value={localConfig.lembreteAntecedenciaHoras ?? 24} onChange={e => setLocalConfig(p => ({ ...p, lembreteAntecedenciaHoras: Number(e.target.value) }))}
+                          className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[var(--accent)] font-medium">
+                          {[1, 2, 4, 6, 12, 24, 48].map(h => <option key={h} value={h}>{h === 1 ? '1 hora antes' : `${h}h antes`}</option>)}
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Horário do cron</label>
+                        <input type="time" value={localConfig.lembreteHorario ?? '09:00'} onChange={e => setLocalConfig(p => ({ ...p, lembreteHorario: e.target.value }))}
+                          className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[var(--accent)] font-medium" />
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Template da mensagem</label>
-                      <p className="text-[10px] text-[var(--text-muted)] pl-1">
-                        Variáveis: <code className="bg-[var(--foreground)]/5 px-1 rounded">{'{nome}'}</code> <code className="bg-[var(--foreground)]/5 px-1 rounded">{'{desconto}'}</code> <code className="bg-[var(--foreground)]/5 px-1 rounded">{'{clinica}'}</code>
-                      </p>
-                      <textarea
-                        rows={7}
-                        value={localConfig.aniversarioTemplate ?? DEFAULT_ANIVERSARIO}
-                        onChange={e => setLocalConfig(prev => ({ ...prev, aniversarioTemplate: e.target.value }))}
-                        className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-5 py-4 text-sm font-medium focus:outline-none focus:border-[var(--accent)] resize-none leading-relaxed"
-                      />
+                      <div className="flex justify-between items-center">
+                        <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Template</label>
+                        <button onClick={() => setPreviewLembrete(p => !p)} className="text-[9px] font-black text-[var(--accent)] uppercase tracking-widest">{previewLembrete ? 'Ocultar preview' : 'Ver preview'}</button>
+                      </div>
+                      <p className="text-[10px] text-[var(--text-muted)] pl-1">Variáveis: <code className="bg-[var(--foreground)]/5 px-1 rounded">{'{nome}'}</code> <code className="bg-[var(--foreground)]/5 px-1 rounded">{'{data}'}</code> <code className="bg-[var(--foreground)]/5 px-1 rounded">{'{hora}'}</code> <code className="bg-[var(--foreground)]/5 px-1 rounded">{'{servico}'}</code> <code className="bg-[var(--foreground)]/5 px-1 rounded">{'{clinica}'}</code></p>
+                      <textarea rows={6} value={localConfig.lembreteTemplate ?? TEMPLATE_LEMBRETE_PADRAO} onChange={e => setLocalConfig(p => ({ ...p, lembreteTemplate: e.target.value }))}
+                        className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[var(--accent)] font-medium resize-none leading-relaxed" />
+                      {previewLembrete && <WhatsAppBubble mensagem={lembretePreview} />}
                     </div>
                   </div>
                 )}
               </div>
 
-              <button
-                onClick={handleSaveConfig}
-                disabled={savingConfig}
-                className="w-full py-5 bg-[var(--accent)] hover:opacity-90 disabled:opacity-60 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-[var(--accent)]/20 transition-all active:scale-[0.99]"
-              >
-                {savingConfig ? 'Salvando...' : configSaved ? '✅ Configurações Salvas!' : 'Salvar Configurações'}
+              {/* Lista de agendamentos pendentes */}
+              <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] overflow-hidden shadow-sm">
+                <div className="p-6 border-b border-[var(--border)] flex justify-between items-center">
+                  <div>
+                    <h4 className="font-black text-[var(--foreground)] tracking-tight">Agendamentos nas próximas 48h</h4>
+                    <p className="text-xs text-[var(--text-muted)] font-medium mt-0.5">{agendamentos.filter(a => !a.lembreteEnviado).length} aguardando lembrete</p>
+                  </div>
+                  {agendamentos.filter(a => !a.lembreteEnviado).length > 0 && (
+                    <button onClick={handleEnviarTodosLembretes} disabled={sendingAll}
+                      className="px-5 py-2.5 bg-[var(--accent)] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest disabled:opacity-50 shadow-lg shadow-[var(--accent)]/20 transition-all">
+                      {sendingAll ? 'Enviando...' : `Enviar todos (${agendamentos.filter(a => !a.lembreteEnviado).length})`}
+                    </button>
+                  )}
+                </div>
+                {agendamentos.length === 0 ? (
+                  <div className="p-12 text-center text-xs text-[var(--text-muted)] font-black uppercase opacity-50">Nenhum agendamento nas próximas 48h</div>
+                ) : (
+                  <div className="divide-y divide-[var(--border)]">
+                    {agendamentos.map(ag => (
+                      <div key={ag.id} className="flex items-center justify-between px-6 py-4 hover:bg-[var(--foreground)]/[0.01] transition-colors">
+                        <div className="space-y-0.5">
+                          <p className="font-black text-[var(--foreground)] text-sm">{ag.paciente.nome}</p>
+                          <p className="text-xs text-[var(--text-muted)] font-medium">
+                            {new Date(ag.dataHora).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' })} às {new Date(ag.dataHora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                            {ag.servico && ` · ${ag.servico}`}
+                          </p>
+                          {!ag.paciente.telefone && <p className="text-[10px] text-red-400 font-medium">⚠ Sem telefone cadastrado</p>}
+                        </div>
+                        {ag.lembreteEnviado ? (
+                          <span className="text-[10px] font-black text-emerald-500 bg-emerald-500/10 px-3 py-1.5 rounded-xl">✓ Enviado</span>
+                        ) : (
+                          <button onClick={() => handleEnviarLembrete(ag.id)} disabled={sendingId === ag.id || !ag.paciente.telefone}
+                            className="px-4 py-2 bg-[var(--accent)]/10 hover:bg-[var(--accent)]/20 text-[var(--accent)] rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-40 transition-all">
+                            {sendingId === ag.id ? '...' : 'Enviar'}
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <button onClick={handleSaveConfig} disabled={savingConfig}
+                className="w-full py-4 bg-[var(--accent)] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-[var(--accent)]/20 disabled:opacity-60 transition-all">
+                {savingConfig ? 'Salvando...' : 'Salvar configurações de lembrete'}
               </button>
             </div>
           )}
 
-          {/* ── Tab: Campanhas ──────────────────────────────────── */}
-          {tab === 'campanhas' && (
-            <div className="space-y-6">
+          {/* ══ Aba: Aniversários ════════════════════════════════════ */}
+          {tab === 'aniversarios' && (
+            <div className="space-y-5">
+              <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] p-8 space-y-6 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-black text-lg text-[var(--foreground)] tracking-tight">Parabéns automático no aniversário</h3>
+                    <p className="text-xs text-[var(--text-muted)] font-medium mt-1">Enviado no dia do aniversário com desconto especial</p>
+                  </div>
+                  <Toggle value={!!localConfig.aniversarioAtivo} onChange={v => setLocalConfig(p => ({ ...p, aniversarioAtivo: v }))} color="bg-emerald-500" />
+                </div>
+                {localConfig.aniversarioAtivo && (
+                  <div className="space-y-5 pt-2 border-t border-[var(--border)]">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Horário do envio</label>
+                        <input type="time" value={localConfig.aniversarioHorario ?? '08:00'} onChange={e => setLocalConfig(p => ({ ...p, aniversarioHorario: e.target.value }))}
+                          className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[var(--accent)] font-medium" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Desconto ({localConfig.aniversarioDescontoPct ?? 15}%)</label>
+                        <input type="range" min={0} max={50} step={5} value={localConfig.aniversarioDescontoPct ?? 15} onChange={e => setLocalConfig(p => ({ ...p, aniversarioDescontoPct: Number(e.target.value) }))}
+                          className="w-full mt-4 accent-emerald-500" />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Template</label>
+                        <button onClick={() => setPreviewAniv(p => !p)} className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">{previewAniv ? 'Ocultar preview' : 'Ver preview'}</button>
+                      </div>
+                      <p className="text-[10px] text-[var(--text-muted)] pl-1">Variáveis: <code className="bg-[var(--foreground)]/5 px-1 rounded">{'{nome}'}</code> <code className="bg-[var(--foreground)]/5 px-1 rounded">{'{desconto}'}</code> <code className="bg-[var(--foreground)]/5 px-1 rounded">{'{clinica}'}</code></p>
+                      <textarea rows={7} value={localConfig.aniversarioTemplate ?? TEMPLATE_ANIVERSARIO_PADRAO} onChange={e => setLocalConfig(p => ({ ...p, aniversarioTemplate: e.target.value }))}
+                        className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[var(--accent)] font-medium resize-none leading-relaxed" />
+                      {previewAniv && <WhatsAppBubble mensagem={anivPreview} />}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Aniversariantes de hoje */}
+              <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] overflow-hidden shadow-sm">
+                <div className="p-6 border-b border-[var(--border)] flex justify-between items-center">
+                  <div>
+                    <h4 className="font-black text-[var(--foreground)] tracking-tight">Aniversariantes de hoje 🎂</h4>
+                    <p className="text-xs text-[var(--text-muted)] font-medium mt-0.5">{aniversariantes.length} {labels.cliente.toLowerCase()}{aniversariantes.length !== 1 ? 's' : ''}</p>
+                  </div>
+                  {aniversariantes.filter(a => !a.mensagemEnviada).length > 0 && (
+                    <button onClick={handleEnviarTodosAniversarios} disabled={sendingAll}
+                      className="px-5 py-2.5 bg-emerald-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest disabled:opacity-50 shadow-lg shadow-emerald-500/20">
+                      {sendingAll ? 'Enviando...' : `🎂 Enviar para todos`}
+                    </button>
+                  )}
+                </div>
+                {aniversariantes.length === 0 ? (
+                  <div className="p-12 text-center text-xs text-[var(--text-muted)] font-black uppercase opacity-50">Nenhum aniversariante hoje</div>
+                ) : (
+                  <div className="divide-y divide-[var(--border)]">
+                    {aniversariantes.map(a => (
+                      <div key={a.id} className="flex items-center justify-between px-6 py-4">
+                        <div>
+                          <p className="font-black text-[var(--foreground)] text-sm">{a.nome}</p>
+                          <p className="text-xs text-[var(--text-muted)] font-medium">{a.telefone || 'Sem telefone'}</p>
+                        </div>
+                        {a.mensagemEnviada ? (
+                          <span className="text-[10px] font-black text-emerald-500 bg-emerald-500/10 px-3 py-1.5 rounded-xl">✓ Enviado</span>
+                        ) : (
+                          <button onClick={() => handleEnviarAniversario(a.id)} disabled={sendingId === a.id || !a.telefone}
+                            className="px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 rounded-xl text-[10px] font-black uppercase disabled:opacity-40 transition-all">
+                            {sendingId === a.id ? '...' : '🎂 Enviar'}
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <button onClick={handleSaveConfig} disabled={savingConfig}
+                className="w-full py-4 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-emerald-500/20 disabled:opacity-60 transition-all">
+                {savingConfig ? 'Salvando...' : 'Salvar configurações de aniversário'}
+              </button>
+            </div>
+          )}
+
+          {/* ══ Aba: Combos ══════════════════════════════════════════ */}
+          {tab === 'combos' && (
+            <div className="space-y-5">
               <div className="flex justify-between items-center">
-                <p className="text-sm text-[var(--text-muted)] font-medium">{campanhas.length} campanha{campanhas.length !== 1 ? 's' : ''}</p>
-                <button
-                  onClick={() => setShowNovaCampanha(true)}
-                  className="px-6 py-3 bg-[var(--accent)] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[var(--accent)]/20 hover:opacity-90 transition-all"
-                >
-                  + Nova Campanha
+                <p className="text-sm text-[var(--text-muted)] font-medium">{combos.length} combo{combos.length !== 1 ? 's' : ''} cadastrado{combos.length !== 1 ? 's' : ''}</p>
+                <button onClick={openNovoCombo} className="px-6 py-3 bg-[var(--accent)] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[var(--accent)]/20 hover:opacity-90 transition-all">
+                  + Novo Combo
                 </button>
               </div>
 
-              {campanhas.length === 0 ? (
-                <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] p-16 text-center">
-                  <div className="text-5xl mb-4">📢</div>
-                  <p className="font-black text-[var(--text-muted)] uppercase tracking-widest text-xs">Nenhuma campanha criada</p>
-                  <p className="text-xs text-[var(--text-muted)] mt-2 font-medium">Crie uma campanha para disparar mensagens em lote</p>
+              {combos.length === 0 ? (
+                <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] p-14 text-center">
+                  <div className="text-5xl mb-4">✨</div>
+                  <p className="font-black text-[var(--text-muted)] uppercase tracking-widest text-xs">Nenhum combo criado</p>
+                  <p className="text-xs text-[var(--text-muted)] mt-2 font-medium">Crie combos de serviços com desconto para oferecer aos {labels.cliente.toLowerCase()}s</p>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {campanhas.map(c => (
-                    <div key={c.id} className="bg-[var(--card-bg)] border border-[var(--border)] rounded-[2rem] p-6 space-y-4 shadow-sm hover:border-[var(--accent)]/30 transition-all">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div className="space-y-1">
-                          <h4 className="font-black text-[var(--foreground)] tracking-tight">{c.titulo}</h4>
-                          <div className="flex items-center gap-3 flex-wrap">
-                            <span className="text-[10px] font-black text-[var(--text-muted)] bg-[var(--foreground)]/5 px-2 py-1 rounded-lg">{tipoBadge(c.tipo)}</span>
-                            {statusBadge(c.status)}
-                          </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {combos.map(c => (
+                    <div key={c.id} className={`bg-[var(--card-bg)] border rounded-[2rem] p-6 space-y-3 shadow-sm transition-all ${c.ativo ? 'border-[var(--border)] hover:border-[var(--accent)]/30' : 'border-[var(--border)] opacity-60'}`}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-black text-[var(--foreground)] tracking-tight truncate">{c.nome}</h4>
+                          {c.descricao && <p className="text-xs text-[var(--text-muted)] font-medium mt-0.5 line-clamp-2">{c.descricao}</p>}
                         </div>
-                        <div className="flex items-center gap-3">
-                          {c.status !== 'concluida' && c.status !== 'enviando' && (
-                            <button
-                              onClick={() => handleDispatch(c.id)}
-                              disabled={!!dispatchingId}
-                              className="px-5 py-2.5 bg-[var(--accent)]/10 hover:bg-[var(--accent)]/20 text-[var(--accent)] rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-50 transition-all"
-                            >
-                              {dispatchingId === c.id ? 'Disparando...' : '▶ Disparar'}
-                            </button>
-                          )}
+                        <Toggle value={c.ativo} onChange={() => handleToggleCombo(c)} />
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {c.servicos.map((s, i) => <span key={i} className="text-[9px] font-black bg-[var(--accent)]/10 text-[var(--accent)] px-2 py-1 rounded-lg uppercase tracking-wide">{s}</span>)}
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          {c.precoOriginal && <p className="text-[10px] text-[var(--text-muted)] line-through">R$ {Number(c.precoOriginal).toFixed(2)}</p>}
+                          <p className="text-lg font-black text-[var(--foreground)]">R$ {Number(c.precoCombo).toFixed(2)}</p>
+                          {c.descontoPct && <p className="text-[10px] font-black text-emerald-500">{c.descontoPct}% OFF · {c.validadeDias} dias</p>}
+                        </div>
+                        <div className="flex gap-2">
+                          <button onClick={() => setShowEnviarCombo(c)} className="p-2.5 bg-[var(--accent)]/10 hover:bg-[var(--accent)]/20 text-[var(--accent)] rounded-xl text-sm transition-all" title="Enviar para cliente">📤</button>
+                          <button onClick={() => openEditCombo(c)} className="p-2.5 bg-[var(--foreground)]/5 hover:bg-[var(--foreground)]/10 rounded-xl text-sm transition-all" title="Editar">✏️</button>
+                          <button onClick={() => handleDeleteCombo(c.id)} className="p-2.5 bg-red-500/5 hover:bg-red-500/10 text-red-400 rounded-xl text-sm transition-all" title="Excluir">🗑</button>
                         </div>
                       </div>
-
-                      {/* Progress bar durante dispatch */}
-                      {dispatchingId === c.id && dispatchProgress && (
-                        <div className="space-y-2">
-                          <div className="flex justify-between text-[10px] font-black text-[var(--text-muted)]">
-                            <span>Enviando para {dispatchProgress.nome}…</span>
-                            <span>{dispatchProgress.enviados + dispatchProgress.erros}/{dispatchProgress.total}</span>
-                          </div>
-                          <div className="h-2 bg-[var(--foreground)]/5 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-[var(--accent)] rounded-full transition-all"
-                              style={{ width: `${((dispatchProgress.enviados + dispatchProgress.erros) / dispatchProgress.total) * 100}%` }}
-                            />
-                          </div>
-                          <div className="flex gap-4 text-[10px] font-medium">
-                            <span className="text-emerald-500">✓ {dispatchProgress.enviados} enviados</span>
-                            {dispatchProgress.erros > 0 && <span className="text-red-400">✗ {dispatchProgress.erros} erros</span>}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Stats pós-envio */}
-                      {c.status === 'concluida' && (
-                        <div className="flex gap-6 text-[11px] font-medium pt-1">
-                          <span className="text-emerald-500 font-black">✓ {c.totalEnviado} enviados</span>
-                          {c.totalErros > 0 && <span className="text-red-400 font-black">✗ {c.totalErros} erros</span>}
-                        </div>
-                      )}
-
-                      <p className="text-xs text-[var(--text-muted)] font-medium line-clamp-2 opacity-60">{c.mensagem}</p>
                     </div>
                   ))}
                 </div>
@@ -494,305 +652,436 @@ export default function MarketingCentralPage() {
             </div>
           )}
 
-          {/* ── Tab: Combos ─────────────────────────────────────── */}
-          {tab === 'combos' && (
-            <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] p-10 space-y-10 relative overflow-hidden shadow-sm">
-              <div className="absolute top-0 right-0 w-80 h-80 bg-[var(--accent)]/5 blur-[120px] pointer-events-none" />
-
-              {/* Steps */}
-              <div className="flex items-center gap-4">
-                {[1, 2, 3].map((n, i) => (
-                  <React.Fragment key={n}>
-                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-xs ${step >= n ? (n === 3 ? 'bg-emerald-500' : 'bg-[var(--accent)]') + ' text-white shadow-lg' : 'bg-[var(--foreground)]/5 text-[var(--text-muted)]'}`}>{n}</div>
-                    {i < 2 && <div className={`h-1 flex-1 rounded-full ${step > n ? 'bg-[var(--accent)]' : 'bg-[var(--border)]'}`} />}
-                  </React.Fragment>
-                ))}
+          {/* ══ Aba: Campanhas ══════════════════════════════════════ */}
+          {tab === 'campanhas' && (
+            <div className="space-y-5">
+              <div className="flex justify-between items-center">
+                <p className="text-sm text-[var(--text-muted)] font-medium">{campanhas.length} campanha{campanhas.length !== 1 ? 's' : ''}</p>
+                <button onClick={() => setShowNovaCampanha(true)} className="px-6 py-3 bg-[var(--accent)] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[var(--accent)]/20 hover:opacity-90 transition-all">
+                  + Nova Campanha
+                </button>
               </div>
 
-              {step === 1 && (
-                <div className="space-y-6">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <h3 className="text-2xl font-black text-[var(--foreground)] tracking-tight">Serviço Principal</h3>
-                      <p className="text-[var(--text-muted)] text-sm font-medium">O robô oferecerá o combo quando este item for agendado.</p>
-                    </div>
-                    <button onClick={() => setShowNewServiceModal(true)} className="px-6 py-3 bg-[var(--foreground)]/5 hover:bg-[var(--foreground)]/10 border border-[var(--border)] rounded-2xl text-[10px] font-black uppercase tracking-widest">+ Novo</button>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-72 overflow-y-auto pr-2">
-                    {services.map(s => (
-                      <button key={s.id} onClick={() => { setSelectedMain(s.id); setStep(2); }}
-                        className={`p-6 border rounded-[1.5rem] text-left transition-all ${selectedMain === s.id ? 'border-[var(--accent)] bg-[var(--accent)]/[0.03] ring-4 ring-[var(--accent)]/5' : 'border-[var(--border)] hover:border-[var(--accent)]/40'}`}>
-                        <p className="font-black text-[var(--foreground)] text-sm">{s.nome}</p>
-                        <p className="text-[10px] font-black text-[var(--accent)] mt-1">R$ {s.preco.toFixed(2)}</p>
-                      </button>
-                    ))}
-                  </div>
+              {campanhas.length === 0 ? (
+                <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] p-14 text-center">
+                  <div className="text-5xl mb-4">📢</div>
+                  <p className="font-black text-[var(--text-muted)] uppercase tracking-widest text-xs">Nenhuma campanha criada</p>
                 </div>
-              )}
-
-              {step === 2 && (
-                <div className="space-y-6">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <h3 className="text-2xl font-black text-[var(--foreground)] tracking-tight">Serviço de Upsell</h3>
-                      <p className="text-[var(--text-muted)] text-sm font-medium">O complemento perfeito para o combo.</p>
-                    </div>
-                    <button onClick={() => setStep(1)} className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">← Voltar</button>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-72 overflow-y-auto pr-2">
-                    {services.filter(s => s.id !== selectedMain).map(s => (
-                      <button key={s.id} onClick={() => { setSelectedUpsell(s.id); setStep(3); }}
-                        className={`p-6 border rounded-[1.5rem] text-left transition-all ${selectedUpsell === s.id ? 'border-[var(--accent)] bg-[var(--accent)]/[0.03]' : 'border-[var(--border)] hover:border-[var(--accent)]/40'}`}>
-                        <p className="font-black text-[var(--foreground)] text-sm">{s.nome}</p>
-                        <p className="text-[10px] font-black text-emerald-500 mt-1">R$ {s.preco.toFixed(2)}</p>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {step === 3 && (
-                <div className="space-y-8">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-xl font-black text-[var(--foreground)] tracking-tight">Prévia do Combo</h3>
-                    <button onClick={() => setStep(2)} className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">← Voltar</button>
-                  </div>
-                  <div className="flex flex-col md:flex-row gap-10 items-center justify-center">
-                    <div className="w-full max-w-sm bg-[var(--sidebar-bg)] border border-[var(--accent)]/30 rounded-[3rem] p-10 shadow-2xl relative">
-                      <div className="absolute -top-4 -right-4 bg-yellow-400 text-black font-black px-5 py-2 rounded-2xl text-[10px] rotate-12 shadow-xl">-{discount}% OFF</div>
-                      <div className="flex flex-col items-center text-center space-y-5">
-                        <div className="w-20 h-20 bg-gradient-to-tr from-[var(--accent)] to-[var(--accent)]/60 rounded-3xl flex items-center justify-center text-4xl shadow-2xl">✨</div>
-                        <h4 className="text-xl font-black italic uppercase tracking-tighter text-[var(--foreground)]">Super Combo</h4>
-                        <div>
-                          <p className="text-xs text-[var(--text-muted)] line-through opacity-50">R$ {totalPrice.toFixed(2)}</p>
-                          <p className="text-4xl font-black text-[var(--foreground)]">R$ {finalPrice.toFixed(2)}</p>
-                          <p className="text-[10px] font-black text-emerald-500 uppercase">Economize R$ {savings.toFixed(2)}</p>
-                        </div>
-                        <div className="w-full space-y-2">
-                          {[mainService, upsellService].map((s, i) => s && (
-                            <div key={i} className="flex items-center gap-2 text-[10px] font-black uppercase text-[var(--text-muted)] bg-[var(--foreground)]/5 p-3 rounded-2xl border border-[var(--border)]">
-                              <span className="text-[var(--accent)]">✔</span> {s.nome}
+              ) : (
+                <div className="space-y-4">
+                  {campanhas.map(c => {
+                    const statusMap: Record<string, string> = { rascunho: 'bg-[var(--foreground)]/10 text-[var(--text-muted)]', enviando: 'bg-yellow-500/10 text-yellow-500', concluida: 'bg-emerald-500/10 text-emerald-500', erro: 'bg-red-500/10 text-red-400' };
+                    const tipoMap: Record<string, string> = { todos: '👥 Todos', aniversariantes: '🎂 Aniversariantes', inativos: '💤 Inativos', servico: '🔧 Serviço' };
+                    return (
+                      <div key={c.id} className="bg-[var(--card-bg)] border border-[var(--border)] rounded-[2rem] p-6 space-y-4 shadow-sm hover:border-[var(--accent)]/30 transition-all">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="space-y-1.5">
+                            <h4 className="font-black text-[var(--foreground)] tracking-tight">{c.nome}</h4>
+                            <div className="flex gap-2 flex-wrap">
+                              <span className="text-[9px] font-black bg-[var(--foreground)]/5 px-2 py-1 rounded-lg text-[var(--text-muted)]">{tipoMap[c.tipo ?? 'todos'] ?? c.tipo}</span>
+                              <span className={`text-[9px] font-black px-2 py-1 rounded-lg uppercase ${statusMap[c.status] ?? statusMap.rascunho}`}>{c.status}</span>
                             </div>
-                          ))}
+                          </div>
+                          {c.status !== 'concluida' && c.status !== 'enviando' && (
+                            <button onClick={() => handleDispatch(c.id)} disabled={!!dispatchingId}
+                              className="px-5 py-2.5 bg-[var(--accent)]/10 hover:bg-[var(--accent)]/20 text-[var(--accent)] rounded-xl text-[10px] font-black uppercase disabled:opacity-50 transition-all">
+                              {dispatchingId === c.id ? 'Disparando...' : '▶ Disparar'}
+                            </button>
+                          )}
                         </div>
+                        {dispatchingId === c.id && dispatchProgress && (
+                          <div className="space-y-2">
+                            <div className="flex justify-between text-[10px] font-medium text-[var(--text-muted)]">
+                              <span>Enviando para {dispatchProgress.nome}…</span>
+                              <span>{dispatchProgress.enviados + dispatchProgress.erros}/{dispatchProgress.total}</span>
+                            </div>
+                            <div className="h-2 bg-[var(--foreground)]/5 rounded-full overflow-hidden">
+                              <div className="h-full bg-[var(--accent)] rounded-full transition-all" style={{ width: `${((dispatchProgress.enviados + dispatchProgress.erros) / Math.max(1, dispatchProgress.total)) * 100}%` }} />
+                            </div>
+                            <p className="text-[10px] text-emerald-500 font-medium">✓ {dispatchProgress.enviados} enviados{dispatchProgress.erros > 0 ? ` · ✗ ${dispatchProgress.erros} erros` : ''}</p>
+                          </div>
+                        )}
+                        {c.status === 'concluida' && (
+                          <p className="text-xs font-medium">
+                            <span className="text-emerald-500 font-black">✓ {c.totalEnviados} enviados</span>
+                            {c.totalErros > 0 && <span className="text-red-400 font-black ml-3">✗ {c.totalErros} erros</span>}
+                          </p>
+                        )}
                       </div>
-                    </div>
-                    <div className="flex-1 space-y-6">
-                      <div className="space-y-3">
-                        <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">Desconto no 2º item</label>
-                        <input type="range" min={5} max={50} step={5} value={discount} onChange={e => setDiscount(Number(e.target.value))} className="w-full accent-[var(--accent)]" />
-                        <div className="flex justify-between text-[9px] font-black text-[var(--text-muted)] opacity-50">
-                          <span>Leve (5%)</span><span>Agressivo (50%)</span>
-                        </div>
-                      </div>
-                      <button onClick={handleSaveCombo} className="w-full py-5 bg-[var(--accent)] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-[var(--accent)]/20 hover:opacity-90 active:scale-95 transition-all">
-                        🚀 Ativar Combo
-                      </button>
-                    </div>
-                  </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
           )}
 
-          {/* ── Tab: Histórico ──────────────────────────────────── */}
-          {tab === 'historico' && (
-            <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] overflow-hidden shadow-sm">
-              <div className="p-6 border-b border-[var(--border)] bg-[var(--foreground)]/[0.01]">
-                <h3 className="font-black text-[var(--foreground)] uppercase tracking-tighter">Histórico de Envios</h3>
-                <p className="text-xs text-[var(--text-muted)] font-medium mt-1">Últimas 20 mensagens disparadas pelo sistema</p>
+          {/* ══ Aba: Configurações ══════════════════════════════════ */}
+          {tab === 'config' && (
+            <div className="space-y-5">
+              <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] p-8 space-y-6 shadow-sm">
+                <h3 className="font-black text-[var(--foreground)] tracking-tight">Configurações da API WhatsApp</h3>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">WaSender API Key</label>
+                  <div className="flex gap-3">
+                    <WaSenderKeyInput value={localConfig.wasenderApiKey ?? ''} onChange={v => setLocalConfig(p => ({ ...p, wasenderApiKey: v }))} temKey={!!config?._temApiKey} />
+                    <button onClick={handleTestarConexao} disabled={testandoConexao}
+                      className="px-5 py-3 bg-[var(--foreground)]/5 hover:bg-[var(--foreground)]/10 border border-[var(--border)] rounded-2xl text-[10px] font-black uppercase tracking-widest disabled:opacity-50 whitespace-nowrap transition-all">
+                      {testandoConexao ? '...' : 'Testar'}
+                    </button>
+                  </div>
+                  {statusConexao !== 'idle' && (
+                    <div className={`flex items-center gap-2 mt-2 px-4 py-3 rounded-2xl text-xs font-black ${conexaoInfo[statusConexao].cls}`}>
+                      <span className={`w-2 h-2 rounded-full ${conexaoInfo[statusConexao].dot}`} />
+                      {conexaoInfo[statusConexao].label}
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Nome da Clínica (usado nos templates)</label>
+                  <input value={localConfig.nomeClinica ?? ''} onChange={e => setLocalConfig(p => ({ ...p, nomeClinica: e.target.value }))}
+                    placeholder="Ex: Clínica Bella Vita" className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-5 py-4 text-sm focus:outline-none focus:border-[var(--accent)] font-medium" />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Link de confirmação de agendamento</label>
+                  <input value={localConfig.linkConfirmacao ?? ''} onChange={e => setLocalConfig(p => ({ ...p, linkConfirmacao: e.target.value }))}
+                    placeholder="https://sua-clinica.com/confirmar" className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-5 py-4 text-sm focus:outline-none focus:border-[var(--accent)] font-medium" />
+                </div>
+
+                <button onClick={handleSaveConfig} disabled={savingConfig}
+                  className="w-full py-5 bg-[var(--accent)] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-[var(--accent)]/20 disabled:opacity-60 transition-all">
+                  {savingConfig ? 'Salvando...' : 'Salvar configurações'}
+                </button>
               </div>
-              {!metrics?.enviosRecentes?.length ? (
-                <div className="p-16 text-center">
-                  <p className="text-[var(--text-muted)] font-black uppercase tracking-widest text-xs opacity-50">Nenhum envio registrado</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm">
-                    <thead className="bg-[var(--foreground)]/[0.02] text-[var(--text-muted)] text-[10px] uppercase font-black tracking-widest">
-                      <tr>
-                        <th className="px-6 py-4">Tipo</th>
-                        <th className="px-6 py-4">Paciente</th>
-                        <th className="px-6 py-4">Status</th>
-                        <th className="px-6 py-4">Data</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[var(--border)]">
-                      {metrics.enviosRecentes.map((e: any) => {
-                        const tipoMap: Record<string, string> = { lembrete: '⏰', aniversario: '🎂', combo: '✨', campanha: '📢' };
-                        return (
-                          <tr key={e.id} className="hover:bg-[var(--foreground)]/[0.02] transition-colors">
-                            <td className="px-6 py-4">
-                              <span className="text-[10px] font-black bg-[var(--foreground)]/5 px-3 py-1 rounded-lg">
-                                {tipoMap[e.tipo] || '📩'} {e.tipo}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 font-medium text-[var(--foreground)] text-xs">{e.pacienteNome || '—'}</td>
-                            <td className="px-6 py-4">
-                              <span className={`text-[10px] font-black px-2 py-1 rounded-lg ${e.status === 'enviado' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-400'}`}>
-                                {e.status}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 text-xs text-[var(--text-muted)] font-medium">
-                              {new Date(e.enviadoEm).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                            </td>
+            </div>
+          )}
+
+          {/* ══ Aba: Log ════════════════════════════════════════════ */}
+          {tab === 'log' && (
+            <div className="space-y-4">
+              <div className="flex gap-3 flex-wrap">
+                <select value={filtroTipo} onChange={e => { setFiltroTipo(e.target.value); setPageLog(1); }}
+                  className="bg-[var(--card-bg)] border border-[var(--border)] rounded-2xl px-4 py-2.5 text-xs font-black focus:outline-none focus:border-[var(--accent)]">
+                  <option value="">Todos os tipos</option>
+                  <option value="lembrete">⏰ Lembrete</option>
+                  <option value="aniversario">🎂 Aniversário</option>
+                  <option value="combo">✨ Combo</option>
+                  <option value="campanha">📢 Campanha</option>
+                </select>
+                <select value={filtroStatus} onChange={e => { setFiltroStatus(e.target.value); setPageLog(1); }}
+                  className="bg-[var(--card-bg)] border border-[var(--border)] rounded-2xl px-4 py-2.5 text-xs font-black focus:outline-none focus:border-[var(--accent)]">
+                  <option value="">Todos os status</option>
+                  <option value="enviado">✓ Enviado</option>
+                  <option value="erro">✗ Erro</option>
+                </select>
+                <span className="text-xs text-[var(--text-muted)] font-medium self-center">{totalEnvios} registro{totalEnvios !== 1 ? 's' : ''}</span>
+              </div>
+
+              <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] overflow-hidden shadow-sm">
+                {envios.length === 0 ? (
+                  <div className="p-14 text-center text-xs text-[var(--text-muted)] font-black uppercase opacity-50">Nenhum envio registrado</div>
+                ) : (
+                  <>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-sm">
+                        <thead className="bg-[var(--foreground)]/[0.02] text-[var(--text-muted)] text-[9px] uppercase font-black tracking-widest">
+                          <tr>
+                            <th className="px-5 py-4">Tipo</th>
+                            <th className="px-5 py-4">Cliente</th>
+                            <th className="px-5 py-4">Telefone</th>
+                            <th className="px-5 py-4">Status</th>
+                            <th className="px-5 py-4">Data/Hora</th>
+                            <th className="px-5 py-4">Mensagem</th>
                           </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+                        </thead>
+                        <tbody className="divide-y divide-[var(--border)]">
+                          {envios.map(e => {
+                            const tipoIcon: Record<string, string> = { lembrete: '⏰', aniversario: '🎂', combo: '✨', campanha: '📢' };
+                            return (
+                              <tr key={e.id} className="hover:bg-[var(--foreground)]/[0.01] transition-colors">
+                                <td className="px-5 py-3.5">
+                                  <span className="text-[9px] font-black bg-[var(--foreground)]/5 px-2 py-1 rounded-lg">{tipoIcon[e.tipo] ?? '📩'} {e.tipo}</span>
+                                </td>
+                                <td className="px-5 py-3.5 text-xs font-medium text-[var(--foreground)]">{e.clienteNome || '—'}</td>
+                                <td className="px-5 py-3.5 text-xs text-[var(--text-muted)] font-medium">{e.clienteTelefone}</td>
+                                <td className="px-5 py-3.5">
+                                  <span className={`text-[9px] font-black px-2 py-1 rounded-lg ${e.status === 'enviado' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-400'}`}>
+                                    {e.status === 'enviado' ? '✓' : '✗'} {e.status}
+                                  </span>
+                                  {e.erroDetalhe && <p className="text-[9px] text-red-400 mt-1 max-w-[120px] truncate" title={e.erroDetalhe}>{e.erroDetalhe}</p>}
+                                </td>
+                                <td className="px-5 py-3.5 text-[10px] text-[var(--text-muted)] font-medium whitespace-nowrap">
+                                  {new Date(e.enviadoEm).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })} {new Date(e.enviadoEm).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                </td>
+                                <td className="px-5 py-3.5 text-[10px] text-[var(--text-muted)] font-medium max-w-[180px]">
+                                  <span className="line-clamp-2">{e.mensagemEnviada || '—'}</span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                    {/* Paginação */}
+                    {totalPagesLog > 1 && (
+                      <div className="flex items-center justify-between p-5 border-t border-[var(--border)]">
+                        <button onClick={() => setPageLog(p => Math.max(1, p - 1))} disabled={pageLog === 1}
+                          className="px-4 py-2 bg-[var(--foreground)]/5 rounded-xl text-[10px] font-black disabled:opacity-40">← Anterior</button>
+                        <span className="text-[10px] text-[var(--text-muted)] font-black">{pageLog} / {totalPagesLog}</span>
+                        <button onClick={() => setPageLog(p => Math.min(totalPagesLog, p + 1))} disabled={pageLog === totalPagesLog}
+                          className="px-4 py-2 bg-[var(--foreground)]/5 rounded-xl text-[10px] font-black disabled:opacity-40">Próxima →</button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
           )}
         </div>
 
-        {/* ── Sidebar ────────────────────────────────────────────── */}
-        <div className="space-y-6">
-          {/* Métricas */}
-          <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] p-7 shadow-sm">
+        {/* Sidebar */}
+        <div className="space-y-5">
+          <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] p-6 shadow-sm">
             <h4 className="font-black text-[10px] uppercase tracking-widest text-[var(--text-muted)] mb-5 opacity-70">Resumo Geral</h4>
             <div className="space-y-4">
               {[
-                { label: 'Total Enviados', value: metrics?.totalEnviados ?? 0, color: 'text-[var(--accent)]' },
+                { label: 'Total enviados', value: metrics?.totalEnviados ?? 0, color: 'text-[var(--accent)]' },
                 { label: 'Lembretes', value: metrics?.summary?.lembrete?.enviado ?? 0, color: 'text-blue-400' },
                 { label: 'Aniversários', value: metrics?.summary?.aniversario?.enviado ?? 0, color: 'text-emerald-500' },
-                { label: 'Campanhas OK', value: metrics?.campanhasConcluidas ?? 0, color: 'text-purple-400' },
+                { label: 'Combos', value: metrics?.summary?.combo?.enviado ?? 0, color: 'text-purple-400' },
+                { label: 'Campanhas', value: metrics?.campanhasConcluidas ?? 0, color: 'text-yellow-500' },
               ].map(item => (
                 <div key={item.label} className="flex justify-between items-center">
                   <span className="text-xs text-[var(--text-muted)] font-medium">{item.label}</span>
                   <span className={`text-xl font-black ${item.color}`}>{item.value}</span>
                 </div>
               ))}
-              {(metrics?.totalErros ?? 0) > 0 && (
-                <div className="flex justify-between items-center pt-2 border-t border-[var(--border)]">
-                  <span className="text-xs text-red-400 font-medium">Erros</span>
-                  <span className="text-xl font-black text-red-400">{metrics?.totalErros ?? 0}</span>
-                </div>
-              )}
             </div>
           </div>
 
-          {/* Dicas */}
-          <div className="bg-gradient-to-br from-[var(--sidebar-bg)] to-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] p-7 space-y-4 shadow-sm">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-2xl bg-[var(--accent)] flex items-center justify-center text-xl shadow-lg">💡</div>
-              <div>
-                <h4 className="font-black text-xs uppercase tracking-widest text-[var(--foreground)]">Dica Synka</h4>
-              </div>
-            </div>
-            <div className="space-y-3 text-[11px] text-[var(--text-muted)] font-medium leading-relaxed">
-              <p>📊 Lembretes 24h antes reduzem faltas em até <strong className="text-[var(--foreground)]">40%</strong>.</p>
-              <p>🎂 Pacientes que recebem parabéns retornam <strong className="text-[var(--foreground)]">2x mais</strong> no mês seguinte.</p>
-              <p>⚡ Campanhas para inativos de <strong className="text-[var(--foreground)]">30 dias</strong> têm a melhor taxa de conversão.</p>
-            </div>
-          </div>
-
-          {/* Atalhos */}
-          <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] p-7 space-y-3 shadow-sm">
-            <h4 className="font-black text-[10px] uppercase tracking-widest text-[var(--text-muted)] mb-3 opacity-70">Ações Rápidas</h4>
-            <button onClick={() => { setTab('campanhas'); setShowNovaCampanha(true); }}
-              className="w-full p-4 bg-[var(--foreground)]/5 hover:bg-[var(--accent)]/10 hover:border-[var(--accent)]/30 text-left rounded-2xl text-[10px] text-[var(--text-muted)] hover:text-[var(--accent)] transition-all border border-[var(--border)] font-black uppercase tracking-widest">
-              📢 Nova Campanha
-            </button>
-            <button onClick={() => setTab('automacoes')}
-              className="w-full p-4 bg-[var(--foreground)]/5 hover:bg-[var(--foreground)]/10 text-left rounded-2xl text-[10px] text-[var(--text-muted)] transition-all border border-[var(--border)] font-black uppercase tracking-widest">
-              ⚙️ Configurar Automações
-            </button>
-            <button onClick={() => setTab('combos')}
-              className="w-full p-4 bg-[var(--foreground)]/5 hover:bg-[var(--foreground)]/10 text-left rounded-2xl text-[10px] text-[var(--text-muted)] transition-all border border-[var(--border)] font-black uppercase tracking-widest">
-              🚀 Criar Combo Upsell
-            </button>
+          <div className="bg-gradient-to-br from-[var(--sidebar-bg)] to-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] p-6 space-y-3 shadow-sm">
+            <p className="font-black text-[10px] uppercase tracking-widest text-[var(--text-muted)] opacity-70">Ações Rápidas</p>
+            {[
+              { label: '⏰ Ver lembretes pendentes', action: () => setTab('lembretes') },
+              { label: '🎂 Ver aniversariantes', action: () => setTab('aniversarios') },
+              { label: '📢 Nova campanha', action: () => { setTab('campanhas'); setShowNovaCampanha(true); } },
+              { label: '✨ Novo combo', action: () => { setTab('combos'); openNovoCombo(); } },
+            ].map(item => (
+              <button key={item.label} onClick={item.action}
+                className="w-full p-3.5 bg-[var(--foreground)]/5 hover:bg-[var(--foreground)]/10 text-left rounded-2xl text-[10px] text-[var(--text-muted)] hover:text-[var(--foreground)] transition-all border border-[var(--border)] font-black uppercase tracking-widest">
+                {item.label}
+              </button>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* ── Modal: Nova Campanha ─────────────────────────────────── */}
-      {showNovaCampanha && (
+      {/* ══ Modal: Novo / Editar Combo ═══════════════════════════════ */}
+      {showNovoCombo && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowNovaCampanha(false)} />
-          <div className="relative w-full max-w-lg bg-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] p-10 shadow-2xl animate-in zoom-in-95 duration-200 space-y-6">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowNovoCombo(false)} />
+          <div className="relative w-full max-w-lg bg-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] p-8 shadow-2xl animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto space-y-5">
             <div className="flex justify-between items-center">
-              <h3 className="text-xl font-black text-[var(--foreground)] tracking-tight">Nova Campanha</h3>
-              <button onClick={() => setShowNovaCampanha(false)} className="w-10 h-10 flex items-center justify-center rounded-2xl hover:bg-[var(--foreground)]/5 text-[var(--text-muted)] font-black transition-all">✕</button>
+              <h3 className="text-xl font-black text-[var(--foreground)]">{editCombo ? 'Editar Combo' : 'Novo Combo'}</h3>
+              <button onClick={() => setShowNovoCombo(false)} className="w-10 h-10 flex items-center justify-center rounded-2xl hover:bg-[var(--foreground)]/5 text-[var(--text-muted)] font-black">✕</button>
             </div>
 
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Nome da campanha</label>
-                <input value={novaCampanha.titulo} onChange={e => setNovaCampanha(p => ({ ...p, titulo: e.target.value }))}
-                  placeholder="Ex: Promoção de Inverno" className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-5 py-4 text-sm focus:outline-none focus:border-[var(--accent)] font-medium" />
+            {[
+              { label: 'Nome do combo', key: 'nome', placeholder: 'Ex: Corte + Hidratação' },
+              { label: 'Descrição', key: 'descricao', placeholder: 'Breve descrição para o cliente' },
+              { label: 'Serviço gatilho (opcional)', key: 'gatilhoServico', placeholder: 'Serviço que dispara a sugestão' },
+            ].map(field => (
+              <div key={field.key} className="space-y-1.5">
+                <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">{field.label}</label>
+                <input value={(comboForm as any)[field.key]} onChange={e => setComboForm(p => ({ ...p, [field.key]: e.target.value }))}
+                  placeholder={field.placeholder} className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-4 py-3.5 text-sm focus:outline-none focus:border-[var(--accent)] font-medium" />
               </div>
+            ))}
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Público-alvo</label>
-                <select value={novaCampanha.tipo} onChange={e => setNovaCampanha(p => ({ ...p, tipo: e.target.value }))}
-                  className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-5 py-4 text-sm focus:outline-none focus:border-[var(--accent)] font-medium">
-                  <option value="todos">👥 Todos os {labels.cliente.toLowerCase()}s</option>
-                  <option value="aniversariantes">🎂 Aniversariantes de hoje</option>
-                  <option value="inativos">💤 Inativos (sem visita há X dias)</option>
-                  <option value="servico">🔧 Por serviço específico</option>
-                </select>
+            {/* Serviços */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Serviços incluídos</label>
+              <div className="flex gap-2">
+                <input value={comboForm.servicoInput} onChange={e => setComboForm(p => ({ ...p, servicoInput: e.target.value }))}
+                  onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addServico())}
+                  placeholder="Digite e pressione Enter" className="flex-1 bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-4 py-3.5 text-sm focus:outline-none focus:border-[var(--accent)] font-medium" />
+                <button onClick={addServico} className="px-4 py-3 bg-[var(--accent)] text-white rounded-2xl text-sm font-black">+</button>
               </div>
-
-              {novaCampanha.tipo === 'inativos' && (
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Inativo há (dias)</label>
-                  <input type="number" value={novaCampanha.filtroInativoDias} onChange={e => setNovaCampanha(p => ({ ...p, filtroInativoDias: e.target.value }))}
-                    className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-5 py-4 text-sm focus:outline-none focus:border-[var(--accent)] font-medium" min={1} />
-                </div>
-              )}
-
-              {novaCampanha.tipo === 'servico' && (
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Nome do serviço</label>
-                  <input value={novaCampanha.filtroServico} onChange={e => setNovaCampanha(p => ({ ...p, filtroServico: e.target.value }))}
-                    placeholder="Ex: Limpeza de pele" className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-5 py-4 text-sm focus:outline-none focus:border-[var(--accent)] font-medium" />
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Mensagem</label>
-                <p className="text-[10px] text-[var(--text-muted)] pl-1">
-                  Variáveis: <code className="bg-[var(--foreground)]/5 px-1 rounded">{'{nome}'}</code> <code className="bg-[var(--foreground)]/5 px-1 rounded">{'{clinica}'}</code>
-                </p>
-                <textarea rows={5} value={novaCampanha.mensagem} onChange={e => setNovaCampanha(p => ({ ...p, mensagem: e.target.value }))}
-                  placeholder="Olá {nome}! Temos uma novidade especial para você..." className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-5 py-4 text-sm focus:outline-none focus:border-[var(--accent)] font-medium resize-none leading-relaxed" />
+              <div className="flex flex-wrap gap-2 mt-1">
+                {comboForm.servicos.map((s, i) => (
+                  <span key={i} className="flex items-center gap-1.5 bg-[var(--accent)]/10 text-[var(--accent)] px-3 py-1.5 rounded-xl text-[10px] font-black">
+                    {s} <button onClick={() => removeServico(i)} className="hover:text-red-400 transition-colors">×</button>
+                  </span>
+                ))}
               </div>
             </div>
 
-            <button onClick={handleCreateCampanha} disabled={creatingCampanha || !novaCampanha.titulo || !novaCampanha.mensagem}
-              className="w-full py-5 bg-[var(--accent)] hover:opacity-90 disabled:opacity-50 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-[var(--accent)]/20 transition-all">
-              {creatingCampanha ? 'Criando...' : '✅ Criar Campanha'}
+            {/* Preços */}
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { label: 'Preço original', key: 'precoOriginal', placeholder: '0.00' },
+                { label: 'Preço combo', key: 'precoCombo', placeholder: '0.00' },
+                { label: 'Desconto %', key: 'descontoPct', placeholder: 'Auto' },
+              ].map(field => (
+                <div key={field.key} className="space-y-1.5">
+                  <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">{field.label}</label>
+                  <input type="number" value={(comboForm as any)[field.key]} onChange={e => setComboForm(p => ({ ...p, [field.key]: e.target.value }))}
+                    placeholder={field.placeholder} className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-3 py-3.5 text-sm focus:outline-none focus:border-[var(--accent)] font-medium" />
+                </div>
+              ))}
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Validade (dias)</label>
+              <input type="number" value={comboForm.validadeDias} onChange={e => setComboForm(p => ({ ...p, validadeDias: e.target.value }))}
+                className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-4 py-3.5 text-sm focus:outline-none focus:border-[var(--accent)] font-medium" />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Template WhatsApp (opcional)</label>
+              <p className="text-[10px] text-[var(--text-muted)] pl-1">Variáveis: <code className="bg-[var(--foreground)]/5 px-1 rounded">{'{nome}'}</code> <code className="bg-[var(--foreground)]/5 px-1 rounded">{'{combo_nome}'}</code> <code className="bg-[var(--foreground)]/5 px-1 rounded">{'{preco_combo}'}</code> <code className="bg-[var(--foreground)]/5 px-1 rounded">{'{desconto}'}</code></p>
+              <textarea rows={4} value={comboForm.templateWhatsapp} onChange={e => setComboForm(p => ({ ...p, templateWhatsapp: e.target.value }))}
+                placeholder={`Deixe vazio para usar o padrão:\n${TEMPLATE_COMBO_PADRAO.slice(0, 80)}...`}
+                className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-4 py-3.5 text-sm focus:outline-none focus:border-[var(--accent)] font-medium resize-none leading-relaxed" />
+            </div>
+
+            <button onClick={handleSaveCombo} disabled={savingCombo || !comboForm.nome || !comboForm.precoCombo || comboForm.servicos.length === 0}
+              className="w-full py-4 bg-[var(--accent)] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-[var(--accent)]/20 disabled:opacity-50 transition-all">
+              {savingCombo ? 'Salvando...' : editCombo ? '✓ Atualizar Combo' : '✨ Criar Combo'}
             </button>
           </div>
         </div>
       )}
 
-      {/* ── Modal: Novo Serviço ──────────────────────────────────── */}
-      {showNewServiceModal && (
+      {/* ══ Modal: Enviar Combo para Cliente ════════════════════════ */}
+      {showEnviarCombo && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowNewServiceModal(false)} />
-          <div className="relative w-full max-w-md bg-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] p-10 shadow-2xl animate-in zoom-in-95 space-y-6">
-            <h3 className="text-xl font-black text-[var(--foreground)] tracking-tight italic uppercase">Novo {labels.servico}</h3>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Nome</label>
-                <input value={newServiceName} onChange={e => setNewServiceName(e.target.value)} placeholder="Ex: Hidratação profunda"
-                  className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-6 py-5 text-sm focus:outline-none focus:border-[var(--accent)] font-medium" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Preço (R$)</label>
-                <input type="number" value={newServicePrice} onChange={e => setNewServicePrice(e.target.value)}
-                  className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-6 py-5 text-sm focus:outline-none focus:border-[var(--accent)] font-medium" />
-              </div>
-              <button onClick={handleAddService} className="w-full py-5 bg-[var(--accent)] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-[var(--accent)]/20">
-                Cadastrar
-              </button>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => { setShowEnviarCombo(null); setComboPacienteSel(null); setComboPacienteBusca(''); }} />
+          <div className="relative w-full max-w-md bg-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] p-8 shadow-2xl animate-in zoom-in-95 space-y-5">
+            <h3 className="text-xl font-black text-[var(--foreground)]">Enviar "{showEnviarCombo.nome}"</h3>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Buscar {labels.cliente.toLowerCase()}</label>
+              <input value={comboPacienteBusca} onChange={e => { setComboPacienteBusca(e.target.value); setComboPacienteSel(null); }}
+                placeholder="Nome ou telefone..." className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-4 py-4 text-sm focus:outline-none focus:border-[var(--accent)] font-medium" />
+              {comboPacientes.length > 0 && !comboPacienteSel && (
+                <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-2xl overflow-hidden shadow-xl">
+                  {comboPacientes.slice(0, 5).map(p => (
+                    <button key={p.id} onClick={() => { setComboPacienteSel(p); setComboPacienteBusca(p.nome); setComboPacientes([]); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--foreground)]/5 transition-colors text-left">
+                      <div className="w-8 h-8 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] font-black text-xs">{p.nome[0]}</div>
+                      <div><p className="text-sm font-black text-[var(--foreground)]">{p.nome}</p><p className="text-[10px] text-[var(--text-muted)]">{p.telefone}</p></div>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {comboPacienteSel && (
+                <div className="flex items-center gap-3 p-4 bg-[var(--accent)]/5 border border-[var(--accent)]/20 rounded-2xl">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] font-black">{comboPacienteSel.nome[0]}</div>
+                  <div><p className="font-black text-[var(--foreground)] text-sm">{comboPacienteSel.nome}</p><p className="text-[10px] text-[var(--text-muted)]">{comboPacienteSel.telefone}</p></div>
+                </div>
+              )}
             </div>
+            <button onClick={handleEnviarCombo} disabled={!comboPacienteSel || sendingId === showEnviarCombo.id}
+              className="w-full py-4 bg-[var(--accent)] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-[var(--accent)]/20 disabled:opacity-50 transition-all">
+              {sendingId === showEnviarCombo.id ? 'Enviando...' : '📤 Enviar via WhatsApp'}
+            </button>
           </div>
         </div>
       )}
+
+      {/* ══ Modal: Nova Campanha ════════════════════════════════════ */}
+      {showNovaCampanha && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => { setShowNovaCampanha(false); setAlcance(null); }} />
+          <div className="relative w-full max-w-lg bg-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] p-8 shadow-2xl animate-in zoom-in-95 duration-200 space-y-5">
+            <div className="flex justify-between items-center">
+              <h3 className="text-xl font-black text-[var(--foreground)]">Nova Campanha</h3>
+              <button onClick={() => { setShowNovaCampanha(false); setAlcance(null); }} className="w-10 h-10 flex items-center justify-center rounded-2xl hover:bg-[var(--foreground)]/5 text-[var(--text-muted)] font-black">✕</button>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Nome da campanha</label>
+              <input value={novaCamp.nome} onChange={e => setNovaCamp(p => ({ ...p, nome: e.target.value }))}
+                placeholder="Ex: Promoção de Inverno" className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-4 py-4 text-sm focus:outline-none focus:border-[var(--accent)] font-medium" />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Público-alvo</label>
+              <select value={novaCamp.tipo} onChange={e => { setNovaCamp(p => ({ ...p, tipo: e.target.value })); setAlcance(null); }}
+                className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-4 py-4 text-sm focus:outline-none focus:border-[var(--accent)] font-medium">
+                <option value="todos">👥 Todos os {labels.cliente.toLowerCase()}s</option>
+                <option value="aniversariantes">🎂 Aniversariantes de hoje</option>
+                <option value="inativos">💤 Inativos há X dias</option>
+                <option value="servico">🔧 Por serviço</option>
+              </select>
+            </div>
+
+            {novaCamp.tipo === 'inativos' && (
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Inativo há (dias)</label>
+                <input type="number" value={novaCamp.filtroInativoDias} onChange={e => { setNovaCamp(p => ({ ...p, filtroInativoDias: e.target.value })); setAlcance(null); }}
+                  className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-4 py-4 text-sm focus:outline-none focus:border-[var(--accent)] font-medium" min={1} />
+              </div>
+            )}
+
+            {novaCamp.tipo === 'servico' && (
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Nome do serviço</label>
+                <input value={novaCamp.filtroServico} onChange={e => { setNovaCamp(p => ({ ...p, filtroServico: e.target.value })); setAlcance(null); }}
+                  placeholder="Ex: Limpeza de pele" className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-4 py-4 text-sm focus:outline-none focus:border-[var(--accent)] font-medium" />
+              </div>
+            )}
+
+            {/* Estimar alcance */}
+            <div className="flex items-center gap-3">
+              <button onClick={handleEstimarAlcance} disabled={estimando}
+                className="px-5 py-2.5 bg-[var(--foreground)]/5 hover:bg-[var(--foreground)]/10 border border-[var(--border)] rounded-2xl text-[10px] font-black uppercase tracking-widest disabled:opacity-50 transition-all">
+                {estimando ? 'Estimando...' : '📊 Estimar alcance'}
+              </button>
+              {alcance !== null && (
+                <div className="flex items-center gap-2 px-4 py-2.5 bg-[var(--accent)]/10 border border-[var(--accent)]/20 rounded-2xl">
+                  <span className="text-[var(--accent)] font-black text-lg">{alcance}</span>
+                  <span className="text-[10px] font-black text-[var(--accent)] uppercase tracking-widest">{labels.cliente.toLowerCase()}{alcance !== 1 ? 's' : ''}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Mensagem</label>
+              <p className="text-[10px] text-[var(--text-muted)] pl-1">Variáveis: <code className="bg-[var(--foreground)]/5 px-1 rounded">{'{nome}'}</code> <code className="bg-[var(--foreground)]/5 px-1 rounded">{'{clinica}'}</code></p>
+              <textarea rows={5} value={novaCamp.template} onChange={e => setNovaCamp(p => ({ ...p, template: e.target.value }))}
+                placeholder="Olá {nome}! Temos uma novidade especial para você..." className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-4 py-4 text-sm focus:outline-none focus:border-[var(--accent)] font-medium resize-none leading-relaxed" />
+            </div>
+
+            <button onClick={handleCriarCampanha} disabled={!novaCamp.nome || !novaCamp.template}
+              className="w-full py-4 bg-[var(--accent)] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-[var(--accent)]/20 disabled:opacity-50 transition-all">
+              ✅ Criar Campanha
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── WaSender Key Input (com toggle mostrar/ocultar) ───────────────
+function WaSenderKeyInput({ value, onChange, temKey }: { value: string; onChange: (v: string) => void; temKey: boolean }) {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="flex-1 relative">
+      <input
+        type={show ? 'text' : 'password'}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={temKey ? '••••••••••••••••••••••••••••••••' : 'sk-...'}
+        className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[var(--accent)] font-medium pr-12"
+      />
+      <button type="button" onClick={() => setShow(p => !p)}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--foreground)] text-sm transition-colors p-1">
+        {show ? '🙈' : '👁'}
+      </button>
     </div>
   );
 }
