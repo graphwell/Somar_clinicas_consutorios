@@ -130,7 +130,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Mensagem obrigatória' }, { status: 400 });
     }
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    // Trim evita espaços ocultos copiados na Vercel
+    const apiKey = (process.env.GEMINI_API_KEY || '').trim();
     if (!apiKey) {
       return NextResponse.json({ error: 'GEMINI_API_KEY não configurada.' }, { status: 500 });
     }
@@ -138,48 +139,56 @@ export async function POST(request: Request) {
     const clinica = await prisma.clinica.findUnique({ where: { tenantId } });
     if (!clinica) return NextResponse.json({ error: 'Clínica não encontrada' }, { status: 404 });
 
-    const services = await prisma.servico.findMany({ where: { tenantId }, take: 20 });
+    const services = await prisma.servico.findMany({ where: { tenantId }, take: 10 });
     const servicesList = services.length > 0
-      ? services.map(s => `- ${s.nome}: R$ ${s.preco.toFixed(2)} (${s.duracaoMinutos}min)`).join('\n')
-      : '(nenhum serviço cadastrado ainda)';
+      ? services.map(s => `${s.nome} (R$ ${s.preco.toFixed(2)})`).join(', ')
+      : 'nenhum serviço cadastrado';
 
     const profissionais = await prisma.profissional.findMany({ where: { tenantId }, take: 10 });
     const profList = profissionais.length > 0
-      ? profissionais.map(p => `- ${p.nome}${p.especialidade ? ` (${p.especialidade})` : ''}`).join('\n')
-      : '(nenhum profissional cadastrado ainda)';
+      ? profissionais.map(p => p.nome).join(', ')
+      : 'nenhum profissional cadastrado';
 
-    const systemPrompt = `Você é a Synka IA, assistente de suporte da plataforma Synka.
-Clínica: "${clinica.razaoSocial}" | Nicho: ${clinica.nicho} | Papel: ${role}
+    const nomeClinica = clinica.razaoSocial || clinica.nome || 'Clínica';
+
+    const systemPrompt = `Você é a Synka IA, assistente da plataforma Synka.
+Clínica: ${nomeClinica} | Nicho: ${clinica.nicho} | Papel do usuário: ${role}
 Serviços: ${servicesList}
 Profissionais: ${profList}
 
 ${SYNKA_KNOWLEDGE}
 
-REGRAS: Responda SEMPRE em Português Brasil. Use listas numeradas para passo-a-passo. Formate com **negrito**. Respostas concisas (máx 400 tokens).`;
+REGRAS: Responda em Português Brasil. Use listas numeradas para passo-a-passo. Use **negrito**. Seja conciso (máx 400 tokens).`;
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: process.env.GEMINI_MODEL || 'gemini-2.0-flash',
-    });
+    const modelName = (process.env.GEMINI_MODEL || 'gemini-2.0-flash').trim();
+    const model = genAI.getGenerativeModel({ model: modelName });
 
-    // Monta contents com contexto + histórico + mensagem atual
-    const contents: { role: 'user' | 'model'; parts: { text: string }[] }[] = [];
+    // Monta contents garantindo alternância user/model obrigatória pelo Gemini
+    const contents: { role: 'user' | 'model'; parts: { text: string }[] }[] = [
+      { role: 'user', parts: [{ text: systemPrompt }] },
+      { role: 'model', parts: [{ text: 'Entendido. Como posso ajudar?' }] },
+    ];
 
-    // Injeta contexto como troca inicial user/model
-    contents.push({ role: 'user', parts: [{ text: systemPrompt }] });
-    contents.push({ role: 'model', parts: [{ text: 'Entendido. Sou a Synka IA, pronta para ajudar.' }] });
-
-    // Histórico anterior válido
+    // Adiciona histórico filtrando role inválido e garantindo alternância
     if (Array.isArray(history)) {
       for (const h of history) {
-        if ((h?.role === 'user' || h?.role === 'model') && h?.parts?.[0]?.text) {
-          contents.push({ role: h.role, parts: [{ text: h.parts[0].text }] });
-        }
+        const r = h?.role === 'user' ? 'user' : h?.role === 'model' ? 'model' : null;
+        const t = h?.parts?.[0]?.text?.trim();
+        if (!r || !t) continue;
+        const last = contents[contents.length - 1];
+        if (last.role === r) continue; // pula duplicata de role
+        contents.push({ role: r, parts: [{ text: t }] });
       }
     }
 
-    // Mensagem atual
-    contents.push({ role: 'user', parts: [{ text: message }] });
+    // Garante que a última mensagem antes da atual é 'model'
+    if (contents[contents.length - 1].role === 'user') {
+      contents.push({ role: 'model', parts: [{ text: '...' }] });
+    }
+
+    // Mensagem atual do usuário
+    contents.push({ role: 'user', parts: [{ text: message.trim() }] });
 
     const result = await model.generateContent({
       contents,
