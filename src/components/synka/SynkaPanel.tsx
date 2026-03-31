@@ -7,10 +7,10 @@ import { SkeletonLines } from "@/components/ui/Skeleton";
 import Link from "next/link";
 
 interface Insight {
-  tipo: string;
+  icone: string;
   mensagem: string;
-  acao?: string;
-  rotaAcao?: string;
+  acao: string;
+  rota: string;
 }
 
 interface Props {
@@ -57,21 +57,25 @@ export default function SynkaPanel({ profissionais, data, collapsed = false }: P
       })),
     };
 
+    const totalProfissionais = profissionais.length;
+    const slotsLivres = totalLivres;
+
     fetchWithAuth("/api/chat", {
       method: "POST",
       body: JSON.stringify({
-        message: `Analise a agenda de hoje e me dê exatamente 3 insights acionáveis em português brasileiro. Cada insight deve ter no máximo 2 linhas. Retorne SOMENTE um array JSON válido com objetos {tipo, mensagem, acao, rotaAcao}. Exemplo: [{"tipo":"aviso","mensagem":"3 confirmações pendentes","acao":"Ver pendentes","rotaAcao":"/dashboard"}]. NÃO inclua texto fora do JSON.`,
+        message: `Analise os dados da clínica hoje e retorne EXATAMENTE um JSON válido com este formato, sem markdown:\n{"insights":[{"icone":"📅","mensagem":"texto curto do insight","acao":"texto do botão","rota":"/dashboard/rota"}]}\n\nDados de hoje:\n- Agendamentos: ${totalAgendamentos}\n- Slots livres: ${slotsLivres}\n- Taxa ocupação: ${taxaOcupacao}%\n- Profissionais ativos: ${totalProfissionais}\n\nGere 3 insights acionáveis e relevantes em português.\nSe agenda vazia, sugerir criar agendamentos ou campanha.`,
         contexto,
       }),
     })
       .then((r) => r.json())
       .then((d) => {
         const content = d.response || d.message || d.content || "";
-        const match = content.match(/\[[\s\S]*\]/);
-        if (match) {
-          const parsed = JSON.parse(match[0]);
-          setInsights(Array.isArray(parsed) ? parsed.slice(0, 3) : []);
-        } else {
+        // Tenta parse direto, ou extrai o JSON do texto
+        try {
+          const match = content.match(/\{[\s\S]*"insights"[\s\S]*\}/);
+          const obj = match ? JSON.parse(match[0]) : JSON.parse(content);
+          setInsights(Array.isArray(obj.insights) ? obj.insights.slice(0, 3) : []);
+        } catch {
           setInsights([]);
         }
       })
@@ -93,14 +97,6 @@ export default function SynkaPanel({ profissionais, data, collapsed = false }: P
     }
   }
 
-  const insightIcons: Record<string, string> = {
-    aviso: "⚠️",
-    sugestao: "💡",
-    info: "ℹ️",
-    alerta: "🔔",
-    default: "💡",
-  };
-
   return (
     <Card className="overflow-hidden">
       {/* Header */}
@@ -119,9 +115,12 @@ export default function SynkaPanel({ profissionais, data, collapsed = false }: P
           <div className="text-left">
             <p className="text-sm font-medium text-slate-700">Synka IA</p>
             {loading ? (
-              <div className="flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-sage-500 pulse-dot" />
-                <span className="text-[10px] text-slate-100">Analisando…</span>
+              <div className="flex items-center gap-1.5">
+                <svg className="w-3 h-3 animate-spin text-sage-500" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                </svg>
+                <span className="text-[10px] text-slate-100">Synka analisando...</span>
               </div>
             ) : (
               <span className="text-[10px] text-sage-500">
@@ -168,16 +167,14 @@ export default function SynkaPanel({ profissionais, data, collapsed = false }: P
                   className="bg-warm-100 border border-warm-200 rounded-lg p-3"
                 >
                   <div className="flex items-start gap-2">
-                    <span className="text-sm shrink-0">
-                      {insightIcons[ins.tipo] || insightIcons.default}
-                    </span>
+                    <span className="text-sm shrink-0">{ins.icone || "💡"}</span>
                     <p className="text-[12px] text-slate-700 leading-relaxed flex-1">
                       {ins.mensagem}
                     </p>
                   </div>
-                  {ins.acao && ins.rotaAcao && (
+                  {ins.acao && ins.rota && (
                     <Link
-                      href={ins.rotaAcao}
+                      href={ins.rota}
                       className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-sage-600 hover:text-sage-700 font-medium"
                     >
                       {ins.acao} →

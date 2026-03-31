@@ -9,7 +9,7 @@ import {
   IconAgenda, IconPacientes, IconEquipe, IconServicos,
   IconProntuario, IconOdontograma, IconConvenio, IconRelatorios,
   IconCampanhas, IconIntegracoes, IconFinanceiro, IconAssinaturas,
-  IconConfiguracoes, IconLogout, IconEspecialidades, IconAjuda, IconStethoscope,
+  IconConfiguracoes, IconLogout, IconAjuda, IconStethoscope,
 } from "@/components/icons/NavIcons";
 
 interface NavItemProps {
@@ -138,9 +138,6 @@ export default function Sidebar({
           )}
           {!isProfissional && (
             <NavItem href="/dashboard/services" label={labels.termoAtendimentoPlural || "Serviços"} Icon={IconServicos} active={is("/dashboard/services")} />
-          )}
-          {labels.temEspecialidades && !isProfissional && (
-            <NavItem href="/dashboard/specialties" label="Especialidades" Icon={IconEspecialidades} active={is("/dashboard/specialties")} />
           )}
 
           <SectionLabel label="Operação" />

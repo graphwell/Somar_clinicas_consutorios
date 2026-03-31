@@ -31,7 +31,7 @@ export async function GET(req: Request) {
       include: {
         paciente: { select: { id: true, nome: true, telefone: true, dataNascimento: true, convenio: true } },
         profissional: { select: { id: true, nome: true } },
-        servico: { select: { id: true, nome: true, durationMinutes: true, price: true, color: true } },
+        servico: { select: { id: true, nome: true, duracaoMinutos: true, preco: true, color: true } },
       },
       orderBy: { dataHora: 'asc' },
     });
@@ -62,7 +62,7 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: 'id e status obrigatórios' }, { status: 400 });
     }
 
-    const VALIDOS = ['pendente', 'confirmado', 'done', 'cancelado'];
+    const VALIDOS = ['pendente', 'confirmado', 'done', 'cancelado', 'faltou'];
     if (!VALIDOS.includes(status)) {
       return NextResponse.json({ error: 'Status inválido' }, { status: 400 });
     }

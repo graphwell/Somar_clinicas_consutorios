@@ -17,7 +17,7 @@ type Agendamento = {
   observacoes?: string;
   paciente: { id: string; nome: string; telefone: string; dataNascimento?: string; convenio?: string };
   profissional?: { id: string; nome: string } | null;
-  servico?: { id: string; nome: string; durationMinutes?: number; price?: number; color?: string } | null;
+  servico?: { id: string; nome: string; duracaoMinutos?: number; preco?: number; color?: string } | null;
 };
 
 type Totais = Record<string, number>;
