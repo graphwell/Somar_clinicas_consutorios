@@ -23,6 +23,9 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(
     errorParam === 'google_cancelado' ? 'Login com Google cancelado.' :
+    errorParam === 'google_interno' ? 'Erro ao autenticar com Google. Tente novamente.' :
+    errorParam === 'google_token' ? 'Não foi possível obter token do Google. Tente novamente.' :
+    errorParam === 'google_dados' ? 'Não foi possível obter dados do Google. Tente novamente.' :
     errorParam === 'token_expirado' ? 'Link de verificação expirado. Faça login e solicite um novo.' :
     errorParam === 'token_invalido' ? 'Link inválido.' :
     ''

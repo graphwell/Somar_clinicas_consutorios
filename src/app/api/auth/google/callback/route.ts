@@ -72,14 +72,15 @@ export async function GET(request: Request) {
       // 4c. Novo usuário — criar clínica básica e ir para onboarding
       const tenantId = `tenant_${crypto.randomUUID().substring(0, 8)}`;
       const nomeClinica = `Clínica de ${googleData.given_name || googleData.name || 'Novo Usuário'}`;
-      const slug = nomeClinica.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
+      const slugBase = nomeClinica.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '-').replace(/[^\w-]+/g, '') || 'clinica';
+      const slug = `${slugBase}-${crypto.randomUUID().substring(0, 6)}`;
 
       const result = await prisma.$transaction(async (tx) => {
         const clinica = await tx.clinica.create({
           data: {
             tenantId,
             nome: nomeClinica,
-            slug: `${slug}-${Math.floor(Math.random() * 1000)}`,
+            slug,
             onboardingCompleted: false,
           },
         });
@@ -123,7 +124,12 @@ export async function GET(request: Request) {
     });
     return response;
   } catch (err: any) {
-    console.error('[GOOGLE_OAUTH_ERROR]', err);
+    console.error('[GOOGLE_OAUTH_ERROR]', {
+      message: err?.message,
+      code: err?.code,
+      meta: err?.meta,
+      stack: err?.stack?.substring(0, 500),
+    });
     return NextResponse.redirect(`${APP_URL}/auth/login?error=google_interno`);
   }
 }

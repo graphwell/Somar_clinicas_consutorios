@@ -15,7 +15,10 @@ function GoogleSuccessContent() {
       // Decodificar payload do JWT (sem verificar assinatura — só para extrair user info)
       try {
         const [, payload] = token.split('.');
-        const decoded = JSON.parse(atob(payload));
+        // JWT usa Base64URL (- e _); atob() exige Base64 padrão (+ e /) com padding
+        const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+        const padded = base64.padEnd(base64.length + (4 - base64.length % 4) % 4, '=');
+        const decoded = JSON.parse(atob(padded));
         setAuthSession(token, {
           id: decoded.userId,
           email: decoded.email,
