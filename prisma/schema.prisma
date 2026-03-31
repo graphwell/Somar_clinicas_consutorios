@@ -24,6 +24,9 @@ model Clinica {
   openingTime         String   @default("08:00")
   closingTime         String   @default("18:00")
   workingDays         String   @default("1,2,3,4,5")
+  descricao           String?
+  instagram           String?
+  site                String?
   usuarios       Usuario[]
   pacientes      Paciente[]
   agendamentos   Agendamento[]
@@ -63,12 +66,29 @@ enum NichoType {
 model Usuario {
   id             String        @id @default(uuid())
   nome           String?
+  sobrenome      String?
+  telefone       String?
   email          String        @unique
-  senhaHash      String
-  role           String        @default("recepcao") // admin, recepcao, profissional
+  senhaHash      String?       // null para usuários Google OAuth
+  role           String        @default("recepcao") // admin, recepcao, profissional, temporario
   tenantId       String
   profissionalId String?       // preenchido quando role=profissional
   avatarUrl      String?       // base64 data URL da foto de perfil
+
+  // Verificação de email
+  emailVerificado Boolean      @default(false)
+
+  // Google OAuth
+  googleId       String?       @unique
+  googleEmail    String?
+
+  // Acesso temporário
+  acessoExpiraEm DateTime?
+
+  // Onboarding
+  primeiroAcesso Boolean       @default(true)
+  perfilCompleto Boolean       @default(false)
+
   clinica        Clinica       @relation(fields: [tenantId], references: [tenantId])
   profissional   Profissional? @relation(fields: [profissionalId], references: [id])
   createdAt      DateTime      @default(now())
@@ -224,16 +244,41 @@ model AiLog {
 }
 
 model InviteToken {
-  id        String   @id @default(uuid())
-  token     String   @unique
-  email     String
-  role      String   @default("recepcao")
-  tenantId  String
-  used      Boolean  @default(false)
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+  id            String   @id @default(uuid())
+  token         String   @unique
+  email         String
+  nome          String?
+  role          String   @default("recepcao")
+  especialidade String?
+  tenantId      String
+  convidadoPor  String?
+  used          Boolean  @default(false)
+  expiresAt     DateTime
+  createdAt     DateTime @default(now())
 
   @@map("invite_tokens")
+}
+
+model EmailVerificacao {
+  id        String   @id @default(uuid())
+  email     String
+  token     String   @unique
+  usado     Boolean  @default(false)
+  expiraEm  DateTime
+  createdAt DateTime @default(now())
+
+  @@map("email_verificacoes")
+}
+
+model SenhaReset {
+  id        String   @id @default(uuid())
+  email     String
+  token     String   @unique
+  usado     Boolean  @default(false)
+  expiraEm  DateTime
+  createdAt DateTime @default(now())
+
+  @@map("senha_resets")
 }
 
 model Assinatura {
