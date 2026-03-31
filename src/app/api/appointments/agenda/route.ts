@@ -155,7 +155,8 @@ export async function GET(req: Request) {
     const profissionais = await prisma.profissional.findMany({
       where: whereProf,
       include: {
-        escalas: { where: { diaSemana, ativo: true } },
+        // Busca TODAS as escalas ativas para detectar se o prof tem alguma configurada
+        escalas: { where: { ativo: true } },
         agendamentos: {
           where: {
             tenantId,
@@ -172,13 +173,19 @@ export async function GET(req: Request) {
       orderBy: { nome: 'asc' },
     });
 
+    console.log(`[agenda] data=${dataParam} diaSemana=${diaSemana} profs=${profissionais.length}:`, profissionais.map(p => `${p.nome}(escalas=${p.escalas.length})`));
+
     const result = profissionais.map((prof) => {
-      const escala = prof.escalas[0] || null;
-      const horarioInicio = escala?.horaInicio ?? '08:00';
-      const horarioFim = escala?.horaFim ?? '18:00';
+      // Escala do dia específico
+      const escala = prof.escalas.find((e) => e.diaSemana === diaSemana) || null;
+      // Se prof NÃO tem NENHUMA escala cadastrada → trata como trabalhando (usa horário da clínica)
+      const temEscalasCadastradas = prof.escalas.length > 0;
+      const trabalhaNoDia = temEscalasCadastradas ? !!escala : true;
+
+      const horarioInicio = escala?.horaInicio ?? clinica?.openingTime ?? '08:00';
+      const horarioFim = escala?.horaFim ?? clinica?.closingTime ?? '18:00';
       const lunchStart = escala?.lunchStart ? toMin(escala.lunchStart) : null;
       const lunchEnd = escala?.lunchEnd ? toMin(escala.lunchEnd) : null;
-      const trabalhaNoDia = !!escala;
 
       const agendamentosInput = prof.agendamentos.map((ag) => ({
         raw: {

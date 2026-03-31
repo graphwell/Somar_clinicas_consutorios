@@ -40,7 +40,8 @@ export default function DashboardPage() {
   const fetchAgenda = useCallback(async (d: Date) => {
     setLoading(true);
     try {
-      const ds = d.toISOString().split("T")[0];
+      // Usar data local (não UTC) para não mudar de dia após ~21h no fuso BRT
+      const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       const res = await fetchWithAuth(`/api/appointments/agenda?data=${ds}`);
       const json = await res.json();
       setProfissionais(json.profissionais || []);

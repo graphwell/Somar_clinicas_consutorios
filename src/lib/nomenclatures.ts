@@ -45,8 +45,8 @@ function getNomenclatureBase(n: NichoType): Omit<NichoLabels, 'cliente'> {
     // ─── CLÍNICA MÉDICA ──────────────────────────────────────
     case NichoType.CLINICA_MEDICA:
       return {
-        termoProfissional:       'Médico',
-        termoProfissionalPlural: 'Médicos',
+        termoProfissional:       'Especialista',
+        termoProfissionalPlural: 'Especialistas',
         tratamentoProfissional:  'Dr.',
         termoPaciente:           'Paciente',
         termoPacientePlural:     'Pacientes',
