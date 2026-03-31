@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useNicho } from '@/context/NichoContext';
 import { fetchWithAuth } from '@/lib/api-utils';
 
@@ -16,6 +17,7 @@ type Paciente = {
 
 function PatientChart({ patient, onClose }: { patient: Paciente; onClose: () => void }) {
   const { labels } = useNicho();
+  const router = useRouter();
   
   return (
     <div className="fixed inset-0 z-[100] flex justify-end transition-all" onClick={onClose}>
@@ -57,7 +59,7 @@ function PatientChart({ patient, onClose }: { patient: Paciente; onClose: () => 
            <div className="space-y-10">
               <div className="flex justify-between items-center border-b border-slate-50 pb-4">
                  <h4 className="text-[11px] font-black uppercase tracking-[0.3em] text-text-placeholder">Evolução de {labels.termoPaciente}</h4>
-                 <button className="text-[9px] font-black uppercase px-6 py-2.5 bg-primary text-white rounded-xl shadow-lg shadow-primary/20 hover:scale-105 transition-all">Nova Evolução</button>
+                 <button onClick={() => router.push(`/dashboard/clinical-records?pacienteId=${patient.id}`)} className="text-[9px] font-black uppercase px-6 py-2.5 bg-primary text-white rounded-xl shadow-lg shadow-primary/20 hover:scale-105 transition-all">Nova Evolução</button>
               </div>
 
               <div className="space-y-8">
@@ -94,7 +96,13 @@ export default function PatientsPage() {
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPatient, setSelectedPatient] = useState<Paciente | null>(null);
+  const [showNovo, setShowNovo] = useState(false);
+  const [novoNome, setNovoNome] = useState('');
+  const [novoTelefone, setNovoTelefone] = useState('');
+  const [novoNascimento, setNovoNascimento] = useState('');
+  const [savingNovo, setSavingNovo] = useState(false);
   const { labels } = useNicho();
+  const router = useRouter();
 
   useEffect(() => {
     fetchWithAuth('/api/patients')
@@ -102,6 +110,25 @@ export default function PatientsPage() {
       .then(data => { if (Array.isArray(data)) setPacientes(data); })
       .finally(() => setLoading(false));
   }, []);
+
+  const criarPaciente = async () => {
+    if (!novoNome.trim() || !novoTelefone.trim()) return;
+    setSavingNovo(true);
+    try {
+      const res = await fetchWithAuth('/api/patients', {
+        method: 'POST',
+        body: JSON.stringify({ nome: novoNome.trim(), telefone: novoTelefone.trim(), dataNascimento: novoNascimento || null }),
+      });
+      const novo = await res.json();
+      if (novo.id) {
+        setPacientes(prev => [{ ...novo, _count: { agendamentos: 0 }, agendamentos: [] }, ...prev]);
+        setShowNovo(false);
+        setNovoNome(''); setNovoTelefone(''); setNovoNascimento('');
+      }
+    } finally {
+      setSavingNovo(false);
+    }
+  };
 
   const filtered = pacientes.filter(p => {
     const matchesSearch = p.nome.toLowerCase().includes(search.toLowerCase()) || p.telefone.includes(search);
@@ -122,7 +149,7 @@ export default function PatientsPage() {
                 <p className="text-[10px] font-black text-text-placeholder uppercase tracking-[0.2em] mt-1 opacity-60">Sincronização Ativa</p>
              </div>
           </div>
-          <button onClick={() => window.location.href='/dashboard'} className="btn-primary flex items-center justify-center gap-2">
+          <button onClick={() => setShowNovo(true)} className="btn-primary flex items-center justify-center gap-2">
             <span>➕ NOVO {labels.termoPaciente.toUpperCase()}</span>
           </button>
         </div>
@@ -203,6 +230,45 @@ export default function PatientsPage() {
       )}
 
       {selectedPatient && <PatientChart patient={selectedPatient} onClose={() => setSelectedPatient(null)} />}
+
+      {showNovo && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center" onClick={() => setShowNovo(false)}>
+          <div className="absolute inset-0 bg-slate-900/20 backdrop-blur-sm" />
+          <div className="relative bg-white rounded-[2.5rem] shadow-2xl border border-card-border p-10 w-full max-w-md space-y-6 animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-black italic uppercase tracking-tighter text-text-main">Novo {labels.termoPaciente}</h3>
+              <button onClick={() => setShowNovo(false)} className="text-text-placeholder font-black hover:text-text-main">✕</button>
+            </div>
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black uppercase tracking-widest text-text-placeholder">Nome completo *</label>
+                <input value={novoNome} onChange={e => setNovoNome(e.target.value)}
+                  placeholder="Nome do paciente" className="input-premium w-full py-3 text-sm" autoFocus />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black uppercase tracking-widest text-text-placeholder">WhatsApp *</label>
+                <input value={novoTelefone} onChange={e => setNovoTelefone(e.target.value)}
+                  placeholder="(11) 99999-9999" className="input-premium w-full py-3 text-sm" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black uppercase tracking-widest text-text-placeholder">Data de nascimento</label>
+                <input type="date" value={novoNascimento} onChange={e => setNovoNascimento(e.target.value)}
+                  className="input-premium w-full py-3 text-sm" />
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setShowNovo(false)}
+                className="flex-1 py-3 bg-slate-50 border border-card-border rounded-xl text-[9px] font-black uppercase hover:bg-slate-100 transition-colors">
+                Cancelar
+              </button>
+              <button onClick={criarPaciente} disabled={savingNovo || !novoNome.trim() || !novoTelefone.trim()}
+                className="flex-1 btn-primary py-3 text-[9px] disabled:opacity-40">
+                {savingNovo ? 'Salvando...' : `Criar ${labels.termoPaciente}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

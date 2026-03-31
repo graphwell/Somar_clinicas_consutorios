@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useNicho } from '@/context/NichoContext';
 import { fetchWithAuth } from '@/lib/api-utils';
 import AssinaturaProntuario from '@/components/prontuario/AssinaturaProntuario';
@@ -576,6 +577,7 @@ const VITAIS_EMPTY: VitaisState = { pressaoSistolica: '', pressaoDiastolica: '',
 export default function ClinicalRecordsPage() {
   const { labels } = useNicho();
   const tipo = labels.tipoProntuario || 'CLINICO';
+  const searchParams = useSearchParams();
 
   // Patient search
   const [search, setSearch] = useState('');
@@ -676,6 +678,19 @@ export default function ClinicalRecordsPage() {
     setSelectedPaciente(p); setSugestoes([]); setSearch('');
     resetForm(); carregarPaciente(p);
   };
+
+  // Auto-select patient from URL param (e.g. coming from patients page)
+  useEffect(() => {
+    const pacienteId = searchParams.get('pacienteId');
+    if (!pacienteId || selectedPaciente) return;
+    fetchWithAuth(`/api/prontuario/${pacienteId}`)
+      .then(r => r.json())
+      .then(ctx => {
+        if (ctx.paciente) selectPaciente(ctx.paciente);
+      })
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   // Template apply
   const applyTemplate = (id: string) => {
