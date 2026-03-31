@@ -20,6 +20,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ paciente
         profissional: { select: { id: true, nome: true } },
         medidas: { orderBy: { createdAt: 'desc' }, take: 1 },
         arquivos: { select: { id: true, nome: true, tipo: true, url: true } },
+        cidsSugeridos: { select: { id: true, codigo: true, descricao: true, relevancia: true, confirmado: true } },
         _count: { select: { arquivos: true } },
       },
       orderBy: { createdAt: 'desc' },
@@ -50,6 +51,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ pacient
       historicoAlimentar, restricoes, objetivoPaciente,
       planoAlimentar, recordatorio24h, metas,
       medidas,
+      // IA / SOAP
+      soapSubjetivo, soapObjetivo, soapAvaliacao, soapPlano,
+      transcricaoOriginal, iaRevisado,
+      cidsSugeridos,
     } = body;
 
     const registro = await prisma.prontuarioRegistro.create({
@@ -70,6 +75,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ pacient
         glicemia: glicemia ? parseInt(glicemia) : null,
         historicoAlimentar, restricoes, objetivoPaciente,
         planoAlimentar, recordatorio24h, metas,
+        soapSubjetivo, soapObjetivo, soapAvaliacao, soapPlano,
+        transcricaoOriginal,
+        iaRevisado: iaRevisado ?? false,
+        cidsSugeridos: cidsSugeridos?.length ? {
+          create: cidsSugeridos.map((c: { codigo: string; descricao: string; relevancia?: number }) => ({
+            codigo: c.codigo, descricao: c.descricao, relevancia: c.relevancia ?? 1.0,
+          })),
+        } : undefined,
         medidas: medidas?.peso ? {
           create: {
             peso: medidas.peso ? parseFloat(medidas.peso) : null,

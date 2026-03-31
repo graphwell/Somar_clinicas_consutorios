@@ -442,16 +442,58 @@ model ProntuarioRegistro {
   recordatorio24h     String?
   metas               String?
 
+  // IA e Voz
+  iaRascunho         String?
+  iaPromptUsado      String?
+  iaRevisado         Boolean  @default(false)
+  transcricaoOriginal String?
+
+  // SOAP
+  soapSubjetivo String?
+  soapObjetivo  String?
+  soapAvaliacao String?
+  soapPlano     String?
+
+  // Assinatura Digital
+  assinadoPor    String?
+  assinadoEm    DateTime?
+  assinaturaHash String?
+
+  // Psicologia
+  escalasAplicadas      Json?   // { phq9: {...}, gad7: {...} }
+  objetivosTerapeuticos String?
+  evolucaoPsico         String?
+
+  // Estética
+  protocoloEstetico String?
+  regiaoTratada     String?
+  produtosUsados    String?
+  fotosAntesDep     Json?   // [{ antes: url, depois: url }]
+
   paciente     Paciente      @relation(fields: [pacienteId], references: [id])
   clinica      Clinica       @relation(fields: [tenantId], references: [tenantId])
   profissional Profissional? @relation(fields: [profissionalId], references: [id])
   medidas      MedidaCorporal[]
   odontograma  OdontogramaItem[]
   arquivos     ProntuarioArquivo[]
+  cidsSugeridos CidSugerido[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   @@map("prontuario_registros")
+}
+
+model CidSugerido {
+  id           String             @id @default(cuid())
+  prontuarioId String
+  codigo       String
+  descricao    String
+  relevancia   Float              @default(1.0)
+  confirmado   Boolean            @default(false)
+  prontuario   ProntuarioRegistro @relation(fields: [prontuarioId], references: [id], onDelete: Cascade)
+  createdAt    DateTime           @default(now())
+
+  @@map("cids_sugeridos")
 }
 
 model ProntuarioArquivo {

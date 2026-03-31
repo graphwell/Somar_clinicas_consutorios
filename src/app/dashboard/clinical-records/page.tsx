@@ -2,21 +2,29 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNicho } from '@/context/NichoContext';
 import { fetchWithAuth } from '@/lib/api-utils';
+import AssinaturaProntuario from '@/components/prontuario/AssinaturaProntuario';
+import SynkaProntuarioPanel from '@/components/prontuario/SynkaProntuarioPanel';
+import GravadorVoz from '@/components/prontuario/GravadorVoz';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Paciente = { id: string; nome: string; telefone: string; dataNascimento?: string; cpf?: string; convenio?: string };
 type Alergia = { id: string; descricao: string; gravidade: string };
 type Medicamento = { id: string; nome: string; dosagem?: string; frequencia?: string; uso: string; ativo: boolean };
+type CidSugerido = { id: string; codigo: string; descricao: string; relevancia: number; confirmado: boolean };
 type Evolucao = {
   id: string; createdAt: string; tipo: string;
   queixaPrincipal?: string; evolucao?: string; conduta?: string;
   hipoteseDiagnostica?: string; cidCodigo?: string; cidDescricao?: string;
   pressaoSistolica?: number; pressaoDiastolica?: number; temperatura?: number; saturacao?: number; glicemia?: number;
   retornoEm?: string;
+  soapSubjetivo?: string; soapObjetivo?: string; soapAvaliacao?: string; soapPlano?: string;
+  transcricaoOriginal?: string; iaRevisado?: boolean;
+  assinaturaHash?: string | null; assinadoEm?: string | null; assinadoPor?: string | null;
   profissional?: { id: string; nome: string };
   medidas?: { peso?: number; altura?: number; imc?: number }[];
   arquivos?: { id: string; nome: string; tipo: string; url: string }[];
+  cidsSugeridos?: CidSugerido[];
   _count?: { arquivos: number };
 };
 type Contexto = { paciente: Paciente; alergias: Alergia[]; medicamentos: Medicamento[]; ultimaEvolucao?: Evolucao | null };
@@ -600,6 +608,15 @@ export default function ClinicalRecordsPage() {
   const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saved' | 'saving'>('idle');
   const [selectedTemplate, setSelectedTemplate] = useState('');
 
+  // IA / SOAP
+  const [soapSubjetivo, setSoapSubjetivo] = useState('');
+  const [soapObjetivo, setSoapObjetivo] = useState('');
+  const [soapAvaliacao, setSoapAvaliacao] = useState('');
+  const [soapPlano, setSoapPlano] = useState('');
+  const [transcricaoOriginal, setTranscricaoOriginal] = useState('');
+  const [cidsSugeridosIA, setCidsSugeridosIA] = useState<Array<{ codigo: string; descricao: string; relevancia: number }>>([]);
+  const [showIA, setShowIA] = useState(false);
+
   // Modals
   const [modalReceita, setModalReceita] = useState(false);
   const [modalAtestado, setModalAtestado] = useState(false);
@@ -612,6 +629,8 @@ export default function ClinicalRecordsPage() {
     setQueixaPrincipal(''); setEvolucaoText(''); setConduta(''); setHipoteseDiagnostica('');
     setHistoriaMolestia(''); setHistoricoMedico(''); setExameSolicitado(''); setRetornoEm('');
     setCidCodigo(''); setCidDescricao(''); setVitais(VITAIS_EMPTY);
+    setSoapSubjetivo(''); setSoapObjetivo(''); setSoapAvaliacao(''); setSoapPlano('');
+    setTranscricaoOriginal(''); setCidsSugeridosIA([]); setShowIA(false);
     setSelectedTemplate(''); setSelectedEvolucao(null); setMode('new');
     setAutoSaveStatus('idle');
   };
@@ -704,6 +723,13 @@ export default function ClinicalRecordsPage() {
         temperatura: vitais.temperatura || null,
         saturacao: vitais.saturacao || null,
         glicemia: vitais.glicemia || null,
+        soapSubjetivo: soapSubjetivo || null,
+        soapObjetivo: soapObjetivo || null,
+        soapAvaliacao: soapAvaliacao || null,
+        soapPlano: soapPlano || null,
+        transcricaoOriginal: transcricaoOriginal || null,
+        iaRevisado: !!(soapSubjetivo || soapObjetivo || soapAvaliacao || soapPlano),
+        cidsSugeridos: cidsSugeridosIA.length > 0 ? cidsSugeridosIA : undefined,
       };
       await fetchWithAuth(`/api/prontuario/${selectedPaciente.id}/evolucoes`, {
         method: 'POST', body: JSON.stringify(body),
@@ -725,6 +751,11 @@ export default function ClinicalRecordsPage() {
     setHipoteseDiagnostica(e.hipoteseDiagnostica || '');
     setHistoriaMolestia(e.historiaMolestia || '');
     setCidCodigo(e.cidCodigo || ''); setCidDescricao(e.cidDescricao || '');
+    setSoapSubjetivo(e.soapSubjetivo || '');
+    setSoapObjetivo(e.soapObjetivo || '');
+    setSoapAvaliacao(e.soapAvaliacao || '');
+    setSoapPlano(e.soapPlano || '');
+    setTranscricaoOriginal(e.transcricaoOriginal || '');
     setVitais({
       pressaoSistolica: e.pressaoSistolica?.toString() || '',
       pressaoDiastolica: e.pressaoDiastolica?.toString() || '',
@@ -883,6 +914,24 @@ export default function ClinicalRecordsPage() {
                   className="input-premium w-full py-3 text-sm resize-none" />
               </div>
 
+              {/* Gravador de Voz (apenas modo new) */}
+              {mode === 'new' && (
+                <GravadorVoz
+                  onTranscricao={(texto) => {
+                    setTranscricaoOriginal(texto);
+                    if (!evolucaoText) setEvolucaoText(texto);
+                  }}
+                />
+              )}
+
+              {/* Transcrição original (somente view se houver) */}
+              {mode === 'view' && transcricaoOriginal && (
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-black uppercase tracking-widest text-text-placeholder">🎙 Transcrição Original</label>
+                  <div className="p-3 bg-slate-50 border border-card-border rounded-xl text-sm text-text-muted italic">{transcricaoOriginal}</div>
+                </div>
+              )}
+
               {/* Evolução / Texto livre */}
               <div className="space-y-1.5">
                 <label className="text-[9px] font-black uppercase tracking-widest text-text-placeholder">Evolução / Anamnese</label>
@@ -891,6 +940,69 @@ export default function ClinicalRecordsPage() {
                   placeholder="Texto da evolução clínica, achados, observações..."
                   className="input-premium w-full py-3 text-sm resize-none" />
               </div>
+
+              {/* SOAP (gerado por IA ou preenchido manualmente) */}
+              {(soapSubjetivo || soapObjetivo || soapAvaliacao || soapPlano || mode === 'new') && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-text-placeholder">🤖 Nota SOAP</p>
+                    {mode === 'new' && !showIA && (
+                      <button onClick={() => setShowIA(true)}
+                        className="text-[9px] font-black text-primary hover:underline uppercase">
+                        Gerar com IA ✨
+                      </button>
+                    )}
+                  </div>
+                  {showIA && mode === 'new' && (
+                    <SynkaProntuarioPanel
+                      tipo={tipo}
+                      queixaPrincipal={queixaPrincipal}
+                      transcricao={transcricaoOriginal}
+                      historicoMedico={contexto?.ultimaEvolucao?.evolucao}
+                      medicamentos={contexto?.medicamentos?.map(m => m.nome).join(', ')}
+                      alergias={contexto?.alergias?.map(a => a.descricao).join(', ')}
+                      onSoapGerado={(soap) => {
+                        setSoapSubjetivo(soap.soapSubjetivo || '');
+                        setSoapObjetivo(soap.soapObjetivo || '');
+                        setSoapAvaliacao(soap.soapAvaliacao || '');
+                        setSoapPlano(soap.soapPlano || '');
+                        if (soap.cidsSugeridos?.length) setCidsSugeridosIA(soap.cidsSugeridos.map(c => ({ codigo: c.codigo, descricao: c.descricao, relevancia: c.relevancia })));
+                        if (!conduta && soap.soapPlano) setConduta(soap.soapPlano);
+                        if (!evolucaoText && soap.soapSubjetivo) setEvolucaoText(soap.soapSubjetivo);
+                        setShowIA(false);
+                      }}
+                    />
+                  )}
+                  {(soapSubjetivo || soapObjetivo || soapAvaliacao || soapPlano) && (
+                    <div className="grid grid-cols-2 gap-3">
+                      {[
+                        { label: 'S — Subjetivo', value: soapSubjetivo, set: setSoapSubjetivo },
+                        { label: 'O — Objetivo', value: soapObjetivo, set: setSoapObjetivo },
+                        { label: 'A — Avaliação', value: soapAvaliacao, set: setSoapAvaliacao },
+                        { label: 'P — Plano', value: soapPlano, set: setSoapPlano },
+                      ].map(({ label, value, set }) => (
+                        <div key={label} className="space-y-1">
+                          <label className="text-[8px] font-black uppercase tracking-widest text-primary">{label}</label>
+                          <textarea rows={3} value={value} onChange={e => set(e.target.value)}
+                            readOnly={mode === 'view'}
+                            className="input-premium w-full py-2 text-xs resize-none" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {cidsSugeridosIA.length > 0 && mode === 'new' && (
+                    <div className="flex flex-wrap gap-1.5">
+                      <p className="text-[8px] font-black uppercase text-text-placeholder w-full">CIDs sugeridos pela IA:</p>
+                      {cidsSugeridosIA.map(c => (
+                        <button key={c.codigo} onClick={() => { setCidCodigo(c.codigo); setCidDescricao(c.descricao); }}
+                          className={`text-[9px] font-black px-2 py-1 rounded-lg border transition-colors ${cidCodigo === c.codigo ? 'bg-primary text-white border-primary' : 'bg-primary-soft text-primary border-primary/20 hover:bg-primary/10'}`}>
+                          {c.codigo}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* CID-10 */}
               {mode === 'new' ? (
@@ -958,11 +1070,25 @@ export default function ClinicalRecordsPage() {
                   </button>
                 </>
               ) : (
-                <div className="flex items-center gap-2 w-full">
-                  <span className="text-[9px] text-text-placeholder font-black uppercase tracking-wider">Consulta salva em {new Date(selectedEvolucao?.createdAt || '').toLocaleDateString('pt-BR')}</span>
-                  <div className="flex-1" />
-                  <button onClick={() => { setMode('new'); resetForm(); }}
-                    className="btn-primary px-8 py-3 text-[10px]">+ Nova Consulta</button>
+                <div className="flex flex-col gap-3 w-full">
+                  {selectedEvolucao && (
+                    <AssinaturaProntuario
+                      prontuarioId={selectedEvolucao.id}
+                      assinado={!!selectedEvolucao.assinaturaHash}
+                      assinadoEm={selectedEvolucao.assinadoEm}
+                      assinaturaHash={selectedEvolucao.assinaturaHash}
+                      onAssinado={(hash, data) => {
+                        setSelectedEvolucao(prev => prev ? { ...prev, assinaturaHash: hash, assinadoEm: data } : prev);
+                        setEvolucoes(prev => prev.map(e => e.id === selectedEvolucao.id ? { ...e, assinaturaHash: hash, assinadoEm: data } : e));
+                      }}
+                    />
+                  )}
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9px] text-text-placeholder font-black uppercase tracking-wider">Consulta salva em {new Date(selectedEvolucao?.createdAt || '').toLocaleDateString('pt-BR')}</span>
+                    <div className="flex-1" />
+                    <button onClick={() => { setMode('new'); resetForm(); }}
+                      className="btn-primary px-8 py-3 text-[10px]">+ Nova Consulta</button>
+                  </div>
                 </div>
               )}
             </div>
