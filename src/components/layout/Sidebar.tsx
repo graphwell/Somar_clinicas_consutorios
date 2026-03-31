@@ -9,7 +9,7 @@ import {
   IconAgenda, IconPacientes, IconEquipe, IconServicos,
   IconProntuario, IconOdontograma, IconConvenio, IconRelatorios,
   IconCampanhas, IconIntegracoes, IconFinanceiro, IconAssinaturas,
-  IconConfiguracoes, IconLogout, IconEspecialidades, IconAjuda,
+  IconConfiguracoes, IconLogout, IconEspecialidades, IconAjuda, IconStethoscope,
 } from "@/components/icons/NavIcons";
 
 interface NavItemProps {
@@ -131,6 +131,7 @@ export default function Sidebar({
         <nav className="flex-1 overflow-y-auto no-scrollbar py-2">
           <SectionLabel label="Principal" />
           <NavItem href="/dashboard" label={labels.termoAgenda || "Agenda"} Icon={IconAgenda} active={is("/dashboard", true)} />
+          <NavItem href="/dashboard/appointments" label="Atendimentos" Icon={IconStethoscope} active={is("/dashboard/appointments")} />
           <NavItem href="/dashboard/patients" label={labels.termoPacientePlural || "Pacientes"} Icon={IconPacientes} active={is("/dashboard/patients")} />
           {!isProfissional && (
             <NavItem href="/dashboard/team" label={labels.termoProfissionalPlural || "Equipe"} Icon={IconEquipe} active={is("/dashboard/team")} />

@@ -41,6 +41,7 @@ export default function BottomNav() {
             </p>
             <div className="grid grid-cols-3 gap-px bg-warm-200">
               {[
+                { href: "/dashboard/appointments",  label: "Atendimentos",   icon: "📋" },
                 { href: "/dashboard/team",         label: "Equipe",         icon: "🧑‍💼" },
                 { href: "/dashboard/services",      label: "Serviços",       icon: "📦" },
                 { href: "/dashboard/finance",       label: "Financeiro",     icon: "💰" },
