@@ -53,7 +53,7 @@ function SectionLabel({ label }: { label: string }) {
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
-  currentUser: { nome?: string; email?: string; role?: string } | null;
+  currentUser: { nome?: string; email?: string; role?: string; avatarUrl?: string | null } | null;
   clientLogo?: string | null;
   clientName?: string | null;
 }
@@ -99,11 +99,13 @@ export default function Sidebar({
           style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}
         >
           {clientLogo ? (
-            <img
-              src={clientLogo}
-              alt={clientName || "Logo"}
-              className="h-10 w-auto object-contain"
-            />
+            <div className="h-10 flex items-center">
+              <img
+                src={clientLogo}
+                alt={clientName || "Logo"}
+                style={{ maxHeight: '40px', maxWidth: '120px', objectFit: 'contain', background: 'transparent' }}
+              />
+            </div>
           ) : (
             <div className="flex items-center gap-3">
               <div
@@ -190,6 +192,7 @@ export default function Sidebar({
           <div className="flex items-center gap-2.5 mb-3">
             <Avatar
               nome={currentUser?.nome || currentUser?.email || "U"}
+              src={currentUser?.avatarUrl}
               size="md"
             />
             <div className="overflow-hidden flex-1">

@@ -448,10 +448,10 @@ function ColunaDireita({ evolucoes, metricas, selectedId, onSelect, labels }: {
   selectedId: string | null; onSelect: (e: Evolucao) => void;
   labels: any;
 }) {
-  const [filtro, setFiltro] = useState<'TUDO' | 'CONSULTAS' | 'EXAMES'>('TUDO');
+  const [filtro, setFiltro] = useState<'TUDO' | 'EXAMES'>('TUDO');
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const filtradas = filtro === 'CONSULTAS' ? evolucoes.filter(e => !e._count?.arquivos) : evolucoes;
+  const filtradas = evolucoes;
   const pesos = metricas?.medidas.filter(m => m.peso).map(m => m.peso!) || [];
   const sistolicas = metricas?.vitais.filter(v => v.pressaoSistolica).map(v => v.pressaoSistolica!) || [];
   const glicemias = metricas?.vitais.filter(v => v.glicemia).map(v => v.glicemia!) || [];
@@ -498,7 +498,7 @@ function ColunaDireita({ evolucoes, metricas, selectedId, onSelect, labels }: {
 
       {/* Filtro */}
       <div className="flex gap-1 bg-slate-100 rounded-2xl p-1">
-        {([['TUDO', 'Tudo'], ['CONSULTAS', 'Consultas']] as [string, string][]).map(([v, l]) => (
+        {([['TUDO', 'Tudo'], ['EXAME', 'Exames'], ['PROCEDIMENTO', 'Procedimentos']] as [string, string][]).map(([v, l]) => (
           <button key={v} onClick={() => setFiltro(v as any)}
             className={`flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-wide transition-all ${filtro === v ? 'bg-white text-primary shadow-sm' : 'text-text-muted'}`}>
             {l}

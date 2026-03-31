@@ -8,7 +8,7 @@ export async function GET() {
     const { userId } = await getSessionInfo();
     const user = await prisma.usuario.findUnique({
       where: { id: userId },
-      select: { id: true, nome: true, email: true, role: true, avatarUrl: true },
+      select: { id: true, nome: true, sobrenome: true, telefone: true, email: true, role: true, avatarUrl: true },
     });
     if (!user) return NextResponse.json({ error: 'Usuário não encontrado.' }, { status: 404 });
     return NextResponse.json(user);
@@ -21,14 +21,17 @@ export async function GET() {
 export async function PUT(request: Request) {
   try {
     const { userId } = await getSessionInfo();
-    const { nome } = await request.json();
+    const { nome, telefone } = await request.json();
     if (!nome?.trim()) {
       return NextResponse.json({ error: 'Nome é obrigatório.' }, { status: 400 });
     }
     const updated = await prisma.usuario.update({
       where: { id: userId },
-      data: { nome: nome.trim() },
-      select: { id: true, nome: true, email: true, role: true, avatarUrl: true },
+      data: {
+        nome: nome.trim(),
+        telefone: telefone ? telefone.replace(/\D/g, '') : null,
+      },
+      select: { id: true, nome: true, sobrenome: true, telefone: true, email: true, role: true, avatarUrl: true },
     });
     return NextResponse.json(updated);
   } catch (error: any) {

@@ -22,10 +22,23 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     nome?: string;
     email?: string;
     role?: string;
+    avatarUrl?: string | null;
   } | null>(null);
 
   useEffect(() => {
     setHasMounted(true);
+  }, []);
+
+  // Escuta evento de atualização do usuário (avatar, nome) disparado por Settings
+  useEffect(() => {
+    const handler = () => {
+      try {
+        const storedUser = localStorage.getItem("synka-user");
+        if (storedUser) setCurrentUser(JSON.parse(storedUser));
+      } catch {}
+    };
+    window.addEventListener("synka-user-updated", handler);
+    return () => window.removeEventListener("synka-user-updated", handler);
   }, []);
 
   useEffect(() => {

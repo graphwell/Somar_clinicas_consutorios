@@ -18,6 +18,7 @@ export default function SettingsPage() {
 
   // Perfil do usuário
   const [perfilNome, setPerfilNome] = useState('');
+  const [perfilTelefone, setPerfilTelefone] = useState('');
   const [perfilEmail, setPerfilEmail] = useState('');
   const [perfilRole, setPerfilRole] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -37,6 +38,7 @@ export default function SettingsPage() {
       .then(r => r.json())
       .then(u => {
         if (u.nome) setPerfilNome(u.nome);
+        if (u.telefone) setPerfilTelefone(u.telefone);
         if (u.email) setPerfilEmail(u.email);
         if (u.role) setPerfilRole(u.role);
         if (u.avatarUrl) setAvatarUrl(u.avatarUrl);
@@ -104,6 +106,14 @@ export default function SettingsPage() {
       const data = await res.json();
       if (res.ok) {
         setAvatarUrl(data.avatarUrl);
+        // Atualiza localStorage e notifica Sidebar em tempo real
+        try {
+          const stored = localStorage.getItem('synka-user');
+          const user = stored ? JSON.parse(stored) : {};
+          user.avatarUrl = data.avatarUrl;
+          localStorage.setItem('synka-user', JSON.stringify(user));
+          window.dispatchEvent(new CustomEvent('synka-user-updated'));
+        } catch {}
       } else {
         alert(data.error || 'Erro ao subir foto.');
       }
@@ -118,11 +128,19 @@ export default function SettingsPage() {
     try {
       const res = await fetchWithAuth('/api/settings/profile', {
         method: 'PUT',
-        body: JSON.stringify({ nome: perfilNome }),
+        body: JSON.stringify({ nome: perfilNome, telefone: perfilTelefone }),
       });
       if (res.ok) {
         setPerfilSalvo(true);
         setTimeout(() => setPerfilSalvo(false), 2000);
+        // Atualiza nome no localStorage e notifica Sidebar
+        try {
+          const stored = localStorage.getItem('synka-user');
+          const user = stored ? JSON.parse(stored) : {};
+          user.nome = perfilNome;
+          localStorage.setItem('synka-user', JSON.stringify(user));
+          window.dispatchEvent(new CustomEvent('synka-user-updated'));
+        } catch {}
       }
     } catch {}
   };
@@ -212,6 +230,15 @@ export default function SettingsPage() {
                 value={perfilNome}
                 onChange={e => setPerfilNome(e.target.value)}
                 placeholder="Seu nome"
+                className="input-premium w-full py-2.5 text-sm"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[8px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-1">Telefone</label>
+              <input
+                value={perfilTelefone}
+                onChange={e => setPerfilTelefone(e.target.value)}
+                placeholder="(XX) XXXXX-XXXX"
                 className="input-premium w-full py-2.5 text-sm"
               />
             </div>
