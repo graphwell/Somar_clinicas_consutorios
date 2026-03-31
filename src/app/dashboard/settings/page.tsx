@@ -14,6 +14,15 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const [botActive, setBotActive] = useState(true);
   const fileRef = useRef<HTMLInputElement>(null);
+  const avatarRef = useRef<HTMLInputElement>(null);
+
+  // Perfil do usuário
+  const [perfilNome, setPerfilNome] = useState('');
+  const [perfilEmail, setPerfilEmail] = useState('');
+  const [perfilRole, setPerfilRole] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [perfilSalvo, setPerfilSalvo] = useState(false);
 
   const [razaoSocial, setRazaoSocial] = useState('');
   const [cnpj, setCnpj] = useState('');
@@ -22,6 +31,18 @@ export default function SettingsPage() {
   const [openingTime, setOpeningTime] = useState('08:00');
   const [closingTime, setClosingTime] = useState('18:00');
   const [workingDays, setWorkingDays] = useState('1,2,3,4,5');
+
+  useEffect(() => {
+    fetchWithAuth('/api/settings/profile')
+      .then(r => r.json())
+      .then(u => {
+        if (u.nome) setPerfilNome(u.nome);
+        if (u.email) setPerfilEmail(u.email);
+        if (u.role) setPerfilRole(u.role);
+        if (u.avatarUrl) setAvatarUrl(u.avatarUrl);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetchWithAuth('/api/settings')
@@ -72,6 +93,40 @@ export default function SettingsPage() {
     } finally { setUploading(false); }
   };
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarUploading(true);
+    const formData = new FormData();
+    formData.append('avatar', file);
+    try {
+      const res = await fetchWithAuth('/api/upload/avatar', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (res.ok) {
+        setAvatarUrl(data.avatarUrl);
+      } else {
+        alert(data.error || 'Erro ao subir foto.');
+      }
+    } catch {
+      alert('Erro de conexão.');
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
+  const handleSavePerfil = async () => {
+    try {
+      const res = await fetchWithAuth('/api/settings/profile', {
+        method: 'PUT',
+        body: JSON.stringify({ nome: perfilNome }),
+      });
+      if (res.ok) {
+        setPerfilSalvo(true);
+        setTimeout(() => setPerfilSalvo(false), 2000);
+      }
+    } catch {}
+  };
+
   const toggleDay = (day: number) => {
     const daysArr = workingDays.split(',').filter(Boolean).map(Number);
     if (daysArr.includes(day)) {
@@ -106,6 +161,81 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-12 pb-40 animate-premium">
+
+      {/* Meu Perfil */}
+      <div className="premium-card p-6 bg-white space-y-5">
+        <div className="border-b border-slate-50 pb-4">
+          <h3 className="text-base font-black text-text-main italic uppercase tracking-tighter">Meu Perfil</h3>
+          <p className="text-[8px] font-black text-text-placeholder uppercase tracking-widest mt-0.5 opacity-60">Dados da sua conta</p>
+        </div>
+        <div className="flex items-center gap-5">
+          {/* Avatar */}
+          <div className="relative shrink-0">
+            <div
+              className="w-20 h-20 rounded-2xl overflow-hidden cursor-pointer ring-2 ring-card-border hover:ring-primary/40 transition-all"
+              onClick={() => avatarRef.current?.click()}
+              title="Alterar foto"
+            >
+              {avatarUrl ? (
+                <img src={avatarUrl} className="w-full h-full object-cover" />
+              ) : (
+                <div
+                  className="w-full h-full flex items-center justify-center text-white text-xl font-bold"
+                  style={{ background: 'linear-gradient(135deg,#40916C,#52B788)' }}
+                >
+                  {(perfilNome || perfilEmail || 'U').charAt(0).toUpperCase()}
+                </div>
+              )}
+              {avatarUploading && (
+                <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                  <svg className="w-5 h-5 animate-spin text-primary" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                  </svg>
+                </div>
+              )}
+            </div>
+            <button
+              onClick={() => avatarRef.current?.click()}
+              className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center shadow-md hover:bg-primary/90 transition-colors"
+            >
+              📷
+            </button>
+            <input ref={avatarRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handleAvatarUpload} />
+          </div>
+
+          {/* Campos */}
+          <div className="flex-1 space-y-3">
+            <div className="space-y-1">
+              <label className="text-[8px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-1">Nome</label>
+              <input
+                value={perfilNome}
+                onChange={e => setPerfilNome(e.target.value)}
+                placeholder="Seu nome"
+                className="input-premium w-full py-2.5 text-sm"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[8px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-1">E-mail</label>
+                <input value={perfilEmail} disabled className="input-premium w-full py-2.5 text-sm opacity-50 cursor-not-allowed" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[8px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-1">Função</label>
+                <input value={perfilRole} disabled className="input-premium w-full py-2.5 text-sm opacity-50 cursor-not-allowed capitalize" />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="flex justify-end">
+          <button
+            onClick={handleSavePerfil}
+            className="btn-primary px-6"
+          >
+            {perfilSalvo ? '✨ Salvo!' : 'Salvar Perfil'}
+          </button>
+        </div>
+      </div>
 
       {/* Link rápido para permissões */}
       <a
@@ -149,7 +279,14 @@ export default function SettingsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                  <div className="space-y-3">
                     <label className="text-[8px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-2">Logo da Unidade</label>
-                     <div onClick={() => fileRef.current?.click()} className="w-full h-32 rounded-2xl bg-slate-50 border-2 border-dashed border-card-border flex flex-col items-center justify-center cursor-pointer hover:border-primary/30 transition-all overflow-hidden relative group">
+                     <div onClick={() => fileRef.current?.click()} className="w-full h-32 rounded-2xl border-2 border-dashed border-card-border flex flex-col items-center justify-center cursor-pointer hover:border-primary/30 transition-all overflow-hidden relative group"
+                       style={logoUrl ? {
+                         backgroundImage: "linear-gradient(45deg,#e0e0e0 25%,transparent 25%),linear-gradient(-45deg,#e0e0e0 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#e0e0e0 75%),linear-gradient(-45deg,transparent 75%,#e0e0e0 75%)",
+                         backgroundSize: "12px 12px",
+                         backgroundPosition: "0 0,0 6px,6px -6px,-6px 0px",
+                         backgroundColor: "#f8f8f8"
+                       } : { backgroundColor: '#f8fafc' }}
+                     >
                         {logoUrl ? (
                           <>
                             <img src={logoUrl} className="h-16 object-contain animate-premium" />

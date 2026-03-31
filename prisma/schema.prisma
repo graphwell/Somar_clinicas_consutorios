@@ -68,6 +68,7 @@ model Usuario {
   role           String        @default("recepcao") // admin, recepcao, profissional
   tenantId       String
   profissionalId String?       // preenchido quando role=profissional
+  avatarUrl      String?       // base64 data URL da foto de perfil
   clinica        Clinica       @relation(fields: [tenantId], references: [tenantId])
   profissional   Profissional? @relation(fields: [profissionalId], references: [id])
   createdAt      DateTime      @default(now())
