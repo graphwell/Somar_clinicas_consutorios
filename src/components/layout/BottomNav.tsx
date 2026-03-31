@@ -13,7 +13,6 @@ interface NavItem {
 const items: NavItem[] = [
   { href: "/dashboard",          label: "Agenda",    Icon: IconAgenda },
   { href: "/dashboard/patients", label: "Pacientes", Icon: IconPacientes },
-  { href: "/dashboard/clinical-records", label: "Consultas", Icon: IconStethoscope },
 ];
 
 export default function BottomNav() {
