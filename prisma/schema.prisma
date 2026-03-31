@@ -549,8 +549,12 @@ model ProntuarioArquivo {
   tenantId    String
   nome        String
   tipo        String             // EXAME | FOTO | DOCUMENTO | RECEITA | ATESTADO
-  url         String
+  url         String?            // null após deleção LGPD
   descricao   String?
+  iaResumo    String?            // Texto extraído pela IA — fica após deleção do arquivo
+  deletarEm   DateTime?          // Prazo LGPD (48h após upload)
+  deletado    Boolean            @default(false)
+  consentimento Boolean          @default(false)
   evolution   ProntuarioRegistro @relation(fields: [evolutionId], references: [id], onDelete: Cascade)
   createdAt   DateTime           @default(now())
 

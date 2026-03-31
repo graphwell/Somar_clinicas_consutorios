@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { fetchWithAuth } from "@/lib/api-utils";
 import { useToast } from "@/components/ui/Toast";
 import { SkeletonLines } from "@/components/ui/Skeleton";
+import AvisoIA from "./AvisoIA";
 
 interface SynkaProntuarioPanelProps {
   tipo: string;
@@ -20,6 +21,8 @@ interface SynkaProntuarioPanelProps {
     cidsSugeridos?: Array<{ codigo: string; descricao: string; relevancia: number }>;
   }) => void;
   onPerguntasGeradas?: (perguntas: Array<{ id: number; pergunta: string; tipo: string }>) => void;
+  onCidSelecionado?: (codigo: string, descricao: string) => void;
+  cidsSugeridosExternos?: Array<{ codigo: string; descricao: string; relevancia: number }>;
 }
 
 export default function SynkaProntuarioPanel({
@@ -32,6 +35,8 @@ export default function SynkaProntuarioPanel({
   alergias,
   onSoapGerado,
   onPerguntasGeradas,
+  onCidSelecionado,
+  cidsSugeridosExternos,
 }: SynkaProntuarioPanelProps) {
   const { toast } = useToast();
   const [loadingSOAP, setLoadingSOAP] = useState(false);
@@ -326,6 +331,44 @@ export default function SynkaProntuarioPanel({
             )}
           </>
         )}
+      </div>
+
+      {/* CIDs Sugeridos (se houver e tiver callback) */}
+      {onCidSelecionado && cidsSugeridosExternos && cidsSugeridosExternos.length > 0 && (
+        <div className="px-4 py-3 border-t border-warm-100 space-y-2">
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">CIDs sugeridos pela IA</p>
+          {cidsSugeridosExternos.slice(0, 4).map((cid, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => onCidSelecionado(cid.codigo, cid.descricao)}
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-xl bg-primary-soft hover:bg-primary/10 border border-primary/10 transition-all text-left"
+            >
+              <span className="text-[9px] font-black font-mono text-primary shrink-0">{cid.codigo}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-[9px] text-slate-600 truncate">{cid.descricao}</p>
+                <div className="mt-0.5 h-1 rounded-full bg-slate-100 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-primary/60"
+                    style={{ width: `${Math.round((cid.relevancia ?? 0.5) * 100)}%` }}
+                  />
+                </div>
+              </div>
+              <span className="text-[8px] font-black text-primary shrink-0">
+                {Math.round((cid.relevancia ?? 0.5) * 100)}%
+              </span>
+            </button>
+          ))}
+          <AvisoIA nivel="medio" mensagem="CIDs sugeridos pela IA — confirme antes de adicionar." />
+        </div>
+      )}
+
+      {/* Rodapé fixo — AvisoIA sempre visível */}
+      <div className="shrink-0 px-4 py-3 border-t border-warm-100 bg-warm-50">
+        <AvisoIA
+          nivel="baixo"
+          mensagem="Synka IA auxilia — a responsabilidade clínica é do profissional."
+        />
       </div>
     </div>
   );

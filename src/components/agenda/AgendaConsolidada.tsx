@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState } from "react";
 import Avatar from "@/components/ui/Avatar";
 import Badge from "@/components/ui/Badge";
 import { SkeletonCard } from "@/components/ui/Skeleton";
@@ -8,14 +8,24 @@ import { SkeletonCard } from "@/components/ui/Skeleton";
 export interface AgendamentoItem {
   id: string;
   pacienteNome: string;
-  pacienteTelefone: string;
+  pacienteTelefone: string | null;
   dataHora: string;
   fimDataHora: string;
   durationMinutes: number;
   status: string;
-  servico: { nome: string; color: string | null } | null;
+  servico: { nome: string; color: string | null; bufferTimeMinutes?: number } | null;
   convenio: string | null;
   observacoes: string | null;
+}
+
+export type TipoSlot = 'livre' | 'ocupado' | 'almoco' | 'folga' | 'fechado' | 'buffer';
+
+export interface SlotOutput {
+  horario: string;
+  horarioFim: string;
+  tipo: TipoSlot;
+  agendamento: AgendamentoItem | null;
+  clicavel: boolean;
 }
 
 export interface ProfissionalComAgenda {
@@ -30,6 +40,7 @@ export interface ProfissionalComAgenda {
   lunchEnd: string | null;
   trabalhaNoDia: boolean;
   agendamentos: AgendamentoItem[];
+  slots: SlotOutput[];
   slotsOcupados: number;
   slotsLivres: number;
 }
@@ -67,29 +78,11 @@ function toMinutes(hhmm: string): number {
   const [h, m] = hhmm.split(":").map(Number);
   return h * 60 + m;
 }
-function fromMinutes(total: number): string {
-  const h = Math.floor(total / 60).toString().padStart(2, "0");
-  const m = (total % 60).toString().padStart(2, "0");
-  return `${h}:${m}`;
-}
-function generateSlots(inicio: string, fim: string): string[] {
-  const slots: string[] = [];
-  let cur = toMinutes(inicio);
-  const end = toMinutes(fim);
-  while (cur < end) {
-    slots.push(fromMinutes(cur));
-    cur += 30;
-  }
-  return slots;
-}
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString("pt-BR", {
     hour: "2-digit",
     minute: "2-digit",
   });
-}
-function agIsFitSlot(ag: AgendamentoItem, slot: string): boolean {
-  return formatTime(ag.dataHora) === slot;
 }
 function formatDateHeader(d: Date): string {
   return d.toLocaleDateString("pt-BR", {
@@ -111,6 +104,9 @@ function isToday(d: Date): boolean {
     d.getFullYear() === today.getFullYear()
   );
 }
+function nowLocalHHMM(): string {
+  return new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
 
 /* ─── CardAgendamento ───────────────────────────────────── */
 function CardAgendamento({
@@ -131,7 +127,6 @@ function CardAgendamento({
       className="w-full text-left bg-white border border-warm-200 rounded-lg shadow-card hover:shadow-card-hover transition-all duration-150 hover:-translate-y-px overflow-hidden relative"
       style={{ minHeight: 56 }}
     >
-      {/* Barra colorida lateral */}
       <div
         className="absolute left-0 top-0 bottom-0 w-1 rounded-l-lg"
         style={{ background: barColor }}
@@ -163,20 +158,16 @@ function CardAgendamento({
 /* ─── ColunaProfissional ─────────────────────────────────── */
 function ColunaProfissional({
   prof,
-  slots,
   isToday: today,
   onSlotClick,
   onAgendamentoClick,
 }: {
   prof: ProfissionalComAgenda;
-  slots: string[];
   isToday: boolean;
   onSlotClick: (horario: string) => void;
   onAgendamentoClick: (ag: AgendamentoItem) => void;
 }) {
-  const nowStr = today
-    ? new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
-    : null;
+  const nowStr = today ? nowLocalHHMM() : null;
 
   return (
     <div className="flex-1 min-w-[160px]">
@@ -210,43 +201,51 @@ function ColunaProfissional({
         </div>
       ) : (
         <div className="space-y-1 px-1">
-          {slots.map((slot) => {
-            const ag = prof.agendamentos.find((a) => agIsFitSlot(a, slot));
-            const isLunch =
-              prof.lunchStart && prof.lunchEnd
-                ? toMinutes(slot) >= toMinutes(prof.lunchStart) &&
-                  toMinutes(slot) < toMinutes(prof.lunchEnd)
-                : false;
+          {prof.slots.map((slot) => {
             const isNowSlot =
               today && nowStr
-                ? toMinutes(slot) <= toMinutes(nowStr) &&
-                  toMinutes(slot) + 30 > toMinutes(nowStr)
+                ? toMinutes(slot.horario) <= toMinutes(nowStr) &&
+                  toMinutes(slot.horario) + 30 > toMinutes(nowStr)
                 : false;
 
             return (
-              <div key={slot} className="relative">
-                {/* Linha de "agora" */}
+              <div key={slot.horario} className="relative">
                 {isNowSlot && (
                   <div className="absolute inset-x-0 top-0 h-0.5 bg-red-500 z-10 rounded-full" />
                 )}
                 <div className="flex items-center gap-1">
                   <span className="text-[10px] text-slate-100 w-9 shrink-0 text-right">
-                    {slot}
+                    {slot.horario}
                   </span>
                   <div className="flex-1">
-                    {ag ? (
+                    {slot.tipo === 'ocupado' && slot.agendamento ? (
                       <CardAgendamento
-                        ag={ag}
+                        ag={slot.agendamento}
                         prof={prof}
-                        onClick={() => onAgendamentoClick(ag)}
+                        onClick={() => onAgendamentoClick(slot.agendamento!)}
                       />
-                    ) : isLunch ? (
+                    ) : slot.tipo === 'ocupado' ? (
+                      /* Continuação de agendamento — bloco colorido */
+                      <div
+                        className="h-8 rounded-lg opacity-40"
+                        style={{ background: prof.color }}
+                      />
+                    ) : slot.tipo === 'buffer' ? (
+                      <div className="h-8 rounded-lg bg-warm-200 border border-dashed border-warm-400 flex items-center justify-center">
+                        <span className="text-[9px] text-slate-100 uppercase tracking-wide">buffer</span>
+                      </div>
+                    ) : slot.tipo === 'almoco' ? (
                       <div className="h-8 rounded-lg bg-warm-200 flex items-center justify-center">
                         <span className="text-[10px] text-slate-100">Almoço</span>
                       </div>
+                    ) : slot.tipo === 'fechado' ? (
+                      <div className="h-8 rounded-lg bg-warm-100 opacity-50" />
+                    ) : slot.tipo === 'folga' ? (
+                      <div className="h-8 rounded-lg bg-warm-200 opacity-60" />
                     ) : (
+                      /* livre */
                       <button
-                        onClick={() => onSlotClick(slot)}
+                        onClick={() => onSlotClick(slot.horario)}
                         className="w-full h-8 rounded-lg border border-dashed border-warm-300 text-slate-100 text-[11px] hover:border-sage-400 hover:bg-sage-50 hover:text-sage-600 transition-all"
                       >
                         +
@@ -276,28 +275,11 @@ export default function AgendaConsolidada({
   onNovoAgendamento,
 }: Props) {
   const isProfissional = role === "profissional";
-
-  // Mobile: qual profissional está selecionado
   const [selectedProfIdx, setSelectedProfIdx] = useState(0);
 
-  // Profissionais a exibir (filtro por role)
   const profsVisiveis = isProfissional
     ? profissionais.filter((p) => p.id === profissionalId)
     : profissionais;
-
-  // Todos os slots do dia (union dos horários de todos profissionais)
-  const allSlots = React.useMemo(() => {
-    if (profsVisiveis.length === 0) return generateSlots("08:00", "18:00");
-    const minInicio = profsVisiveis
-      .filter((p) => p.trabalhaNoDia)
-      .map((p) => toMinutes(p.horarioInicio))
-      .reduce((a, b) => Math.min(a, b), toMinutes("08:00"));
-    const maxFim = profsVisiveis
-      .filter((p) => p.trabalhaNoDia)
-      .map((p) => toMinutes(p.horarioFim))
-      .reduce((a, b) => Math.max(a, b), toMinutes("18:00"));
-    return generateSlots(fromMinutes(minInicio), fromMinutes(maxFim));
-  }, [profsVisiveis]);
 
   const today = isToday(data);
 
@@ -375,7 +357,7 @@ export default function AgendaConsolidada({
         </div>
       )}
 
-      {/* ── Colunas (desktop: todas | mobile: uma por vez) ── */}
+      {/* ── Colunas ── */}
       {profsVisiveis.length === 0 ? (
         <div className="bg-white border border-warm-200 rounded-xl p-8 text-center">
           <p className="text-slate-100 text-sm">
@@ -390,7 +372,6 @@ export default function AgendaConsolidada({
               <ColunaProfissional
                 key={prof.id}
                 prof={prof}
-                slots={allSlots}
                 isToday={today}
                 onSlotClick={(h) => onSlotClick(prof.id, h)}
                 onAgendamentoClick={(ag) => onAgendamentoClick(ag, prof)}
@@ -403,7 +384,6 @@ export default function AgendaConsolidada({
             {profsVisiveis[selectedProfIdx] && (
               <ColunaProfissional
                 prof={profsVisiveis[selectedProfIdx]}
-                slots={allSlots}
                 isToday={today}
                 onSlotClick={(h) =>
                   onSlotClick(profsVisiveis[selectedProfIdx].id, h)

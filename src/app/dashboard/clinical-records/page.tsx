@@ -6,6 +6,9 @@ import { fetchWithAuth } from '@/lib/api-utils';
 import AssinaturaProntuario from '@/components/prontuario/AssinaturaProntuario';
 import SynkaProntuarioPanel from '@/components/prontuario/SynkaProntuarioPanel';
 import GravadorVoz from '@/components/prontuario/GravadorVoz';
+import UploadDocumento from '@/components/prontuario/UploadDocumento';
+import HistoricoPaciente from '@/components/prontuario/HistoricoPaciente';
+import { useRouter } from 'next/navigation';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -17,6 +20,7 @@ type Evolucao = {
   id: string; createdAt: string; tipo: string;
   queixaPrincipal?: string; evolucao?: string; conduta?: string;
   hipoteseDiagnostica?: string; cidCodigo?: string; cidDescricao?: string;
+  historiaMolestia?: string;
   pressaoSistolica?: number; pressaoDiastolica?: number; temperatura?: number; saturacao?: number; glicemia?: number;
   retornoEm?: string;
   soapSubjetivo?: string; soapObjetivo?: string; soapAvaliacao?: string; soapPlano?: string;
@@ -622,6 +626,9 @@ export default function ClinicalRecordsPage() {
   // Modals
   const [modalReceita, setModalReceita] = useState(false);
   const [modalAtestado, setModalAtestado] = useState(false);
+  const [showHistorico, setShowHistorico] = useState(false);
+  const [iaEditado, setIaEditado] = useState(false); // controla se prof editou rascunho IA
+  const router = useRouter();
 
   // Auto-save ref
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -634,7 +641,7 @@ export default function ClinicalRecordsPage() {
     setSoapSubjetivo(''); setSoapObjetivo(''); setSoapAvaliacao(''); setSoapPlano('');
     setTranscricaoOriginal(''); setCidsSugeridosIA([]); setShowIA(false);
     setSelectedTemplate(''); setSelectedEvolucao(null); setMode('new');
-    setAutoSaveStatus('idle');
+    setAutoSaveStatus('idle'); setIaEditado(false);
   };
 
   const carregarPaciente = useCallback(async (p: Paciente) => {
@@ -850,6 +857,24 @@ export default function ClinicalRecordsPage() {
         <div className="flex items-center gap-2">
           {autoSaveStatus === 'saving' && <p className="text-[9px] text-text-placeholder font-black uppercase tracking-wider animate-pulse">Salvando rascunho...</p>}
           {autoSaveStatus === 'saved' && <p className="text-[9px] text-green-500 font-black uppercase tracking-wider">✓ Rascunho salvo</p>}
+          {/* Botão Ver Histórico */}
+          <button
+            id="ver-historico-btn"
+            type="button"
+            onClick={() => setShowHistorico(true)}
+            className="px-3 py-2 bg-slate-50 border border-card-border rounded-xl text-[9px] font-black uppercase tracking-wider hover:bg-slate-100 transition-colors"
+          >
+            📋 Histórico
+          </button>
+          {/* Botão Novo Prontuário */}
+          <button
+            id="novo-pront-btn"
+            type="button"
+            onClick={() => router.push('/dashboard/clinical-records/novo')}
+            className="px-3 py-2 bg-primary-soft border border-primary/10 text-primary rounded-xl text-[9px] font-black uppercase tracking-wider hover:bg-primary/10 transition-colors"
+          >
+            + Novo
+          </button>
           {mode === 'view' && (
             <button onClick={() => { setMode('new'); resetForm(); }}
               className="px-4 py-2 bg-primary-soft text-primary rounded-xl text-[9px] font-black uppercase tracking-wider border border-primary/10">
@@ -939,6 +964,27 @@ export default function ClinicalRecordsPage() {
                 />
               )}
 
+              {/* Upload de Documento (apenas modo new) */}
+              {mode === 'new' && (
+                <UploadDocumento
+                  onAdicionar={(dados) => {
+                    // Copia dados extraídos IA para campos do formulário
+                    if (dados.medicamentos?.length) {
+                      const meds = dados.medicamentos
+                        .map(m => `${m.nome}${m.dosagem ? ' ' + m.dosagem : ''}${m.posologia ? ' — ' + m.posologia : ''}`)
+                        .join('\n');
+                      if (!conduta) setConduta(meds);
+                    }
+                    if (dados.diagnostico && !hipoteseDiagnostica) {
+                      setHipoteseDiagnostica(dados.diagnostico);
+                    }
+                    if (dados.resumo && !evolucaoText) {
+                      setEvolucaoText(dados.resumo);
+                    }
+                  }}
+                />
+              )}
+
               {/* Transcrição original (somente view se houver) */}
               {mode === 'view' && transcricaoOriginal && (
                 <div className="space-y-1.5">
@@ -976,6 +1022,8 @@ export default function ClinicalRecordsPage() {
                       historicoMedico={contexto?.ultimaEvolucao?.evolucao}
                       medicamentos={contexto?.medicamentos?.map(m => m.nome).join(', ')}
                       alergias={contexto?.alergias?.map(a => a.descricao).join(', ')}
+                      cidsSugeridosExternos={cidsSugeridosIA}
+                      onCidSelecionado={(codigo, descricao) => { setCidCodigo(codigo); setCidDescricao(descricao); }}
                       onSoapGerado={(soap) => {
                         setSoapSubjetivo(soap.soapSubjetivo || '');
                         setSoapObjetivo(soap.soapObjetivo || '');
@@ -984,6 +1032,7 @@ export default function ClinicalRecordsPage() {
                         if (soap.cidsSugeridos?.length) setCidsSugeridosIA(soap.cidsSugeridos.map(c => ({ codigo: c.codigo, descricao: c.descricao, relevancia: c.relevancia })));
                         if (!conduta && soap.soapPlano) setConduta(soap.soapPlano);
                         if (!evolucaoText && soap.soapSubjetivo) setEvolucaoText(soap.soapSubjetivo);
+                        setIaEditado(false); // resetar flag — prof precisa editar
                         setShowIA(false);
                       }}
                     />
@@ -998,7 +1047,7 @@ export default function ClinicalRecordsPage() {
                       ].map(({ label, value, set }) => (
                         <div key={label} className="space-y-1">
                           <label className="text-[8px] font-black uppercase tracking-widest text-primary">{label}</label>
-                          <textarea rows={3} value={value} onChange={e => set(e.target.value)}
+                          <textarea rows={3} value={value} onChange={e => { set(e.target.value); setIaEditado(true); }}
                             readOnly={mode === 'view'}
                             className="input-premium w-full py-2 text-xs resize-none" />
                         </div>
@@ -1092,6 +1141,8 @@ export default function ClinicalRecordsPage() {
                       assinado={!!selectedEvolucao.assinaturaHash}
                       assinadoEm={selectedEvolucao.assinadoEm}
                       assinaturaHash={selectedEvolucao.assinaturaHash}
+                      temRascunhoIA={!!selectedEvolucao.iaRevisado}
+                      iaRevisado={iaEditado}
                       onAssinado={(hash, data) => {
                         setSelectedEvolucao(prev => prev ? { ...prev, assinaturaHash: hash, assinadoEm: data } : prev);
                         setEvolucoes(prev => prev.map(e => e.id === selectedEvolucao.id ? { ...e, assinaturaHash: hash, assinadoEm: data } : e));
@@ -1136,6 +1187,15 @@ export default function ClinicalRecordsPage() {
           cidCodigo={cidCodigo}
           onClose={() => setModalAtestado(false)}
           onSalvar={() => setModalAtestado(false)}
+        />
+      )}
+
+      {/* Drawer Histórico */}
+      {showHistorico && selectedPaciente && (
+        <HistoricoPaciente
+          pacienteId={selectedPaciente.id}
+          pacienteNome={selectedPaciente.nome}
+          onFechar={() => setShowHistorico(false)}
         />
       )}
     </div>

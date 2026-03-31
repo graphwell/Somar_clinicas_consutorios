@@ -1,17 +1,21 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
+import AvisoIA from "./AvisoIA";
 
 interface GravadorVozProps {
   onTranscricao: (texto: string) => void;
   disabled?: boolean;
 }
 
-type Estado = "idle" | "gravando" | "processando" | "erro";
+type Estado = "idle" | "gravando" | "processando" | "concluido" | "erro";
+type ErroTipo = "microfone" | "https" | "geral" | null;
 
 export default function GravadorVoz({ onTranscricao, disabled }: GravadorVozProps) {
   const [estado, setEstado] = useState<Estado>("idle");
   const [segundos, setSegundos] = useState(0);
   const [bars, setBars] = useState<number[]>(Array(20).fill(4));
+  const [erroTipo, setErroTipo] = useState<ErroTipo>(null);
+  const [mostrarAviso, setMostrarAviso] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -43,7 +47,15 @@ export default function GravadorVoz({ onTranscricao, disabled }: GravadorVozProp
   }
 
   async function iniciarGravacao() {
+    setErroTipo(null);
+    setMostrarAviso(false);
     try {
+      // Checar HTTPS antes de solicitar mídia
+      if (typeof window !== "undefined" && location.protocol !== "https:" && location.hostname !== "localhost") {
+        setErroTipo("https");
+        setEstado("erro");
+        return;
+      }
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
       // Audio analysis for waveform
@@ -79,7 +91,15 @@ export default function GravadorVoz({ onTranscricao, disabled }: GravadorVozProp
 
       timerRef.current = setInterval(() => setSegundos((s) => s + 1), 1000);
       animateWaveform(analyser);
-    } catch {
+    } catch (e: any) {
+      const msg = e?.name || "";
+      if (msg === "NotAllowedError" || msg === "PermissionDeniedError") {
+        setErroTipo("microfone");
+      } else if (msg === "NotFoundError") {
+        setErroTipo("microfone");
+      } else {
+        setErroTipo("geral");
+      }
       setEstado("erro");
     }
   }
@@ -107,11 +127,16 @@ export default function GravadorVoz({ onTranscricao, disabled }: GravadorVozProp
       const data = await res.json();
       if (data.transcricao) {
         onTranscricao(data.transcricao);
-        setEstado("idle");
+        setEstado("concluido");
+        setMostrarAviso(true);
+        // Volta para idle após 4s
+        setTimeout(() => setEstado("idle"), 4000);
       } else {
+        setErroTipo("geral");
         setEstado("erro");
       }
     } catch {
+      setErroTipo("geral");
       setEstado("erro");
     }
   }
@@ -120,6 +145,7 @@ export default function GravadorVoz({ onTranscricao, disabled }: GravadorVozProp
     `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 
   return (
+    <>
     <div className="flex items-center gap-3 p-3 rounded-xl bg-warm-50 border border-warm-200">
       {/* Waveform */}
       <div className="flex items-end gap-[2px] h-10 w-24 shrink-0">
@@ -152,22 +178,37 @@ export default function GravadorVoz({ onTranscricao, disabled }: GravadorVozProp
         {estado === "processando" && (
           <p className="text-xs text-sage-600 animate-pulse">Transcrevendo com IA...</p>
         )}
+        {estado === "concluido" && (
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-green-500" />
+            <p className="text-xs text-green-600 font-medium">✓ Transcrição concluída</p>
+          </div>
+        )}
         {estado === "erro" && (
-          <p className="text-xs text-red-500">Erro na transcrição. Tente novamente.</p>
+          <p className="text-xs text-red-500">
+            {erroTipo === "microfone"
+              ? "Permita acesso ao microfone"
+              : erroTipo === "https"
+              ? "Requer conexão segura (HTTPS)"
+              : "Erro na transcrição. Tente novamente."}
+          </p>
         )}
       </div>
 
       {/* Button */}
       <button
+        id="gravador-toggle-btn"
         onClick={estado === "gravando" ? pararGravacao : iniciarGravacao}
-        disabled={disabled || estado === "processando"}
+        disabled={disabled || estado === "processando" || estado === "concluido"}
         className={[
           "w-10 h-10 rounded-full flex items-center justify-center shrink-0",
           "transition-all duration-200 focus:outline-none",
           estado === "gravando"
-            ? "bg-red-500 hover:bg-red-600 shadow-md"
+            ? "bg-red-500 hover:bg-red-600 shadow-md animate-pulse"
             : estado === "processando"
             ? "bg-warm-200 cursor-not-allowed"
+            : estado === "concluido"
+            ? "bg-green-500 shadow-md cursor-default"
             : "bg-sage-500 hover:bg-sage-600 shadow-md",
         ].join(" ")}
       >
@@ -180,6 +221,10 @@ export default function GravadorVoz({ onTranscricao, disabled }: GravadorVozProp
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="white" strokeWidth="4" />
             <path className="opacity-75" fill="white" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
+        ) : estado === "concluido" ? (
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" className="w-4 h-4">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+          </svg>
         ) : (
           <svg viewBox="0 0 24 24" fill="white" className="w-4 h-4">
             <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3zm-1 18.93A9 9 0 013.06 12H1a11 11 0 0010 10.93v2.07h2v-2.07A11 11 0 0023 12h-2.06A9 9 0 0113 19.93V17h-2v2.93z" />
@@ -187,5 +232,15 @@ export default function GravadorVoz({ onTranscricao, disabled }: GravadorVozProp
         )}
       </button>
     </div>
-  );
+
+    {/* AvisoIA pós-transcrição */}
+    {mostrarAviso && (
+      <AvisoIA
+        nivel="medio"
+        mensagem="Transcrição automática — revise o texto antes de salvar no prontuário."
+        className="mt-2"
+      />
+    )}
+  </>);
 }
+

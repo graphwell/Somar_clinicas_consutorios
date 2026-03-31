@@ -16,7 +16,19 @@
       "Bash(xargs grep:*)",
       "Bash(npx prisma:*)",
       "Bash(npx tsc:*)",
-      "Bash(find . -maxdepth 1 -name .env* -type f)"
+      "Bash(find . -maxdepth 1 -name .env* -type f)",
+      "Bash(ls /c/SOMAR/projeto-somar-n8n/src/app/api/prontuario/[pacienteId]/)",
+      "Bash(git -C /c/SOMAR/projeto-somar-n8n diff --stat HEAD2)",
+      "Bash(git:*)",
+      "Bash(cat /c/SOMAR/projeto-somar-n8n/src/app/api/prontuario/[pacienteId]/evolucoes/route.ts)",
+      "Bash(cat /c/SOMAR/projeto-somar-n8n/src/app/api/prontuario/[pacienteId]/route.ts)",
+      "Bash(PRISMA_MIGRATE_SKIP_INTERACTIVE=1 npx prisma migrate dev --name add-avatar-url --skip-seed)",
+      "Bash(npm run:*)",
+      "Bash(npm list:*)",
+      "Bash(npm install:*)",
+      "Bash(find src:*)",
+      "Bash(1:*)",
+      "Bash(PGPASSWORD=123456 psql -h 147.79.86.65 -U n8n_user -d saas_db -c \"\\\\dt\" 2>&1)"
     ]
   }
 }
