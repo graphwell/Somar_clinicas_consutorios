@@ -1,53 +1,72 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { Resend } from 'resend';
+import { getSessionInfo } from '@/lib/auth-helpers';
+import { enviarConviteProfissional } from '@/lib/emails';
 import { randomUUID } from 'crypto';
 
+// POST /api/team/invite — admin envia convite
 export async function POST(request: Request) {
-  const resend = new Resend(process.env.RESEND_API_KEY);
   try {
-    const { email, role, tenantId } = await request.json();
+    const { tenantId, userId, role: myRole } = await getSessionInfo();
 
-    if (!email || !role || !tenantId) {
-      return NextResponse.json({ error: 'email, role e tenantId são obrigatórios.' }, { status: 400 });
-    }
-    if (!['admin', 'recepcao'].includes(role)) {
-      return NextResponse.json({ error: 'role inválido.' }, { status: 400 });
+    if (myRole !== 'admin' && myRole !== 'synka_admin') {
+      return NextResponse.json({ error: 'Apenas administradores podem enviar convites.' }, { status: 403 });
     }
 
+    const { email, nome, role, especialidade, acessoExpiraEm } = await request.json();
+
+    if (!email || !role) {
+      return NextResponse.json({ error: 'email e role são obrigatórios.' }, { status: 400 });
+    }
+
+    const rolesValidos = ['admin', 'recepcao', 'profissional', 'temporario'];
+    if (!rolesValidos.includes(role)) {
+      return NextResponse.json({ error: `role inválido. Use: ${rolesValidos.join(', ')}` }, { status: 400 });
+    }
+
+    if (role === 'temporario' && !acessoExpiraEm) {
+      return NextResponse.json({ error: 'acessoExpiraEm é obrigatório para acesso temporário.' }, { status: 400 });
+    }
+
+    // Verificar se email já pertence ao tenant
+    const jaExiste = await prisma.usuario.findFirst({ where: { email, tenantId } });
+    if (jaExiste) {
+      return NextResponse.json({ error: 'Este email já faz parte da sua equipe.' }, { status: 400 });
+    }
+
+    // Duração do convite
+    const horasValidade = role === 'temporario' ? 72 : 48;
+    const expiresAt = new Date(Date.now() + horasValidade * 60 * 60 * 1000);
     const token = randomUUID();
-    const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000); // 72 horas
 
-    await prisma.inviteToken.create({ data: { token, email, role, tenantId, expiresAt } });
-
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://somar-clinicas-consutorios.vercel.app';
-    const inviteLink = `${appUrl}/aceitar-convite?token=${token}`;
-
-    await resend.emails.send({
-      from: 'Somar.IA <noreply@somar.ia.br>',
-      to: email,
-      subject: 'Você foi convidado para a Somar.IA',
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #050510; color: #f0f0f5; border-radius: 16px; padding: 40px;">
-          <h1 style="font-size: 28px; margin-bottom: 8px;">Bem-vindo à <span style="color: #8080ff;">Somar.IA</span>!</h1>
-          <p style="color: #a0a0b0;">Você foi convidado como <strong>${role === 'admin' ? 'Administrador' : 'Atendente'}</strong> de uma clínica na Somar.IA.</p>
-          <p style="color: #a0a0b0;">Clique no botão abaixo para aceitar o convite e criar sua conta. O link expira em 72 horas.</p>
-          <a href="${inviteLink}" style="display: inline-block; margin-top: 24px; padding: 14px 28px; background: #4a4ae2; color: white; border-radius: 12px; text-decoration: none; font-weight: bold;">
-            Aceitar Convite
-          </a>
-          <hr style="border: none; border-top: 1px solid #1a1a30; margin: 32px 0;" />
-          <p style="color: #606080; font-size: 12px;">© 2025 SOMMAR SOLUÇÕES DIGITAIS — CNPJ: 65.771.133/0001-07</p>
-        </div>
-      `,
+    await prisma.inviteToken.create({
+      data: { token, email, nome: nome || null, role, especialidade: especialidade || null, tenantId, convidadoPor: userId, expiresAt },
     });
 
-    return NextResponse.json({ success: true, message: `Convite enviado para ${email}` });
-  } catch (error) {
+    // Buscar dados da clínica e do admin para o email
+    const [clinica, admin] = await Promise.all([
+      prisma.clinica.findUnique({ where: { tenantId }, select: { nome: true } }),
+      prisma.usuario.findUnique({ where: { id: userId }, select: { nome: true } }),
+    ]);
+
+    await enviarConviteProfissional(
+      email,
+      nome || email,
+      clinica?.nome || 'Synka',
+      admin?.nome || 'Administrador',
+      role,
+      token,
+      expiresAt
+    );
+
+    return NextResponse.json({ success: true, expiresAt });
+  } catch (error: any) {
     console.error('[TEAM_INVITE_ERROR]', error);
     return NextResponse.json({ error: 'Erro interno ao enviar convite.' }, { status: 500 });
   }
 }
 
+// GET /api/team/invite?token=xxx — validar token (público, sem auth)
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const token = searchParams.get('token');
@@ -57,5 +76,31 @@ export async function GET(request: Request) {
   if (!invite || invite.used || invite.expiresAt < new Date()) {
     return NextResponse.json({ error: 'Convite inválido ou expirado.' }, { status: 404 });
   }
-  return NextResponse.json({ email: invite.email, role: invite.role, tenantId: invite.tenantId });
+
+  // Buscar nome da clínica para exibir na tela de convite
+  const clinica = await prisma.clinica.findUnique({
+    where: { tenantId: invite.tenantId },
+    select: { nome: true, configBranding: true },
+  });
+
+  // Buscar nome de quem convidou
+  let nomeAdmin: string | null = null;
+  if (invite.convidadoPor) {
+    const admin = await prisma.usuario.findUnique({ where: { id: invite.convidadoPor }, select: { nome: true } });
+    nomeAdmin = admin?.nome || null;
+  }
+
+  return NextResponse.json({
+    email: invite.email,
+    nome: invite.nome,
+    role: invite.role,
+    especialidade: invite.especialidade,
+    tenantId: invite.tenantId,
+    expiresAt: invite.expiresAt,
+    clinica: {
+      nome: clinica?.nome || null,
+      logoUrl: (clinica?.configBranding as any)?.logoUrl || null,
+    },
+    convidadoPor: nomeAdmin,
+  });
 }
