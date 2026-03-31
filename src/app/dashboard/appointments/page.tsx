@@ -26,22 +26,27 @@ type Totais = Record<string, number>;
 
 const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string; border: string; dot: string }> = {
   pendente:   { label: 'Aguardando',  bg: 'bg-amber-50',   text: 'text-amber-700',  border: 'border-amber-200', dot: 'bg-amber-400' },
-  confirmado: { label: 'Confirmado',  bg: 'bg-blue-50',    text: 'text-blue-700',   border: 'border-blue-200',  dot: 'bg-blue-500'  },
+  confirmado: { label: 'Em Atend.',   bg: 'bg-blue-50',    text: 'text-blue-700',   border: 'border-blue-200',  dot: 'bg-blue-500'  },
   done:       { label: 'Concluído',   bg: 'bg-green-50',   text: 'text-green-700',  border: 'border-green-200', dot: 'bg-green-500' },
   cancelado:  { label: 'Cancelado',   bg: 'bg-red-50',     text: 'text-red-600',    border: 'border-red-200',   dot: 'bg-red-400'   },
+  faltou:     { label: 'Faltou',      bg: 'bg-orange-50',  text: 'text-orange-700', border: 'border-orange-200',dot: 'bg-orange-400' },
 };
 
 const FLUXO: Record<string, { label: string; nextStatus: string; style: string }[]> = {
   pendente:   [
-    { label: 'Confirmar chegada', nextStatus: 'confirmado', style: 'bg-blue-600 text-white hover:bg-blue-700' },
-    { label: 'Cancelar',          nextStatus: 'cancelado',  style: 'bg-white border border-red-200 text-red-600 hover:bg-red-50' },
+    { label: 'Check-in',  nextStatus: 'confirmado', style: 'bg-blue-600 text-white hover:bg-blue-700' },
+    { label: 'Faltou',    nextStatus: 'faltou',     style: 'bg-orange-50 border border-orange-200 text-orange-700 hover:bg-orange-100' },
+    { label: 'Cancelar',  nextStatus: 'cancelado',  style: 'bg-white border border-red-200 text-red-600 hover:bg-red-50' },
   ],
   confirmado: [
-    { label: 'Concluir atendimento', nextStatus: 'done',     style: 'bg-green-600 text-white hover:bg-green-700' },
-    { label: 'Cancelar',             nextStatus: 'cancelado', style: 'bg-white border border-red-200 text-red-600 hover:bg-red-50' },
+    { label: 'Concluir', nextStatus: 'done',      style: 'bg-green-600 text-white hover:bg-green-700' },
+    { label: 'Cancelar', nextStatus: 'cancelado', style: 'bg-white border border-red-200 text-red-600 hover:bg-red-50' },
   ],
   done:       [],
   cancelado:  [
+    { label: 'Reativar', nextStatus: 'pendente', style: 'bg-white border border-card-border text-text-muted hover:bg-slate-50' },
+  ],
+  faltou:     [
     { label: 'Reativar', nextStatus: 'pendente', style: 'bg-white border border-card-border text-text-muted hover:bg-slate-50' },
   ],
 };
@@ -138,8 +143,19 @@ function CardAtendimento({
             )}
           </div>
 
-          {/* Telefone */}
-          <p className="text-[10px] font-mono text-text-placeholder">{ag.paciente.telefone}</p>
+          {/* Telefone + atalhos */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-[10px] font-mono text-text-placeholder">{ag.paciente.telefone}</p>
+            <a href={`/dashboard/clinical-records?pacienteId=${ag.paciente.id}`}
+              className="text-[8px] font-black uppercase px-2 py-0.5 rounded-lg bg-primary-soft text-primary border border-primary/10 hover:bg-primary/10 transition-colors">
+              🩺 Prontuário
+            </a>
+            <a href={`https://wa.me/55${ag.paciente.telefone.replace(/\D/g, '')}`}
+              target="_blank" rel="noreferrer"
+              className="text-[8px] font-black uppercase px-2 py-0.5 rounded-lg bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-colors">
+              💬 WhatsApp
+            </a>
+          </div>
 
           {/* Observações */}
           {ag.observacoes && (
@@ -149,9 +165,9 @@ function CardAtendimento({
           )}
         </div>
 
-        {/* Ações */}
+        {/* Ações de status */}
         {acoes.length > 0 && (
-          <div className="shrink-0 flex flex-col gap-2">
+          <div className="shrink-0 flex flex-col gap-1.5">
             {acoes.map((a) => (
               <button
                 key={a.nextStatus}
@@ -194,6 +210,76 @@ export default function AtendimentosHojePage() {
   const [busca, setBusca] = useState('');
   const [ultimaAtualizacao, setUltimaAtualizacao] = useState<Date>(new Date());
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Encaixe rápido
+  const [showEncaixe, setShowEncaixe] = useState(false);
+  const [encaixes, setEncaixes] = useState<{ pacientes: any[]; servicos: any[]; profissionais: any[] }>({ pacientes: [], servicos: [], profissionais: [] });
+  const [encPacBusca, setEncPacBusca] = useState('');
+  const [encPacId, setEncPacId] = useState('');
+  const [encPacNome, setEncPacNome] = useState('');
+  const [encServId, setEncServId] = useState('');
+  const [encProfId, setEncProfId] = useState('');
+  const [encHorario, setEncHorario] = useState(() => {
+    const now = new Date(); now.setSeconds(0, 0);
+    now.setMinutes(Math.ceil(now.getMinutes() / 15) * 15);
+    return now.toTimeString().slice(0, 5);
+  });
+  const [encSaving, setEncSaving] = useState(false);
+
+  function navData(delta: number) {
+    const d = new Date(data + 'T12:00:00');
+    d.setDate(d.getDate() + delta);
+    setData(d.toISOString().split('T')[0]);
+  }
+
+  async function abrirEncaixe() {
+    setShowEncaixe(true);
+    try {
+      const [sRes, pRes] = await Promise.all([
+        fetchWithAuth('/api/services'),
+        fetchWithAuth('/api/team'),
+      ]);
+      const [servicos, profs] = await Promise.all([sRes.json(), pRes.json()]);
+      setEncaixes(prev => ({
+        ...prev,
+        servicos: Array.isArray(servicos) ? servicos : [],
+        profissionais: Array.isArray(profs) ? profs.filter((p: any) => p.ativo !== false) : [],
+      }));
+    } catch {}
+  }
+
+  async function buscarPacientesEncaixe(q: string) {
+    setEncPacBusca(q); setEncPacId(''); setEncPacNome('');
+    if (q.length < 2) { setEncaixes(prev => ({ ...prev, pacientes: [] })); return; }
+    try {
+      const res = await fetchWithAuth(`/api/patients?q=${encodeURIComponent(q)}`);
+      const data = await res.json();
+      setEncaixes(prev => ({ ...prev, pacientes: Array.isArray(data) ? data : [] }));
+    } catch {}
+  }
+
+  async function salvarEncaixe() {
+    if (!encPacId || !encHorario) return;
+    setEncSaving(true);
+    try {
+      const dataHora = `${data}T${encHorario}:00`;
+      await fetchWithAuth('/api/appointments', {
+        method: 'POST',
+        body: JSON.stringify({
+          pacienteId: encPacId,
+          servicoId: encServId || undefined,
+          profissionalId: encProfId || undefined,
+          dataHora,
+          status: 'confirmado',
+          categoria: 'encaixe',
+        }),
+      });
+      setShowEncaixe(false);
+      setEncPacBusca(''); setEncPacId(''); setEncPacNome('');
+      setEncServId(''); setEncProfId('');
+      carregar(data);
+    } finally { setEncSaving(false); }
+  }
 
   const carregar = useCallback(async (d: string, silent = false) => {
     if (!silent) setLoading(true);
@@ -269,6 +355,7 @@ export default function AtendimentosHojePage() {
   const pendentes   = lista.filter(a => a.status === 'pendente');
   const confirmados = lista.filter(a => a.status === 'confirmado');
   const concluidos  = lista.filter(a => a.status === 'done');
+  const faltaram    = lista.filter(a => a.status === 'faltou');
   const cancelados  = lista.filter(a => a.status === 'cancelado');
 
   const total = agendamentos.length;
@@ -295,48 +382,79 @@ export default function AtendimentosHojePage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* Seletor de data */}
-            <input
-              type="date"
-              value={data}
-              onChange={e => setData(e.target.value)}
-              className="input-premium py-2.5 text-sm"
-            />
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Navegação de data */}
+            <div className="flex items-center gap-1 bg-slate-50 border border-card-border rounded-xl p-1">
+              <button onClick={() => navData(-1)} title="Dia anterior"
+                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white hover:shadow-sm transition-all text-text-placeholder font-black text-sm">
+                ‹
+              </button>
+              <input type="date" value={data} onChange={e => setData(e.target.value)}
+                className="text-[10px] font-black text-text-main bg-transparent border-0 outline-none cursor-pointer w-28 text-center" />
+              <button onClick={() => navData(1)} title="Próximo dia"
+                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white hover:shadow-sm transition-all text-text-placeholder font-black text-sm">
+                ›
+              </button>
+            </div>
             {!isHoje && (
               <button onClick={() => setData(hoje)}
-                className="text-[9px] font-black uppercase px-4 py-2.5 bg-primary-soft text-primary border border-primary/10 rounded-xl hover:bg-primary/10 transition-colors">
+                className="text-[9px] font-black uppercase px-3 py-2 bg-primary-soft text-primary border border-primary/10 rounded-xl hover:bg-primary/10 transition-colors">
                 Hoje
               </button>
             )}
-            <button onClick={() => carregar(data)}
-              title="Atualizar"
-              className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 border border-card-border text-text-placeholder hover:bg-slate-100 transition-colors">
+            <button onClick={() => carregar(data)} title="Atualizar"
+              className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 border border-card-border text-text-placeholder hover:bg-slate-100 transition-colors">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
                 <path d="M23 4v6h-6M1 20v-6h6" /><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
               </svg>
+            </button>
+            <button onClick={abrirEncaixe}
+              className="btn-primary text-[9px] px-4 py-2.5 whitespace-nowrap">
+              + Encaixe rápido
             </button>
           </div>
         </div>
 
         {/* ── KPIs ── */}
-        <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="mt-6 grid grid-cols-3 sm:grid-cols-5 gap-3">
           {[
-            { status: 'todos',     label: 'Total',      count: totalDia, bg: 'bg-slate-50', text: 'text-text-main',  border: 'border-card-border' },
-            { status: 'pendente',  label: 'Aguardando', count: totais.pendente || 0,   ...STATUS_CONFIG.pendente  },
-            { status: 'confirmado',label: 'Em atend.',  count: totais.confirmado || 0, ...STATUS_CONFIG.confirmado },
-            { status: 'done',      label: 'Concluídos', count: totais.done || 0,       ...STATUS_CONFIG.done      },
+            { status: 'todos',     label: 'Total',      count: totalDia,                 bg: 'bg-slate-50',   text: 'text-text-main',   border: 'border-card-border'  },
+            { status: 'pendente',  label: 'Aguardando', count: totais.pendente || 0,     ...STATUS_CONFIG.pendente   },
+            { status: 'confirmado',label: 'Em Atend.',  count: totais.confirmado || 0,   ...STATUS_CONFIG.confirmado },
+            { status: 'done',      label: 'Concluídos', count: totais.done || 0,         ...STATUS_CONFIG.done       },
+            { status: 'cancelado', label: 'Cancelados', count: (totais.cancelado || 0) + (totais.faltou || 0), ...STATUS_CONFIG.cancelado },
           ].map(({ status, label, count, bg, text, border }) => (
             <button key={status}
               onClick={() => setFiltroStatus(filtroStatus === status ? 'todos' : status)}
-              className={`p-4 rounded-2xl border text-left transition-all ${bg} ${border} ${filtroStatus === status ? 'ring-2 ring-primary/30 shadow-md' : 'hover:shadow-sm'}`}>
-              <p className="text-2xl font-black tracking-tighter italic leading-none"
+              className={`p-3 rounded-2xl border text-left transition-all ${bg} ${border} ${filtroStatus === status ? 'ring-2 ring-primary/30 shadow-md' : 'hover:shadow-sm'}`}>
+              <p className="text-xl font-black tracking-tighter italic leading-none"
                 style={{ color: filtroStatus === status ? 'var(--color-primary)' : undefined }}>
                 {count}
               </p>
               <p className={`text-[8px] font-black uppercase tracking-widest mt-1 ${text} opacity-70`}>{label}</p>
             </button>
           ))}
+        </div>
+
+        {/* ── Pills de filtro ── */}
+        <div className="mt-4 flex flex-wrap gap-2">
+          {[
+            { v: 'todos',     l: 'Todos' },
+            { v: 'pendente',  l: 'Aguardando' },
+            { v: 'confirmado',l: 'Em Atendimento' },
+            { v: 'done',      l: 'Concluído' },
+            { v: 'faltou',    l: 'Faltou' },
+            { v: 'cancelado', l: 'Cancelado' },
+          ].map(({ v, l }) => {
+            const cnt = v === 'todos' ? totalDia : (totais[v] || 0);
+            const ativo = filtroStatus === v;
+            return (
+              <button key={v} onClick={() => setFiltroStatus(v)}
+                className={`text-[9px] font-black uppercase px-3 py-1.5 rounded-full border transition-all ${ativo ? 'bg-primary text-white border-primary shadow-md' : 'bg-white text-text-muted border-card-border hover:border-primary/30 hover:text-primary'}`}>
+                {l} {cnt > 0 && <span className={`ml-1 ${ativo ? 'opacity-80' : 'opacity-50'}`}>({cnt})</span>}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -422,6 +540,21 @@ export default function AtendimentosHojePage() {
             </section>
           )}
 
+          {/* Faltaram */}
+          {faltaram.length > 0 && filtroStatus === 'todos' && (
+            <section>
+              <h2 className="text-[9px] font-black uppercase tracking-[0.3em] text-text-placeholder mb-3 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-orange-400" />
+                Faltaram — {faltaram.length}
+              </h2>
+              <div className="space-y-2 opacity-60">
+                {faltaram.map(a => (
+                  <CardAtendimento key={a.id} ag={a} labels={labels} onStatusChange={mudarStatus} updating={updating} />
+                ))}
+              </div>
+            </section>
+          )}
+
           {/* Cancelados */}
           {cancelados.length > 0 && filtroStatus === 'todos' && (
             <section>
@@ -436,6 +569,92 @@ export default function AtendimentosHojePage() {
               </div>
             </section>
           )}
+        </div>
+      )}
+
+      {/* ── Modal Encaixe Rápido ── */}
+      {showEncaixe && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center" onClick={() => setShowEncaixe(false)}>
+          <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm" />
+          <div className="relative bg-white rounded-[2rem] shadow-2xl border border-card-border p-8 w-full max-w-md space-y-5 animate-in zoom-in-95 duration-200"
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-black italic uppercase tracking-tighter text-text-main">⚡ Encaixe Rápido</h3>
+              <button onClick={() => setShowEncaixe(false)} className="text-text-placeholder font-black hover:text-text-main text-xl">✕</button>
+            </div>
+
+            {/* Busca de paciente */}
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-black uppercase tracking-widest text-text-placeholder">{labels.termoPaciente} *</label>
+              <div className="relative">
+                <input value={encPacId ? encPacNome : encPacBusca}
+                  onChange={e => { setEncPacId(''); buscarPacientesEncaixe(e.target.value); }}
+                  placeholder={`Buscar ${labels.termoPaciente.toLowerCase()}...`}
+                  className="input-premium w-full py-3 text-sm" autoFocus />
+                {encaixes.pacientes.length > 0 && !encPacId && (
+                  <div className="absolute top-full left-0 right-0 bg-white border border-card-border rounded-xl shadow-xl z-10 mt-1 overflow-hidden">
+                    {encaixes.pacientes.slice(0, 5).map((p: any) => (
+                      <button key={p.id} onClick={() => { setEncPacId(p.id); setEncPacNome(p.nome); setEncaixes(prev => ({ ...prev, pacientes: [] })); }}
+                        className="w-full px-4 py-3 text-left hover:bg-slate-50 border-b border-slate-50 last:border-0">
+                        <p className="font-black text-text-main text-sm uppercase">{p.nome}</p>
+                        <p className="text-[10px] font-mono text-text-muted">{p.telefone}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Data + hora */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black uppercase tracking-widest text-text-placeholder">Data</label>
+                <input type="date" value={data} readOnly className="input-premium w-full py-3 text-sm bg-slate-50" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black uppercase tracking-widest text-text-placeholder">Horário *</label>
+                <input type="time" value={encHorario} onChange={e => setEncHorario(e.target.value)}
+                  className="input-premium w-full py-3 text-sm" />
+              </div>
+            </div>
+
+            {/* Serviço */}
+            {encaixes.servicos.length > 0 && (
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black uppercase tracking-widest text-text-placeholder">{labels.termoServico}</label>
+                <select value={encServId} onChange={e => setEncServId(e.target.value)} className="input-premium w-full py-3 text-sm">
+                  <option value="">— Selecionar —</option>
+                  {encaixes.servicos.map((s: any) => (
+                    <option key={s.id} value={s.id}>{s.nome}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Profissional */}
+            {encaixes.profissionais.length > 0 && (
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black uppercase tracking-widest text-text-placeholder">{labels.termoProfissional}</label>
+                <select value={encProfId} onChange={e => setEncProfId(e.target.value)} className="input-premium w-full py-3 text-sm">
+                  <option value="">— Selecionar —</option>
+                  {encaixes.profissionais.map((p: any) => (
+                    <option key={p.id} value={p.id}>{p.nome}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div className="flex gap-3 pt-1">
+              <button onClick={() => setShowEncaixe(false)}
+                className="flex-1 py-3 bg-slate-50 border border-card-border rounded-xl text-[9px] font-black uppercase hover:bg-slate-100 transition-colors">
+                Cancelar
+              </button>
+              <button onClick={salvarEncaixe} disabled={encSaving || !encPacId || !encHorario}
+                className="flex-1 btn-primary py-3 text-[9px] disabled:opacity-40">
+                {encSaving ? 'Salvando...' : '⚡ Encaixar'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
