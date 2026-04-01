@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getTenantPrisma } from '@/lib/prisma';
+import prismaClient from '@/lib/prisma';
 import { getSessionInfo } from '@/lib/auth-helpers';
 
 export async function GET(request: Request) {
@@ -46,6 +47,53 @@ export async function POST(request: Request) {
     if (!pacienteId || !dataHora) {
       return NextResponse.json({ error: 'Paciente e data/hora são obrigatórios' }, { status: 400 });
     }
+
+    // ── Validação de convênio (regra no servidor) ────────────────
+    if (tipoAtendimento === 'convenio' && convenio && profissionalId) {
+      const convenioObj = await prismaClient.convenioEmpresa.findFirst({
+        where: { nomeConvenio: convenio, tenantId, ativo: true },
+      });
+
+      if (convenioObj) {
+        const todosConveniosDoProfissional = await prismaClient.profissionalConvenio.findMany({
+          where: { profissionalId, tenantId, ativo: true },
+        });
+
+        // Se profissional tem convênios cadastrados, verificar se aceita este
+        if (todosConveniosDoProfissional.length > 0) {
+          const aceita = todosConveniosDoProfissional.some(
+            (v) => v.convenioId === convenioObj.id
+          );
+
+          if (!aceita) {
+            const [profissionalInfo, conveniosAceitos] = await Promise.all([
+              prismaClient.profissional.findUnique({
+                where: { id: profissionalId },
+                select: { nome: true },
+              }),
+              prismaClient.profissionalConvenio.findMany({
+                where: { profissionalId, ativo: true, tenantId },
+                include: { convenio: { select: { nomeConvenio: true } } },
+              }),
+            ]);
+
+            const listaConvenios = conveniosAceitos.map((c) => c.convenio.nomeConvenio);
+
+            return NextResponse.json({
+              error: 'CONVENIO_NAO_ACEITO',
+              mensagem: `${profissionalInfo?.nome ?? 'Este profissional'} não atende pelo plano ${convenio}.`,
+              detalhe: listaConvenios.length > 0
+                ? `Este profissional aceita: ${listaConvenios.join(', ')}.`
+                : 'Este profissional atende apenas particular.',
+              conveniosAceitos: listaConvenios,
+              sugestao: 'Escolha outro profissional ou altere para particular.',
+            }, { status: 422 });
+          }
+        }
+        // Se não tem nenhum convênio cadastrado → aceita todos (não bloqueia)
+      }
+    }
+    // ────────────────────────────────────────────────────────────
 
     const start = new Date(dataHora);
     const duration = durationMinutes || 30;

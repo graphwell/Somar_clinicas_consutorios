@@ -145,6 +145,7 @@ model Profissional {
   servicos     Servico[]     // Many-to-many with services
   usuarios     Usuario[]
   prontuarios  ProntuarioRegistro[]
+  convenios    ProfissionalConvenio[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
@@ -169,13 +170,51 @@ model ProfessionalSchedule {
 model ConvenioEmpresa {
   id           String   @id @default(uuid())
   nomeConvenio String
+  codigo       String?  // Código ANS da operadora
+  telefone     String?
+  site         String?
+  observacoes  String?
+  logoUrl      String?
   ativo        Boolean  @default(true)
   tenantId     String
-  clinica      Clinica  @relation(fields: [tenantId], references: [tenantId])
+  clinica      Clinica              @relation(fields: [tenantId], references: [tenantId])
+  tabelaPrecos ConvenioTabelaPreco[]
+  profissionais ProfissionalConvenio[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   @@map("convenios_empresa")
+}
+
+model ProfissionalConvenio {
+  id             String          @id @default(uuid())
+  profissionalId String
+  convenioId     String
+  tenantId       String
+  ativo          Boolean         @default(true)
+  profissional   Profissional    @relation(fields: [profissionalId], references: [id])
+  convenio       ConvenioEmpresa @relation(fields: [convenioId], references: [id])
+  createdAt      DateTime        @default(now())
+
+  @@unique([profissionalId, convenioId])
+  @@map("profissional_convenios")
+}
+
+model ConvenioTabelaPreco {
+  id          String          @id @default(uuid())
+  convenioId  String
+  servicoId   String
+  tenantId    String
+  preco       Float
+  codigoTuss  String?
+  ativo       Boolean         @default(true)
+  convenio    ConvenioEmpresa @relation(fields: [convenioId], references: [id])
+  servico     Servico         @relation(fields: [servicoId], references: [id])
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@unique([convenioId, servicoId])
+  @@map("convenio_tabela_precos")
 }
 
 model NichoConfig {
@@ -313,6 +352,7 @@ model Servico {
   gatilhosUpsell   ComboUpsell[] @relation("GatilhoUpsell")
   ofertasUpsell    ComboUpsell[] @relation("OfertaUpsell")
   agendamentos     Agendamento[]
+  tabelaPrecos     ConvenioTabelaPreco[]
 
   @@map("servicos")
 }
