@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { fetchWithAuth } from "@/lib/api-utils";
 
 /* ─── tipos ───────────────────────────────────────────────────── */
@@ -32,18 +32,67 @@ function fmtBRL(v: number | null) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-/* ─── Stat Card ───────────────────────────────────────────────── */
-function StatCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
+/* ─── Stat mini (linha horizontal) ───────────────────────────── */
+function StatMini({ label, value }: { label: string; value: number }) {
   return (
-    <div className="bg-white border border-warm-200 rounded-2xl p-4">
-      <p className="text-xs text-slate-100 mb-1">{label}</p>
-      <p className="text-2xl font-bold text-slate-700">{value}</p>
-      {sub && <p className="text-[11px] text-slate-100 mt-0.5">{sub}</p>}
+    <div className="shrink-0 min-w-[110px] flex flex-col gap-0.5 bg-white border border-warm-200 rounded-[10px] px-3.5 py-2.5">
+      <span className="text-[20px] font-medium text-slate-700 leading-none tabular-nums">{value}</span>
+      <span className="text-[11px] text-slate-100 leading-tight">{label}</span>
     </div>
   );
 }
 
-/* ─── Convenio Card ───────────────────────────────────────────── */
+/* ─── Dropdown menu "..." ─────────────────────────────────────── */
+function CardMenu({
+  convenio,
+  onEdit,
+  onToggle,
+}: {
+  convenio: Convenio;
+  onEdit: (c: Convenio) => void;
+  onToggle: (c: Convenio) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    if (open) document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [open]);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-7 h-7 flex items-center justify-center rounded-lg border border-warm-200 text-slate-300 hover:bg-warm-100 transition-colors text-base leading-none"
+        aria-label="Mais opções"
+      >
+        ⋯
+      </button>
+      {open && (
+        <div className="absolute right-0 top-8 z-20 bg-white border border-warm-200 rounded-xl shadow-lg py-1 min-w-[120px]">
+          <button
+            onClick={() => { setOpen(false); onEdit(convenio); }}
+            className="w-full text-left px-3 py-2 text-[12px] text-slate-700 hover:bg-warm-50 transition-colors"
+          >
+            Editar
+          </button>
+          <button
+            onClick={() => { setOpen(false); onToggle(convenio); }}
+            className="w-full text-left px-3 py-2 text-[12px] text-slate-700 hover:bg-warm-50 transition-colors"
+          >
+            {convenio.ativo ? "Desativar" : "Ativar"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Convenio Card (compacto) ────────────────────────────────── */
 function ConvenioCard({
   convenio,
   onEdit,
@@ -58,54 +107,41 @@ function ConvenioCard({
   onToggle: (c: Convenio) => void;
 }) {
   return (
-    <div className={`bg-white border rounded-2xl p-4 flex flex-col gap-3 transition-opacity ${convenio.ativo ? "border-warm-200" : "border-warm-100 opacity-60"}`}>
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <p className="font-semibold text-slate-700 text-sm leading-tight">{convenio.nomeConvenio}</p>
-          {convenio.codigo && <p className="text-[11px] text-slate-100 mt-0.5">Cód. ANS: {convenio.codigo}</p>}
+    <div className={`bg-white border rounded-xl p-4 flex flex-col gap-3 transition-opacity ${convenio.ativo ? "border-warm-200" : "border-warm-100 opacity-55"}`}>
+      {/* Linha 1: nome + badge + menu */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p className="font-medium text-slate-700 text-sm leading-tight truncate">{convenio.nomeConvenio}</p>
+          {convenio.codigo && <p className="text-[11px] text-slate-100 mt-0.5">ANS {convenio.codigo}</p>}
         </div>
-        <span className={`shrink-0 text-[10px] font-medium px-2 py-0.5 rounded-full ${convenio.ativo ? "bg-sage-100 text-sage-700" : "bg-warm-100 text-slate-300"}`}>
-          {convenio.ativo ? "Ativo" : "Inativo"}
-        </span>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${convenio.ativo ? "bg-sage-100 text-sage-700" : "bg-warm-100 text-slate-300"}`}>
+            {convenio.ativo ? "Ativo" : "Inativo"}
+          </span>
+          <CardMenu convenio={convenio} onEdit={onEdit} onToggle={onToggle} />
+        </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 text-center">
-        {[
-          { label: "Profissionais", value: convenio.totalProfissionais },
-          { label: "Serviços", value: convenio.totalServicos },
-          { label: "Pacientes", value: convenio.totalPacientes },
-        ].map((stat) => (
-          <div key={stat.label} className="bg-warm-50 rounded-xl py-2">
-            <p className="text-base font-bold text-slate-700">{stat.value}</p>
-            <p className="text-[10px] text-slate-100">{stat.label}</p>
-          </div>
-        ))}
+      {/* Linha 2: stats compactos */}
+      <div className="flex gap-3 text-[12px] text-slate-300">
+        <span>👥 <strong className="text-slate-500 font-medium">{convenio.totalProfissionais}</strong> prof.</span>
+        <span>📋 <strong className="text-slate-500 font-medium">{convenio.totalServicos}</strong> serv.</span>
+        <span>🧑 <strong className="text-slate-500 font-medium">{convenio.totalPacientes}</strong> pac.</span>
       </div>
 
-      <div className="flex flex-wrap gap-1.5 pt-1 border-t border-warm-100">
+      {/* Linha 3: botões de ação */}
+      <div className="flex gap-1.5 pt-0.5 border-t border-warm-100">
         <button
           onClick={() => onProfissionais(convenio)}
-          className="flex-1 min-w-[80px] text-[11px] font-medium text-sage-700 border border-sage-200 bg-sage-50 hover:bg-sage-100 rounded-lg py-1.5 transition-colors"
+          className="flex-1 h-7 text-[11px] font-medium text-sage-700 border border-sage-200 bg-sage-50 hover:bg-sage-100 rounded-lg transition-colors"
         >
           Profissionais
         </button>
         <button
           onClick={() => onTabela(convenio)}
-          className="flex-1 min-w-[80px] text-[11px] font-medium text-sage-700 border border-sage-200 bg-sage-50 hover:bg-sage-100 rounded-lg py-1.5 transition-colors"
+          className="flex-1 h-7 text-[11px] font-medium text-sage-700 border border-sage-200 bg-sage-50 hover:bg-sage-100 rounded-lg transition-colors"
         >
-          Tabela de preços
-        </button>
-        <button
-          onClick={() => onEdit(convenio)}
-          className="px-3 text-[11px] font-medium text-slate-300 border border-warm-200 hover:bg-warm-100 rounded-lg py-1.5 transition-colors"
-        >
-          Editar
-        </button>
-        <button
-          onClick={() => onToggle(convenio)}
-          className="px-3 text-[11px] font-medium text-slate-300 border border-warm-200 hover:bg-warm-100 rounded-lg py-1.5 transition-colors"
-        >
-          {convenio.ativo ? "Desativar" : "Ativar"}
+          Tabela
         </button>
       </div>
     </div>
@@ -501,26 +537,26 @@ export default function InsurancePage() {
 
   return (
     <div className="p-4 sm:p-6 max-w-6xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      {/* Header responsivo */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <div>
           <h1 className="text-xl font-bold text-slate-700">Convênios</h1>
           <p className="text-sm text-slate-100 mt-0.5">Gerencie planos, profissionais e tabelas de preços</p>
         </div>
         <button
           onClick={() => { setEditConvenio(null); setModalConvenio(true); }}
-          className="px-4 py-2 bg-sage-500 text-white text-sm font-medium rounded-xl hover:bg-sage-600 transition-colors"
+          className="w-full sm:w-auto px-4 py-2 bg-sage-500 text-white text-sm font-medium rounded-xl hover:bg-sage-600 transition-colors"
         >
           + Novo convênio
         </button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <StatCard label="Convênios ativos" value={totalConvenios} />
-        <StatCard label="Prof. vinculados" value={totalProfVinculados} />
-        <StatCard label="Pacientes por convênio" value={totalPacientes} />
-        <StatCard label="Serviços com tabela" value={totalServicos} />
+      {/* Stats — linha horizontal compacta */}
+      <div className="flex gap-3 overflow-x-auto pb-1 mb-5 -mx-4 sm:mx-0 px-4 sm:px-0">
+        <StatMini label="Convênios ativos" value={totalConvenios} />
+        <StatMini label="Prof. vinculados" value={totalProfVinculados} />
+        <StatMini label="Pac. por convênio" value={totalPacientes} />
+        <StatMini label="Serv. com tabela" value={totalServicos} />
       </div>
 
       {/* Grid de convênios */}
@@ -541,7 +577,7 @@ export default function InsurancePage() {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
           {convenios.map((convenio) => (
             <ConvenioCard
               key={convenio.id}

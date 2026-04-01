@@ -449,7 +449,7 @@ async function main() {
   // 9. CONVÊNIOS DEMO
   // ============================================
 
-  const convenios = ['Unimed', 'Bradesco Saúde', 'SulAmérica', 'Amil', 'Porto Seguro']
+  const convenios = ['Unimed', 'Bradesco Saúde', 'SulAmérica', 'Amil', 'Porto Seguro', 'Hapvida', 'Camed']
   for (const nome of convenios) {
     await prisma.convenioEmpresa.upsert({
       where: { id: `convenio-${nome.toLowerCase().replace(/\s/g,'-')}-demo` },
