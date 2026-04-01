@@ -367,8 +367,14 @@ model Assinatura {
   tenantId           String    @unique
   stripeCustomerId   String?
   stripeSubId        String?
-  plano              String    @default("starter") // starter, pro, enterprise
-  status             String    @default("trial")   // trial, active, past_due, canceled
+  plano              String    @default("trial") // trial, starter, pro, enterprise
+  status             String    @default("trial") // trial, active, past_due, canceled, expired
+  trialInicio        DateTime  @default(now())
+  trialFim           DateTime?
+  proximoVencimento  DateTime?
+  valorMensal        Float?
+  canceladoEm        DateTime?
+  motivoCancelamento String?
   updatedAt          DateTime  @updatedAt
 
   @@map("assinaturas")
@@ -485,15 +491,19 @@ model AssinaturaCliente {
 }
 
 model ClinicIntegration {
-  id        String   @id @default(cuid())
-  tenantId  String
-  type      String   // "whatsapp", "stripe", "mercadopago", "n8n"
-  status    String   @default("inactive") // "active", "inactive", "error"
-  config    Json?    // API keys, Webhook URLs, etc.
-  clinica   Clinica  @relation(fields: [tenantId], references: [tenantId])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                    String   @id @default(cuid())
+  tenantId              String
+  provider              String   // mercadopago, pagseguro, cielo, stripe_clinic
+  encryptedCredentials  String
+  isActive              Boolean  @default(true) // SOFT DELETE
+  nomeExibicao          String?
+  ultimoTeste           DateTime?
+  erroDetalhe           String?
+  clinica               Clinica  @relation(fields: [tenantId], references: [tenantId])
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
+  @@unique([tenantId, provider])
   @@map("clinic_integrations")
 }
 

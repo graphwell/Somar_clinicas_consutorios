@@ -1,30 +1,30 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { getAuthorizedTenantId } from '@/lib/auth-helpers';
 import { getTenantPrisma } from '@/lib/prisma';
-
-const PLANS: Record<string, string> = {
-  starter: process.env.STRIPE_PRICE_STARTER || '',
-  pro: process.env.STRIPE_PRICE_PRO || '',
-  max: process.env.STRIPE_PRICE_MAX || '',
-};
+import { getPlanoInfo } from '@/lib/planos-synka';
 
 export async function POST(request: Request) {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2024-06-20' as any });
   try {
-    const tenantId = await getAuthorizedTenantId();
-    const prisma = getTenantPrisma(tenantId);
-    const { plano } = await request.json();
-
-    if (!plano || !PLANS[plano]) {
-      return NextResponse.json({ error: 'Parâmetros inválidos.' }, { status: 400 });
+    const tenantId = request.headers.get('x-tenant-id');
+    if (!tenantId) {
+      return NextResponse.json({ error: 'Tenant ID não fornecido na sessão.' }, { status: 401 });
     }
 
-    // Buscar Clínica para pegar email admin
+    const { plano } = await request.json();
+    const planoDetails = getPlanoInfo(plano);
+
+    if (!plano || !planoDetails || !planoDetails.stripePriceId || planoDetails.id === 'trial') {
+      return NextResponse.json({ error: 'Plano inválido ou inexistente.' }, { status: 400 });
+    }
+
+    const prisma = getTenantPrisma();
+
+    // Buscar Clínica para pegar infos
     const clinica = await prisma.clinica.findUnique({ where: { tenantId } });
     if (!clinica) return NextResponse.json({ error: 'Clínica não encontrada.' }, { status: 404 });
 
-    const email = clinica.adminPhone + "@synka.io"; // Fallback email pattern or use a real field if exists
+    const email = `admin@${clinica.slug}.synka.io`;
 
     // Buscar ou criar customer no Stripe
     let assinatura = await prisma.assinatura.findUnique({ where: { tenantId } });
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
       const customer = await stripe.customers.create({ email, metadata: { tenantId } });
       customerId = customer.id;
       if (!assinatura) {
-        await prisma.assinatura.create({ data: { tenantId, stripeCustomerId: customerId } });
+        await prisma.assinatura.create({ data: { tenantId, stripeCustomerId: customerId, status: 'trial' } });
       } else {
         await prisma.assinatura.update({ where: { tenantId }, data: { stripeCustomerId: customerId } });
       }
@@ -45,10 +45,10 @@ export async function POST(request: Request) {
       customer: customerId,
       mode: 'subscription',
       payment_method_types: ['card'],
-      line_items: [{ price: PLANS[plano], quantity: 1 }],
-      success_url: `${appUrl}/dashboard/billing?success=true`,
-      cancel_url: `${appUrl}/dashboard/billing?canceled=true`,
-      metadata: { tenantId, plano },
+      line_items: [{ price: planoDetails.stripePriceId, quantity: 1 }],
+      success_url: `${appUrl}/dashboard/finance?tab=integracoes&success=true`,
+      cancel_url: `${appUrl}/dashboard/finance?tab=integracoes&canceled=true`,
+      metadata: { tenantId, plano: planoDetails.id },
     });
 
     return NextResponse.json({ url: session.url });

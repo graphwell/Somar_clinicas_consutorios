@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { NichoProvider, useNicho } from "@/context/NichoContext";
 import { fetchWithAuth, getAuthToken } from "@/lib/api-utils";
 import SynkaChatModal from "@/components/dashboard/SynkaChatModal";
@@ -24,6 +24,9 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     role?: string;
     avatarUrl?: string | null;
   } | null>(null);
+
+  const [meStatus, setMeStatus] = useState<any>(null);
+  const pathname = usePathname();
 
   useEffect(() => {
     setHasMounted(true);
@@ -72,7 +75,20 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [hasMounted]);
+
+    // Carrega auth/me para Trial e Assinatura
+    fetchWithAuth("/api/auth/me")
+      .then((r) => r.json())
+      .then((data) => {
+        if (!data.error) {
+          setMeStatus(data);
+          if (data.planStatus === 'expired' && pathname !== '/dashboard/finance') {
+            router.replace('/dashboard/finance?tab=integracoes');
+          }
+        }
+      })
+      .catch(() => {});
+  }, [hasMounted, pathname, router]);
 
   if (!hasMounted) {
     return (
@@ -103,6 +119,19 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             currentUser={currentUser}
             clientName={clientName}
           />
+
+          {meStatus?.planStatus === 'trial' && meStatus?.diasRestantesTrial !== undefined && meStatus.diasRestantesTrial <= 7 && (
+            <div className="bg-amber-500 text-black text-center text-xs font-bold py-2 px-4 shadow-md z-40 relative">
+              Seu período de testes expira em {meStatus.diasRestantesTrial} {meStatus.diasRestantesTrial === 1 ? 'dia' : 'dias'}. 
+              <button onClick={() => router.push('/dashboard/finance?tab=integracoes')} className="ml-2 underline hover:text-white transition-colors">Faça upgrade agora</button>.
+            </div>
+          )}
+          
+          {meStatus?.planStatus === 'expired' && (
+            <div className="bg-red-500 text-white text-center text-xs font-bold py-2 px-4 shadow-md z-40 relative">
+              Seu período de testes expirou. Selecione um plano para continuar utilizando o Synka.
+            </div>
+          )}
 
           <main className="flex-1 p-4 lg:p-6 pb-20 lg:pb-6">
             <div className="max-w-7xl mx-auto fade-up">{children}</div>
