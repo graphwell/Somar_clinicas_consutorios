@@ -7,6 +7,15 @@ export interface PlanoInfo {
   features: string[];
 }
 
+export interface UpsellInfo {
+  id: string;
+  nome: string;
+  descricao: string;
+  precoBRL: number;
+  tipo: 'mensal' | 'unico';
+  stripePriceId: string;
+}
+
 export const PLANOS: Record<string, PlanoInfo> = {
   trial: {
     id: 'trial',
@@ -16,32 +25,64 @@ export const PLANOS: Record<string, PlanoInfo> = {
     stripePriceId: '', // trial não passa pro Stripe
     features: ['Agendamento Ilimitado', 'WhatsApp Bot', 'Integração MercadoPago']
   },
-  starter: {
-    id: 'starter',
-    nome: 'Starter',
-    descricao: 'Para profissionais solo e pequenas clínicas começando a crescer',
-    precoBRL: 147.00,
-    stripePriceId: process.env.STRIPE_PRICE_STARTER || '',
-    features: ['Agendamento (Até 3 Profissionais)', 'WhatsApp Bot Básico', 'Relatórios Financeiros', 'Lembretes SMS/Email']
+  solo: {
+    id: 'solo',
+    nome: 'Plano Solo',
+    descricao: 'Indicado para profissionais individuais',
+    precoBRL: 79.00,
+    stripePriceId: process.env.STRIPE_PRICE_SOLO || '',
+    features: ['1 profissional', '1 número de WhatsApp', 'Agendamento completo', 'Confirmação automática', 'Painel de controle simples']
   },
   pro: {
     id: 'pro',
-    nome: 'Pro',
-    descricao: 'O padrão para a maioria das clínicas estruturadas',
-    precoBRL: 297.00,
+    nome: 'Plano Pro',
+    descricao: 'Indicado para pequenas equipes',
+    precoBRL: 127.00,
     stripePriceId: process.env.STRIPE_PRICE_PRO || '',
-    features: ['Até 10 Profissionais', 'WhatsApp Bot IA Avançado (Maya)', 'Integrações de Cartão/PIX', 'Odontograma e Prontuários Customizados']
+    features: ['Até 5 profissionais', '1 número de WhatsApp', 'Organização de equipe', 'Confirmações automáticas', 'Automação básica']
   },
-  enterprise: {
-    id: 'enterprise',
-    nome: 'Enterprise',
-    descricao: 'Clínicas grandes com múltiplos polos ou redes',
-    precoBRL: 597.00,
-    stripePriceId: process.env.STRIPE_PRICE_MAX || '', // Ensure STRIPE_PRICE_MAX in env if needed
-    features: ['Profissionais Ilimitados', 'WhatsApp Múltiplas Linhas', 'API Dedicada', 'Consultor Exclusivo Synka']
+  business: {
+    id: 'business',
+    nome: 'Plano Business',
+    descricao: 'Indicado para clínicas e salões',
+    precoBRL: 197.00,
+    stripePriceId: process.env.STRIPE_PRICE_BUSINESS || '', 
+    features: ['Até 10 profissionais', '1 número de WhatsApp', 'Automações avançadas', 'Prioridade de suporte']
+  }
+};
+
+export const UPSELLS: Record<string, UpsellInfo> = {
+  whatsapp_extra: {
+    id: 'whatsapp_extra',
+    nome: 'Número adicional de WhatsApp',
+    descricao: 'Adicione mais um número para dividir atendimento ou equipe',
+    precoBRL: 49.00,
+    tipo: 'mensal',
+    stripePriceId: process.env.STRIPE_PRICE_ADDON_WA || '',
+  },
+  automacao_ia: {
+    id: 'automacao_ia',
+    nome: 'Automação com IA',
+    descricao: 'Respostas automáticas inteligentes e confirmação avançada',
+    precoBRL: 49.00,
+    tipo: 'mensal',
+    stripePriceId: process.env.STRIPE_PRICE_ADDON_IA || '',
+  },
+  setup: {
+    id: 'setup',
+    nome: 'Setup Inicial',
+    descricao: 'Configuramos tudo para você começar rápido',
+    precoBRL: 97.00,
+    tipo: 'unico',
+    stripePriceId: process.env.STRIPE_PRICE_ADDON_SETUP || '',
   }
 };
 
 export function getPlanoInfo(planoId: string): PlanoInfo {
   return PLANOS[planoId.toLowerCase()] || PLANOS['trial'];
+}
+
+export function getUpsells(upsellIds: string[]): UpsellInfo[] {
+  if (!upsellIds || !Array.isArray(upsellIds)) return [];
+  return upsellIds.map(id => UPSELLS[id]).filter(Boolean);
 }

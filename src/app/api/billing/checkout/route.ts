@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { getTenantPrisma } from '@/lib/prisma';
-import { getPlanoInfo } from '@/lib/planos-synka';
+import { getPlanoInfo, getUpsells } from '@/lib/planos-synka';
 
 export async function POST(request: Request) {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2024-06-20' as any });
@@ -11,12 +11,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Tenant ID não fornecido na sessão.' }, { status: 401 });
     }
 
-    const { plano } = await request.json();
+    const { plano, upsells = [] } = await request.json();
     const planoDetails = getPlanoInfo(plano);
+    const addons = getUpsells(upsells);
 
     if (!plano || !planoDetails || !planoDetails.stripePriceId || planoDetails.id === 'trial') {
       return NextResponse.json({ error: 'Plano inválido ou inexistente.' }, { status: 400 });
     }
+
+    // Gerando o Array Dinâmico de Itens p/ o Carrinho do Stripe
+    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
+      { price: planoDetails.stripePriceId, quantity: 1 }
+    ];
+
+    addons.forEach(addon => {
+      if (addon.stripePriceId) {
+        lineItems.push({ price: addon.stripePriceId, quantity: 1 });
+      }
+    });
 
     const prisma = getTenantPrisma();
 
@@ -41,14 +53,20 @@ export async function POST(request: Request) {
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://somar-clinicas-consutorios.vercel.app';
+    const metadataUpsells = addons.map(a => a.id).join(',');
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
-      mode: 'subscription',
+      mode: 'subscription',    // Continua sendo uma assinatura mesmo que existam itens únicos mesclados ("setup")
       payment_method_types: ['card'],
-      line_items: [{ price: planoDetails.stripePriceId, quantity: 1 }],
+      line_items: lineItems,
       success_url: `${appUrl}/dashboard/finance?tab=integracoes&success=true`,
-      cancel_url: `${appUrl}/dashboard/finance?tab=integracoes&canceled=true`,
-      metadata: { tenantId, plano: planoDetails.id },
+      cancel_url: `${appUrl}/planos?canceled=true`,
+      metadata: { 
+        tenantId, 
+        plano: planoDetails.id,
+        upsells: metadataUpsells 
+      },
     });
 
     return NextResponse.json({ url: session.url });
