@@ -2,6 +2,7 @@
 import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { SynkaLogo } from '@/components/SynkaLogo';
 
 function ResetForm() {
   const params = useSearchParams();
@@ -45,9 +46,8 @@ function ResetForm() {
   return (
     <div className="min-h-screen flex items-center justify-center p-6" style={{ background: '#F5F0E8' }}>
       <div className="w-full max-w-sm bg-white rounded-2xl p-8 shadow-lg border border-warm-200">
-        <div className="flex items-center gap-2.5 mb-6">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold" style={{ background: 'linear-gradient(135deg,#40916C,#2D6A4F)' }}>S</div>
-          <span className="font-bold text-slate-700">Synka</span>
+        <div className="mb-6">
+          <SynkaLogo variant="light" height={30} />
         </div>
         <h2 className="text-xl font-bold text-slate-700 mb-1">Nova senha</h2>
         <p className="text-sm text-slate-300 mb-6">Crie uma senha forte para sua conta.</p>

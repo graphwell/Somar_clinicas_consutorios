@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useNicho } from "@/context/NichoContext";
 import { clearAuthSession } from "@/lib/api-utils";
 import Avatar from "@/components/ui/Avatar";
+import { SynkaLogo } from '@/components/SynkaLogo';
 import {
   IconAgenda, IconPacientes, IconEquipe, IconServicos,
   IconProntuario, IconOdontograma, IconConvenio, IconRelatorios,
@@ -106,17 +107,17 @@ export default function Sidebar({
                 style={{ maxHeight: '40px', maxWidth: '120px', objectFit: 'contain', background: 'transparent' }}
               />
             </div>
-          ) : (
+          ) : clientName ? (
             <div className="flex items-center gap-3">
               <div
                 className="w-[38px] h-[38px] rounded-xl flex items-center justify-center text-xs font-medium text-white shrink-0"
                 style={{ background: "linear-gradient(135deg,#40916C,#52B788)" }}
               >
-                {(clientName || "S").charAt(0).toUpperCase()}
+                {clientName.charAt(0).toUpperCase()}
               </div>
               <div className="overflow-hidden">
                 <p className="text-sm text-white font-display truncate leading-tight">
-                  {clientName || "Synka"}
+                  {clientName}
                 </p>
                 <p
                   className="text-[10px] uppercase tracking-widest mt-0.5"
@@ -126,6 +127,9 @@ export default function Sidebar({
                 </p>
               </div>
             </div>
+          ) : (
+            /* Sem logo nem nome — exibe logo Synka branca */
+            <SynkaLogo variant="dark" height={28} />
           )}
         </div>
 

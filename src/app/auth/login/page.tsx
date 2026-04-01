@@ -3,6 +3,7 @@ import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { setAuthSession } from '@/lib/api-utils';
+import { SynkaLogo } from '@/components/SynkaLogo';
 
 const GoogleIcon = () => (
   <svg width="18" height="18" viewBox="0 0 48 48" fill="none">
@@ -90,11 +91,8 @@ function LoginForm() {
       >
         <div>
           <div className="flex items-center gap-3 mb-16">
-            <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center text-white font-bold text-lg">S</div>
-            <div>
-              <p className="text-white font-semibold text-lg leading-none">Synka</p>
-              <p className="text-white/40 text-[10px] uppercase tracking-widest">by Somar.ia</p>
-            </div>
+            <SynkaLogo variant="dark" height={36} />
+            <p className="text-white/40 text-[10px] uppercase tracking-widest">by Somar.ia</p>
           </div>
 
           <h1 className="text-4xl font-bold text-white leading-tight mb-4">
@@ -125,8 +123,7 @@ function LoginForm() {
       <div className="flex-1 flex flex-col items-center justify-center p-6 lg:p-12">
         {/* Logo mobile */}
         <div className="lg:hidden flex items-center gap-2.5 mb-8">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold" style={{ background: 'linear-gradient(135deg,#40916C,#2D6A4F)' }}>S</div>
-          <span className="font-bold text-slate-700 text-lg">Synka</span>
+          <SynkaLogo variant="light" height={32} />
         </div>
 
         <div className="w-full max-w-[400px]">

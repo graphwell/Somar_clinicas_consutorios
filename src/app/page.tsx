@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { SynkaLogo, SynkaIcon } from '@/components/SynkaLogo';
 
 const ROTATING_PHRASES = [
   { pain: 'recepcionista esquece de ligar para lembrar consultas', fix: 'A IA lembra sozinha, 24h por dia.' },
@@ -28,7 +27,6 @@ export default function LandingPage() {
   const statsRef = useRef<HTMLDivElement>(null);
   const countsTargets = [70, 24, 300];
 
-  // Rotate phrases with fade
   useEffect(() => {
     const interval = setInterval(() => {
       setVisible(false);
@@ -40,7 +38,6 @@ export default function LandingPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Count-up animation when stats come into view
   useEffect(() => {
     const observer = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting) {
@@ -74,7 +71,7 @@ export default function LandingPage() {
               Entrar
             </Link>
             <Link href="/auth/login"
-              className="px-5 py-2 bg-[#4a4ae2] hover:bg-[#3a3ab2] text-white rounded-xl text-sm font-semibold transition-all shadow-[0_4px_16px_rgba(74,74,226,0.35)]">
+              className="px-5 py-2 bg-[#40916C] hover:bg-[#2D6A4F] text-white rounded-xl text-sm font-semibold transition-all shadow-[0_4px_16px_rgba(64,145,108,0.35)]">
               Acessar minha conta
             </Link>
           </div>
@@ -85,13 +82,13 @@ export default function LandingPage() {
       <section className="relative min-h-screen flex flex-col items-center justify-center text-center px-6 pt-32 pb-16 overflow-hidden">
         {/* Background glow */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-[#4a4ae2]/12 rounded-full blur-[120px]" />
-          <div className="absolute top-1/2 left-1/4 w-[300px] h-[300px] bg-[#00b4d8]/8 rounded-full blur-[80px]" />
+          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-[#40916C]/12 rounded-full blur-[120px]" />
+          <div className="absolute top-1/2 left-1/4 w-[300px] h-[300px] bg-[#52B788]/8 rounded-full blur-[80px]" />
         </div>
 
         {/* Badge */}
-        <div className="inline-flex items-center gap-2 bg-[#4a4ae2]/10 border border-[#4a4ae2]/25 rounded-full px-4 py-1.5 text-xs text-[#a0a0ff] font-semibold uppercase tracking-widest mb-8">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#4a4ae2] animate-pulse" />
+        <div className="inline-flex items-center gap-2 bg-[#40916C]/10 border border-[#40916C]/25 rounded-full px-4 py-1.5 text-xs text-[#95D5B2] font-semibold uppercase tracking-widest mb-8">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#40916C] animate-pulse" />
           Powered by Somar.IA
         </div>
 
@@ -99,7 +96,7 @@ export default function LandingPage() {
         <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold leading-tight max-w-5xl mb-6">
           Sua clínica cansou de
           <br />
-          <span className="bg-gradient-to-r from-[#00b4d8] via-[#4a4ae2] to-[#8080ff] bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-[#52B788] via-[#40916C] to-[#2D6A4F] bg-clip-text text-transparent">
             perder pacientes
           </span>{' '}
           por não responder?
@@ -112,7 +109,7 @@ export default function LandingPage() {
         {/* CTA buttons */}
         <div className="flex flex-col sm:flex-row gap-4 mb-20">
           <Link href="/auth/login"
-            className="px-8 py-4 bg-[#4a4ae2] hover:bg-[#3a3ab2] rounded-2xl text-base font-bold transition-all shadow-[0_8px_32px_rgba(74,74,226,0.4)] hover:shadow-[0_8px_40px_rgba(74,74,226,0.6)] hover:-translate-y-0.5">
+            className="px-8 py-4 bg-[#40916C] hover:bg-[#2D6A4F] rounded-2xl text-base font-bold transition-all shadow-[0_8px_32px_rgba(64,145,108,0.4)] hover:shadow-[0_8px_40px_rgba(64,145,108,0.6)] hover:-translate-y-0.5">
             Começar grátis — 7 dias ✨
           </Link>
           <a href="#como-funciona"
@@ -136,7 +133,7 @@ export default function LandingPage() {
       {/* ── Rotating Pain Points ── */}
       <section id="como-funciona" className="py-24 px-6 bg-gradient-to-b from-[#050510] to-[#08081a]">
         <div className="max-w-4xl mx-auto text-center">
-          <p className="text-xs uppercase tracking-widest text-[#4a4ae2] font-bold mb-4">Sua realidade hoje</p>
+          <p className="text-xs uppercase tracking-widest text-[#52B788] font-bold mb-4">Sua realidade hoje</p>
           <h2 className="text-3xl sm:text-4xl font-bold mb-16">Reconhece alguma dessas situações?</h2>
 
           <div className="relative min-h-[200px] flex flex-col items-center justify-center">
@@ -148,7 +145,7 @@ export default function LandingPage() {
                 </p>
               </div>
               {/* Arrow */}
-              <div className="text-[#4a4ae2] text-2xl mb-6">↓</div>
+              <div className="text-[#52B788] text-2xl mb-6">↓</div>
               {/* Fix */}
               <div className="bg-green-500/8 border border-green-500/20 rounded-2xl px-8 py-5 max-w-2xl mx-auto">
                 <p className="text-base sm:text-lg text-green-300 font-semibold">
@@ -161,7 +158,7 @@ export default function LandingPage() {
             <div className="flex gap-2 mt-10">
               {ROTATING_PHRASES.map((_, i) => (
                 <button key={i} onClick={() => { setPhraseIdx(i); setVisible(true); }}
-                  className={`h-1.5 rounded-full transition-all duration-300 ${i === phraseIdx ? 'w-6 bg-[#4a4ae2]' : 'w-1.5 bg-white/20'}`} />
+                  className={`h-1.5 rounded-full transition-all duration-300 ${i === phraseIdx ? 'w-6 bg-[#40916C]' : 'w-1.5 bg-white/20'}`} />
               ))}
             </div>
           </div>
@@ -173,8 +170,8 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-8 text-center">
           {[
             { value: statCounts[0], suffix: '%', label: 'redução em no-shows', color: 'from-green-400 to-emerald-300' },
-            { value: statCounts[1], suffix: 'h', label: 'de atendimento por dia', color: 'from-[#00b4d8] to-[#4a4ae2]' },
-            { value: statCounts[2], suffix: '+', label: 'mensagens automáticas/mês', color: 'from-[#4a4ae2] to-[#8080ff]' },
+            { value: statCounts[1], suffix: 'h', label: 'de atendimento por dia', color: 'from-[#52B788] to-[#40916C]' },
+            { value: statCounts[2], suffix: '+', label: 'mensagens automáticas/mês', color: 'from-[#40916C] to-[#2D6A4F]' },
           ].map((s, i) => (
             <div key={i} className="space-y-2">
               <p className={`text-6xl font-extrabold bg-gradient-to-r ${s.color} bg-clip-text text-transparent`}>
@@ -190,13 +187,13 @@ export default function LandingPage() {
       <section className="py-24 px-6">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <p className="text-xs uppercase tracking-widest text-[#4a4ae2] font-bold mb-3">Funcionalidades</p>
+            <p className="text-xs uppercase tracking-widest text-[#52B788] font-bold mb-3">Funcionalidades</p>
             <h2 className="text-3xl sm:text-4xl font-bold">Tudo que sua clínica precisa</h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {BENEFITS.map(b => (
               <div key={b.title}
-                className="group bg-[#0a0a20]/60 border border-white/5 hover:border-[#4a4ae2]/30 rounded-2xl p-7 transition-all hover:-translate-y-1 hover:shadow-[0_8px_32px_rgba(74,74,226,0.12)]">
+                className="group bg-[#0a1a14]/60 border border-white/5 hover:border-[#40916C]/30 rounded-2xl p-7 transition-all hover:-translate-y-1 hover:shadow-[0_8px_32px_rgba(64,145,108,0.12)]">
                 <span className="text-3xl mb-4 block">{b.icon}</span>
                 <h3 className="font-bold text-base mb-2">{b.title}</h3>
                 <p className="text-gray-400 text-sm leading-relaxed">{b.desc}</p>
@@ -208,17 +205,17 @@ export default function LandingPage() {
 
       {/* ── Final CTA ── */}
       <section className="py-24 px-6 text-center relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-[#4a4ae2]/10 via-transparent to-[#00b4d8]/10 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#40916C]/10 via-transparent to-[#52B788]/10 pointer-events-none" />
         <div className="max-w-3xl mx-auto relative z-10">
           <h2 className="text-4xl sm:text-5xl font-extrabold mb-6 leading-tight">
             Comece hoje.<br />
-            <span className="bg-gradient-to-r from-[#00b4d8] to-[#8080ff] bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-[#52B788] to-[#2D6A4F] bg-clip-text text-transparent">
               Primeiros 7 dias gratuitos.
             </span>
           </h2>
           <p className="text-gray-400 mb-10 text-lg">Sem cartão de crédito. Sem burocracia. Em 24h sua IA está no ar.</p>
           <Link href="/auth/login"
-            className="inline-block px-10 py-5 bg-[#4a4ae2] hover:bg-[#3a3ab2] rounded-2xl text-lg font-bold transition-all shadow-[0_8px_40px_rgba(74,74,226,0.5)] hover:shadow-[0_8px_56px_rgba(74,74,226,0.7)] hover:-translate-y-1">
+            className="inline-block px-10 py-5 bg-[#40916C] hover:bg-[#2D6A4F] rounded-2xl text-lg font-bold transition-all shadow-[0_8px_40px_rgba(64,145,108,0.5)] hover:shadow-[0_8px_56px_rgba(64,145,108,0.7)] hover:-translate-y-1">
             Criar minha conta grátis →
           </Link>
         </div>
