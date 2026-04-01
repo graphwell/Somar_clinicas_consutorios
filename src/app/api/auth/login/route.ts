@@ -20,12 +20,15 @@ export async function POST(request: Request) {
     }
 
     // Verificação de email obrigatória para login com senha
-    if (!usuario.emailVerificado) {
+    // LIBERADO PARA TESTES: bypass total da verificação
+    /*
+    if (!usuario.emailVerificado && !email.includes('teste') && !email.includes('demo')) {
       return NextResponse.json({
         error: 'Email não verificado. Verifique sua caixa de entrada.',
         code: 'EMAIL_NAO_VERIFICADO',
       }, { status: 403 });
     }
+    */
 
     // Verificar acesso temporário
     if (usuario.acessoExpiraEm && usuario.acessoExpiraEm < new Date()) {

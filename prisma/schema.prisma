@@ -162,6 +162,7 @@ model ProfessionalSchedule {
   ativo          Boolean      @default(true)
   profissional   Profissional @relation(fields: [profissionalId], references: [id])
 
+  @@unique([profissionalId, diaSemana])
   @@map("professional_schedules")
 }
 

@@ -28,7 +28,8 @@
       "Bash(npm install:*)",
       "Bash(find src:*)",
       "Bash(1:*)",
-      "Bash(PGPASSWORD=123456 psql -h 147.79.86.65 -U n8n_user -d saas_db -c \"\\\\dt\" 2>&1)"
+      "Bash(PGPASSWORD=123456 psql -h 147.79.86.65 -U n8n_user -d saas_db -c \"\\\\dt\" 2>&1)",
+      "Bash(PGPASSWORD=123456 psql -h 147.79.86.65 -U n8n_user -d saas_db -c \"SELECT p.id, p.nome, p.ativo, p.\"\"tenantId\"\" FROM profissionais p LIMIT 20;\")"
     ]
   }
 }
