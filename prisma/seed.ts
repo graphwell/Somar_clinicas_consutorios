@@ -202,6 +202,19 @@ async function main() {
 
   console.log('✅ Profissionais criados:', profissionais.length)
 
+  // Configurar percentuais de repasse
+  const repasseConfig = [
+    { id: 'prof-medico-demo',    percentualRepasse: 60, repasseTipo: 'percentual' },
+    { id: 'prof-dentista-demo',  percentualRepasse: 55, repasseTipo: 'percentual' },
+    { id: 'prof-psico-demo',     percentualRepasse: 65, repasseTipo: 'percentual' },
+    { id: 'prof-nutri-demo',     percentualRepasse: 60, repasseTipo: 'percentual' },
+    { id: 'prof-estetica-demo',  percentualRepasse: 50, repasseTipo: 'percentual' },
+  ]
+  for (const r of repasseConfig) {
+    await prisma.profissional.update({ where: { id: r.id }, data: r })
+  }
+  console.log('✅ Percentuais de repasse configurados')
+
   // ============================================
   // 4. SCHEDULES DOS PROFISSIONAIS
   // ============================================
@@ -484,6 +497,95 @@ async function main() {
   })
 
   console.log('✅ Combos upsell criados')
+
+  // ============================================
+  // 11. TRANSAÇÕES FINANCEIRAS DEMO (3 meses)
+  // ============================================
+
+  type TxSeed = {
+    id: string
+    tipo: string
+    descricao: string
+    valor: number
+    status: string
+    categoria: string
+    formaPagamento?: string
+    profissionalId?: string
+    dataPagamento?: Date
+    dataVencimento?: Date
+    numeroRecibo?: string
+    tenantId: string
+  }
+
+  const txDados: TxSeed[] = [
+    // ── JANEIRO 2026 ─────────────────────────────
+    // Receitas pagas
+    { id: 'tx-demo-jan-001', tipo: 'income', descricao: 'Consultas — Dr. Carlos (jan)',    valor: 2400, status: 'paid', categoria: 'consulta',     formaPagamento: 'dinheiro',       profissionalId: 'prof-medico-demo',    dataPagamento: new Date('2026-01-15'), numeroRecibo: 'REC-202601-001', tenantId: 'demo-synka-master' },
+    { id: 'tx-demo-jan-002', tipo: 'income', descricao: 'Procedimentos — Dra. Marina (jan)', valor: 2000, status: 'paid', categoria: 'consulta',   formaPagamento: 'cartao_credito',  profissionalId: 'prof-dentista-demo',  dataPagamento: new Date('2026-01-18'), numeroRecibo: 'REC-202601-002', tenantId: 'demo-synka-master' },
+    { id: 'tx-demo-jan-003', tipo: 'income', descricao: 'Sessões — Dra. Ana (jan)',         valor: 1800, status: 'paid', categoria: 'consulta',     formaPagamento: 'pix',            profissionalId: 'prof-psico-demo',     dataPagamento: new Date('2026-01-20'), numeroRecibo: 'REC-202601-003', tenantId: 'demo-synka-master' },
+    { id: 'tx-demo-jan-004', tipo: 'income', descricao: 'Consultas — Dra. Juliana (jan)',   valor: 1200, status: 'paid', categoria: 'consulta',     formaPagamento: 'pix',            profissionalId: 'prof-nutri-demo',     dataPagamento: new Date('2026-01-22'), numeroRecibo: 'REC-202601-004', tenantId: 'demo-synka-master' },
+    { id: 'tx-demo-jan-005', tipo: 'income', descricao: 'Procedimentos — Camila (jan)',     valor: 1100, status: 'paid', categoria: 'estetica',     formaPagamento: 'dinheiro',       profissionalId: 'prof-estetica-demo',  dataPagamento: new Date('2026-01-25'), numeroRecibo: 'REC-202601-005', tenantId: 'demo-synka-master' },
+    // Despesas pagas
+    { id: 'tx-demo-jan-006', tipo: 'expense', descricao: 'Aluguel — janeiro',               valor: 2000, status: 'paid', categoria: 'aluguel',     formaPagamento: 'boleto',         dataPagamento: new Date('2026-01-05'), tenantId: 'demo-synka-master' },
+    { id: 'tx-demo-jan-007', tipo: 'expense', descricao: 'Materiais e insumos',              valor: 700,  status: 'paid', categoria: 'materiais',   formaPagamento: 'cartao_debito',  dataPagamento: new Date('2026-01-10'), tenantId: 'demo-synka-master' },
+    { id: 'tx-demo-jan-008', tipo: 'expense', descricao: 'Energia elétrica',                 valor: 300,  status: 'paid', categoria: 'utilidades',  formaPagamento: 'debito_auto',    dataPagamento: new Date('2026-01-12'), tenantId: 'demo-synka-master' },
+    { id: 'tx-demo-jan-009', tipo: 'expense', descricao: 'Internet e telefone',              valor: 200,  status: 'paid', categoria: 'utilidades',  formaPagamento: 'debito_auto',    dataPagamento: new Date('2026-01-08'), tenantId: 'demo-synka-master' },
+
+    // ── FEVEREIRO 2026 ───────────────────────────
+    // Receitas pagas
+    { id: 'tx-demo-fev-001', tipo: 'income', descricao: 'Consultas — Dr. Carlos (fev)',    valor: 2800, status: 'paid', categoria: 'consulta',     formaPagamento: 'pix',            profissionalId: 'prof-medico-demo',    dataPagamento: new Date('2026-02-14'), numeroRecibo: 'REC-202602-001', tenantId: 'demo-synka-master' },
+    { id: 'tx-demo-fev-002', tipo: 'income', descricao: 'Procedimentos — Dra. Marina (fev)', valor: 2500, status: 'paid', categoria: 'consulta',  formaPagamento: 'cartao_credito',  profissionalId: 'prof-dentista-demo',  dataPagamento: new Date('2026-02-18'), numeroRecibo: 'REC-202602-002', tenantId: 'demo-synka-master' },
+    { id: 'tx-demo-fev-003', tipo: 'income', descricao: 'Sessões — Dra. Ana (fev)',         valor: 1980, status: 'paid', categoria: 'consulta',     formaPagamento: 'pix',            profissionalId: 'prof-psico-demo',     dataPagamento: new Date('2026-02-20'), numeroRecibo: 'REC-202602-003', tenantId: 'demo-synka-master' },
+    { id: 'tx-demo-fev-004', tipo: 'income', descricao: 'Consultas — Dra. Juliana (fev)',   valor: 1360, status: 'paid', categoria: 'consulta',     formaPagamento: 'dinheiro',       profissionalId: 'prof-nutri-demo',     dataPagamento: new Date('2026-02-22'), numeroRecibo: 'REC-202602-004', tenantId: 'demo-synka-master' },
+    { id: 'tx-demo-fev-005', tipo: 'income', descricao: 'Procedimentos — Camila (fev)',     valor: 1160, status: 'paid', categoria: 'estetica',     formaPagamento: 'cartao_debito',  profissionalId: 'prof-estetica-demo',  dataPagamento: new Date('2026-02-25'), numeroRecibo: 'REC-202602-005', tenantId: 'demo-synka-master' },
+    // Despesas pagas
+    { id: 'tx-demo-fev-006', tipo: 'expense', descricao: 'Aluguel — fevereiro',             valor: 2000, status: 'paid', categoria: 'aluguel',     formaPagamento: 'boleto',         dataPagamento: new Date('2026-02-05'), tenantId: 'demo-synka-master' },
+    { id: 'tx-demo-fev-007', tipo: 'expense', descricao: 'Materiais e insumos',             valor: 900,  status: 'paid', categoria: 'materiais',   formaPagamento: 'cartao_debito',  dataPagamento: new Date('2026-02-12'), tenantId: 'demo-synka-master' },
+    { id: 'tx-demo-fev-008', tipo: 'expense', descricao: 'Energia elétrica',                valor: 300,  status: 'paid', categoria: 'utilidades',  formaPagamento: 'debito_auto',    dataPagamento: new Date('2026-02-15'), tenantId: 'demo-synka-master' },
+    { id: 'tx-demo-fev-009', tipo: 'expense', descricao: 'Outros custos operacionais',      valor: 200,  status: 'paid', categoria: 'outros',      formaPagamento: 'dinheiro',       dataPagamento: new Date('2026-02-18'), tenantId: 'demo-synka-master' },
+
+    // ── MARÇO 2026 ───────────────────────────────
+    // Receitas pagas
+    { id: 'tx-demo-mar-001', tipo: 'income', descricao: 'Consultas — Dr. Carlos (mar)',    valor: 2000, status: 'paid', categoria: 'consulta',     formaPagamento: 'pix',            profissionalId: 'prof-medico-demo',    dataPagamento: new Date('2026-03-15'), numeroRecibo: 'REC-202603-001', tenantId: 'demo-synka-master' },
+    { id: 'tx-demo-mar-002', tipo: 'income', descricao: 'Procedimentos — Dra. Marina (mar)', valor: 1800, status: 'paid', categoria: 'consulta',  formaPagamento: 'cartao_credito',  profissionalId: 'prof-dentista-demo',  dataPagamento: new Date('2026-03-18'), numeroRecibo: 'REC-202603-002', tenantId: 'demo-synka-master' },
+    { id: 'tx-demo-mar-003', tipo: 'income', descricao: 'Sessões — Dra. Ana (mar)',         valor: 1440, status: 'paid', categoria: 'consulta',     formaPagamento: 'pix',            profissionalId: 'prof-psico-demo',     dataPagamento: new Date('2026-03-20'), numeroRecibo: 'REC-202603-003', tenantId: 'demo-synka-master' },
+    { id: 'tx-demo-mar-004', tipo: 'income', descricao: 'Consultas — Dra. Juliana (mar)',   valor: 960,  status: 'paid', categoria: 'consulta',     formaPagamento: 'dinheiro',       profissionalId: 'prof-nutri-demo',     dataPagamento: new Date('2026-03-22'), numeroRecibo: 'REC-202603-004', tenantId: 'demo-synka-master' },
+    { id: 'tx-demo-mar-005', tipo: 'income', descricao: 'Procedimentos — Camila (mar)',     valor: 1000, status: 'paid', categoria: 'estetica',     formaPagamento: 'dinheiro',       profissionalId: 'prof-estetica-demo',  dataPagamento: new Date('2026-03-25'), numeroRecibo: 'REC-202603-005', tenantId: 'demo-synka-master' },
+    // Despesas pagas
+    { id: 'tx-demo-mar-006', tipo: 'expense', descricao: 'Aluguel — março',                 valor: 2000, status: 'paid', categoria: 'aluguel',     formaPagamento: 'boleto',         dataPagamento: new Date('2026-03-05'), tenantId: 'demo-synka-master' },
+    { id: 'tx-demo-mar-007', tipo: 'expense', descricao: 'Materiais e insumos',             valor: 600,  status: 'paid', categoria: 'materiais',   formaPagamento: 'cartao_debito',  dataPagamento: new Date('2026-03-10'), tenantId: 'demo-synka-master' },
+    { id: 'tx-demo-mar-008', tipo: 'expense', descricao: 'Energia elétrica',                valor: 300,  status: 'paid', categoria: 'utilidades',  formaPagamento: 'debito_auto',    dataPagamento: new Date('2026-03-12'), tenantId: 'demo-synka-master' },
+    { id: 'tx-demo-mar-009', tipo: 'expense', descricao: 'Internet e telefone',             valor: 200,  status: 'paid', categoria: 'utilidades',  formaPagamento: 'debito_auto',    dataPagamento: new Date('2026-03-08'), tenantId: 'demo-synka-master' },
+    // Pendentes (A Receber)
+    { id: 'tx-demo-mar-010', tipo: 'income', descricao: 'Particular — sessões pendentes',   valor: 600,  status: 'pending', categoria: 'consulta', dataVencimento: new Date('2026-04-05'), tenantId: 'demo-synka-master' },
+    { id: 'tx-demo-mar-011', tipo: 'income', descricao: 'Convênio Unimed — lote março',     valor: 1200, status: 'pending', categoria: 'convenio', dataVencimento: new Date('2026-04-10'), tenantId: 'demo-synka-master' },
+    // Pendentes (A Pagar)
+    { id: 'tx-demo-mar-012', tipo: 'expense', descricao: 'Aluguel — abril (previsto)',      valor: 2000, status: 'pending', categoria: 'aluguel',   dataVencimento: new Date('2026-04-05'), tenantId: 'demo-synka-master' },
+    { id: 'tx-demo-mar-013', tipo: 'expense', descricao: 'Manutenção equipamentos',         valor: 500,  status: 'pending', categoria: 'materiais', dataVencimento: new Date('2026-04-15'), tenantId: 'demo-synka-master' },
+  ]
+
+  for (const tx of txDados) {
+    await prisma.transacaoFinanceira.upsert({
+      where: { id: tx.id },
+      update: {},
+      create: {
+        id:              tx.id,
+        tipo:            tx.tipo,
+        descricao:       tx.descricao,
+        valor:           tx.valor,
+        status:          tx.status,
+        categoria:       tx.categoria,
+        formaPagamento:  tx.formaPagamento ?? null,
+        profissionalId:  tx.profissionalId ?? null,
+        dataPagamento:   tx.dataPagamento ?? null,
+        dataVencimento:  tx.dataVencimento ?? null,
+        numeroRecibo:    tx.numeroRecibo ?? null,
+        tenantId:        tx.tenantId,
+      }
+    })
+  }
+
+  console.log('✅ Transações financeiras demo criadas:', txDados.length)
 
   console.log('')
   console.log('🎉 Seed completo!')

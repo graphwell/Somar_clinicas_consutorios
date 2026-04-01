@@ -37,6 +37,7 @@ model Clinica {
   combosUpsell   ComboUpsell[]
   campanhasAviso CampanhaAviso[]
   transacoes     TransacaoFinanceira[]
+  repasses       RepasseProfissional[]
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
@@ -143,6 +144,10 @@ model Profissional {
   horariosJson Json?         // Legacy (keep for compatibility if needed)
   ativo        Boolean       @default(true)
   tenantId     String
+  // Repasse financeiro
+  percentualRepasse Float?   @default(0)
+  repasseFixo       Float?   @default(0)
+  repasseTipo       String?  @default("percentual") // percentual|fixo
   clinica      Clinica       @relation(fields: [tenantId], references: [tenantId])
   agendamentos Agendamento[]
   escalas      ProfessionalSchedule[]
@@ -150,6 +155,8 @@ model Profissional {
   usuarios     Usuario[]
   prontuarios  ProntuarioRegistro[]
   convenios    ProfissionalConvenio[]
+  repasses     RepasseProfissional[]
+  transacoes   TransacaoFinanceira[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
@@ -264,19 +271,49 @@ model TransacaoFinanceira {
   id             String       @id @default(uuid())
   tenantId       String
   tipo           String       @default("income") // income, expense
-  status         String       @default("pending") // pending, previsto, realizado, canceled
+  status         String       @default("pending") // pending, paid, canceled
   valor          Float        @default(0.0)
   descricao      String?
   categoria      String?      @default("Geral")
   agendamentoId  String?      @unique
-  
+  // Novos campos financeiros
+  formaPagamento String?      // pix|dinheiro|cartao_debito|cartao_credito|convenio|boleto
+  parcelas       Int?         @default(1)
+  contaBancaria  String?
+  profissionalId String?
+  convenioId     String?      // referência ao convênio (sem FK para flexibilidade)
+  observacao     String?
+  dataVencimento DateTime?
+  dataPagamento  DateTime?
+  numeroRecibo   String?      // REC-YYYYMM-SEQ
+
   clinica        Clinica      @relation(fields: [tenantId], references: [tenantId])
   agendamento    Agendamento? @relation(fields: [agendamentoId], references: [id])
-  
+  profissional   Profissional? @relation(fields: [profissionalId], references: [id])
+
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
   @@map("transacoes_financeiras")
+}
+
+model RepasseProfissional {
+  id             String       @id @default(uuid())
+  tenantId       String
+  profissionalId String
+  periodo        String       // "2026-03" (ano-mes)
+  totalBruto     Float        @default(0)
+  percentual     Float        @default(0)
+  totalRepasse   Float        @default(0)
+  status         String       @default("pendente") // pendente|pago|cancelado
+  pago_em        DateTime?
+  observacao     String?
+  profissional   Profissional @relation(fields: [profissionalId], references: [id])
+  clinica        Clinica      @relation(fields: [tenantId], references: [tenantId])
+  createdAt      DateTime     @default(now())
+
+  @@unique([tenantId, profissionalId, periodo])
+  @@map("repasses_profissional")
 }
 
 model AiLog {
