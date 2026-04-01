@@ -155,10 +155,10 @@ function GraficoEvolucao({ dados }: { dados: Resumo["evolucao"] }) {
 function PizzaReceitas({ resumo }: { resumo: Resumo }) {
   const itens: { nome: string; total: number; color: string }[] = [
     { nome: "Particular", total: resumo.receitaParticular, color: "#40916C" },
-    ...(resumo.receitaPorConvenio.map((c, i) => ({
-      nome: c.nome, total: c.total,
+    ...(resumo.receitaPorConvenio?.map((c, i) => ({
+      nome: c?.nome, total: c?.total,
       color: ["#52B788", "#74C69D", "#95D5B2", "#B7E4C7"][i % 4],
-    }))),
+    })) || []),
   ].filter((i) => i.total > 0);
 
   const total = itens.reduce((s, i) => s + i.total, 0);
@@ -356,7 +356,7 @@ function ModalTransacao({
                 <label className="block text-[10px] text-gray-500 uppercase font-bold mb-1">Profissional</label>
                 <select className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none" value={profId} onChange={(e) => setProfId(e.target.value)}>
                   <option value="">Nenhum</option>
-                  {profissionais.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
+                  {profissionais?.map((p) => <option key={p?.id} value={p?.id}>{p?.nome}</option>)}
                 </select>
               </div>
             )}
@@ -461,8 +461,8 @@ function TxItem({ tx, onRefresh }: { tx: Transacao; onRefresh: () => void }) {
             {statusBadge(tx.status)}
           </div>
           <p className="text-[11px] text-gray-500 mt-0.5 flex flex-wrap items-center gap-1.5">
-            {tx.agendamento?.paciente && <span>{tx.agendamento.paciente.nome}</span>}
-            {tx.profissional && <><span>•</span><span>{tx.profissional.nome}</span></>}
+            {tx.agendamento?.paciente && <span>{tx.agendamento.paciente?.nome}</span>}
+            {tx.profissional && <><span>•</span><span>{tx.profissional?.nome}</span></>}
             <span>•</span>
             <span>{new Date(tx.createdAt).toLocaleDateString("pt-BR")}</span>
             {tx.formaPagamento && <><span>•</span><span>{formaLabel(tx.formaPagamento)}</span></>}
@@ -680,7 +680,7 @@ function TabRepasses({ periodo, onRefresh: parentRefresh }: { periodo: string; o
               {repasses.map((r) => (
                 <tr key={r.id} className="border-b border-white/[0.03] hover:bg-white/[0.02]">
                   <td className="px-4 py-3">
-                    <p className="font-medium text-gray-200 text-sm">{r.profissional.nome}</p>
+                    <p className="font-medium text-gray-200 text-sm">{r?.profissional?.nome}</p>
                     {r.profissional.especialidade && <p className="text-[11px] text-gray-500">{r.profissional.especialidade}</p>}
                   </td>
                   <td className="px-4 py-3 text-right text-gray-400 tabular-nums hidden sm:table-cell">{brl(r.totalBruto)}</td>
