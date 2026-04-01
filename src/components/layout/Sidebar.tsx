@@ -174,6 +174,9 @@ export default function Sidebar({
           {isAdmin && (
             <NavItem href="/dashboard/finance" label="Financeiro" Icon={IconFinanceiro} active={is("/dashboard/finance")} />
           )}
+          {isAdmin && (
+            <NavItem href="/dashboard/integrations" label="Integrações" Icon={IconIntegracoes} active={is("/dashboard/integrations")} />
+          )}
           {!isProfissional && (
             <NavItem href="/dashboard/settings" label="Configurações" Icon={IconConfiguracoes} active={is("/dashboard/settings", true) || is("/dashboard/settings/convenios") || is("/dashboard/settings/upsell")} />
           )}

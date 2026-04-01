@@ -82,8 +82,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       .then((data) => {
         if (!data.error) {
           setMeStatus(data);
-          if (data.planStatus === 'expired' && pathname !== '/dashboard/finance') {
-            router.replace('/dashboard/finance?tab=integracoes');
+          if (data.planStatus === 'expired' && pathname !== '/dashboard/integrations') {
+            router.replace('/dashboard/integrations');
           }
         }
       })
@@ -123,7 +123,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
           {meStatus?.planStatus === 'trial' && meStatus?.diasRestantesTrial !== undefined && meStatus.diasRestantesTrial <= 7 && (
             <div className="bg-amber-500 text-black text-center text-xs font-bold py-2 px-4 shadow-md z-40 relative">
               Seu período de testes expira em {meStatus.diasRestantesTrial} {meStatus.diasRestantesTrial === 1 ? 'dia' : 'dias'}. 
-              <button onClick={() => router.push('/dashboard/finance?tab=integracoes')} className="ml-2 underline hover:text-white transition-colors">Faça upgrade agora</button>.
+              <button onClick={() => router.push('/dashboard/integrations')} className="ml-2 underline hover:text-white transition-colors">Faça upgrade agora</button>.
             </div>
           )}
           

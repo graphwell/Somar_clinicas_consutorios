@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { fetchWithAuth } from "@/lib/api-utils";
-import { IntegrationsTab } from "@/components/finance/IntegrationsTab";
+
 
 /* ─── Tipos ──────────────────────────────────────────────────── */
 interface Resumo {
@@ -33,7 +33,7 @@ interface Repasse {
   profissional: { id: string; nome: string; especialidade?: string; percentualRepasse?: number };
 }
 
-type Tab = "extrato" | "receber" | "pagar" | "repasses" | "integracoes";
+type Tab = "extrato" | "receber" | "pagar" | "repasses";
 
 /* ─── Helpers ────────────────────────────────────────────────── */
 function brl(v: number) {
@@ -812,7 +812,6 @@ export default function FinancePage() {
             { key: "receber", label: `A Receber${resumo && resumo.aReceber > 0 ? ` · ${brl(resumo.aReceber)}` : ""}` },
             { key: "pagar", label: `A Pagar${resumo && resumo.aPagar > 0 ? ` · ${brl(resumo.aPagar)}` : ""}` },
             { key: "repasses", label: "Repasses" },
-            { key: "integracoes", label: "Integrações" },
           ] as { key: Tab; label: string }[]).map((t) => (
             <button key={t.key} onClick={() => setTab(t.key)}
               className={`px-4 py-3 text-xs font-bold uppercase tracking-wider transition-all relative whitespace-nowrap ${tab === t.key ? "text-white" : "text-gray-500 hover:text-gray-300"}`}>
@@ -828,7 +827,6 @@ export default function FinancePage() {
       {tab === "receber" && <TabPendentes tipo="income" periodo={periodo} onRefresh={loadResumo} />}
       {tab === "pagar" && <TabPendentes tipo="expense" periodo={periodo} onRefresh={loadResumo} />}
       {tab === "repasses" && <TabRepasses periodo={periodo} onRefresh={loadResumo} />}
-      {tab === "integracoes" && <IntegrationsTab />}
 
       {/* Modal transação */}
       <ModalTransacao
