@@ -11,14 +11,158 @@ type Paciente = {
   createdAt: string;
   isSubscriber: boolean;
   profissionalPreferidoId?: string;
+  convenio?: string | null;
+  tipoAtendimento?: string;
+  carteirinha?: string | null;
+  validadeConvenio?: string | null;
+  titularConvenio?: string | null;
   _count: { agendamentos: number };
   agendamentos: { id: string; dataHora: string; status: string; servico?: { nome: string } }[];
 };
 
-function PatientChart({ patient, onClose }: { patient: Paciente; onClose: () => void }) {
+function PlanoSaudeSection({ patient, onUpdate }: { patient: Paciente; onUpdate: (p: Paciente) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [convenio, setConvenio] = useState(patient.convenio ?? "");
+  const [carteirinha, setCarteirinha] = useState(patient.carteirinha ?? "");
+  const [validade, setValidade] = useState(patient.validadeConvenio ?? "");
+  const [titular, setTitular] = useState(patient.titularConvenio ?? "");
+  const [saving, setSaving] = useState(false);
+  const [convenios, setConvenios] = useState<{ id: string; nomeConvenio: string }[]>([]);
+
+  useEffect(() => {
+    if (editing) {
+      fetchWithAuth('/api/convenios')
+        .then((r) => r.json())
+        .then((d) => setConvenios(Array.isArray(d) ? d.filter((c: any) => c.ativo) : []))
+        .catch(() => {});
+    }
+  }, [editing]);
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      const r = await fetchWithAuth(`/api/patients/${patient.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          convenio: convenio || null,
+          tipoAtendimento: convenio ? 'convenio' : 'particular',
+          carteirinha: carteirinha || null,
+          validadeConvenio: validade || null,
+          titularConvenio: titular || null,
+        }),
+      });
+      const updated = await r.json();
+      onUpdate({ ...patient, ...updated });
+      setEditing(false);
+    } catch {}
+    setSaving(false);
+  }
+
+  const temPlano = !!patient.convenio;
+
+  return (
+    <div className="border border-card-border rounded-[2rem] overflow-hidden">
+      <div className="flex items-center justify-between px-8 py-5 bg-slate-50/40 border-b border-card-border">
+        <div className="flex items-center gap-3">
+          <span className="text-lg">🏥</span>
+          <h4 className="text-[11px] font-black uppercase tracking-[0.3em] text-text-placeholder">Plano de Saúde</h4>
+        </div>
+        <button
+          onClick={() => setEditing((v) => !v)}
+          className="text-[9px] font-black uppercase px-4 py-1.5 border border-card-border rounded-xl hover:border-primary/40 hover:text-primary transition-all text-text-placeholder"
+        >
+          {editing ? 'Cancelar' : 'Editar'}
+        </button>
+      </div>
+
+      {editing ? (
+        <div className="px-8 py-6 space-y-4">
+          <div>
+            <label className="block text-[9px] font-black uppercase tracking-widest text-text-placeholder mb-1.5">Convênio</label>
+            {convenios.length > 0 ? (
+              <select
+                className="input-premium w-full py-3 text-sm"
+                value={convenio}
+                onChange={(e) => setConvenio(e.target.value)}
+              >
+                <option value="">Particular (sem convênio)</option>
+                {convenios.map((c) => (
+                  <option key={c.id} value={c.nomeConvenio}>{c.nomeConvenio}</option>
+                ))}
+              </select>
+            ) : (
+              <input className="input-premium w-full py-3 text-sm" value={convenio} onChange={(e) => setConvenio(e.target.value)} placeholder="Nome do convênio" />
+            )}
+          </div>
+          {convenio && (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[9px] font-black uppercase tracking-widest text-text-placeholder mb-1.5">Nº Carteirinha</label>
+                  <input className="input-premium w-full py-3 text-sm" value={carteirinha} onChange={(e) => setCarteirinha(e.target.value)} placeholder="0000000000" />
+                </div>
+                <div>
+                  <label className="block text-[9px] font-black uppercase tracking-widest text-text-placeholder mb-1.5">Validade</label>
+                  <input className="input-premium w-full py-3 text-sm" value={validade} onChange={(e) => setValidade(e.target.value)} placeholder="MM/AAAA" maxLength={7} />
+                </div>
+              </div>
+              <div>
+                <label className="block text-[9px] font-black uppercase tracking-widest text-text-placeholder mb-1.5">Titular do plano</label>
+                <input className="input-premium w-full py-3 text-sm" value={titular} onChange={(e) => setTitular(e.target.value)} placeholder="Nome do titular (se diferente)" />
+              </div>
+            </>
+          )}
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="w-full btn-primary py-3 text-[9px] disabled:opacity-40"
+          >
+            {saving ? 'Salvando…' : 'Salvar plano'}
+          </button>
+        </div>
+      ) : (
+        <div className="px-8 py-6">
+          {temPlano ? (
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-[9px] font-black uppercase text-text-placeholder tracking-widest">Plano</span>
+                <span className="font-bold text-sm text-text-main">{patient.convenio}</span>
+              </div>
+              {patient.carteirinha && (
+                <div className="flex justify-between items-center">
+                  <span className="text-[9px] font-black uppercase text-text-placeholder tracking-widest">Carteirinha</span>
+                  <span className="font-mono text-sm text-text-main">{patient.carteirinha}</span>
+                </div>
+              )}
+              {patient.validadeConvenio && (
+                <div className="flex justify-between items-center">
+                  <span className="text-[9px] font-black uppercase text-text-placeholder tracking-widest">Validade</span>
+                  <span className="text-sm text-text-main">{patient.validadeConvenio}</span>
+                </div>
+              )}
+              {patient.titularConvenio && (
+                <div className="flex justify-between items-center">
+                  <span className="text-[9px] font-black uppercase text-text-placeholder tracking-widest">Titular</span>
+                  <span className="text-sm text-text-muted italic">{patient.titularConvenio}</span>
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-text-placeholder italic text-center py-2">Particular — sem convênio cadastrado</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PatientChart({ patient: initialPatient, onClose }: { patient: Paciente; onClose: () => void }) {
   const { labels } = useNicho();
   const router = useRouter();
-  
+  const [patient, setPatient] = useState(initialPatient);
+
+  useEffect(() => { setPatient(initialPatient); }, [initialPatient]);
+
   return (
     <div className="fixed inset-0 z-[100] flex justify-end transition-all" onClick={onClose}>
       <div className="absolute inset-0 bg-slate-900/10 backdrop-blur-md animate-in fade-in" />
@@ -80,6 +224,10 @@ function PatientChart({ patient, onClose }: { patient: Paciente; onClose: () => 
                  ))}
               </div>
            </div>
+        </div>
+
+        <div className="px-12 pb-12">
+          <PlanoSaudeSection patient={patient} onUpdate={setPatient} />
         </div>
 
         <div className="p-10 border-t border-card-border bg-slate-50/10">

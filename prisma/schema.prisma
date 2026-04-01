@@ -113,6 +113,10 @@ model Paciente {
   isSubscriber          Boolean  @default(false)
   profissionalPreferidoId String?
   cpf                   String?   // New field for patient identification
+  // Plano de saúde
+  carteirinha           String?
+  validadeConvenio      String?   // "MM/YYYY" livre, não DateTime
+  titularConvenio       String?
   deletedAt             DateTime?
 
   tenantId        String
