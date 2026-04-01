@@ -26,7 +26,8 @@ export async function middleware(request: NextRequest) {
     '/api/specialties',
     '/api/chat',
     '/api/marketing',
-    '/api/integrations'
+    '/api/integrations',
+    '/api/finance'
   ];
 
   if (protectedPrefixes.some(prefix => pathname.startsWith(prefix))) {
@@ -110,6 +111,7 @@ export const config = {
     '/api/specialties/:path*',
     '/api/chat/:path*',
     '/api/marketing/:path*',
-    '/api/integrations/:path*'
+    '/api/integrations/:path*',
+    '/api/finance/:path*'
   ],
 };
