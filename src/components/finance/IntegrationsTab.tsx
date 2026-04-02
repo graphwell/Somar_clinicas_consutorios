@@ -128,7 +128,7 @@ export function IntegrationsTab() {
         {/* PLANOS UPSell */}
         {(!loading && me?.planStatus !== 'active') && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
-            {['starter', 'pro', 'enterprise'].map((pId) => {
+            {['solo', 'pro', 'business'].map((pId) => {
               const plano = PLANOS[pId] as PlanoInfo;
               return (
                 <div key={pId} className="relative bg-[#0a0a20]/40 border border-white/5 rounded-2xl p-6 hover:bg-white/5 transition-colors flex flex-col">
