@@ -45,9 +45,38 @@ async function main() {
 
   const senhaHash = await bcrypt.hash('Demo@2026', 10)
 
+  // ─── LIBERAR ACESSO: limpa expiração e garante email verificado para todos os demos ───
+  const DEMO_EMAILS = [
+    'demo@synka.com.br',
+    'admin@demo-barbearia.synka.com.br',
+    'admin@demo-estetica.synka.com.br',
+    'admin@demo-salao.synka.com.br',
+    'carlos@demo.synka.com.br',
+    'marina@demo.synka.com.br',
+    'ana@demo.synka.com.br',
+    'juliana@demo.synka.com.br',
+    'camila@demo.synka.com.br',
+    'fernanda@demo.synka.com.br',
+  ]
+  await prisma.usuario.updateMany({
+    where: { email: { in: DEMO_EMAILS } },
+    data: { acessoExpiraEm: null, emailVerificado: true, primeiroAcesso: false },
+  })
+
+  // ─── ASSINATURAS DEMO: garante trial ativo por 1 ano ───
+  const trialFimDemo = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+  const DEMO_TENANTS = ['demo-synka-master', 'demo-barbearia', 'demo-estetica', 'demo-salao']
+  for (const tid of DEMO_TENANTS) {
+    await prisma.assinatura.upsert({
+      where:  { tenantId: tid },
+      update: { status: 'trial', plano: 'trial', trialFim: trialFimDemo, canceladoEm: null },
+      create: { tenantId: tid, status: 'trial', plano: 'trial', trialFim: trialFimDemo },
+    })
+  }
+
   const admin = await prisma.usuario.upsert({
     where: { email: 'demo@synka.com.br' },
-    update: {},
+    update: { acessoExpiraEm: null, emailVerificado: true, primeiroAcesso: false },
     create: {
       nome:           'Admin',
       sobrenome:      'Demo',
