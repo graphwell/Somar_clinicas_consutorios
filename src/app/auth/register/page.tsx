@@ -78,9 +78,9 @@ export default function RegisterPage() {
     return (
       <div className="min-h-screen flex items-center justify-center p-6" style={{ background: '#F5F0E8' }}>
         <div className="w-full max-w-sm text-center space-y-4">
-          <div className="w-20 h-20 mx-auto rounded-full flex items-center justify-center text-4xl"
+          <div className="w-20 h-20 mx-auto rounded-full flex items-center justify-center text-white"
             style={{ background: 'linear-gradient(135deg,#40916C,#2D6A4F)' }}>
-            📧
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect x="2.667" y="6.667" width="26.667" height="18.667" rx="2.333" stroke="currentColor" strokeWidth="2"/><path d="M2.667 9.333L16 18.667l13.333-9.334" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
           </div>
           <h2 className="text-xl font-bold text-slate-700">Verifique seu email</h2>
           <p className="text-slate-300 text-sm leading-relaxed">
@@ -118,7 +118,7 @@ export default function RegisterPage() {
           <div className="space-y-3">
             {['Sem contrato — cancele quando quiser', 'Suporte em português', 'IA treinada para saúde'].map((t) => (
               <div key={t} className="flex items-center gap-2.5">
-                <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-white text-xs">✓</div>
+                <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-white"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M8.333 2.5L3.75 7.5 1.667 5.417" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
                 <p className="text-white/75 text-sm">{t}</p>
               </div>
             ))}
@@ -140,7 +140,7 @@ export default function RegisterPage() {
 
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm">
-              ⚠️ {error}
+              {error}
             </div>
           )}
 
@@ -208,7 +208,11 @@ export default function RegisterPage() {
                 />
                 <button type="button" onClick={() => setShowSenha(v => !v)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-100 text-sm">
-                  {showSenha ? '🙈' : '👁️'}
+                  {showSenha ? (
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 8s2.667-4 6-4 6 4 6 4-2.667 4-6 4-6-4-6-4z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/><line x1="2" y1="14" x2="14" y2="2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
+                  ) : (
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 8s2.667-4 6-4 6 4 6 4-2.667 4-6 4-6-4-6-4z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/><circle cx="8" cy="8" r="1.667" stroke="currentColor" strokeWidth="1.3"/></svg>
+                  )}
                 </button>
               </div>
 
@@ -225,7 +229,7 @@ export default function RegisterPage() {
                     <div className="flex gap-3">
                       {reqSenha.map(r => (
                         <span key={r.text} className="text-[10px]" style={{ color: r.ok ? '#40916C' : '#8A9BB0' }}>
-                          {r.ok ? '✓' : '○'} {r.text}
+                          {r.ok ? '✓ ' : '· '}{r.text}
                         </span>
                       ))}
                     </div>

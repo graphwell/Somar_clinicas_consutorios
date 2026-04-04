@@ -104,12 +104,12 @@ function LoginForm() {
 
           <div className="space-y-4">
             {[
-              { icon: '📅', text: 'Agenda IA com agendamento automático 24h' },
-              { icon: '📋', text: 'Prontuário eletrônico com voz e IA' },
-              { icon: '📲', text: 'Marketing automático via WhatsApp' },
-            ].map((item) => (
-              <div key={item.text} className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-sm">{item.icon}</div>
+              { icon: <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1.167" y="1.75" width="11.667" height="10.5" rx="1.5" stroke="currentColor" strokeWidth="1.3"/><path d="M1.167 5.25h11.667M4.667 1.167V3.5M9.333 1.167V3.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/><path d="M4.083 8.167h2.334M7.583 8.167h2.334" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>, text: 'Agenda IA com agendamento automático 24h' },
+              { icon: <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2.333" y="1.167" width="9.333" height="11.667" rx="1.5" stroke="currentColor" strokeWidth="1.3"/><path d="M4.667 4.667h4.667M4.667 7h4.667M4.667 9.333h2.917" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>, text: 'Prontuário eletrônico com voz e IA' },
+              { icon: <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1.167C4.054 1.167 1.167 3.054 1.167 7c0 1.044.275 2.025.756 2.875L1.167 12.833l3.063-.728A5.78 5.78 0 007 12.833c2.946 0 5.833-1.887 5.833-5.833 0-3.946-2.887-5.833-5.833-5.833z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>, text: 'Marketing automático via WhatsApp' },
+            ].map((item, idx) => (
+              <div key={idx} className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-white">{item.icon}</div>
                 <p className="text-white/80 text-sm">{item.text}</p>
               </div>
             ))}
@@ -133,14 +133,14 @@ function LoginForm() {
           {/* Erro global */}
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm">
-              ⚠️ {error}
+              {error}
             </div>
           )}
 
           {/* Email não verificado */}
           {emailNaoVerificado && (
             <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-sm space-y-1">
-              <p className="font-medium">📧 Email não verificado</p>
+              <p className="font-medium">Email não verificado</p>
               <p>Verifique sua caixa de entrada e clique no link que enviamos.</p>
             </div>
           )}
@@ -193,7 +193,11 @@ function LoginForm() {
                   onClick={() => setShowSenha((v) => !v)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-100 hover:text-slate-300 text-sm"
                 >
-                  {showSenha ? '🙈' : '👁️'}
+                  {showSenha ? (
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 8s2.667-4 6-4 6 4 6 4-2.667 4-6 4-6-4-6-4z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/><line x1="2" y1="14" x2="14" y2="2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
+                  ) : (
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 8s2.667-4 6-4 6 4 6 4-2.667 4-6 4-6-4-6-4z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/><circle cx="8" cy="8" r="1.667" stroke="currentColor" strokeWidth="1.3"/></svg>
+                  )}
                 </button>
               </div>
             </div>
@@ -235,7 +239,7 @@ function LoginForm() {
             </p>
             {esqueciOk ? (
               <div className="text-center py-4 space-y-2">
-                <p className="text-2xl">📧</p>
+                <svg width="28" height="28" viewBox="0 0 28 28" fill="none" className="mx-auto text-sage-500"><rect x="2.333" y="5.833" width="23.333" height="16.333" rx="2" stroke="currentColor" strokeWidth="1.8"/><path d="M2.333 8.167L14 16.333l11.667-8.166" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
                 <p className="font-medium text-slate-700">Verifique seu email!</p>
                 <p className="text-sm text-slate-300">Se o email estiver cadastrado, você receberá as instruções.</p>
                 <button onClick={() => { setEsqueciOpen(false); setEsqueciOk(false); }} className="mt-3 text-sage-600 text-sm font-medium">

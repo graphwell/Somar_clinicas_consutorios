@@ -122,7 +122,7 @@ function TabConvenios() {
   if (data.length === 0) {
     return (
       <div className="text-center py-20">
-        <p className="text-2xl mb-3 grayscale opacity-20">🏥</p>
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" className="mx-auto mb-3 opacity-20 text-gray-500"><path d="M4 26V14L14 4l10 10V26H4z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/><path d="M9.5 26V19h9v7" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/><path d="M14 8v5M11.5 10.5h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
         <p className="text-xs text-gray-500 uppercase font-black tracking-widest">Nenhum dado de convênio ainda</p>
       </div>
     );
@@ -133,21 +133,21 @@ function TabConvenios() {
       {/* Summary */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <div className="bg-[#0a0a20]/60 border border-white/5 rounded-3xl p-5 flex items-center gap-4">
-          <div className="w-10 h-10 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-xl">🏥</div>
+          <div className="w-10 h-10 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-400"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2.5 16.5V9.5L9 3l6.5 6.5V16.5H2.5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/><path d="M6 16.5V12h6v4.5" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/></svg></div>
           <div>
             <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest">Planos distintos</p>
             <p className="text-2xl font-black text-emerald-400 mt-0.5">{data.filter((d) => d.id !== '__particular__').length}</p>
           </div>
         </div>
         <div className="bg-[#0a0a20]/60 border border-white/5 rounded-3xl p-5 flex items-center gap-4">
-          <div className="w-10 h-10 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-xl">📋</div>
+          <div className="w-10 h-10 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-400"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="3" y="2.25" width="12" height="13.5" rx="1.5" stroke="currentColor" strokeWidth="1.5"/><path d="M6 6h6M6 9h6M6 12h3.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg></div>
           <div>
             <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest">Atendimentos</p>
             <p className="text-2xl font-black text-indigo-400 mt-0.5">{totalAt}</p>
           </div>
         </div>
         <div className="bg-[#0a0a20]/60 border border-white/5 rounded-3xl p-5 flex items-center gap-4 col-span-2 md:col-span-1">
-          <div className="w-10 h-10 bg-orange-500/10 rounded-2xl flex items-center justify-center text-xl">💰</div>
+          <div className="w-10 h-10 bg-orange-500/10 rounded-2xl flex items-center justify-center text-orange-400"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="1.5" y="3.75" width="15" height="10.5" rx="1.5" stroke="currentColor" strokeWidth="1.5"/><path d="M1.5 7.5H16.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><circle cx="9" cy="11.25" r="1.5" stroke="currentColor" strokeWidth="1.3"/></svg></div>
           <div>
             <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest">Faturamento</p>
             <p className="text-xl font-black text-orange-400 mt-0.5">
@@ -160,7 +160,7 @@ function TabConvenios() {
       {/* Gráfico */}
       <div className="bg-[#0a0a20]/60 border border-white/5 rounded-3xl p-8">
         <h3 className="text-sm font-bold mb-6 flex items-center gap-2 text-white">
-          📊 Atendimentos por convênio
+          Atendimentos por convênio
         </h3>
         <BarChart data={data} />
       </div>
@@ -229,21 +229,21 @@ export default function ReportsPage() {
     {
       label: 'Faturamento Mensal',
       value: stats ? `R$ ${stats.totalFaturado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'R$ 0,00',
-      icon: '💰',
+      icon: <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="1.833" y="4.583" width="18.333" height="12.833" rx="1.833" stroke="currentColor" strokeWidth="1.6"/><path d="M1.833 9.167H20.167" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/><circle cx="11" cy="13.75" r="1.833" stroke="currentColor" strokeWidth="1.4"/></svg>,
       color: 'text-emerald-400',
       bg: 'bg-emerald-500/10'
     },
     {
       label: 'Taxa de Confirmação',
       value: stats ? `${stats.taxaConfirmacao.toFixed(1)}%` : '0%',
-      icon: '✅',
+      icon: <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="8.25" stroke="currentColor" strokeWidth="1.6"/><path d="M7.333 11l2.75 2.75 4.584-4.583" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>,
       color: 'text-indigo-400',
       bg: 'bg-indigo-500/10'
     },
     {
       label: 'Base Coletada',
       value: stats ? `${stats.totalPacientes} ${labels.termoPaciente}s` : `0 ${labels.termoPaciente}s`,
-      icon: '👥',
+      icon: <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="8.25" cy="7.333" r="3.208" stroke="currentColor" strokeWidth="1.6"/><path d="M1.833 18.333c0-3.498 2.875-6.333 6.417-6.333s6.417 2.835 6.417 6.333" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/><circle cx="15.583" cy="7.333" r="2.292" stroke="currentColor" strokeWidth="1.4"/><path d="M18.333 16.5c0-2.278-1.179-4.219-2.978-5.04" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>,
       color: 'text-orange-400',
       bg: 'bg-orange-500/10'
     },
@@ -265,8 +265,8 @@ export default function ReportsPage() {
       {/* Tabs */}
       <div className="flex gap-1 bg-white/5 border border-white/5 rounded-2xl p-1 w-fit">
         {([
-          { key: 'geral', label: '📈 Visão Geral' },
-          { key: 'convenios', label: '🏥 Convênios' },
+          { key: 'geral', label: 'Visão Geral' },
+          { key: 'convenios', label: 'Convênios' },
         ] as { key: Tab; label: string }[]).map((t) => (
           <button
             key={t.key}
@@ -308,7 +308,7 @@ export default function ReportsPage() {
               <div className="bg-[#0a0a20]/60 border border-white/5 rounded-3xl p-8 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 blur-[100px] pointer-events-none" />
                 <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-                  🏆 Faturamento por {labels.termoServico}
+                  Faturamento por {labels.termoServico}
                 </h3>
                 <div className="space-y-4">
                   {loading ? (
@@ -339,7 +339,7 @@ export default function ReportsPage() {
               </div>
 
               <div className="bg-[#0a0a20]/60 border border-white/5 rounded-3xl p-8">
-                <h3 className="text-lg font-bold mb-6 flex items-center gap-2">📂 Arquivos para Exportação</h3>
+                <h3 className="text-lg font-bold mb-6 flex items-center gap-2">Arquivos para Exportação</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {[
                     { label: 'Relatório de Clientes', desc: 'Base completa em CSV', api: '/api/export/clientes', color: 'bg-indigo-500/10 text-indigo-400' },
@@ -364,7 +364,7 @@ export default function ReportsPage() {
               <div className="bg-gradient-to-br from-[#1a1a40] to-[#0a0a20] border border-[#4a4ae2]/20 rounded-3xl p-6 shadow-xl relative overflow-hidden group">
                 <div className="absolute -top-10 -right-10 w-32 h-32 bg-[#4a4ae2]/20 rounded-full blur-3xl" />
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-xl">🧠</div>
+                  <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="3" y="6" width="12" height="9" rx="2" stroke="currentColor" strokeWidth="1.5"/><path d="M6 6V5a3 3 0 016 0v1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><circle cx="6.5" cy="10.5" r="1" fill="currentColor"/><circle cx="11.5" cy="10.5" r="1" fill="currentColor"/><path d="M7 13h4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg></div>
                   <div>
                     <h4 className="font-black text-sm uppercase tracking-wider text-white">Insight da Synka</h4>
                     <p className="text-[10px] text-[#a0a0ff] font-bold tracking-widest">IA ANALYTICS</p>

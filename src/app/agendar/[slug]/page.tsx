@@ -55,7 +55,7 @@ function StepIndicator({ current, steps, stepLabels }: { current: Step; steps: S
               ${i < idx ? 'bg-emerald-500 border-emerald-500 text-white' :
                 i === idx ? 'bg-primary border-primary text-white shadow-lg shadow-primary/30' :
                 'bg-white border-slate-200 text-slate-400'}`}>
-              {i < idx ? '✓' : i + 1}
+              {i < idx ? <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg> : i + 1}
             </div>
             <span className="text-[8px] font-black uppercase tracking-wider text-slate-500 hidden sm:block">{stepLabels[s]}</span>
           </div>
@@ -228,7 +228,7 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
         <div className="text-center max-w-sm">
-          <p className="text-5xl mb-4">🔍</p>
+          <div className="flex justify-center mb-4"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
           <p className="font-black text-slate-600 uppercase tracking-tight">{erro || 'Estabelecimento não encontrado'}</p>
         </div>
       </div>
@@ -300,7 +300,7 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
                   </div>
                   <div className="text-right shrink-0">
                     <p className="font-black text-slate-800 text-lg">R$ {s.preco.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                    <p className="text-[10px] text-slate-400 font-black">⏱ {s.duracaoMinutos} min</p>
+                    <p className="text-[10px] text-slate-400 font-black">{s.duracaoMinutos} min</p>
                   </div>
                 </div>
               </button>
@@ -391,7 +391,7 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
               <div className="py-16 text-center text-[11px] font-black uppercase tracking-widest text-slate-400 animate-pulse">Buscando horários...</div>
             ) : slots.length === 0 ? (
               <div className="py-16 text-center">
-                <p className="text-3xl mb-3">📅</p>
+                <div className="flex justify-center mb-3"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
                 <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">Sem horários disponíveis nesta data</p>
                 <button onClick={() => setStep('data')} className="mt-4 text-[10px] font-black uppercase tracking-widest text-indigo-500 hover:underline">Escolher outra data</button>
               </div>
@@ -483,8 +483,8 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
         {/* ETAPA 6: Confirmação */}
         {step === 'confirmacao' && agendamentoCriado && (
           <div className="text-center space-y-8 py-8">
-            <div className="w-24 h-24 rounded-full bg-emerald-50 border-4 border-emerald-500 flex items-center justify-center text-4xl mx-auto shadow-xl shadow-emerald-100">
-              ✓
+            <div className="w-24 h-24 rounded-full bg-emerald-50 border-4 border-emerald-500 flex items-center justify-center mx-auto shadow-xl shadow-emerald-100">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
             </div>
             <div>
               <h2 className="text-3xl font-black uppercase tracking-tight text-slate-800 mb-2">Agendado!</h2>
@@ -530,7 +530,7 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
               {comboAceito && (
                 <div className="mt-3 pt-3 border-t border-slate-50">
                   <div className="flex items-start gap-3 p-3 bg-indigo-50 rounded-2xl border border-indigo-100">
-                    <span className="text-lg">✨</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                     <div>
                       <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Combo adicionado</p>
                       <p className="text-[12px] font-black text-slate-700 mt-0.5">{comboAceito.nome}</p>
@@ -575,8 +575,8 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
             {/* Header */}
             <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-6 text-white">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center text-xl">
-                  💡
+                <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                 </div>
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest opacity-80">Oferta especial</p>

@@ -111,6 +111,42 @@ export async function GET(request: Request) {
       };
     }
 
+    // 5. Evolução dos últimos 7 dias (sparkline)
+    const sevenDaysAgo = new Date(targetDateStart);
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+
+    const last7Appointments = await prisma.agendamento.findMany({
+      where: {
+        tenantId: tenantId as string,
+        dataHora: { gte: sevenDaysAgo, lte: targetDateEnd },
+        status: { not: 'cancelado' },
+      },
+      select: { dataHora: true },
+    });
+
+    const last7Transactions = await prisma.transacaoFinanceira.findMany({
+      where: {
+        tenantId: tenantId as string,
+        createdAt: { gte: sevenDaysAgo, lte: targetDateEnd },
+        tipo: 'income',
+        status: { in: ['pending', 'previsto', 'realizado'] },
+      },
+      select: { createdAt: true, valor: true },
+    });
+
+    const base = sevenDaysAgo.getTime();
+    const evolucaoAtendimentos = Array(7).fill(0);
+    const evolucaoFaturamento = Array(7).fill(0);
+
+    for (const appt of last7Appointments) {
+      const idx = Math.floor((new Date(appt.dataHora).setHours(0,0,0,0) - base) / 86400000);
+      if (idx >= 0 && idx < 7) evolucaoAtendimentos[idx]++;
+    }
+    for (const tx of last7Transactions) {
+      const idx = Math.floor((new Date(tx.createdAt).setHours(0,0,0,0) - base) / 86400000);
+      if (idx >= 0 && idx < 7) evolucaoFaturamento[idx] += tx.valor || 0;
+    }
+
     return NextResponse.json({
       success: true,
       data: {
@@ -119,6 +155,8 @@ export async function GET(request: Request) {
         totalAtendimentos,
         taxaOcupacao: ocupacao,
         horariosLivres,
+        evolucaoAtendimentos,
+        evolucaoFaturamento,
         ...extraStats
       }
     });

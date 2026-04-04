@@ -2,7 +2,10 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { IconAgenda, IconPacientes, IconStethoscope, IconMore } from "@/components/icons/NavIcons";
+import {
+  IconAgenda, IconPacientes, IconStethoscope, IconMore,
+  IconEquipe, IconServicos, IconFinanceiro, IconRelatorios, IconCampanhas, IconConfiguracoes,
+} from "@/components/icons/NavIcons";
 
 interface NavItem {
   href: string;
@@ -40,22 +43,22 @@ export default function BottomNav() {
             </p>
             <div className="grid grid-cols-3 gap-px bg-warm-200">
               {[
-                { href: "/dashboard/appointments",  label: "Atendimentos",   icon: "📋" },
-                { href: "/dashboard/team",         label: "Equipe",         icon: "🧑‍💼" },
-                { href: "/dashboard/services",      label: "Serviços",       icon: "📦" },
-                { href: "/dashboard/finance",       label: "Financeiro",     icon: "💰" },
-                { href: "/dashboard/reports",       label: "Relatórios",     icon: "📊" },
-                { href: "/dashboard/marketing/campaigns", label: "Marketing", icon: "📢" },
-                { href: "/dashboard/settings",      label: "Configurações",  icon: "⚙️" },
+                { href: "/dashboard/appointments",       label: "Atendimentos",  Icon: IconStethoscope },
+                { href: "/dashboard/team",               label: "Equipe",        Icon: IconEquipe },
+                { href: "/dashboard/services",           label: "Serviços",      Icon: IconServicos },
+                { href: "/dashboard/finance",            label: "Financeiro",    Icon: IconFinanceiro },
+                { href: "/dashboard/reports",            label: "Relatórios",    Icon: IconRelatorios },
+                { href: "/dashboard/marketing/campaigns",label: "Marketing",     Icon: IconCampanhas },
+                { href: "/dashboard/settings",           label: "Configurações", Icon: IconConfiguracoes },
               ].map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
                   onClick={() => setMoreOpen(false)}
-                  className="flex flex-col items-center gap-1 py-4 bg-white hover:bg-warm-100 transition-colors"
+                  className="flex flex-col items-center gap-1 py-4 bg-white hover:bg-warm-100 transition-colors text-slate-300"
                 >
-                  <span className="text-2xl">{item.icon}</span>
-                  <span className="text-[10px] text-slate-300">{item.label}</span>
+                  <item.Icon />
+                  <span className="text-[10px]">{item.label}</span>
                 </Link>
               ))}
             </div>

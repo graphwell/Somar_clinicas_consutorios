@@ -44,7 +44,7 @@ function WhatsAppBubble({ mensagem }: { mensagem: string }) {
   return (
     <div className="bg-[#128C7E]/5 border border-[#128C7E]/20 rounded-2xl p-4 space-y-3">
       <p className="text-[9px] font-black text-[#128C7E] uppercase tracking-widest flex items-center gap-2">
-        <span>💬</span> Pré-visualização WhatsApp
+        Pré-visualização WhatsApp
       </p>
       <div className="bg-[#DCF8C6] rounded-2xl rounded-tl-none px-4 py-3 max-w-[90%] shadow-sm">
         <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed font-medium">{mensagem}</p>
@@ -212,7 +212,7 @@ export default function MarketingPage() {
       const res = await fetchWithAuth('/api/marketing/send-aniversario', { method: 'POST', body: JSON.stringify({ pacienteId }) });
       const data = await res.json();
       if (data.success) {
-        showToast('Mensagem enviada! 🎂');
+        showToast('Mensagem enviada!');
         setAniversariantes(prev => prev.map(a => a.id === pacienteId ? { ...a, mensagemEnviada: true } : a));
       } else showToast(data.error || 'Erro ao enviar', false);
     } finally { setSendingId(null); }
@@ -310,7 +310,7 @@ export default function MarketingPage() {
     setSendingId(showEnviarCombo.id);
     const res = await fetchWithAuth(`/api/marketing/combos/${showEnviarCombo.id}`, { method: 'POST', body: JSON.stringify({ pacienteId: comboPacienteSel.id }) });
     const data = await res.json();
-    if (data.success) { showToast('Combo enviado! ✨'); setShowEnviarCombo(null); setComboPacienteSel(null); setComboPacienteBusca(''); }
+    if (data.success) { showToast('Combo enviado!'); setShowEnviarCombo(null); setComboPacienteSel(null); setComboPacienteBusca(''); }
     else showToast(data.error || 'Erro', false);
     setSendingId(null);
   };
@@ -374,12 +374,12 @@ export default function MarketingPage() {
     : (config?._temApiKey ? 'idle' : 'nao_configurado');
 
   const TABS = [
-    { id: 'lembretes', label: '⏰ Lembretes' },
-    { id: 'aniversarios', label: '🎂 Aniversários' },
-    { id: 'combos', label: '✨ Combos' },
-    { id: 'campanhas', label: '📢 Campanhas' },
-    { id: 'config', label: '⚙️ Configurações' },
-    { id: 'log', label: '📋 Log' },
+    { id: 'lembretes', label: 'Lembretes' },
+    { id: 'aniversarios', label: 'Aniversários' },
+    { id: 'combos', label: 'Combos' },
+    { id: 'campanhas', label: 'Campanhas' },
+    { id: 'config', label: 'Configurações' },
+    { id: 'log', label: 'Log' },
   ] as const;
 
   const lembretePreview = processarTemplate(
@@ -404,7 +404,7 @@ export default function MarketingPage() {
       {/* Toast */}
       {toast && (
         <div className={`fixed top-6 right-6 z-[200] px-6 py-4 rounded-2xl text-sm font-black shadow-2xl animate-in slide-in-from-top-4 duration-300 ${toast.ok ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'}`}>
-          {toast.ok ? '✓' : '✗'} {toast.msg}
+          {toast.msg}
         </div>
       )}
 
@@ -502,10 +502,10 @@ export default function MarketingPage() {
                             {new Date(ag.dataHora).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' })} às {new Date(ag.dataHora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                             {ag.servico && ` · ${ag.servico}`}
                           </p>
-                          {!ag.paciente.telefone && <p className="text-[10px] text-red-400 font-medium">⚠ Sem telefone cadastrado</p>}
+                          {!ag.paciente.telefone && <p className="text-[10px] text-red-400 font-medium">Sem telefone cadastrado</p>}
                         </div>
                         {ag.lembreteEnviado ? (
-                          <span className="text-[10px] font-black text-emerald-500 bg-emerald-500/10 px-3 py-1.5 rounded-xl">✓ Enviado</span>
+                          <span className="text-[10px] font-black text-emerald-500 bg-emerald-500/10 px-3 py-1.5 rounded-xl">Enviado</span>
                         ) : (
                           <button onClick={() => handleEnviarLembrete(ag.id)} disabled={sendingId === ag.id || !ag.paciente.telefone}
                             className="px-4 py-2 bg-[var(--accent)]/10 hover:bg-[var(--accent)]/20 text-[var(--accent)] rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-40 transition-all">
@@ -568,13 +568,13 @@ export default function MarketingPage() {
               <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] overflow-hidden shadow-sm">
                 <div className="p-6 border-b border-[var(--border)] flex justify-between items-center">
                   <div>
-                    <h4 className="font-black text-[var(--foreground)] tracking-tight">Aniversariantes de hoje 🎂</h4>
+                    <h4 className="font-black text-[var(--foreground)] tracking-tight">Aniversariantes de hoje</h4>
                     <p className="text-xs text-[var(--text-muted)] font-medium mt-0.5">{aniversariantes.length} {labels.cliente.toLowerCase()}{aniversariantes.length !== 1 ? 's' : ''}</p>
                   </div>
                   {aniversariantes.filter(a => !a.mensagemEnviada).length > 0 && (
                     <button onClick={handleEnviarTodosAniversarios} disabled={sendingAll}
                       className="px-5 py-2.5 bg-emerald-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest disabled:opacity-50 shadow-lg shadow-emerald-500/20">
-                      {sendingAll ? 'Enviando...' : `🎂 Enviar para todos`}
+                      {sendingAll ? 'Enviando...' : 'Enviar para todos'}
                     </button>
                   )}
                 </div>
@@ -589,11 +589,11 @@ export default function MarketingPage() {
                           <p className="text-xs text-[var(--text-muted)] font-medium">{a.telefone || 'Sem telefone'}</p>
                         </div>
                         {a.mensagemEnviada ? (
-                          <span className="text-[10px] font-black text-emerald-500 bg-emerald-500/10 px-3 py-1.5 rounded-xl">✓ Enviado</span>
+                          <span className="text-[10px] font-black text-emerald-500 bg-emerald-500/10 px-3 py-1.5 rounded-xl">Enviado</span>
                         ) : (
                           <button onClick={() => handleEnviarAniversario(a.id)} disabled={sendingId === a.id || !a.telefone}
                             className="px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 rounded-xl text-[10px] font-black uppercase disabled:opacity-40 transition-all">
-                            {sendingId === a.id ? '...' : '🎂 Enviar'}
+                            {sendingId === a.id ? '...' : 'Enviar'}
                           </button>
                         )}
                       </div>
@@ -621,7 +621,7 @@ export default function MarketingPage() {
 
               {combos.length === 0 ? (
                 <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] p-14 text-center">
-                  <div className="text-5xl mb-4">✨</div>
+                  <div className="mb-4 flex justify-center opacity-20"><svg width="40" height="40" viewBox="0 0 40 40" fill="none"><path d="M20 5l3.09 9.51H33l-8.09 5.88 3.09 9.51L20 24.02l-8 6.88 3.09-9.51L7 15.51h9.91L20 5z" stroke="#40916C" strokeWidth="2" strokeLinejoin="round"/></svg></div>
                   <p className="font-black text-[var(--text-muted)] uppercase tracking-widest text-xs">Nenhum combo criado</p>
                   <p className="text-xs text-[var(--text-muted)] mt-2 font-medium">Crie combos de serviços com desconto para oferecer aos {labels.cliente.toLowerCase()}s</p>
                 </div>
@@ -646,9 +646,9 @@ export default function MarketingPage() {
                           {c.descontoPct && <p className="text-[10px] font-black text-emerald-500">{c.descontoPct}% OFF · {c.validadeDias} dias</p>}
                         </div>
                         <div className="flex gap-2">
-                          <button onClick={() => setShowEnviarCombo(c)} className="p-2.5 bg-[var(--accent)]/10 hover:bg-[var(--accent)]/20 text-[var(--accent)] rounded-xl text-sm transition-all" title="Enviar para cliente">📤</button>
-                          <button onClick={() => openEditCombo(c)} className="p-2.5 bg-[var(--foreground)]/5 hover:bg-[var(--foreground)]/10 rounded-xl text-sm transition-all" title="Editar">✏️</button>
-                          <button onClick={() => handleDeleteCombo(c.id)} className="p-2.5 bg-red-500/5 hover:bg-red-500/10 text-red-400 rounded-xl text-sm transition-all" title="Excluir">🗑</button>
+                          <button onClick={() => setShowEnviarCombo(c)} className="p-2.5 bg-[var(--accent)]/10 hover:bg-[var(--accent)]/20 text-[var(--accent)] rounded-xl transition-all" title="Enviar para cliente"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 6-12 6V8.5l8-1.5-8-1.5V1z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
+                          <button onClick={() => openEditCombo(c)} className="p-2.5 bg-[var(--foreground)]/5 hover:bg-[var(--foreground)]/10 rounded-xl transition-all" title="Editar"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9.917 1.75l2.333 2.333L4.083 12.25H1.75V9.917L9.917 1.75z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
+                          <button onClick={() => handleDeleteCombo(c.id)} className="p-2.5 bg-red-500/5 hover:bg-red-500/10 text-red-400 rounded-xl transition-all" title="Excluir"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1.167 3.5h11.667M5.25 3.5V2.333h3.5V3.5M4.667 9.917V5.833M9.333 9.917V5.833M2.917 3.5l.583 8.167h7l.583-8.167" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
                         </div>
                       </div>
                     </div>
@@ -670,14 +670,14 @@ export default function MarketingPage() {
 
               {campanhas.length === 0 ? (
                 <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] p-14 text-center">
-                  <div className="text-5xl mb-4">📢</div>
+                  <div className="mb-4 flex justify-center opacity-20"><svg width="40" height="40" viewBox="0 0 40 40" fill="none"><path d="M5 15h5l15-8v26L10 25H5a3 3 0 01-3-3v-4a3 3 0 013-3z" stroke="#40916C" strokeWidth="2" strokeLinejoin="round"/><path d="M10 25v8" stroke="#40916C" strokeWidth="2" strokeLinecap="round"/></svg></div>
                   <p className="font-black text-[var(--text-muted)] uppercase tracking-widest text-xs">Nenhuma campanha criada</p>
                 </div>
               ) : (
                 <div className="space-y-4">
                   {campanhas.map(c => {
                     const statusMap: Record<string, string> = { rascunho: 'bg-[var(--foreground)]/10 text-[var(--text-muted)]', enviando: 'bg-yellow-500/10 text-yellow-500', concluida: 'bg-emerald-500/10 text-emerald-500', erro: 'bg-red-500/10 text-red-400' };
-                    const tipoMap: Record<string, string> = { todos: '👥 Todos', aniversariantes: '🎂 Aniversariantes', inativos: '💤 Inativos', servico: '🔧 Serviço' };
+                    const tipoMap: Record<string, string> = { todos: 'Todos', aniversariantes: 'Aniversariantes', inativos: 'Inativos', servico: 'Serviço' };
                     return (
                       <div key={c.id} className="bg-[var(--card-bg)] border border-[var(--border)] rounded-[2rem] p-6 space-y-4 shadow-sm hover:border-[var(--accent)]/30 transition-all">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -704,13 +704,13 @@ export default function MarketingPage() {
                             <div className="h-2 bg-[var(--foreground)]/5 rounded-full overflow-hidden">
                               <div className="h-full bg-[var(--accent)] rounded-full transition-all" style={{ width: `${((dispatchProgress.enviados + dispatchProgress.erros) / Math.max(1, dispatchProgress.total)) * 100}%` }} />
                             </div>
-                            <p className="text-[10px] text-emerald-500 font-medium">✓ {dispatchProgress.enviados} enviados{dispatchProgress.erros > 0 ? ` · ✗ ${dispatchProgress.erros} erros` : ''}</p>
+                            <p className="text-[10px] text-emerald-500 font-medium">{dispatchProgress.enviados} enviados{dispatchProgress.erros > 0 ? ` · ${dispatchProgress.erros} erros` : ''}</p>
                           </div>
                         )}
                         {c.status === 'concluida' && (
                           <p className="text-xs font-medium">
-                            <span className="text-emerald-500 font-black">✓ {c.totalEnviados} enviados</span>
-                            {c.totalErros > 0 && <span className="text-red-400 font-black ml-3">✗ {c.totalErros} erros</span>}
+                            <span className="text-emerald-500 font-black">{c.totalEnviados} enviados</span>
+                            {c.totalErros > 0 && <span className="text-red-400 font-black ml-3">{c.totalErros} erros</span>}
                           </p>
                         )}
                       </div>
@@ -731,10 +731,10 @@ export default function MarketingPage() {
                   {config && (() => {
                     const s = config._instanciaStatus;
                     const badges = {
-                      instancia: { icon: '🟢', label: 'Instância vinculada', cls: 'bg-emerald-500/10 text-emerald-600 border-emerald-200' },
-                      propria:   { icon: '🟢', label: 'API Key própria', cls: 'bg-emerald-500/10 text-emerald-600 border-emerald-200' },
-                      demo:      { icon: '🟡', label: 'Instância demo', cls: 'bg-amber-500/10 text-amber-600 border-amber-200' },
-                      nenhuma:   { icon: '🔴', label: 'Não configurada', cls: 'bg-red-500/10 text-red-600 border-red-200' },
+                      instancia: { icon: '●', label: 'Instância vinculada', cls: 'bg-emerald-500/10 text-emerald-600 border-emerald-200' },
+                      propria:   { icon: '●', label: 'API Key própria', cls: 'bg-emerald-500/10 text-emerald-600 border-emerald-200' },
+                      demo:      { icon: '●', label: 'Instância demo', cls: 'bg-amber-500/10 text-amber-600 border-amber-200' },
+                      nenhuma:   { icon: '●', label: 'Não configurada', cls: 'bg-red-500/10 text-red-600 border-red-200' },
                     };
                     const b = badges[s ?? 'nenhuma'];
                     return (
@@ -748,7 +748,7 @@ export default function MarketingPage() {
                 {/* Aviso de modo demo */}
                 {config?._forceDemo && (
                   <div className="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-500/10 rounded-2xl border border-amber-200 dark:border-amber-500/30">
-                    <span className="text-lg shrink-0">⚠️</span>
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="shrink-0 text-amber-500"><path d="M9 1.5L16.5 15H1.5L9 1.5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M9 7v3M9 12h.008" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
                     <div>
                       <p className="text-[10px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-widest">Modo Demo Forçado</p>
                       <p className="text-[11px] text-amber-600 dark:text-amber-500 mt-0.5">MARKETING_DEMO_MODE=true — todos os envios usam a instância demo, ignorando API Keys de clínicas.</p>
@@ -778,7 +778,7 @@ export default function MarketingPage() {
                   <div className="border border-dashed border-amber-300 dark:border-amber-500/40 rounded-2xl p-5 space-y-3">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest">🧪 Instância Demo Compartilhada</p>
+                        <p className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest">Instância Demo Compartilhada</p>
                         <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Use apenas para homologação. Não envie mensagens reais de pacientes por esta instância.</p>
                       </div>
                     </div>
@@ -799,10 +799,10 @@ export default function MarketingPage() {
                       disabled={testandoDemo}
                       className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors disabled:opacity-50"
                     >
-                      {testandoDemo ? '⏳ Enviando...' : '📨 Testar instância demo'}
+                      {testandoDemo ? 'Enviando...' : 'Testar instância demo'}
                     </button>
-                    {statusDemo === 'ok' && <p className="text-[10px] font-black text-emerald-600">✓ Mensagem de teste enviada!</p>}
-                    {statusDemo === 'erro' && <p className="text-[10px] font-black text-red-500">✗ Erro ao enviar. Verifique os logs.</p>}
+                    {statusDemo === 'ok' && <p className="text-[10px] font-black text-emerald-600">Mensagem de teste enviada!</p>}
+                    {statusDemo === 'erro' && <p className="text-[10px] font-black text-red-500">Erro ao enviar. Verifique os logs.</p>}
                   </div>
                 )}
 
@@ -833,16 +833,16 @@ export default function MarketingPage() {
                 <select value={filtroTipo} onChange={e => { setFiltroTipo(e.target.value); setPageLog(1); }}
                   className="bg-[var(--card-bg)] border border-[var(--border)] rounded-2xl px-4 py-2.5 text-xs font-black focus:outline-none focus:border-[var(--accent)]">
                   <option value="">Todos os tipos</option>
-                  <option value="lembrete">⏰ Lembrete</option>
-                  <option value="aniversario">🎂 Aniversário</option>
-                  <option value="combo">✨ Combo</option>
-                  <option value="campanha">📢 Campanha</option>
+                  <option value="lembrete">Lembrete</option>
+                  <option value="aniversario">Aniversário</option>
+                  <option value="combo">Combo</option>
+                  <option value="campanha">Campanha</option>
                 </select>
                 <select value={filtroStatus} onChange={e => { setFiltroStatus(e.target.value); setPageLog(1); }}
                   className="bg-[var(--card-bg)] border border-[var(--border)] rounded-2xl px-4 py-2.5 text-xs font-black focus:outline-none focus:border-[var(--accent)]">
                   <option value="">Todos os status</option>
-                  <option value="enviado">✓ Enviado</option>
-                  <option value="erro">✗ Erro</option>
+                  <option value="enviado">Enviado</option>
+                  <option value="erro">Erro</option>
                 </select>
                 <span className="text-xs text-[var(--text-muted)] font-medium self-center">{totalEnvios} registro{totalEnvios !== 1 ? 's' : ''}</span>
               </div>
@@ -866,17 +866,16 @@ export default function MarketingPage() {
                         </thead>
                         <tbody className="divide-y divide-[var(--border)]">
                           {envios.map(e => {
-                            const tipoIcon: Record<string, string> = { lembrete: '⏰', aniversario: '🎂', combo: '✨', campanha: '📢' };
                             return (
                               <tr key={e.id} className="hover:bg-[var(--foreground)]/[0.01] transition-colors">
                                 <td className="px-5 py-3.5">
-                                  <span className="text-[9px] font-black bg-[var(--foreground)]/5 px-2 py-1 rounded-lg">{tipoIcon[e.tipo] ?? '📩'} {e.tipo}</span>
+                                  <span className="text-[9px] font-black bg-[var(--foreground)]/5 px-2 py-1 rounded-lg">{e.tipo}</span>
                                 </td>
                                 <td className="px-5 py-3.5 text-xs font-medium text-[var(--foreground)]">{e.clienteNome || '—'}</td>
                                 <td className="px-5 py-3.5 text-xs text-[var(--text-muted)] font-medium">{e.clienteTelefone}</td>
                                 <td className="px-5 py-3.5">
                                   <span className={`text-[9px] font-black px-2 py-1 rounded-lg ${e.status === 'enviado' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-400'}`}>
-                                    {e.status === 'enviado' ? '✓' : '✗'} {e.status}
+                                    {e.status}
                                   </span>
                                   {e.erroDetalhe && <p className="text-[9px] text-red-400 mt-1 max-w-[120px] truncate" title={e.erroDetalhe}>{e.erroDetalhe}</p>}
                                 </td>
@@ -932,10 +931,10 @@ export default function MarketingPage() {
           <div className="bg-gradient-to-br from-[var(--sidebar-bg)] to-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] p-6 space-y-3 shadow-sm">
             <p className="font-black text-[10px] uppercase tracking-widest text-[var(--text-muted)] opacity-70">Ações Rápidas</p>
             {[
-              { label: '⏰ Ver lembretes pendentes', action: () => setTab('lembretes') },
-              { label: '🎂 Ver aniversariantes', action: () => setTab('aniversarios') },
-              { label: '📢 Nova campanha', action: () => { setTab('campanhas'); setShowNovaCampanha(true); } },
-              { label: '✨ Novo combo', action: () => { setTab('combos'); openNovoCombo(); } },
+              { label: 'Ver lembretes pendentes', action: () => setTab('lembretes') },
+              { label: 'Ver aniversariantes', action: () => setTab('aniversarios') },
+              { label: 'Nova campanha', action: () => { setTab('campanhas'); setShowNovaCampanha(true); } },
+              { label: 'Novo combo', action: () => { setTab('combos'); openNovoCombo(); } },
             ].map(item => (
               <button key={item.label} onClick={item.action}
                 className="w-full p-3.5 bg-[var(--foreground)]/5 hover:bg-[var(--foreground)]/10 text-left rounded-2xl text-[10px] text-[var(--text-muted)] hover:text-[var(--foreground)] transition-all border border-[var(--border)] font-black uppercase tracking-widest">
@@ -953,7 +952,7 @@ export default function MarketingPage() {
           <div className="relative w-full max-w-lg bg-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] p-8 shadow-2xl animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto space-y-5">
             <div className="flex justify-between items-center">
               <h3 className="text-xl font-black text-[var(--foreground)]">{editCombo ? 'Editar Combo' : 'Novo Combo'}</h3>
-              <button onClick={() => setShowNovoCombo(false)} className="w-10 h-10 flex items-center justify-center rounded-2xl hover:bg-[var(--foreground)]/5 text-[var(--text-muted)] font-black">✕</button>
+              <button onClick={() => setShowNovoCombo(false)} className="w-10 h-10 flex items-center justify-center rounded-2xl hover:bg-[var(--foreground)]/5 text-[var(--text-muted)]"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M9 3L3 9M3 3l6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg></button>
             </div>
 
             {[
@@ -1017,7 +1016,7 @@ export default function MarketingPage() {
 
             <button onClick={handleSaveCombo} disabled={savingCombo || !comboForm.nome || !comboForm.precoCombo || comboForm.servicos.length === 0}
               className="w-full py-4 bg-[var(--accent)] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-[var(--accent)]/20 disabled:opacity-50 transition-all">
-              {savingCombo ? 'Salvando...' : editCombo ? '✓ Atualizar Combo' : '✨ Criar Combo'}
+              {savingCombo ? 'Salvando...' : editCombo ? 'Atualizar Combo' : 'Criar Combo'}
             </button>
           </div>
         </div>
@@ -1053,7 +1052,7 @@ export default function MarketingPage() {
             </div>
             <button onClick={handleEnviarCombo} disabled={!comboPacienteSel || sendingId === showEnviarCombo.id}
               className="w-full py-4 bg-[var(--accent)] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-[var(--accent)]/20 disabled:opacity-50 transition-all">
-              {sendingId === showEnviarCombo.id ? 'Enviando...' : '📤 Enviar via WhatsApp'}
+              {sendingId === showEnviarCombo.id ? 'Enviando...' : 'Enviar via WhatsApp'}
             </button>
           </div>
         </div>
@@ -1066,7 +1065,7 @@ export default function MarketingPage() {
           <div className="relative w-full max-w-lg bg-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] p-8 shadow-2xl animate-in zoom-in-95 duration-200 space-y-5">
             <div className="flex justify-between items-center">
               <h3 className="text-xl font-black text-[var(--foreground)]">Nova Campanha</h3>
-              <button onClick={() => { setShowNovaCampanha(false); setAlcance(null); }} className="w-10 h-10 flex items-center justify-center rounded-2xl hover:bg-[var(--foreground)]/5 text-[var(--text-muted)] font-black">✕</button>
+              <button onClick={() => { setShowNovaCampanha(false); setAlcance(null); }} className="w-10 h-10 flex items-center justify-center rounded-2xl hover:bg-[var(--foreground)]/5 text-[var(--text-muted)]"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M9 3L3 9M3 3l6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg></button>
             </div>
 
             <div className="space-y-1.5">
@@ -1079,10 +1078,10 @@ export default function MarketingPage() {
               <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Público-alvo</label>
               <select value={novaCamp.tipo} onChange={e => { setNovaCamp(p => ({ ...p, tipo: e.target.value })); setAlcance(null); }}
                 className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-4 py-4 text-sm focus:outline-none focus:border-[var(--accent)] font-medium">
-                <option value="todos">👥 Todos os {labels.cliente.toLowerCase()}s</option>
-                <option value="aniversariantes">🎂 Aniversariantes de hoje</option>
-                <option value="inativos">💤 Inativos há X dias</option>
-                <option value="servico">🔧 Por serviço</option>
+                <option value="todos">Todos os {labels.cliente.toLowerCase()}s</option>
+                <option value="aniversariantes">Aniversariantes de hoje</option>
+                <option value="inativos">Inativos há X dias</option>
+                <option value="servico">Por serviço</option>
               </select>
             </div>
 
@@ -1106,7 +1105,7 @@ export default function MarketingPage() {
             <div className="flex items-center gap-3">
               <button onClick={handleEstimarAlcance} disabled={estimando}
                 className="px-5 py-2.5 bg-[var(--foreground)]/5 hover:bg-[var(--foreground)]/10 border border-[var(--border)] rounded-2xl text-[10px] font-black uppercase tracking-widest disabled:opacity-50 transition-all">
-                {estimando ? 'Estimando...' : '📊 Estimar alcance'}
+                {estimando ? 'Estimando...' : 'Estimar alcance'}
               </button>
               {alcance !== null && (
                 <div className="flex items-center gap-2 px-4 py-2.5 bg-[var(--accent)]/10 border border-[var(--accent)]/20 rounded-2xl">
@@ -1125,7 +1124,7 @@ export default function MarketingPage() {
 
             <button onClick={handleCriarCampanha} disabled={!novaCamp.nome || !novaCamp.template}
               className="w-full py-4 bg-[var(--accent)] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-[var(--accent)]/20 disabled:opacity-50 transition-all">
-              ✅ Criar Campanha
+              Criar Campanha
             </button>
           </div>
         </div>
@@ -1148,7 +1147,11 @@ function WaSenderKeyInput({ value, onChange, temKey }: { value: string; onChange
       />
       <button type="button" onClick={() => setShow(p => !p)}
         className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--foreground)] text-sm transition-colors p-1">
-        {show ? '🙈' : '👁'}
+        {show ? (
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1.75 7s2.333-3.5 5.25-3.5S12.25 7 12.25 7s-2.333 3.5-5.25 3.5S1.75 7 1.75 7z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/><line x1="1.75" y1="12.25" x2="12.25" y2="1.75" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
+        ) : (
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1.75 7s2.333-3.5 5.25-3.5S12.25 7 12.25 7s-2.333 3.5-5.25 3.5S1.75 7 1.75 7z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/><circle cx="7" cy="7" r="1.458" stroke="currentColor" strokeWidth="1.3"/></svg>
+        )}
       </button>
     </div>
   );

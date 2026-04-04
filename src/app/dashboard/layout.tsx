@@ -3,7 +3,6 @@ import React, { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { NichoProvider, useNicho } from "@/context/NichoContext";
 import { fetchWithAuth, getAuthToken } from "@/lib/api-utils";
-import SynkaChatModal from "@/components/dashboard/SynkaChatModal";
 import Sidebar from "@/components/layout/Sidebar";
 import Topbar from "@/components/layout/Topbar";
 import BottomNav from "@/components/layout/BottomNav";
@@ -140,9 +139,6 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
         {/* Bottom Nav mobile */}
         <BottomNav />
-
-        {/* Chat IA flutuante */}
-        <SynkaChatModal />
       </div>
     </ToastProvider>
   );

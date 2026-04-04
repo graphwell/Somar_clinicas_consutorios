@@ -107,10 +107,16 @@ export default function SynkaPanel({ profissionais, data, collapsed = false }: P
         <div className="flex items-center gap-2.5">
           {/* Avatar Synka */}
           <div
-            className="w-8 h-8 rounded-xl flex items-center justify-center text-sm shrink-0"
+            className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-white"
             style={{ background: "linear-gradient(135deg,#40916C,#52B788)" }}
           >
-            🤖
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <rect x="2" y="5" width="12" height="8" rx="2" stroke="currentColor" strokeWidth="1.5"/>
+              <path d="M5 5V4a3 3 0 016 0v1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              <circle cx="5.5" cy="9" r="1" fill="currentColor"/>
+              <circle cx="10.5" cy="9" r="1" fill="currentColor"/>
+              <path d="M6 11.5h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
           </div>
           <div className="text-left">
             <p className="text-sm font-medium text-slate-700">Synka IA</p>
@@ -167,7 +173,10 @@ export default function SynkaPanel({ profissionais, data, collapsed = false }: P
                   className="bg-warm-100 border border-warm-200 rounded-lg p-3"
                 >
                   <div className="flex items-start gap-2">
-                    <span className="text-sm shrink-0">{ins.icone || "💡"}</span>
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 mt-0.5 text-sage-500">
+                      <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1.5"/>
+                      <path d="M7 4.5v3M7 9.5h.007" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                    </svg>
                     <p className="text-[12px] text-slate-700 leading-relaxed flex-1">
                       {ins.mensagem}
                     </p>
@@ -192,7 +201,16 @@ export default function SynkaPanel({ profissionais, data, collapsed = false }: P
               disabled={lembreteLoading}
               className="w-full h-9 rounded-lg border border-sage-500/30 text-sage-600 text-[12px] font-medium hover:bg-sage-50 transition-colors disabled:opacity-50"
             >
-              {lembreteLoading ? "Enviando…" : "📲 Enviar lembretes pendentes"}
+              {lembreteLoading ? (
+                "Enviando…"
+              ) : (
+                <span className="flex items-center justify-center gap-1.5">
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                    <path d="M1 1l10 5-10 5V7.5l7-1.5-7-1.5V1z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  Enviar lembretes pendentes
+                </span>
+              )}
             </button>
             {lembreteMsg && (
               <p className="text-[11px] text-center text-slate-100">{lembreteMsg}</p>
@@ -201,7 +219,13 @@ export default function SynkaPanel({ profissionais, data, collapsed = false }: P
               href="/dashboard/marketing"
               className="flex items-center justify-center h-9 rounded-lg border border-warm-300 text-slate-300 text-[12px] hover:bg-warm-200 transition-colors"
             >
-              📅 Ver aniversariantes
+              <span className="flex items-center justify-center gap-1.5">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <rect x="1" y="2" width="10" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.3"/>
+                  <path d="M1 5h10M4 1v2M8 1v2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+                </svg>
+                Ver aniversariantes
+              </span>
             </Link>
           </div>
         </div>

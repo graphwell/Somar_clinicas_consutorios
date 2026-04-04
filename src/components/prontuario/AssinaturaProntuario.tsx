@@ -110,7 +110,7 @@ export default function AssinaturaProntuario({
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium text-green-700">
-              ✓ Assinado por {assinadoPorNome || "profissional"}
+              Assinado por {assinadoPorNome || "profissional"}
             </p>
             {assinadoEm && (
               <p className="text-xs text-green-600 mt-0.5">
@@ -142,9 +142,9 @@ export default function AssinaturaProntuario({
               <button
                 type="button"
                 onClick={() => { setAdendoAberto(false); setAdendoTexto(""); }}
-                className="text-[9px] text-blue-400 hover:text-blue-700 font-black"
+                className="text-blue-400 hover:text-blue-700"
               >
-                ✕
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M9 3L3 9M3 3l6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
               </button>
             </div>
             <p className="text-[9px] text-blue-600">
@@ -266,8 +266,9 @@ export default function AssinaturaProntuario({
     <div className="space-y-2">
       {bloqueado && (
         <div className="px-3 py-2 rounded-xl bg-amber-50 border border-amber-200">
-          <p className="text-[10px] text-amber-700 font-medium">
-            ⚠️ Edite o rascunho da IA antes de assinar o prontuário.
+          <p className="text-[10px] text-amber-700 font-medium flex items-center gap-1">
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="none" className="shrink-0"><path d="M7 1.167L12.833 11.083H1.167L7 1.167z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/><path d="M7 5.833v2.334M7 10h.008" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
+            Edite o rascunho da IA antes de assinar o prontuário.
           </p>
         </div>
       )}

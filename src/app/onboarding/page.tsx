@@ -4,14 +4,14 @@ import { useRouter } from 'next/navigation';
 import { fetchWithAuth } from '@/lib/api-utils';
 
 const NICHOS = [
-  { id: 'CLINICA_MEDICA', label: 'Clínica Médica', icon: '🏥' },
-  { id: 'ODONTOLOGIA', label: 'Odontologia', icon: '🦷' },
-  { id: 'CLINICA_ESTETICA', label: 'Estética', icon: '💆' },
-  { id: 'SALAO_BELEZA', label: 'Salão / Barbearia', icon: '✂️' },
-  { id: 'FISIOTERAPIA', label: 'Fisioterapia', icon: '🧘' },
-  { id: 'NUTRICAO', label: 'Nutricionista', icon: '🥗' },
-  { id: 'CLINICA_MULTI', label: 'Multiespecialidades', icon: '🏨' },
-  { id: 'OUTRO', label: 'Outro', icon: '🏢' },
+  { id: 'CLINICA_MEDICA', label: 'Clínica Médica' },
+  { id: 'ODONTOLOGIA', label: 'Odontologia' },
+  { id: 'CLINICA_ESTETICA', label: 'Estética' },
+  { id: 'SALAO_BELEZA', label: 'Salão / Barbearia' },
+  { id: 'FISIOTERAPIA', label: 'Fisioterapia' },
+  { id: 'NUTRICAO', label: 'Nutricionista' },
+  { id: 'CLINICA_MULTI', label: 'Multiespecialidades' },
+  { id: 'OUTRO', label: 'Outro' },
 ];
 
 const DAYS = [
@@ -199,7 +199,7 @@ export default function OnboardingPage() {
             {step === 1 && 'Sobre você'}
             {step === 2 && 'Sua clínica'}
             {step === 3 && 'Funcionamento'}
-            {step === 4 && 'Tudo pronto! 🎉'}
+            {step === 4 && 'Tudo pronto!'}
           </h1>
           <p className="text-white/60 text-sm mt-1">
             {step === 1 && 'Confirme suas informações pessoais.'}
@@ -212,7 +212,7 @@ export default function OnboardingPage() {
         {/* Corpo */}
         <div className="p-8 space-y-5">
           {error && (
-            <div className="p-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm">⚠️ {error}</div>
+            <div className="p-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm">{error}</div>
           )}
 
           {/* PASSO 1 — Perfil */}
@@ -243,7 +243,7 @@ export default function OnboardingPage() {
                 </div>
                 <button type="button" onClick={() => avatarRef.current?.click()}
                   className="text-xs text-sage-600 font-medium hover:text-sage-700">
-                  📷 Adicionar foto (opcional)
+                  Adicionar foto (opcional)
                 </button>
                 <input ref={avatarRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleAvatarUpload} />
               </div>
@@ -290,7 +290,6 @@ export default function OnboardingPage() {
                           : 'border-warm-200 hover:border-warm-300 opacity-60 hover:opacity-100'
                       }`}
                     >
-                      <span className="text-xl">{n.icon}</span>
                       <span className="text-[9px] font-medium text-slate-700 leading-tight">{n.label}</span>
                     </button>
                   ))}
@@ -369,7 +368,7 @@ export default function OnboardingPage() {
                     <img src={logoUrl} className="h-16 object-contain" />
                   ) : (
                     <div className="text-center">
-                      <p className="text-2xl mb-1">🖼️</p>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="mx-auto mb-1 text-slate-300"><rect x="2" y="4" width="20" height="16" rx="2.5" stroke="currentColor" strokeWidth="1.5"/><circle cx="8" cy="9" r="2" stroke="currentColor" strokeWidth="1.3"/><path d="M2 16l5-5 4 4 3-3 6 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>
                       <p className="text-xs text-slate-300">PNG, JPG ou SVG · máx 2MB</p>
                     </div>
                   )}
@@ -389,13 +388,12 @@ export default function OnboardingPage() {
               <div className="space-y-2">
                 <p className="text-xs font-medium text-slate-300 uppercase tracking-wider">Próximos passos sugeridos</p>
                 {[
-                  { icon: '👥', text: 'Adicionar primeiro profissional', href: '/dashboard/team' },
-                  { icon: '📦', text: 'Cadastrar serviços oferecidos', href: '/dashboard/services' },
-                  { icon: '📅', text: 'Ver minha agenda', href: '/dashboard' },
+                  { text: 'Adicionar primeiro profissional', href: '/dashboard/team' },
+                  { text: 'Cadastrar serviços oferecidos', href: '/dashboard/services' },
+                  { text: 'Ver minha agenda', href: '/dashboard' },
                 ].map(item => (
                   <a key={item.href} href={item.href}
                     className="flex items-center gap-3 p-3 bg-warm-100 rounded-xl border border-warm-200 hover:bg-warm-200 transition-colors text-sm text-slate-700">
-                    <span>{item.icon}</span>
                     <span>{item.text}</span>
                     <span className="ml-auto text-slate-100">→</span>
                   </a>

@@ -198,14 +198,14 @@ function PizzaReceitas({ resumo }: { resumo: Resumo }) {
 
 /* ─── KPI Card compacto ──────────────────────────────────────── */
 function KpiCard({ label, value, variacao, color, icon }: {
-  label: string; value: string; variacao?: number; color: string; icon: string;
+  label: string; value: string; variacao?: number; color: string; icon: React.ReactNode;
 }) {
   return (
     <div className={`shrink-0 min-w-[160px] bg-[#0a0a20]/60 border border-white/5 rounded-2xl px-4 py-3 relative overflow-hidden`}>
       <div className={`absolute top-0 left-0 right-0 h-0.5 ${color}`} />
       <div className="flex items-start justify-between gap-2 mb-1">
         <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest leading-tight">{label}</p>
-        <span className="text-base">{icon}</span>
+        <span className="opacity-40">{icon}</span>
       </div>
       <p className="text-[22px] font-black text-white leading-none">{value}</p>
       {variacao !== undefined && (
@@ -315,11 +315,11 @@ function ModalTransacao({
             {(["income", "expense"] as const).map((t) => (
               <button key={t} onClick={() => setTipo(t)}
                 className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${tipo === t ? (t === "income" ? "bg-emerald-600 text-white" : "bg-red-600 text-white") : "text-gray-500 hover:text-gray-300"}`}>
-                {t === "income" ? "💰 Receita" : "💸 Despesa"}
+                {t === "income" ? "Receita" : "Despesa"}
               </button>
             ))}
           </div>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-300 text-xl leading-none">✕</button>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-300 rounded-lg hover:bg-white/5 transition-colors"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M9 3L3 9M3 3l6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg></button>
         </div>
         <div className="p-5 space-y-4">
           {error && <p className="text-xs text-red-400 bg-red-500/10 px-3 py-2 rounded-lg">{error}</p>}
@@ -422,13 +422,13 @@ function TxMenu({ tx, onPagar, onCancelar, onRecibo }: {
       {open && (
         <div className="absolute right-0 top-8 z-20 bg-[#1a2035] border border-white/10 rounded-xl shadow-xl py-1 min-w-[140px]">
           {tx.status === "pending" && (
-            <button onClick={() => { setOpen(false); onPagar(); }} className="w-full text-left px-3 py-2 text-xs text-gray-300 hover:bg-white/5">✓ Marcar como pago</button>
+            <button onClick={() => { setOpen(false); onPagar(); }} className="w-full text-left px-3 py-2 text-xs text-gray-300 hover:bg-white/5">Marcar como pago</button>
           )}
           {tx.status === "paid" && tx.numeroRecibo && (
-            <button onClick={() => { setOpen(false); onRecibo(); }} className="w-full text-left px-3 py-2 text-xs text-gray-300 hover:bg-white/5">🖨 Imprimir recibo</button>
+            <button onClick={() => { setOpen(false); onRecibo(); }} className="w-full text-left px-3 py-2 text-xs text-gray-300 hover:bg-white/5">Imprimir recibo</button>
           )}
           {tx.status !== "canceled" && (
-            <button onClick={() => { setOpen(false); onCancelar(); }} className="w-full text-left px-3 py-2 text-xs text-red-400 hover:bg-white/5">✕ Cancelar</button>
+            <button onClick={() => { setOpen(false); onCancelar(); }} className="w-full text-left px-3 py-2 text-xs text-red-400 hover:bg-white/5">Cancelar</button>
           )}
         </div>
       )}
@@ -477,7 +477,7 @@ function TxItem({ tx, onRefresh }: { tx: Transacao; onRefresh: () => void }) {
           </div>
           {tx.status === "pending" && (
             <button onClick={() => setModalPagar(true)} className="hidden sm:block px-2 py-1 text-[10px] font-bold border border-emerald-500/30 text-emerald-400 rounded-lg hover:bg-emerald-500/10 transition-colors whitespace-nowrap">
-              ✓ {isReceita ? "Receber" : "Pagar"}
+              {isReceita ? "Receber" : "Pagar"}
             </button>
           )}
           <TxMenu tx={tx} onPagar={() => setModalPagar(true)} onCancelar={cancelar} onRecibo={abrirRecibo} />
@@ -589,7 +589,7 @@ function TabPendentes({ tipo, periodo, onRefresh: parentRefresh }: { tipo: "inco
     <div className="space-y-3">
       {vencidas.length > 0 && (
         <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3 flex items-center gap-3">
-          <span className="text-lg">⚠️</span>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0 text-amber-400"><path d="M8 1.333L14.667 13.333H1.333L8 1.333z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M8 6v3M8 11h.008" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
           <div>
             <p className="text-xs font-bold text-amber-400">{vencidas.length} {vencidas.length === 1 ? "cobrança vencida" : "cobranças vencidas"} — {brl(vencidas.reduce((s, t) => s + t.valor, 0))}</p>
           </div>
@@ -655,7 +655,7 @@ function TabRepasses({ periodo, onRefresh: parentRefresh }: { periodo: string; o
         <p className="text-xs text-gray-500">Repasses calculados com base nos atendimentos concluídos</p>
         <button disabled={calculando} onClick={calcular}
           className="px-4 py-2 text-xs font-bold bg-white/5 border border-white/10 rounded-xl text-gray-300 hover:bg-white/10 disabled:opacity-50 transition-colors">
-          {calculando ? "Calculando…" : "🔄 Calcular repasses do mês"}
+          {calculando ? "Calculando…" : "Calcular repasses do mês"}
         </button>
       </div>
       <div className="bg-[#0a0a20]/60 border border-white/5 rounded-2xl overflow-hidden">
@@ -777,10 +777,10 @@ export default function FinancePage() {
           [1, 2, 3, 4].map((i) => <div key={i} className="shrink-0 min-w-[160px] h-20 bg-white/5 animate-pulse rounded-2xl snap-start" />)
         ) : resumo ? (
           <>
-            <KpiCard label="Receita Bruta" value={brl(resumo.receitaBruta)} variacao={resumo.variacaoReceita} color="bg-emerald-500" icon="💰" />
-            <KpiCard label="Despesas" value={brl(resumo.despesasTotal)} color="bg-red-500" icon="📉" />
-            <KpiCard label="Lucro Líquido" value={brl(resumo.lucroLiquido)} color={resumo.lucroLiquido >= 0 ? "bg-emerald-500" : "bg-red-500"} icon={resumo.lucroLiquido >= 0 ? "✅" : "⚠️"} />
-            <KpiCard label="Ticket Médio" value={brl(resumo.ticketMedio)} color="bg-amber-500" icon="🎫" />
+            <KpiCard label="Receita Bruta" value={brl(resumo.receitaBruta)} variacao={resumo.variacaoReceita} color="bg-emerald-500" icon={<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1.333" y="3.333" width="13.333" height="9.333" rx="1.5" stroke="currentColor" strokeWidth="1.5"/><path d="M1.333 6.667h13.333" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><circle cx="8" cy="10" r="1.333" stroke="currentColor" strokeWidth="1.3"/></svg>} />
+            <KpiCard label="Despesas" value={brl(resumo.despesasTotal)} color="bg-red-500" icon={<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4l6 6 3-3 3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M11.333 13.333H2V4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>} />
+            <KpiCard label="Lucro Líquido" value={brl(resumo.lucroLiquido)} color={resumo.lucroLiquido >= 0 ? "bg-emerald-500" : "bg-red-500"} icon={<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.333" stroke="currentColor" strokeWidth="1.5"/><path d="M5.333 8l2 2 3.334-3.333" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>} />
+            <KpiCard label="Ticket Médio" value={brl(resumo.ticketMedio)} color="bg-amber-500" icon={<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M1.333 6a2 2 0 000 4v2.667A1.333 1.333 0 002.667 14h10.666A1.333 1.333 0 0014.667 12.667V10a2 2 0 000-4V3.333A1.333 1.333 0 0013.333 2H2.667A1.333 1.333 0 001.333 3.333V6z" stroke="currentColor" strokeWidth="1.5"/></svg>} />
           </>
         ) : null}
       </div>

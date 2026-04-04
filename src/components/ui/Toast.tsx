@@ -20,23 +20,36 @@ interface ToastContextType {
 
 const ToastContext = createContext<ToastContextType | null>(null);
 
-const variantConfig: Record<ToastVariant, { icon: string; classes: string }> = {
-  success: {
-    icon: "✓",
-    classes: "bg-sage-500 text-white",
-  },
-  error: {
-    icon: "✕",
-    classes: "bg-red-500 text-white",
-  },
-  warning: {
-    icon: "⚠",
-    classes: "bg-gold-500 text-white",
-  },
-  info: {
-    icon: "ℹ",
-    classes: "bg-blue-500 text-white",
-  },
+const ToastIcon = ({ variant }: { variant: ToastVariant }) => {
+  if (variant === 'success') return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0">
+      <path d="M11.667 3.5L5.25 10.5 2.333 7.583" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+  if (variant === 'error') return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0">
+      <path d="M10.5 3.5L3.5 10.5M3.5 3.5l7 7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+    </svg>
+  );
+  if (variant === 'warning') return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0">
+      <path d="M7 1.167L12.833 11.083H1.167L7 1.167z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M7 5.833v2.334M7 10h.008" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+    </svg>
+  );
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0">
+      <circle cx="7" cy="7" r="5.833" stroke="currentColor" strokeWidth="1.5"/>
+      <path d="M7 6.417V10M7 4.667h.008" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+    </svg>
+  );
+};
+
+const variantConfig: Record<ToastVariant, { classes: string }> = {
+  success: { classes: "bg-sage-500 text-white" },
+  error:   { classes: "bg-red-500 text-white" },
+  warning: { classes: "bg-gold-500 text-white" },
+  info:    { classes: "bg-blue-500 text-white" },
 };
 
 function ToastItem({ item, onRemove }: { item: ToastItem; onRemove: (id: string) => void }) {
@@ -55,7 +68,7 @@ function ToastItem({ item, onRemove }: { item: ToastItem; onRemove: (id: string)
       ].join(" ")}
       style={{ minWidth: 220, maxWidth: 360 }}
     >
-      <span className="text-base leading-none">{cfg.icon}</span>
+      <ToastIcon variant={item.variant} />
       <span className="flex-1">{item.message}</span>
       <button
         onClick={() => onRemove(item.id)}

@@ -153,7 +153,7 @@ export default function TeamPage() {
       {/* Header Premium V2.2 */}
       <div className="bg-white border border-card-border p-10 rounded-[3rem] shadow-sm flex flex-col md:flex-row justify-between items-center gap-8">
         <div className="flex items-center gap-6">
-           <div className="w-14 h-14 rounded-3xl bg-primary text-white flex items-center justify-center text-3xl shadow-xl shadow-primary/20">🧑‍💼</div>
+           <div className="w-14 h-14 rounded-3xl bg-primary text-white flex items-center justify-center shadow-xl shadow-primary/20"><svg width="28" height="28" viewBox="0 0 28 28" fill="none"><circle cx="14" cy="9" r="5" stroke="currentColor" strokeWidth="2"/><path d="M4 25c0-5.523 4.477-10 10-10s10 4.477 10 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></div>
            <div>
               <h2 className="text-2xl font-black italic uppercase tracking-tighter text-text-main">Gestão de <span className="text-primary">Profissionais</span></h2>
               <p className="text-[10px] font-black text-text-placeholder uppercase tracking-[0.2em] mt-1 opacity-60">Quadro de {labels.termoProfissional}s</p>
@@ -210,7 +210,7 @@ export default function TeamPage() {
                 <h3 className="text-xl font-black text-text-main tracking-tighter uppercase italic">{editing ? `Refinar` : `Cadastrar`} Profissional</h3>
                 <p className="text-[9px] text-text-placeholder font-black uppercase tracking-widest mt-1">Preencha os dados do profissional</p>
               </div>
-              <button onClick={() => setShowModal(false)} className="w-10 h-10 rounded-xl hover:bg-slate-50 flex items-center justify-center text-text-placeholder transition-colors">✕</button>
+              <button onClick={() => setShowModal(false)} className="w-10 h-10 rounded-xl hover:bg-slate-50 flex items-center justify-center text-text-placeholder transition-colors"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M9 3L3 9M3 3l6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg></button>
             </div>
 
             <form onSubmit={handleSave} className="p-10 grid grid-cols-1 md:grid-cols-2 gap-10">
@@ -251,7 +251,7 @@ export default function TeamPage() {
                              </>
                           ) : (
                              <div className="text-center">
-                                <span className="text-3xl mb-1 block grayscale">📸</span>
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="mx-auto mb-1 text-text-placeholder opacity-40"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
                                 <span className="text-[9px] font-black uppercase text-text-placeholder">Upload Imagem</span>
                              </div>
                           )}
@@ -370,7 +370,7 @@ export default function TeamPage() {
                             }}
                             className={`py-3 px-2 rounded-xl text-[8px] font-black uppercase tracking-widest border transition-all ${selected ? 'bg-primary-soft text-primary border-primary/20' : 'bg-white text-text-placeholder border-slate-100'}`}
                           >
-                            {selected ? '✅ ' : ''}{c}
+                            {c}
                           </button>
                         );
                       })}

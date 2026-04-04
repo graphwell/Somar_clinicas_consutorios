@@ -137,7 +137,7 @@ export default function OpsCenterPage() {
         <MetricCard
           label="Instâncias WA"
           value={`${data?.whatsapp?.activeInstances ?? '—'}/${data?.whatsapp?.totalInstances ?? '—'}`}
-          sub={data?.whatsapp?.alertaEstoque ? '⚠ Estoque baixo' : `${data?.whatsapp?.freeInstances ?? 0} livres`}
+          sub={data?.whatsapp?.alertaEstoque ? 'Estoque baixo' : `${data?.whatsapp?.freeInstances ?? 0} livres`}
           highlight={data?.whatsapp?.alertaEstoque ? 'text-status-error' : 'text-status-success'}
         />
         <MetricCard label="Fluxos N8N" value={data?.n8n?.activeWorkflows || 0} sub="todos rodando" highlight="text-status-success" />
@@ -145,7 +145,7 @@ export default function OpsCenterPage() {
 
       {data?.whatsapp?.alertaEstoque && (
         <div className="flex items-center gap-4 p-5 bg-status-error-bg border border-status-error/20 rounded-2xl">
-          <span className="text-status-error text-lg">⚠️</span>
+          <svg width="18" height="18" viewBox="0 0 14 14" fill="none" className="text-status-error shrink-0"><path d="M7 1.167L12.833 11.083H1.167L7 1.167z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/><path d="M7 5.833v2.334M7 10h.008" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
           <p className="text-sm font-black text-status-error">
             Estoque WhatsApp crítico — apenas {data?.whatsapp?.freeInstances} instância(s) livre(s). Adicione novas no WasenderAPI.
           </p>
@@ -266,11 +266,11 @@ export default function OpsCenterPage() {
                 </td>
                 <td className="px-6 py-5">
                   <span className={`text-[9px] font-black uppercase px-3 py-1.5 rounded-full border ${statusColor(inst.status)}`}>
-                    {inst.status === 'EM_USO' ? '● Ativo' :
-                     inst.status === 'LIVRE' ? '○ Livre' :
-                     inst.status === 'AGUARDANDO' ? '⏳ Aguardando' :
-                     inst.status === 'OFFLINE' ? '✕ Offline' :
-                     inst.status === 'DEMO' ? '◆ Demo' : inst.status}
+                    {inst.status === 'EM_USO' ? 'Ativo' :
+                     inst.status === 'LIVRE' ? 'Livre' :
+                     inst.status === 'AGUARDANDO' ? 'Aguardando' :
+                     inst.status === 'OFFLINE' ? 'Offline' :
+                     inst.status === 'DEMO' ? 'Demo' : inst.status}
                   </span>
                 </td>
                 <td className="px-6 py-5 text-[10px] text-text-muted">
@@ -310,14 +310,14 @@ export default function OpsCenterPage() {
             <p className="text-[10px] font-black text-text-placeholder uppercase tracking-widest">Execuções 24h</p>
             <p className="text-2xl font-black text-text-main">847</p>
           </div>
-          <div className="w-12 h-12 bg-primary-soft rounded-2xl flex items-center justify-center text-primary font-black">⚡</div>
+          <div className="w-12 h-12 bg-primary-soft rounded-2xl flex items-center justify-center text-primary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
         </div>
         <div className="bg-white p-6 rounded-3xl border border-card-border shadow-sm flex items-center justify-between">
           <div>
             <p className="text-[10px] font-black text-text-placeholder uppercase tracking-widest">Falhas Hoje</p>
             <p className="text-2xl font-black text-status-error">2</p>
           </div>
-          <div className="w-12 h-12 bg-status-error-bg rounded-2xl flex items-center justify-center text-status-error font-black">⚠</div>
+          <div className="w-12 h-12 bg-status-error-bg rounded-2xl flex items-center justify-center text-status-error"><svg width="20" height="20" viewBox="0 0 14 14" fill="none"><path d="M7 1.167L12.833 11.083H1.167L7 1.167z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/><path d="M7 5.833v2.334M7 10h.008" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg></div>
         </div>
         <div className="bg-white p-6 rounded-3xl border border-card-border shadow-sm flex items-center justify-between">
           <div>
@@ -406,7 +406,7 @@ export default function OpsCenterPage() {
           <div className="bg-white rounded-3xl border border-card-border shadow-2xl p-10 w-full max-w-sm space-y-6">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-black uppercase tracking-widest text-text-main">QR Code</h3>
-              <button onClick={() => setQrModal(null)} className="text-text-placeholder hover:text-text-main text-lg font-black">✕</button>
+              <button onClick={() => setQrModal(null)} className="text-text-placeholder hover:text-text-main"><svg width="14" height="14" viewBox="0 0 12 12" fill="none"><path d="M9 3L3 9M3 3l6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg></button>
             </div>
             <p className="text-[10px] font-black text-text-placeholder uppercase">Session: <span className="font-mono text-text-main">{qrModal.sessionId}</span></p>
             {qrLoading ? (

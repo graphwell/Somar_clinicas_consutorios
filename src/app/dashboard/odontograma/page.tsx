@@ -76,7 +76,7 @@ export default function OdontogramaPage() {
 
       {/* Header */}
       <div className="bg-white border border-card-border p-10 rounded-[3rem] shadow-sm flex items-center gap-6">
-        <div className="w-14 h-14 rounded-3xl bg-primary text-white flex items-center justify-center text-3xl shadow-xl shadow-primary/20">🦷</div>
+        <div className="w-14 h-14 rounded-3xl bg-primary text-white flex items-center justify-center shadow-xl shadow-primary/20"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2C8 2 4 5 4 9c0 2 .5 3.5 1 5l1.5 7h11L19 14c.5-1.5 1-3 1-5 0-4-4-7-8-7z"/></svg></div>
         <div>
           <h2 className="text-2xl font-black italic uppercase tracking-tighter text-text-main">
             Odontograma Digital
@@ -153,7 +153,7 @@ export default function OdontogramaPage() {
           />
         ) : (
           <div className="bg-white border border-card-border rounded-[2.5rem] p-16 text-center shadow-sm space-y-6">
-            <p className="text-5xl">🦷</p>
+            <div className="flex justify-center"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2C8 2 4 5 4 9c0 2 .5 3.5 1 5l1.5 7h11L19 14c.5-1.5 1-3 1-5 0-4-4-7-8-7z"/></svg></div>
             <div>
               <p className="font-black text-text-main text-lg uppercase tracking-tight">Nenhum prontuário odontológico</p>
               <p className="text-sm text-text-muted mt-2">Crie o primeiro prontuário para iniciar o odontograma deste paciente.</p>
@@ -167,7 +167,7 @@ export default function OdontogramaPage() {
 
       {!selectedPaciente && (
         <div className="bg-white border border-card-border rounded-[2.5rem] py-24 text-center shadow-sm opacity-30">
-          <p className="text-5xl mb-4">🦷</p>
+          <div className="flex justify-center mb-4"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2C8 2 4 5 4 9c0 2 .5 3.5 1 5l1.5 7h11L19 14c.5-1.5 1-3 1-5 0-4-4-7-8-7z"/></svg></div>
           <p className="font-black text-text-placeholder text-xs uppercase tracking-[0.3em]">Selecione um paciente para ver o odontograma</p>
         </div>
       )}

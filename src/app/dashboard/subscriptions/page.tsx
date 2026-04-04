@@ -185,7 +185,7 @@ function ModalPlano({
           <h3 className="font-semibold text-base" style={{ color: "#1B2B3A" }}>
             {plano ? "Editar plano" : "Criar novo plano"}
           </h3>
-          <button onClick={onClose} className="text-xl leading-none" style={{ color: "#8A9BB0" }}>✕</button>
+          <button onClick={onClose} style={{ color: "#8A9BB0" }}><svg width="14" height="14" viewBox="0 0 12 12" fill="none"><path d="M9 3L3 9M3 3l6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg></button>
         </div>
 
         <div className="px-6 py-5 space-y-5 overflow-y-auto" style={{ maxHeight: "68vh", background: "#FAFAF9" }}>
@@ -384,7 +384,7 @@ function ModalAssinar({
         style={{ background: "white", border: "1px solid #EEE9DF" }}>
         <div className="px-6 py-5 flex justify-between items-center" style={{ borderBottom: "1px solid #EEE9DF" }}>
           <h3 className="font-semibold" style={{ color: "#1B2B3A" }}>Assinar {termoPaciente}</h3>
-          <button onClick={onClose} style={{ color: "#8A9BB0" }}>✕</button>
+          <button onClick={onClose} style={{ color: "#8A9BB0" }}><svg width="14" height="14" viewBox="0 0 12 12" fill="none"><path d="M9 3L3 9M3 3l6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg></button>
         </div>
         <div className="px-6 py-5 space-y-4" style={{ background: "#FAFAF9" }}>
           <div>
@@ -479,7 +479,7 @@ function TabPlanos({
     <>
       {planosAtivos.length === 0 && (
         <div className="rounded-2xl p-6 mb-6" style={{ background: "#F8FAF9", border: "1px solid #E2EDE8" }}>
-          <p className="font-semibold mb-1" style={{ color: "#1B2B3A" }}>🚀 Comece rápido com um template</p>
+          <p className="font-semibold mb-1" style={{ color: "#1B2B3A" }}>Comece rápido com um template</p>
           <p className="text-sm mb-4" style={{ color: "#8A9BB0" }}>Ative um modelo pré-configurado e personalize depois.</p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {Object.values(PLANOS_TEMPLATES).map(t => (
@@ -487,14 +487,14 @@ function TabPlanos({
                 style={{ border: t.templateTipo === "premium" ? "2px solid #40916C" : "1px solid #EEE9DF" }}>
                 {t.templateTipo === "premium" && (
                   <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full mb-2 inline-block"
-                    style={{ background: "#40916C", color: "white" }}>⭐ Popular</span>
+                    style={{ background: "#40916C", color: "white" }}>Popular</span>
                 )}
                 <p className="font-semibold text-sm mb-0.5" style={{ color: "#1B2B3A" }}>{t.preview.titulo}</p>
                 <p className="text-lg font-bold mb-2" style={{ color: "#40916C" }}>
                   {fmtBRL(t.valor)}<span className="text-xs font-normal" style={{ color: "#8A9BB0" }}>/mês</span>
                 </p>
                 <ul className="text-xs space-y-0.5 mb-3" style={{ color: "#4A6480" }}>
-                  {t.preview.exemplo.map(e => <li key={e}>✓ {e}</li>)}
+                  {t.preview.exemplo.map(e => <li key={e}>{e}</li>)}
                 </ul>
                 <button onClick={() => ativarTemplate(t.templateTipo)}
                   disabled={ativarLoading === t.templateTipo}
@@ -538,11 +538,11 @@ function TabPlanos({
             </p>
 
             <div className="space-y-1 mb-4 flex-1 text-xs" style={{ color: "#4A6480" }}>
-              <p>👥 {plano._count?.assinantes ?? 0} assinante{plano._count?.assinantes !== 1 ? "s" : ""} ativo{plano._count?.assinantes !== 1 ? "s" : ""}</p>
-              <p>📋 {plano.servicos?.length ?? 0} serviço{(plano.servicos?.length ?? 0) !== 1 ? "s" : ""} incluído{(plano.servicos?.length ?? 0) !== 1 ? "s" : ""}</p>
-              {plano.agendamentoPrioritario && <p>🔄 Agendamento prioritário</p>}
+              <p>{plano._count?.assinantes ?? 0} assinante{plano._count?.assinantes !== 1 ? "s" : ""} ativo{plano._count?.assinantes !== 1 ? "s" : ""}</p>
+              <p>{plano.servicos?.length ?? 0} serviço{(plano.servicos?.length ?? 0) !== 1 ? "s" : ""} incluído{(plano.servicos?.length ?? 0) !== 1 ? "s" : ""}</p>
+              {plano.agendamentoPrioritario && <p>Agendamento prioritário</p>}
               {(plano.descontoServicosExtras ?? 0) > 0 && (
-                <p>🏷️ {plano.descontoServicosExtras}% OFF em serviços extras</p>
+                <p>{plano.descontoServicosExtras}% OFF em serviços extras</p>
               )}
             </div>
 
@@ -654,7 +654,7 @@ function TabAssinantes({
         </div>
       ) : assinaturas.length === 0 ? (
         <div className="text-center py-16" style={{ color: "#8A9BB0" }}>
-          <p className="text-4xl mb-3">👥</p>
+          <div className="flex justify-center mb-3"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#8A9BB0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div>
           <p className="font-medium">Nenhum assinante encontrado</p>
           <p className="text-sm mt-1">Assine um {termoPaciente.toLowerCase()} em um plano para começar</p>
         </div>
@@ -667,12 +667,12 @@ function TabAssinantes({
                 style={{ background: "white", border: "1px solid #EEE9DF" }}>
                 <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
                   <div>
-                    <p className="font-medium text-sm" style={{ color: "#1B2B3A" }}>👤 {a.paciente.nome}</p>
+                    <p className="font-medium text-sm" style={{ color: "#1B2B3A" }}>{a.paciente.nome}</p>
                     <p className="text-xs mt-0.5" style={{ color: "#8A9BB0" }}>{a.paciente.telefone}</p>
                   </div>
                   <div className="text-right">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm font-medium" style={{ color: "#40916C" }}>💎 {a.plano?.nome}</span>
+                      <span className="text-sm font-medium" style={{ color: "#40916C" }}>{a.plano?.nome}</span>
                       <StatusBadge status={a.status} />
                     </div>
                     <p className="text-[10px]" style={{ color: "#8A9BB0" }}>

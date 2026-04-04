@@ -356,7 +356,7 @@ export default function QuickAppointmentForm({
 
               <div className="relative z-10 space-y-8">
                  <div className="flex items-center gap-6">
-                    <div className="w-20 h-20 rounded-ultra bg-primary/10 border border-primary/20 flex items-center justify-center text-4xl shadow-inner">👤</div>
+                    <div className="w-20 h-20 rounded-ultra bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-inner"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
                     <div className="space-y-1">
                        <p className="text-[10px] font-black text-primary uppercase tracking-[0.4em]">Informações do Agendamento</p>
                        <h4 className="text-3xl font-black text-white italic uppercase tracking-tighter leading-none">{initialAppt.paciente?.nome}</h4>
@@ -394,7 +394,7 @@ export default function QuickAppointmentForm({
                 disabled={confirming || initialAppt.status === 'confirmado'}
                 className={`flex-1 py-6 ${initialAppt.status === 'confirmado' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/30' : 'bg-emerald-500 text-white shadow-emerald-500/20'} text-xs font-black italic uppercase tracking-widest rounded-3xl shadow-2xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-80`}
               >
-                {confirming ? '...' : (initialAppt.status === 'confirmado' ? '✅ PRESENÇA CONFIRMADA' : '✅ CONFIRMAR PRESENÇA')}
+                {confirming ? '...' : (initialAppt.status === 'confirmado' ? 'PRESENÇA CONFIRMADA' : 'CONFIRMAR PRESENÇA')}
               </button>
               
               <button 
@@ -402,7 +402,7 @@ export default function QuickAppointmentForm({
                 onClick={() => setViewMode('form')}
                 className="flex-1 py-6 bg-primary text-white text-xs font-black italic uppercase tracking-widest rounded-3xl shadow-2xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
               >
-                🗓️ REMARCAR / EDITAR
+                REMARCAR / EDITAR
               </button>
            </div>
         </div>
@@ -439,7 +439,7 @@ export default function QuickAppointmentForm({
               placeholder="Buscar paciente pelo nome ou telefone..."
               className="input-premium w-full py-5 px-8 pl-14 shadow-inner"
             />
-            <span className="absolute left-6 top-1/2 -translate-y-1/2 opacity-20 group-focus-within:opacity-100 transition-opacity">🔍</span>
+            <span className="absolute left-6 top-1/2 -translate-y-1/2 opacity-20 group-focus-within:opacity-100 transition-opacity"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
             {loadingSearch && <div className="absolute right-6 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />}
           </div>
         </div>
@@ -455,8 +455,8 @@ export default function QuickAppointmentForm({
                 >
                   <span className="font-black text-sm text-text-main uppercase italic">{p.nome}</span>
                   <div className="flex gap-4 text-[9px] font-bold text-text-placeholder uppercase tracking-wider">
-                    <span>🎂 {p.dataNascimento ? new Date(p.dataNascimento).toLocaleDateString() : '--/--/----'}</span>
-                    <span>📱 {p.telefone}</span>
+                    <span>{p.dataNascimento ? new Date(p.dataNascimento).toLocaleDateString() : '--/--/----'}</span>
+                    <span>{p.telefone}</span>
                   </div>
                 </button>
               ))

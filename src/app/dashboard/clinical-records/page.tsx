@@ -166,7 +166,7 @@ function ColunaEsquerda({ ctx, pacienteId, onContextoUpdate, labels }: {
       <div className={`border rounded-2xl p-4 space-y-2 ${alergias.length > 0 ? 'bg-red-50 border-red-200' : 'bg-white border-card-border'}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            {alergias.length > 0 && <span className="text-base">⚠️</span>}
+            {alergias.length > 0 && <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="text-red-500"><path d="M7 1.167L12.833 11.083H1.167L7 1.167z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/><path d="M7 5.833v2.334M7 10h.008" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>}
             <p className="text-[9px] font-black uppercase tracking-widest text-red-700">Alergias</p>
           </div>
           <button onClick={() => setShowAlergiaForm(!showAlergiaForm)}
@@ -204,7 +204,7 @@ function ColunaEsquerda({ ctx, pacienteId, onContextoUpdate, labels }: {
       {/* Medicamentos */}
       <div className="bg-white border border-card-border rounded-2xl p-4 space-y-2">
         <div className="flex items-center justify-between">
-          <p className="text-[9px] font-black uppercase tracking-widest text-text-placeholder">💊 Medicamentos</p>
+          <p className="text-[9px] font-black uppercase tracking-widest text-text-placeholder">Medicamentos</p>
           <button onClick={() => setShowMedForm(!showMedForm)}
             className="text-[9px] font-black text-primary hover:underline uppercase">+ Add</button>
         </div>
@@ -323,7 +323,7 @@ function CIDSearch({ value, descricao, onChange }: {
         </div>
         {value && (
           <button onClick={() => { onChange('', ''); setQuery(''); }}
-            className="px-3 py-2 bg-slate-100 rounded-xl text-[10px] font-black text-text-placeholder hover:text-red-500">✕</button>
+            className="px-3 py-2 bg-slate-100 rounded-xl text-[10px] font-black text-text-placeholder hover:text-red-500 flex items-center"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M7.5 2.5L2.5 7.5M2.5 2.5l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg></button>
         )}
       </div>
       {value && <p className="text-[9px] text-primary font-black mt-1">{value} — {descricao}</p>}
@@ -339,7 +339,7 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
       <div className="fixed inset-y-0 right-0 w-full max-w-lg bg-white border-l border-card-border shadow-2xl z-50 flex flex-col animate-in slide-in-from-right duration-300">
         <div className="p-6 border-b border-slate-50 flex items-center justify-between shrink-0">
           <h3 className="text-lg font-black italic uppercase tracking-tighter text-text-main">{title}</h3>
-          <button onClick={onClose} className="w-9 h-9 rounded-xl hover:bg-slate-50 flex items-center justify-center text-text-placeholder font-black">✕</button>
+          <button onClick={onClose} className="w-9 h-9 rounded-xl hover:bg-slate-50 flex items-center justify-center text-text-placeholder"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M9 3L3 9M3 3l6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg></button>
         </div>
         <div className="flex-1 overflow-y-auto no-scrollbar">{children}</div>
       </div>

@@ -217,7 +217,7 @@ export default function SettingsPage() {
               onClick={() => avatarRef.current?.click()}
               className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center shadow-md hover:bg-primary/90 transition-colors"
             >
-              📷
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M1.667 3.333c0-.46.373-.833.833-.833H3.5l.5-1h2l.5 1h1c.46 0 .833.373.833.833v4.334a.833.833 0 01-.833.833H2.5a.833.833 0 01-.833-.833V3.333z" stroke="currentColor" strokeWidth="1" strokeLinejoin="round"/><circle cx="5" cy="5.167" r="1.167" stroke="currentColor" strokeWidth="1"/></svg>
             </button>
             <input ref={avatarRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handleAvatarUpload} />
           </div>
@@ -259,7 +259,7 @@ export default function SettingsPage() {
             onClick={handleSavePerfil}
             className="btn-primary px-6"
           >
-            {perfilSalvo ? '✨ Salvo!' : 'Salvar Perfil'}
+            {perfilSalvo ? 'Salvo!' : 'Salvar Perfil'}
           </button>
         </div>
       </div>
@@ -270,7 +270,7 @@ export default function SettingsPage() {
         className="flex items-center justify-between bg-white border border-warm-200 rounded-xl px-5 py-3 shadow-card hover:shadow-card-hover transition-all hover:-translate-y-px"
       >
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-sage-50 flex items-center justify-center text-sage-500 text-sm">🔐</div>
+          <div className="w-8 h-8 rounded-lg bg-sage-50 flex items-center justify-center text-sage-500"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2.333" y="6.417" width="9.333" height="6.417" rx="1.5" stroke="currentColor" strokeWidth="1.3"/><path d="M4.667 6.417V4.667a2.333 2.333 0 014.666 0v1.75" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/><circle cx="7" cy="9.333" r="0.875" fill="currentColor"/></svg></div>
           <div>
             <p className="text-sm font-medium text-slate-700">Permissões por função</p>
             <p className="text-[11px] text-slate-100">Controle o que recepção e profissionais podem acessar</p>
@@ -289,7 +289,7 @@ export default function SettingsPage() {
            </div>
         </div>
         <button onClick={handleSave} className="btn-primary flex items-center justify-center gap-3">
-           {saved ? '✨ Sincronizado' : 'Salvar Alterações'}
+           {saved ? 'Sincronizado' : 'Salvar Alterações'}
         </button>
       </div>
 
@@ -323,14 +323,14 @@ export default function SettingsPage() {
                           </>
                         ) : (
                           <div className="text-center italic opacity-30 group-hover:opacity-60 transition-opacity">
-                             <span className="text-2xl mb-1 block">🖼️</span>
+                             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="mx-auto mb-1"><rect x="1.667" y="3.333" width="16.667" height="13.333" rx="2" stroke="currentColor" strokeWidth="1.5"/><circle cx="6.667" cy="7.5" r="1.667" stroke="currentColor" strokeWidth="1.3"/><path d="M1.667 13.333l4.166-3.333 3.334 2.5 3.333-4.167 5 5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>
                              <span className="text-[8px] font-black uppercase text-text-placeholder">Upload (PNG/SVG)</span>
                           </div>
                         )}
                         {uploading && <div className="absolute inset-0 bg-white/90 flex items-center justify-center font-black text-[9px] uppercase text-primary animate-pulse">Processando...</div>}
                         {uploadSuccess && (
                           <div className="absolute inset-0 bg-status-success flex flex-col items-center justify-center text-white animate-in zoom-in duration-300">
-                             <span className="text-2xl mb-1">✅</span>
+                             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="mb-1"><path d="M16.667 5L8.333 13.333 3.333 8.333" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                              <span className="text-[10px] font-black uppercase tracking-widest text-center">Sucesso!</span>
                           </div>
                         )}
@@ -341,15 +341,15 @@ export default function SettingsPage() {
                      <label className="text-[8px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-2">Diretrizes de Upload</label>
                      <div className="flex flex-col justify-center p-6 bg-slate-50 border border-card-border rounded-2xl h-32 space-y-2">
                         <div className="flex items-center gap-2">
-                           <span className="text-[10px]">📐</span>
+                           <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
                            <p className="text-[9px] font-black text-text-main uppercase tracking-tighter italic">Proporção: <span className="text-primary font-bold">1:1 (Quadrada)</span> ou Horizontal</p>
                         </div>
                         <div className="flex items-center gap-2">
-                           <span className="text-[10px]">🖼️</span>
+                           <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
                            <p className="text-[9px] font-black text-text-main uppercase tracking-tighter italic">Formato: <span className="text-primary font-bold">PNG (Transparente)</span> ou SVG</p>
                         </div>
                         <div className="flex items-center gap-2">
-                           <span className="text-[10px]">✨</span>
+                           <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
                            <p className="text-[9px] font-black text-text-main uppercase tracking-tighter italic">Qualidade: Mínimo <span className="text-primary font-bold">512x512px</span></p>
                         </div>
                      </div>
@@ -425,23 +425,16 @@ export default function SettingsPage() {
               <h3 className="text-base font-black text-text-main italic uppercase tracking-tighter border-b border-slate-50 pb-4">3. Segmento</h3>
               <div className="grid grid-cols-4 gap-2">
                  {[
-                   { id: "Clínica Médica", icon: "🩺" },
-                   { id: "Clínica de Estética", icon: "✨" },
-                   { id: "Fisioterapia", icon: "🧘" },
-                   { id: "Pilates", icon: "🤸" },
-                   { id: "Nutricionista", icon: "🍏" },
-                   { id: "Psicólogo", icon: "🧠" },
-                   { id: "Beleza / Barbearia", icon: "✂️" },
-                   { id: "Outros", icon: "🏢" }
-                 ].map((n) => (
-                   <button key={n.id} onClick={() => setNiche(n.id)} className={`flex flex-col items-center justify-center p-2 rounded-xl border transition-all text-center h-16 ${niche === n.id ? 'border-primary bg-primary-soft shadow-sm' : 'border-slate-50 opacity-40 hover:opacity-100'}`}>
-                     <span className="text-base mb-1">{n.icon}</span>
-                     <span className="text-[6px] font-black uppercase text-text-main leading-tight italic">{n.id.split(' ')[0]}</span>
+                   "Clínica Médica", "Clínica de Estética", "Fisioterapia", "Pilates",
+                   "Nutricionista", "Psicólogo", "Beleza / Barbearia", "Outros"
+                 ].map((id) => (
+                   <button key={id} onClick={() => setNiche(id)} className={`flex flex-col items-center justify-center p-2 rounded-xl border transition-all text-center h-16 ${niche === id ? 'border-primary bg-primary-soft shadow-sm' : 'border-slate-50 opacity-40 hover:opacity-100'}`}>
+                     <span className="text-[6px] font-black uppercase text-text-main leading-tight italic">{id.split(' ')[0]}</span>
                    </button>
                  ))}
               </div>
               <div className="p-6 bg-primary-soft/50 border border-primary/20 rounded-[2rem] flex items-center gap-4">
-                 <span className="text-xl shrink-0">🤖</span>
+                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="shrink-0 text-primary"><rect x="3" y="6" width="12" height="9" rx="2" stroke="currentColor" strokeWidth="1.5"/><path d="M6 6V5a3 3 0 016 0v1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><circle cx="6.5" cy="10.5" r="1" fill="currentColor"/><circle cx="11.5" cy="10.5" r="1" fill="currentColor"/><path d="M7 13h4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
                  <p className="text-[9px] text-primary font-black uppercase leading-relaxed tracking-wider">
                     O sistema adapta automaticamente labels e fluxos para {niche.toUpperCase()}.
                  </p>
@@ -474,7 +467,7 @@ export default function SettingsPage() {
                  <p className="text-[11px] text-text-muted font-medium mt-4 leading-relaxed opacity-70 italic">Gerencia o banco de dados e exporta prontuários e transações em formato estruturado auditável.</p>
               </div>
               <a href={`/api/export/backup`} download className="btn-secondary w-full py-5 flex items-center justify-center gap-3 text-[10px] shadow-sm hover:border-primary/40 transition-all font-black">
-                <span>📦 Exportar todos os dados (Synka Cloud Backup)</span>
+                <span>Exportar todos os dados (Synka Cloud Backup)</span>
               </a>
            </div>
 

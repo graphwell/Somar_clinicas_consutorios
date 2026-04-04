@@ -78,38 +78,23 @@ export default function DashboardPage() {
       {/* ── KPIs ── */}
       <KpiSection selectedDate={data} />
 
-      {/* ── Agenda + Painel Synka ── */}
-      <div className="flex gap-4 items-start">
-        {/* Agenda (70%) */}
-        <div className="flex-1 min-w-0">
-          <Card className="p-4 lg:p-5">
-            <AgendaConsolidada
-              data={data}
-              profissionais={profissionais}
-              loading={loading}
-              role={user?.role || "admin"}
-              profissionalId={undefined}
-              onDataChange={(d) => setData(d)}
-              onSlotClick={handleSlotClick}
-              onAgendamentoClick={handleAgendamentoClick}
-              onNovoAgendamento={handleNovoAgendamento}
-            />
-          </Card>
-        </div>
+      {/* ── Synka IA (accordion, recolhido por padrão) ── */}
+      <SynkaPanel profissionais={profissionais} data={data} collapsed />
 
-        {/* Synka Panel (30%) — oculto em mobile */}
-        <div className="hidden xl:block w-[300px] shrink-0">
-          <SynkaPanel
-            profissionais={profissionais}
-            data={data}
-          />
-        </div>
-      </div>
-
-      {/* Synka Panel mobile — accordion */}
-      <div className="xl:hidden">
-        <SynkaPanel profissionais={profissionais} data={data} collapsed />
-      </div>
+      {/* ── Agenda (largura total) ── */}
+      <Card className="p-4 lg:p-5">
+        <AgendaConsolidada
+          data={data}
+          profissionais={profissionais}
+          loading={loading}
+          role={user?.role || "admin"}
+          profissionalId={undefined}
+          onDataChange={(d) => setData(d)}
+          onSlotClick={handleSlotClick}
+          onAgendamentoClick={handleAgendamentoClick}
+          onNovoAgendamento={handleNovoAgendamento}
+        />
+      </Card>
 
       {/* Modal de agendamento */}
       <ModalAgendamento

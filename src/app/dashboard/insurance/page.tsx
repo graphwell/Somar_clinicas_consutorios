@@ -124,9 +124,9 @@ function ConvenioCard({
 
       {/* Linha 2: stats compactos */}
       <div className="flex gap-3 text-[12px] text-slate-300">
-        <span>👥 <strong className="text-slate-500 font-medium">{convenio.totalProfissionais}</strong> prof.</span>
-        <span>📋 <strong className="text-slate-500 font-medium">{convenio.totalServicos}</strong> serv.</span>
-        <span>🧑 <strong className="text-slate-500 font-medium">{convenio.totalPacientes}</strong> pac.</span>
+        <span><strong className="text-slate-500 font-medium">{convenio.totalProfissionais}</strong> prof.</span>
+        <span><strong className="text-slate-500 font-medium">{convenio.totalServicos}</strong> serv.</span>
+        <span><strong className="text-slate-500 font-medium">{convenio.totalPacientes}</strong> pac.</span>
       </div>
 
       {/* Linha 3: botões de ação */}
@@ -201,7 +201,7 @@ function ModalConvenio({
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
         <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-warm-100">
           <h2 className="font-semibold text-slate-700">{convenio ? "Editar convênio" : "Novo convênio"}</h2>
-          <button onClick={onClose} className="text-slate-200 hover:text-slate-400 text-lg leading-none">✕</button>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center text-slate-200 hover:text-slate-400 rounded-lg hover:bg-slate-100 transition-colors"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M9 3L3 9M3 3l6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg></button>
         </div>
         <div className="px-5 py-4 space-y-3">
           {error && <p className="text-xs text-red-500">{error}</p>}
@@ -298,7 +298,7 @@ function ModalProfissionais({
             <h2 className="font-semibold text-slate-700">Profissionais</h2>
             <p className="text-[11px] text-slate-100">{convenio.nomeConvenio}</p>
           </div>
-          <button onClick={onClose} className="text-slate-200 hover:text-slate-400 text-lg leading-none">✕</button>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center text-slate-200 hover:text-slate-400 rounded-lg hover:bg-slate-100 transition-colors"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M9 3L3 9M3 3l6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg></button>
         </div>
         <div className="px-5 py-4 max-h-96 overflow-y-auto">
           {loading ? (
@@ -398,12 +398,12 @@ function ModalTabela({
             <h2 className="font-semibold text-slate-700">Tabela de Preços</h2>
             <p className="text-[11px] text-slate-100">{convenio.nomeConvenio}</p>
           </div>
-          <button onClick={onClose} className="text-slate-200 hover:text-slate-400 text-lg leading-none">✕</button>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center text-slate-200 hover:text-slate-400 rounded-lg hover:bg-slate-100 transition-colors"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M9 3L3 9M3 3l6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg></button>
         </div>
 
         {/* Aviso TISS */}
         <div className="mx-5 mt-4 px-4 py-3 bg-blue-50 border border-blue-100 rounded-xl flex items-start gap-3">
-          <span className="text-blue-400 text-base mt-0.5">🏥</span>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-blue-400 shrink-0 mt-0.5"><path d="M2 14.667V7.333L8 1.333l6 6v7.334H2z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/><path d="M5.333 14.667V10h5.334v4.667" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/></svg>
           <div>
             <p className="text-xs font-semibold text-blue-700">Faturamento TISS — Em breve</p>
             <p className="text-[11px] text-blue-500 mt-0.5">A geração automática de guias e lotes TISS estará disponível em breve. Configure os preços agora para usar quando lançar.</p>

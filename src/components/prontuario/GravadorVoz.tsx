@@ -181,7 +181,7 @@ export default function GravadorVoz({ onTranscricao, disabled }: GravadorVozProp
         {estado === "concluido" && (
           <div className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-green-500" />
-            <p className="text-xs text-green-600 font-medium">✓ Transcrição concluída</p>
+            <p className="text-xs text-green-600 font-medium">Transcrição concluída</p>
           </div>
         )}
         {estado === "erro" && (

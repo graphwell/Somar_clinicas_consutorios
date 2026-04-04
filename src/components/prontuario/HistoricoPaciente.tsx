@@ -213,22 +213,24 @@ export default function HistoricoPaciente({
               id="historico-fechar-btn"
               type="button"
               onClick={onFechar}
-              className="w-8 h-8 rounded-xl hover:bg-slate-50 flex items-center justify-center text-slate-400 font-black shrink-0 transition-colors"
+              className="w-8 h-8 rounded-xl hover:bg-slate-50 flex items-center justify-center text-slate-400 shrink-0 transition-colors"
             >
-              ✕
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M9 3L3 9M3 3l6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
             </button>
           </div>
 
           {/* Badges alergias e medicamentos */}
           <div className="flex flex-wrap gap-1.5 mt-3">
             {alergiasGraves.length > 0 && (
-              <span className="text-[9px] px-2 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200 font-black">
-                ⚠️ {alergiasGraves.length} alergia(s) grave(s)
+              <span className="flex items-center gap-1 text-[9px] px-2 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200 font-black">
+                <svg width="10" height="10" viewBox="0 0 14 14" fill="none"><path d="M7 1.167L12.833 11.083H1.167L7 1.167z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/><path d="M7 5.833v2.334M7 10h.008" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
+                {alergiasGraves.length} alergia(s) grave(s)
               </span>
             )}
             {medicamentosAtivos.length > 0 && (
-              <span className="text-[9px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 font-black">
-                💊 {medicamentosAtivos.length} medicamento(s) contínuo(s)
+              <span className="flex items-center gap-1 text-[9px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 font-black">
+                <svg width="10" height="10" viewBox="0 0 14 14" fill="none"><rect x="3" y="6" width="8" height="5" rx="2.5" stroke="currentColor" strokeWidth="1.3"/><path d="M5 6V4.5a2 2 0 014 0V6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
+                {medicamentosAtivos.length} medicamento(s) contínuo(s)
               </span>
             )}
             {alergias.length === 0 && medicamentosAtivos.length === 0 && (
@@ -321,7 +323,7 @@ export default function HistoricoPaciente({
                         gravidadeColor[a.gravidade] || gravidadeColor.MODERADA
                       }`}
                     >
-                      <span className="text-[9px] font-black">{a.gravidade === "GRAVE" ? "🔴" : a.gravidade === "MODERADA" ? "🟠" : "🟡"}</span>
+                      <span className={`text-[9px] font-black ${a.gravidade === "GRAVE" ? "text-red-500" : a.gravidade === "MODERADA" ? "text-orange-500" : "text-yellow-500"}`}>●</span>
                       <p className="text-[10px] font-black">{a.descricao}</p>
                       <span className="text-[8px] ml-auto opacity-60">{a.gravidade.toLowerCase()}</span>
                     </div>
@@ -331,7 +333,7 @@ export default function HistoricoPaciente({
                       key={m.id}
                       className="flex items-center gap-2 px-3 py-2 rounded-xl border bg-blue-50 border-blue-200"
                     >
-                      <span className="text-[9px]">💊</span>
+                      <svg width="10" height="10" viewBox="0 0 14 14" fill="none" className="text-blue-400 shrink-0"><rect x="3" y="6" width="8" height="5" rx="2.5" stroke="currentColor" strokeWidth="1.3"/><path d="M5 6V4.5a2 2 0 014 0V6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
                       <p className="text-[10px] font-black text-blue-700">
                         {m.nome}
                         {m.dosagem ? ` — ${m.dosagem}` : ""}

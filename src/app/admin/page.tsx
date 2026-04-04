@@ -20,10 +20,10 @@ const statusColor = (botActive: boolean, motivo?: string) => {
 };
 
 const statusLabel = (botActive: boolean, motivo?: string) => {
-  if (!botActive && motivo === 'Inadimplência') return '⚠ Inadimplente';
-  if (!botActive && motivo) return `✕ ${motivo}`;
-  if (!botActive) return '✕ Suspenso';
-  return '● Ativo';
+  if (!botActive && motivo === 'Inadimplência') return 'Inadimplente';
+  if (!botActive && motivo) return motivo;
+  if (!botActive) return 'Suspenso';
+  return 'Ativo';
 };
 
 type Modal =
@@ -175,7 +175,7 @@ export default function AdminSynkaPage() {
       <div className="min-h-screen bg-[#050510] flex items-center justify-center text-white p-4">
         <form onSubmit={handleAuth} className="bg-[#0a0a20] p-8 rounded-2xl border border-white/10 w-full max-w-sm text-center">
           <div className="w-16 h-16 bg-[#4a4ae2]/20 rounded-full flex items-center justify-center mx-auto mb-6">
-            <span className="text-3xl">🛡️</span>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#4a4ae2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           </div>
           <h2 className="text-xl font-bold mb-2">Synka Master</h2>
           <p className="text-gray-400 text-sm mb-6">Acesso restrito</p>
@@ -208,14 +208,14 @@ export default function AdminSynkaPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#0a0a20]/80 border border-white/5 p-6 rounded-2xl">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-tr from-[#4a4ae2] to-[#8080ff] rounded-xl flex items-center justify-center text-2xl shadow-[0_0_20px_rgba(74,74,226,0.3)]">👑</div>
+            <div className="w-12 h-12 bg-gradient-to-tr from-[#4a4ae2] to-[#8080ff] rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(74,74,226,0.3)]"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 20h20M4 20l2-8 4 4 2-6 2 6 4-4 2 8"/></svg></div>
             <div>
               <h1 className="text-2xl font-bold">Synka Master</h1>
               <p className="text-sm text-gray-400">{clinicas.length} empresas cadastradas</p>
             </div>
           </div>
           <button onClick={() => setAuthenticated(false)} className="text-sm text-gray-400 hover:text-white transition-colors">
-            Sair [✕]
+            Sair
           </button>
         </div>
 
@@ -391,14 +391,14 @@ export default function AdminSynkaPage() {
               disabled={saving}
               className="flex-1 py-3 bg-orange-500/20 text-orange-400 rounded-xl text-sm font-bold hover:bg-orange-500/30 transition-all border border-orange-500/20"
             >
-              ⚠ Inadimplência
+              Inadimplência
             </button>
             <button
               onClick={() => suspender('suspender_manual')}
               disabled={saving}
               className="flex-1 py-3 bg-red-500/20 text-red-400 rounded-xl text-sm font-bold hover:bg-red-500/30 transition-all border border-red-500/20"
             >
-              ✕ Manual
+              Manual
             </button>
           </div>
         </Modal>
@@ -406,7 +406,7 @@ export default function AdminSynkaPage() {
 
       {/* Deletar */}
       {modal?.type === 'deletar' && (
-        <Modal title="⚠ Confirmar Exclusão" onClose={() => setModal(null)}>
+        <Modal title="Confirmar Exclusão" onClose={() => setModal(null)}>
           <p className="text-gray-300 text-sm leading-relaxed">
             Você está prestes a <strong className="text-red-400">deletar permanentemente</strong> a empresa:
           </p>
@@ -461,7 +461,7 @@ const Modal = ({ title, children, onClose }: { title: string; children: React.Re
     <div className="bg-[#0a0a20] border border-white/10 p-8 rounded-3xl w-full max-w-md">
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-bold">{title}</h3>
-        <button onClick={onClose} className="text-gray-500 hover:text-white text-xl leading-none">✕</button>
+        <button onClick={onClose} className="text-gray-500 hover:text-white"><svg width="16" height="16" viewBox="0 0 12 12" fill="none"><path d="M9 3L3 9M3 3l6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg></button>
       </div>
       {children}
     </div>

@@ -64,7 +64,7 @@ function PlanoSaudeSection({ patient, onUpdate }: { patient: Paciente; onUpdate:
     <div className="border border-card-border rounded-[2rem] overflow-hidden">
       <div className="flex items-center justify-between px-8 py-5 bg-slate-50/40 border-b border-card-border">
         <div className="flex items-center gap-3">
-          <span className="text-lg">🏥</span>
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="text-text-placeholder"><path d="M2 16.5V8.25L9 2.25l7 6V16.5H2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/><path d="M6.5 16.5V11h5v5.5" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/><path d="M9 5.5v3M7.5 7h3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
           <h4 className="text-[11px] font-black uppercase tracking-[0.3em] text-text-placeholder">Plano de Saúde</h4>
         </div>
         <button
@@ -177,10 +177,10 @@ function PatientChart({ patient: initialPatient, onClose }: { patient: Paciente;
               </div>
               <div>
                  <h3 className="text-2xl font-black italic uppercase tracking-tighter text-text-main">{patient.nome}</h3>
-                 <p className="text-[10px] font-black text-text-muted uppercase tracking-widest mt-1 opacity-60">🩺 {labels.termoProntuario} Digital</p>
+                 <p className="text-[10px] font-black text-text-muted uppercase tracking-widest mt-1 opacity-60">{labels.termoProntuario} Digital</p>
               </div>
            </div>
-           <button onClick={onClose} className="w-11 h-11 rounded-xl hover:bg-slate-100 flex items-center justify-center text-text-placeholder transition-colors italic font-black">✕</button>
+           <button onClick={onClose} className="w-11 h-11 rounded-xl hover:bg-slate-100 flex items-center justify-center text-text-placeholder transition-colors"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M9 3L3 9M3 3l6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg></button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-12 space-y-12 no-scrollbar">
@@ -291,14 +291,14 @@ export default function PatientsPage() {
       <div className="bg-white border border-card-border p-12 rounded-[3.5rem] shadow-sm flex flex-col gap-12">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
           <div className="flex items-center gap-6">
-             <div className="w-14 h-14 rounded-3xl bg-primary text-white flex items-center justify-center text-3xl shadow-xl shadow-primary/20">👥</div>
+             <div className="w-14 h-14 rounded-3xl bg-primary text-white flex items-center justify-center shadow-xl shadow-primary/20"><svg width="28" height="28" viewBox="0 0 28 28" fill="none"><circle cx="10" cy="8" r="4" stroke="currentColor" strokeWidth="2"/><path d="M2 23c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><circle cx="20" cy="9" r="3" stroke="currentColor" strokeWidth="1.8"/><path d="M23 22c0-3.314-1.343-6-4-7.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg></div>
              <div>
                 <h2 className="text-2xl font-black italic uppercase tracking-tighter text-text-main">Base de <span className="text-primary">{labels.termoPacientePlural}</span></h2>
                 <p className="text-[10px] font-black text-text-placeholder uppercase tracking-[0.2em] mt-1 opacity-60">Sincronização Ativa</p>
              </div>
           </div>
           <button onClick={() => setShowNovo(true)} className="btn-primary flex items-center justify-center gap-2">
-            <span>➕ NOVO {labels.termoPaciente.toUpperCase()}</span>
+            <span>NOVO {labels.termoPaciente.toUpperCase()}</span>
           </button>
         </div>
 
@@ -310,7 +310,7 @@ export default function PatientsPage() {
               placeholder={`Busca inteligente por nome ou WhatsApp...`}
               className="input-premium w-full py-6 px-10 pl-24 text-base rounded-[2rem] shadow-inner"
             />
-            <span className="absolute left-10 top-1/2 -translate-y-1/2 text-2xl grayscale group-focus-within:grayscale-0 transition-all opacity-20 group-focus-within:opacity-100">🔍</span>
+            <span className="absolute left-10 top-1/2 -translate-y-1/2 text-text-placeholder opacity-40"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.5"/><path d="M11 11l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg></span>
           </div>
           
           {labels.temAssinatura && (
@@ -361,7 +361,7 @@ export default function PatientsPage() {
                       {p.agendamentos?.[0] ? new Date(p.agendamentos[0].dataHora).toLocaleDateString('pt-BR') : 'Sem Visitas'}
                     </td>
                     <td className="px-12 py-10 text-right">
-                       <button onClick={() => setSelectedPatient(p)} className="btn-secondary py-3 px-8 text-[9px]">🩺 {labels.prontuario}</button>
+                       <button onClick={() => setSelectedPatient(p)} className="btn-secondary py-3 px-8 text-[9px]">{labels.prontuario}</button>
                     </td>
                   </tr>
                 ))}
@@ -370,7 +370,7 @@ export default function PatientsPage() {
           </div>
           {filtered.length === 0 && (
              <div className="p-40 text-center bg-slate-50/20">
-                <p className="text-4xl mb-4 grayscale opacity-20">📂</p>
+                <div className="mb-4 flex justify-center opacity-20"><svg width="36" height="36" viewBox="0 0 36 36" fill="none"><path d="M6 30V9a3 3 0 013-3h7.5l3 3H27a3 3 0 013 3v18a3 3 0 01-3 3H9a3 3 0 01-3-3z" stroke="#40916C" strokeWidth="2" strokeLinejoin="round"/></svg></div>
                 <p className="font-black text-text-placeholder text-xs uppercase tracking-[0.3em]">Nenhum registro encontrado</p>
              </div>
           )}
@@ -385,7 +385,7 @@ export default function PatientsPage() {
           <div className="relative bg-white rounded-[2.5rem] shadow-2xl border border-card-border p-10 w-full max-w-md space-y-6 animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-black italic uppercase tracking-tighter text-text-main">Novo {labels.termoPaciente}</h3>
-              <button onClick={() => setShowNovo(false)} className="text-text-placeholder font-black hover:text-text-main">✕</button>
+              <button onClick={() => setShowNovo(false)} className="w-8 h-8 flex items-center justify-center rounded-lg text-text-placeholder hover:text-text-main hover:bg-slate-100 transition-colors"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M9 3L3 9M3 3l6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg></button>
             </div>
             <div className="space-y-4">
               <div className="space-y-1.5">

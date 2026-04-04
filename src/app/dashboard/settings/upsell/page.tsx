@@ -20,7 +20,7 @@ export default function UpsellSettingsPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div>
-        <h2 className="text-2xl font-bold">🚀 Upsell Automático (WhatsApp)</h2>
+        <h2 className="text-2xl font-bold">Upsell Automático (WhatsApp)</h2>
         <p className="text-gray-400 text-sm mt-1">Configure ofertas inteligentes enviadas se o cliente agendar um serviço gatilho.</p>
       </div>
 
@@ -36,7 +36,7 @@ export default function UpsellSettingsPage() {
           <p className="text-gray-500 text-center py-8">Carregando...</p>
         ) : combos.length === 0 ? (
           <div className="text-center p-12 border border-white/5 border-dashed rounded-xl bg-white/3">
-            <span className="text-4xl text-indigo-400/50">🛒</span>
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mx-auto opacity-50"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
             <p className="font-bold text-white mt-4">Nenhum upsell configurado</p>
             <p className="text-sm text-gray-500 mt-1 max-w-sm mx-auto">Sempre que um cliente agendar "Corte Masculino", o robô pode perguntar "Vai fazer a barba também?". Construa suas regras.</p>
           </div>
@@ -49,7 +49,7 @@ export default function UpsellSettingsPage() {
                     Se agendar <strong className="text-indigo-400">{combo.gatilho?.nome || '???'}</strong>
                   </p>
                   <p className="text-sm">
-                    ➔ Oferecer <strong className="text-green-400">{combo.oferta?.nome || '???'}</strong>
+                    Oferecer <strong className="text-green-400">{combo.oferta?.nome || '???'}</strong>
                   </p>
                   <p className="text-xs text-gray-400 mt-2 italic">"{combo.descricaoOferta}"</p>
                 </div>

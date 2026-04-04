@@ -40,8 +40,8 @@ function AcceptContent() {
         </div>
 
         {status === 'loading' && <p className="text-center text-gray-400">Validando convite...</p>}
-        {status === 'invalid' && <p className="text-center text-red-400">⚠️ Convite inválido ou expirado.</p>}
-        {done && <p className="text-center text-green-400">✅ Conta criada com sucesso! Você já pode fazer login.</p>}
+        {status === 'invalid' && <p className="text-center text-red-400">Convite inválido ou expirado.</p>}
+        {done && <p className="text-center text-green-400">Conta criada com sucesso! Você já pode fazer login.</p>}
 
         {status === 'valid' && !done && invite && (
           <form onSubmit={handleAccept} className="space-y-4">

@@ -15,11 +15,11 @@ export default function HourCell({ hour, appt, onClick, labels }: HourCellProps)
 
   const getStatusIcon = (s: string) => {
     switch (s) {
-      case 'confirmado': return '✅';
-      case 'pendente': return '⏳';
-      case 'cancelado': return '❌';
-      case 'done': return '🏁';
-      case 'reagendado': return '🔄';
+      case 'confirmado': return <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" fill="#22c55e" fillOpacity="0.2" stroke="#22c55e" strokeWidth="1"/><path d="M3.5 6l1.8 1.8 3-3" stroke="#22c55e" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+      case 'pendente': return <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" fill="#f59e0b" fillOpacity="0.2" stroke="#f59e0b" strokeWidth="1"/><path d="M6 3.5v2.5l1.5 1.5" stroke="#f59e0b" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+      case 'cancelado': return <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" fill="#ef4444" fillOpacity="0.2" stroke="#ef4444" strokeWidth="1"/><path d="M4 4l4 4M8 4l-4 4" stroke="#ef4444" strokeWidth="1.2" strokeLinecap="round"/></svg>;
+      case 'done': return <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" fill="#6366f1" fillOpacity="0.2" stroke="#6366f1" strokeWidth="1"/><path d="M3.5 6l1.8 1.8 3-3" stroke="#6366f1" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+      case 'reagendado': return <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" fill="#8b5cf6" fillOpacity="0.2" stroke="#8b5cf6" strokeWidth="1"/><path d="M4 5.5A2 2 0 016 4h.5M8 6.5A2 2 0 016 8h-.5M7.5 4l-.5 1 1 .5M4.5 8l.5-1-1-.5" stroke="#8b5cf6" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"/></svg>;
       default: return null;
     }
   };
@@ -38,7 +38,7 @@ export default function HourCell({ hour, appt, onClick, labels }: HourCellProps)
           {hour}
         </span>
         <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full ${appt ? 'bg-primary/5 text-primary' : 'bg-slate-100/50'}`}>
-           <span className="text-[12px]">{getStatusIcon(status)}</span>
+           <span className="flex items-center">{getStatusIcon(status)}</span>
            <span className="text-[7px] font-black uppercase tracking-widest opacity-60">{config.label}</span>
         </div>
       </div>
@@ -53,7 +53,7 @@ export default function HourCell({ hour, appt, onClick, labels }: HourCellProps)
           </div>
         ) : (
           <div className="flex items-center gap-2 opacity-10 group-hover:opacity-100 transition-opacity">
-            <span className="text-[14px]">➕</span>
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
             <span className="text-[8px] font-black uppercase tracking-widest">Disponível</span>
           </div>
         )}

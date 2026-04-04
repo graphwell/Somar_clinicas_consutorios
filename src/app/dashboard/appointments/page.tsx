@@ -88,7 +88,7 @@ function PlanoBadge({ pacienteId, servicoId }: { pacienteId: string; servicoId?:
   if (limiteSuperado) {
     return (
       <div className="mt-1.5 px-2 py-1.5 rounded-lg text-[9px]" style={{ background: '#FFFBEB', border: '1px solid #FCD34D' }}>
-        <p className="font-black" style={{ color: '#92400E' }}>⚠️ Limite do plano atingido</p>
+        <p className="font-black" style={{ color: '#92400E' }}>Limite do plano atingido</p>
         <p style={{ color: '#B45309' }}>{info.usado}/{info.limite} {info.tipo === 'limitado' ? 'usos' : ''} usados
           {info.descontoExtra ? ` · Será cobrado com ${info.descontoExtra}% OFF` : ''}
         </p>
@@ -98,7 +98,7 @@ function PlanoBadge({ pacienteId, servicoId }: { pacienteId: string; servicoId?:
 
   return (
     <div className="mt-1.5 px-2 py-1.5 rounded-lg text-[9px]" style={{ background: '#F0FAF4', border: '1px solid #C8DDD4' }}>
-      <p className="font-black" style={{ color: '#2D6A4F' }}>💎 {info.planoNome}</p>
+      <p className="font-black" style={{ color: '#2D6A4F' }}>{info.planoNome}</p>
       {info.servicoIncluso && info.limite !== null && (
         <p style={{ color: '#40916C' }}>{info.usado} de {info.limite} usados · Não será cobrado</p>
       )}
@@ -191,12 +191,12 @@ function CardAtendimento({
             <p className="text-[10px] font-mono text-text-placeholder">{ag.paciente.telefone}</p>
             <a href={`/dashboard/clinical-records?pacienteId=${ag.paciente.id}`}
               className="text-[8px] font-black uppercase px-2 py-0.5 rounded-lg bg-primary-soft text-primary border border-primary/10 hover:bg-primary/10 transition-colors">
-              🩺 Prontuário
+              Prontuário
             </a>
             <a href={`https://wa.me/55${ag.paciente.telefone.replace(/\D/g, '')}`}
               target="_blank" rel="noreferrer"
               className="text-[8px] font-black uppercase px-2 py-0.5 rounded-lg bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-colors">
-              💬 WhatsApp
+              WhatsApp
             </a>
           </div>
 
@@ -435,8 +435,8 @@ export default function AtendimentosHojePage() {
       <div className="bg-white border border-card-border rounded-[2.5rem] p-8 shadow-sm">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-primary text-white flex items-center justify-center text-2xl shadow-lg shadow-primary/20">
-              📋
+            <div className="w-12 h-12 rounded-2xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="3.667" y="2.75" width="14.667" height="16.5" rx="2" stroke="currentColor" strokeWidth="1.8"/><path d="M7.333 7.333h7.334M7.333 11h7.334M7.333 14.667h4.584" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/><path d="M7.333 2.75V4.583M14.667 2.75V4.583" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
             </div>
             <div>
               <h1 className="text-xl font-black italic uppercase tracking-tighter text-text-main">
@@ -531,7 +531,7 @@ export default function AtendimentosHojePage() {
           <input value={busca} onChange={e => setBusca(e.target.value)}
             placeholder={`Buscar ${labels.termoPaciente.toLowerCase()}...`}
             className="input-premium w-full py-2.5 text-sm pl-9" />
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-placeholder text-sm">🔍</span>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-placeholder"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4" stroke="currentColor" strokeWidth="1.5"/><path d="M9.5 9.5l2.5 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg></span>
         </div>
 
         {/* Filtro por profissional */}
@@ -560,7 +560,7 @@ export default function AtendimentosHojePage() {
         </div>
       ) : lista.length === 0 ? (
         <div className="bg-white border border-card-border rounded-[2.5rem] py-24 text-center">
-          <p className="text-4xl mb-3 opacity-20">📋</p>
+          <div className="mb-3 flex justify-center opacity-20"><svg width="36" height="36" viewBox="0 0 36 36" fill="none"><rect x="6" y="4.5" width="24" height="27" rx="3" stroke="#40916C" strokeWidth="2"/><path d="M12 12h12M12 18h12M12 24h7.5" stroke="#40916C" strokeWidth="2" strokeLinecap="round"/></svg></div>
           <p className="font-black text-text-placeholder text-xs uppercase tracking-[0.3em]">
             {total === 0 ? 'Nenhum atendimento neste dia' : 'Nenhum resultado para este filtro'}
           </p>
@@ -645,8 +645,8 @@ export default function AtendimentosHojePage() {
           <div className="relative bg-white rounded-[2rem] shadow-2xl border border-card-border p-8 w-full max-w-md space-y-5 animate-in zoom-in-95 duration-200"
             onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-black italic uppercase tracking-tighter text-text-main">⚡ Encaixe Rápido</h3>
-              <button onClick={() => setShowEncaixe(false)} className="text-text-placeholder font-black hover:text-text-main text-xl">✕</button>
+              <h3 className="text-lg font-black italic uppercase tracking-tighter text-text-main">Encaixe Rápido</h3>
+              <button onClick={() => setShowEncaixe(false)} className="text-text-placeholder hover:text-text-main w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M9 3L3 9M3 3l6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg></button>
             </div>
 
             {/* Busca de paciente */}
@@ -717,7 +717,7 @@ export default function AtendimentosHojePage() {
               </button>
               <button onClick={salvarEncaixe} disabled={encSaving || !encPacId || !encHorario}
                 className="flex-1 btn-primary py-3 text-[9px] disabled:opacity-40">
-                {encSaving ? 'Salvando...' : '⚡ Encaixar'}
+                {encSaving ? 'Salvando...' : 'Encaixar'}
               </button>
             </div>
           </div>

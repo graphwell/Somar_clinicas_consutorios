@@ -11,13 +11,21 @@ const ROTATING_PHRASES = [
   { pain: 'erros de anotação causando conflito de horários', fix: 'Agenda sincronizada. Sem conflitos.' },
 ];
 
+const BENEFIT_ICONS: Record<string, React.ReactNode> = {
+  'IA no WhatsApp': <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12h4m0 0l2-2m-2 2l2 2M12 8v4"/></svg>,
+  'Agenda em Tempo Real': <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
+  'Lembretes Automáticos': <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>,
+  'Relatórios da Clínica': <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
+  'Seguro e Privado': <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>,
+  'Ativo em 24 horas': <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
+};
 const BENEFITS = [
-  { icon: '🤖', title: 'IA no WhatsApp', desc: 'Agendamentos, cancelamentos e remarcações feitos automaticamente pela IA sem intervenção humana.' },
-  { icon: '📅', title: 'Agenda em Tempo Real', desc: 'Painel completo para sua equipe visualizar, criar e gerenciar consultas com um clique.' },
-  { icon: '🔔', title: 'Lembretes Automáticos', desc: 'Pacientes recebem confirmações e lembretes 24h antes. Reduza no-shows em até 70%.' },
-  { icon: '📊', title: 'Relatórios da Clínica', desc: 'Veja métricas de atendimento, taxa de confirmação e histórico completo de pacientes.' },
-  { icon: '🔒', title: 'Seguro e Privado', desc: 'Dados da sua clínica protegidos com criptografia. Conformidade com LGPD.' },
-  { icon: '⚡', title: 'Ativo em 24 horas', desc: 'Configure, conecte o WhatsApp e comece a atender. Sem instalação, sem servidor próprio.' },
+  { title: 'IA no WhatsApp', desc: 'Agendamentos, cancelamentos e remarcações feitos automaticamente pela IA sem intervenção humana.' },
+  { title: 'Agenda em Tempo Real', desc: 'Painel completo para sua equipe visualizar, criar e gerenciar consultas com um clique.' },
+  { title: 'Lembretes Automáticos', desc: 'Pacientes recebem confirmações e lembretes 24h antes. Reduza no-shows em até 70%.' },
+  { title: 'Relatórios da Clínica', desc: 'Veja métricas de atendimento, taxa de confirmação e histórico completo de pacientes.' },
+  { title: 'Seguro e Privado', desc: 'Dados da sua clínica protegidos com criptografia. Conformidade com LGPD.' },
+  { title: 'Ativo em 24 horas', desc: 'Configure, conecte o WhatsApp e comece a atender. Sem instalação, sem servidor próprio.' },
 ];
 
 export default function LandingPage() {
@@ -113,7 +121,7 @@ export default function LandingPage() {
         <div className="flex flex-col sm:flex-row gap-4 mb-20">
           <Link href="/auth/login"
             className="px-8 py-4 bg-[#40916C] hover:bg-[#2D6A4F] rounded-2xl text-base font-bold transition-all shadow-[0_8px_32px_rgba(64,145,108,0.4)] hover:shadow-[0_8px_40px_rgba(64,145,108,0.6)] hover:-translate-y-0.5">
-            Começar grátis — 7 dias ✨
+            Começar grátis — 7 dias
           </Link>
           <a href="#como-funciona"
             className="px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-base font-semibold transition-all">
@@ -123,13 +131,13 @@ export default function LandingPage() {
 
         {/* Social proof */}
         <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-gray-500">
-          <span>✅ Sem instalação</span>
+          <span>-Sem instalação</span>
           <span className="hidden sm:block">·</span>
-          <span>✅ Funciona 24h</span>
+          <span>-Funciona 24h</span>
           <span className="hidden sm:block">·</span>
-          <span>✅ Ativo em menos de 24h</span>
+          <span>-Ativo em menos de 24h</span>
           <span className="hidden sm:block">·</span>
-          <span>✅ Cancele quando quiser</span>
+          <span>-Cancele quando quiser</span>
         </div>
       </section>
 
@@ -144,7 +152,7 @@ export default function LandingPage() {
               {/* Pain */}
               <div className="bg-red-500/8 border border-red-500/20 rounded-2xl px-8 py-6 mb-6 max-w-2xl mx-auto">
                 <p className="text-base sm:text-lg text-gray-200 leading-relaxed">
-                  😤 <span className="text-red-300 font-medium">&quot;{phrase.pain}&quot;</span>
+                  <span className="text-red-300 font-medium">&quot;{phrase.pain}&quot;</span>
                 </p>
               </div>
               {/* Arrow */}
@@ -152,7 +160,7 @@ export default function LandingPage() {
               {/* Fix */}
               <div className="bg-green-500/8 border border-green-500/20 rounded-2xl px-8 py-5 max-w-2xl mx-auto">
                 <p className="text-base sm:text-lg text-green-300 font-semibold">
-                  ✅ Synka resolve: {phrase.fix}
+                  Synka resolve: {phrase.fix}
                 </p>
               </div>
             </div>
@@ -197,7 +205,7 @@ export default function LandingPage() {
             {BENEFITS.map(b => (
               <div key={b.title}
                 className="group bg-[#0a1a14]/60 border border-white/5 hover:border-[#40916C]/30 rounded-2xl p-7 transition-all hover:-translate-y-1 hover:shadow-[0_8px_32px_rgba(64,145,108,0.12)]">
-                <span className="text-3xl mb-4 block">{b.icon}</span>
+                <span className="text-[#52B788] mb-4 block">{BENEFIT_ICONS[b.title]}</span>
                 <h3 className="font-bold text-base mb-2">{b.title}</h3>
                 <p className="text-gray-400 text-sm leading-relaxed">{b.desc}</p>
               </div>

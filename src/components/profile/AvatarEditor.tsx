@@ -106,7 +106,7 @@ export default function AvatarEditor({ currentUrl, nome = 'U', size = 40, onUpda
       const data = await res.json();
       if (res.ok) {
         onUpdate?.(data.avatarUrl);
-        setToast('Foto atualizada ✓');
+        setToast('Foto atualizada');
       } else {
         setToast(data.error || 'Erro ao salvar.');
       }
@@ -138,7 +138,7 @@ export default function AvatarEditor({ currentUrl, nome = 'U', size = 40, onUpda
           )}
           {!readOnly && (
             <div className="absolute inset-0 rounded-full bg-black/30 opacity-0 hover:opacity-100 flex items-center justify-center transition-opacity">
-              <span style={{ fontSize: size * 0.35 }}>📷</span>
+              <svg width={size * 0.35} height={size * 0.35} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
             </div>
           )}
         </div>
@@ -163,20 +163,20 @@ export default function AvatarEditor({ currentUrl, nome = 'U', size = 40, onUpda
               onClick={() => openFile(true)}
               className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-warm-100 transition-colors"
             >
-              <span>📷</span> Tirar selfie
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg> Tirar selfie
             </button>
             <button
               onClick={() => openFile(false)}
               className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-warm-100 transition-colors"
             >
-              <span>🖼️</span> Escolher foto
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg> Escolher foto
             </button>
             {currentUrl && (
               <button
                 onClick={handleRemove}
                 className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors border-t border-warm-200"
               >
-                <span>🗑️</span> Remover foto
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg> Remover foto
               </button>
             )}
           </div>

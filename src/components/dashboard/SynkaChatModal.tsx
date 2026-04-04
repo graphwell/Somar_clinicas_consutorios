@@ -60,7 +60,15 @@ export default function SynkaChatModal() {
             isOpen ? 'bg-text-main text-white rotate-180' : 'bg-primary text-white'
           }`}
         >
-          {isOpen ? '✕' : '🧠'}
+          {isOpen ? (
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M13.5 4.5L4.5 13.5M4.5 4.5l9 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+          ) : (
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+              <circle cx="11" cy="8" r="4" stroke="currentColor" strokeWidth="1.8"/>
+              <path d="M3 19c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+              <path d="M11 4V2M7.5 5.5L6 4M14.5 5.5L16 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+          )}
         </button>
       </div>
 
@@ -84,7 +92,7 @@ export default function SynkaChatModal() {
                   className="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center transition-colors opacity-40 hover:opacity-100"
                   title="Limpar Chat"
                 >
-                   🗑️
+                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2.333 3.5h9.334M5.833 3.5V2.333h2.334V3.5M5.25 10.5V5.833M8.75 10.5V5.833M3.5 3.5l.583 8.167h5.834L10.5 3.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 </button>
                 <button 
                   onClick={() => setIsOpen(false)}
@@ -134,7 +142,7 @@ export default function SynkaChatModal() {
                      input.trim() ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-slate-200 text-white cursor-not-allowed'
                    }`}
                 >
-                   ➡
+                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2.333 7h9.334M8.167 4.667L10.5 7l-2.333 2.333" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 </button>
              </form>
              <p className="text-center text-[8px] font-black text-text-placeholder uppercase tracking-widest mt-6 opacity-40">

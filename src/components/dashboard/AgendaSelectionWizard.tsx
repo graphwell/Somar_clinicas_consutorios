@@ -49,8 +49,8 @@ export default function AgendaSelectionWizard({
                 }}
                 className="bg-white border border-card-border p-10 rounded-[3rem] shadow-premium hover:shadow-2xl hover:scale-[1.02] transition-all group flex flex-col items-center text-center space-y-4"
               >
-                <div className="w-16 h-16 rounded-3xl bg-primary-soft flex items-center justify-center text-2xl group-hover:rotate-12 transition-transform">
-                  🩺
+                <div className="w-16 h-16 rounded-3xl bg-primary-soft flex items-center justify-center text-primary group-hover:rotate-12 transition-transform">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
                 </div>
                 <div>
                   <h4 className="text-lg font-black uppercase italic tracking-tighter text-text-main">{spec}</h4>
@@ -113,7 +113,7 @@ export default function AgendaSelectionWizard({
         {/* 🤖 Seção de Sugestões Synka IA */}
         <div className="pt-16 space-y-10 border-t border-slate-100">
            <div className="flex items-center gap-4 justify-center md:justify-start">
-              <div className="w-12 h-12 rounded-2x bg-primary flex items-center justify-center text-white text-2xl shadow-lg ring-4 ring-primary/10">🤖</div>
+              <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center text-white shadow-lg ring-4 ring-primary/10"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/><circle cx="12" cy="16" r="1"/></svg></div>
               <div>
                 <h4 className="text-sm font-black uppercase tracking-tighter text-text-main italic">Sugestões de Performance <span className="text-primary tracking-widest opacity-60 ml-2">by Synka IA</span></h4>
                 <p className="text-[9px] font-black text-text-placeholder uppercase tracking-widest mt-1">Análise inteligente baseada em dados reais</p>
@@ -122,7 +122,7 @@ export default function AgendaSelectionWizard({
 
            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="bg-gradient-to-br from-white to-slate-50 border border-card-border p-8 rounded-[2.5rem] shadow-sm hover:shadow-xl transition-all group relative overflow-hidden">
-                 <div className="absolute top-0 right-0 p-8 text-4xl opacity-10 group-hover:scale-125 transition-transform">📊</div>
+                 <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-125 transition-transform"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
                  <h5 className="text-[11px] font-black uppercase tracking-widest text-primary mb-4">Marketing & Retenção</h5>
                  <p className="text-xs font-bold text-text-main leading-relaxed italic pr-10">
                    "Notei que <strong>{labels.termoPacientePlural}</strong> de {labels.termoServico.toLowerCase()}s recorrentes não voltam há 45 dias. Recomendo disparar cupom de fidelidade."
@@ -131,7 +131,7 @@ export default function AgendaSelectionWizard({
               </div>
 
               <div className="bg-gradient-to-br from-white to-slate-50 border border-card-border p-8 rounded-[2.5rem] shadow-sm hover:shadow-xl transition-all group relative overflow-hidden">
-                 <div className="absolute top-0 right-0 p-8 text-4xl opacity-10 group-hover:scale-125 transition-transform">⚡</div>
+                 <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-125 transition-transform"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
                  <h5 className="text-[11px] font-black uppercase tracking-widest text-emerald-500 mb-4">Otimização de Agenda</h5>
                  <p className="text-xs font-bold text-text-main leading-relaxed italic pr-10">
                    "Sua taxa de ocupação nas quartas-feiras está abaixo da meta (15%). Que tal abrir um horário promocional matutino?"

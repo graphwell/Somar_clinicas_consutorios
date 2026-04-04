@@ -474,7 +474,7 @@ export default function ModalAgendamento({
                   ) : convenioVerify ? (
                     convenioVerify.aceita ? (
                       <div className="bg-sage-50 border border-sage-200 rounded-xl px-3 py-2 flex items-start gap-2">
-                        <span className="text-sage-500 text-sm mt-0.5">✓</span>
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="text-sage-500 mt-0.5 shrink-0"><path d="M11.667 3.5L5.25 10.5 2.333 7.583" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                         <div>
                           <p className="text-[12px] font-medium text-sage-700">
                             {convenioVerify.semConfiguracao ? "Aceita (sem restrições configuradas)" : "Profissional aceita este convênio"}
@@ -521,7 +521,7 @@ export default function ModalAgendamento({
           {comboSugestao && (
             <div className="bg-gold-100 border border-gold-500/20 rounded-xl p-3">
               <p className="text-[12px] font-medium text-gold-500 mb-1">
-                💡 Que tal aproveitar também?
+                Que tal aproveitar também?
               </p>
               <p className="text-sm font-medium text-slate-700">{comboSugestao.nome}</p>
               {comboSugestao.descricao && (
@@ -536,7 +536,7 @@ export default function ModalAgendamento({
                       : "bg-white border border-gold-500/30 text-gold-500"
                   }`}
                 >
-                  {adicionarCombo ? "✓ Adicionado" : "Adicionar ao agendamento"}
+                  {adicionarCombo ? "Adicionado" : "Adicionar ao agendamento"}
                 </button>
                 <button
                   onClick={() => setComboSugestao(null)}

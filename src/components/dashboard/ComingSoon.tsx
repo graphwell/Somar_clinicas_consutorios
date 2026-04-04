@@ -9,8 +9,12 @@ export default function ComingSoonPage({ title, description }: { title: string, 
 
   return (
     <div className="min-h-[60vh] flex flex-col items-center justify-center text-center space-y-8 animate-premium">
-      <div className="w-24 h-24 rounded-[2.5rem] bg-primary-soft text-primary flex items-center justify-center text-4xl shadow-2xl shadow-primary/20 border border-primary/10">
-        🚀
+      <div className="w-24 h-24 rounded-[2.5rem] bg-primary-soft text-primary flex items-center justify-center shadow-2xl shadow-primary/20 border border-primary/10">
+        <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+          <path d="M20 5C20 5 28 10 28 20c0 4.418-3.582 8-8 8s-8-3.582-8-8C12 10 20 5 20 5z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
+          <path d="M20 33v2M16 35h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          <circle cx="20" cy="20" r="3" fill="currentColor"/>
+        </svg>
       </div>
       
       <div className="space-y-2">

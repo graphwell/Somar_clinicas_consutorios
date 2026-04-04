@@ -22,29 +22,8 @@ interface EspecialidadeGroup {
   totalAgendamentos: number;
 }
 
-const ICONS: Record<string, string> = {
-  'Cardiologia': '❤️',
-  'Ortopedia': '🦴',
-  'Dermatologia': '🧴',
-  'Neurologia': '🧠',
-  'Ginecologia': '🌸',
-  'Pediatria': '👶',
-  'Oftalmologia': '👁️',
-  'Psiquiatria': '🧘',
-  'Endocrinologia': '⚗️',
-  'Urologia': '💧',
-  'Oncologia': '🎗️',
-  'Fisioterapia': '🏃',
-  'Nutrição': '🥗',
-  'Odontologia': '🦷',
-  'Geral': '🏥',
-};
-
 function getIcon(especialidade: string): string {
-  for (const key of Object.keys(ICONS)) {
-    if (especialidade.toLowerCase().includes(key.toLowerCase())) return ICONS[key];
-  }
-  return '🔬';
+  return especialidade.slice(0, 2).toUpperCase();
 }
 
 function getColorForSpecialty(especialidade: string): string {
@@ -87,7 +66,7 @@ export default function SpecialtiesPage() {
 
       {/* Header */}
       <div className="bg-white border border-card-border p-10 rounded-[3rem] shadow-sm flex flex-col md:flex-row md:items-center gap-6">
-        <div className="w-14 h-14 rounded-3xl bg-primary text-white flex items-center justify-center text-3xl shadow-xl shadow-primary/20">🏥</div>
+        <div className="w-14 h-14 rounded-3xl bg-primary text-white flex items-center justify-center shadow-xl shadow-primary/20"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
         <div className="flex-1">
           <h2 className="text-2xl font-black italic uppercase tracking-tighter text-text-main">
             Especialidades
@@ -100,19 +79,19 @@ export default function SpecialtiesPage() {
           href="/dashboard/team"
           className="btn-primary px-6 py-3 text-[10px] flex items-center gap-2 self-start"
         >
-          <span>🧑‍💼</span> Gerenciar {labels.termoProfissionalPlural}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Gerenciar {labels.termoProfissionalPlural}
         </Link>
       </div>
 
       {/* KPIs */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: 'Especialidades', value: especialidades.length, icon: '🏥' },
-          { label: labels.termoProfissionalPlural, value: totalProfissionais, icon: '🧑‍💼' },
-          { label: 'Atendimentos', value: totalAgendamentos.toLocaleString('pt-BR'), icon: '📅' },
+          { label: 'Especialidades', value: especialidades.length, icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> },
+          { label: labels.termoProfissionalPlural, value: totalProfissionais, icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> },
+          { label: 'Atendimentos', value: totalAgendamentos.toLocaleString('pt-BR'), icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> },
         ].map((kpi, i) => (
           <div key={i} className="bg-white border border-card-border rounded-[2rem] p-6 flex items-center gap-4 shadow-sm">
-            <div className="w-10 h-10 rounded-2xl bg-primary-soft flex items-center justify-center text-xl">{kpi.icon}</div>
+            <div className="w-10 h-10 rounded-2xl bg-primary-soft flex items-center justify-center text-primary">{kpi.icon}</div>
             <div>
               <p className="text-2xl font-black text-text-main">{kpi.value}</p>
               <p className="text-[9px] font-black uppercase tracking-widest text-text-placeholder opacity-60 mt-0.5">{kpi.label}</p>
@@ -129,7 +108,7 @@ export default function SpecialtiesPage() {
           placeholder={`Buscar por especialidade ou ${labels.termoProfissional.toLowerCase()}...`}
           className="input-premium w-full py-4 pl-12 text-sm"
         />
-        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-text-placeholder text-base">🔍</span>
+        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-text-placeholder"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
       </div>
 
       {/* Content */}
@@ -139,7 +118,7 @@ export default function SpecialtiesPage() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="bg-white border border-card-border rounded-[2.5rem] py-24 text-center shadow-sm">
-          <p className="text-5xl mb-4">🔬</p>
+          <div className="flex justify-center mb-4"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
           <p className="font-black text-text-main text-sm uppercase tracking-tight">
             {search ? 'Nenhum resultado encontrado' : 'Nenhuma especialidade cadastrada'}
           </p>
@@ -171,8 +150,8 @@ export default function SpecialtiesPage() {
                 {/* Card header */}
                 <div className="p-6 flex items-center gap-4 border-b border-slate-50">
                   <div
-                    className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shadow-sm shrink-0 transition-transform group-hover:scale-110"
-                    style={{ backgroundColor: `${cor}15`, border: `1.5px solid ${cor}30` }}
+                    className="w-12 h-12 rounded-2xl flex items-center justify-center text-xs font-black shadow-sm shrink-0 transition-transform group-hover:scale-110"
+                    style={{ backgroundColor: `${cor}15`, border: `1.5px solid ${cor}30`, color: cor }}
                   >
                     {icon}
                   </div>

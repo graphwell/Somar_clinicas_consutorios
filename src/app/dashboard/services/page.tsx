@@ -100,7 +100,7 @@ export default function ServicesPage() {
            </div>
         </div>
         <button onClick={() => { resetForm(); setShowModal(true); }} className="btn-primary flex items-center justify-center gap-3">
-           <span className="text-lg">➕</span> Registrar Procedimento
+           Registrar Procedimento
         </button>
       </div>
 
@@ -134,8 +134,8 @@ export default function ServicesPage() {
                      <span className="text-[10px] font-black text-text-placeholder uppercase tracking-widest">Ativo</span>
                   </div>
                    <div className="flex flex-col items-end gap-1">
-                      <span className="bg-slate-50 text-text-main border border-card-border px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-inner">⏱ {s.duracaoMinutos} min</span>
-                      <span className="bg-amber-50 text-amber-600 border border-amber-100 px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-inner">☕ {s.bufferTimeMinutes || 0} min buffer</span>
+                      <span className="bg-slate-50 text-text-main border border-card-border px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-inner">{s.duracaoMinutos} min</span>
+                      <span className="bg-amber-50 text-amber-600 border border-amber-100 px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-inner">{s.bufferTimeMinutes || 0} min buffer</span>
                    </div>
                </div>
             </div>
@@ -152,10 +152,10 @@ export default function ServicesPage() {
           <div className="bg-white border border-card-border rounded-[3.5rem] p-12 w-full max-w-xl shadow-2xl scale-in" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-10 pb-8 border-b border-slate-50">
               <div>
-                  <h3 className="text-2xl font-black italic uppercase tracking-tighter text-text-main">📌 Definir Procedimento</h3>
+                  <h3 className="text-2xl font-black italic uppercase tracking-tighter text-text-main">Definir Procedimento</h3>
                   <p className="text-[10px] font-black text-text-placeholder uppercase tracking-widest mt-1 opacity-60">Preencha os dados do serviço</p>
               </div>
-              <button onClick={() => setShowModal(false)} className="w-10 h-10 rounded-xl hover:bg-slate-50 flex items-center justify-center text-text-placeholder transition-colors italic font-black">✕</button>
+              <button onClick={() => setShowModal(false)} className="w-10 h-10 rounded-xl hover:bg-slate-50 flex items-center justify-center text-text-placeholder transition-colors"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M9 3L3 9M3 3l6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg></button>
             </div>
             
             <form onSubmit={handleSave} className="space-y-8">

@@ -7,13 +7,20 @@ type Message = {
   text: string;
 };
 
+const SugIcon = ({ path, d2 }: { path: string; d2?: string }) => (
+  <svg width="22" height="22" viewBox="0 0 22 22" fill="none" className="shrink-0">
+    <path d={path} stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+    {d2 && <path d={d2} stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>}
+  </svg>
+);
+
 const SUGGESTIONS = [
-  { text: 'Como criar um novo agendamento?', icon: '📅' },
-  { text: 'Como cadastrar um profissional?', icon: '🧑‍💼' },
-  { text: 'Como visualizar o financeiro?', icon: '💰' },
-  { text: 'Como configurar o WhatsApp?', icon: '💬' },
-  { text: 'Como usar o Odontograma?', icon: '🦷' },
-  { text: 'Como mudar o nicho da clínica?', icon: '⚙️' },
+  { text: 'Como criar um novo agendamento?', icon: <SugIcon path="M3.667 5.5h14.666M3.667 5.5V18.333A1.833 1.833 0 005.5 20.167h11a1.833 1.833 0 001.833-1.834V5.5" d2="M7.333 1.833V5.5M14.667 1.833V5.5M11 10.083v5.5M8.25 12.833h5.5"/> },
+  { text: 'Como cadastrar um profissional?', icon: <SugIcon path="M11 2.75a3.667 3.667 0 100 7.333 3.667 3.667 0 000-7.333zM2.75 19.25c0-4.556 3.709-8.25 8.25-8.25s8.25 3.694 8.25 8.25"/> },
+  { text: 'Como visualizar o financeiro?',  icon: <SugIcon path="M1.833 5.5h18.334M1.833 5.5V17.417A1.833 1.833 0 003.667 19.25H18.333a1.833 1.833 0 001.834-1.833V5.5" d2="M6.417 9.167h2.75M6.417 12.833h7.333"/> },
+  { text: 'Como configurar o WhatsApp?',    icon: <SugIcon path="M11 1.833C5.937 1.833 1.833 5.937 1.833 11c0 1.718.453 3.33 1.247 4.73L1.833 20.167l4.599-1.2A9.148 9.148 0 0011 20.167c5.063 0 9.167-4.104 9.167-9.167S16.063 1.833 11 1.833z"/> },
+  { text: 'Como usar o Odontograma?',       icon: <SugIcon path="M8.25 2.75c-.5 1.833-.917 3.208-.917 4.583a3.667 3.667 0 007.334 0c0-1.375-.417-2.75-.917-4.583M11 10v9.25" d2="M8.25 14.667h5.5"/> },
+  { text: 'Como mudar o nicho da clínica?', icon: <SugIcon path="M11 2.75v1.833M11 17.417v1.833M3.695 5.195l1.296 1.296M16.009 15.509l1.296 1.296M2.75 11h1.833M16.417 11h1.833M3.695 16.805l1.296-1.296M16.009 6.491l1.296-1.296" d2="M11 13.75a2.75 2.75 0 100-5.5 2.75 2.75 0 000 5.5z"/> },
 ];
 
 function MarkdownText({ text }: { text: string }) {
@@ -96,7 +103,7 @@ export default function HelpCenterPage() {
     if (messages.length === 0) {
       setMessages([{
         role: 'model',
-        text: 'Olá! Sou a **Synka IA**, sua assistente de suporte.\n\nPosso te ajudar com:\n- 📅 Criar e gerenciar agendamentos\n- 👤 Configurar profissionais e serviços\n- ⚙️ Integrações e configurações\n- 💰 Financeiro e relatórios\n\nComo posso te ajudar hoje?',
+        text: 'Olá! Sou a **Synka IA**, sua assistente de suporte.\n\nPosso te ajudar com:\n- Criar e gerenciar agendamentos\n- Configurar profissionais e serviços\n- Integrações e configurações\n- Financeiro e relatórios\n\nComo posso te ajudar hoje?',
       }]);
     }
   };
@@ -174,7 +181,7 @@ export default function HelpCenterPage() {
             onClick={() => handleSuggestion(s.text)}
             className="premium-card p-6 flex items-center gap-4 cursor-pointer hover:bg-primary-soft/30 transition-all border-l-[4px] border-l-transparent hover:border-l-primary group text-left"
           >
-            <div className="text-2xl grayscale group-hover:grayscale-0 transition-all shrink-0">{s.icon}</div>
+            <div className="text-text-muted group-hover:text-primary transition-colors shrink-0">{s.icon}</div>
             <p className="text-[10px] font-black uppercase text-text-main tracking-tight italic leading-tight">{s.text}</p>
           </button>
         ))}
@@ -221,9 +228,9 @@ export default function HelpCenterPage() {
               </div>
               <button
                 onClick={() => setChatOpen(false)}
-                className="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center font-black text-white/70 hover:text-white transition-colors"
+                className="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center text-white/70 hover:text-white transition-colors"
               >
-                ✕
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M9 3L3 9M3 3l6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
               </button>
             </div>
 

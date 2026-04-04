@@ -130,8 +130,9 @@ export default function PermissoesPage() {
       </div>
 
       {/* Aviso */}
-      <div className="bg-gold-100 border border-gold-500/20 rounded-xl px-4 py-3 mb-5 text-sm text-gold-500">
-        ⚠️ Mudanças aplicadas imediatamente para todos os usuários da função selecionada.
+      <div className="bg-gold-100 border border-gold-500/20 rounded-xl px-4 py-3 mb-5 text-sm text-gold-500 flex items-start gap-2">
+        <svg className="shrink-0 mt-0.5" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1.167L12.833 11.083H1.167L7 1.167z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/><path d="M7 5.833v2.334M7 10h.008" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
+        Mudanças aplicadas imediatamente para todos os usuários da função selecionada.
       </div>
 
       <Card className="overflow-hidden">

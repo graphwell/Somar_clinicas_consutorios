@@ -24,15 +24,14 @@ type TipoProntuario = "CLINICO" | "ODONTOLOGICO" | "NUTRICIONAL" | "PSICOLOGICO"
 
 const TIPOS: {
   valor: TipoProntuario;
-  emoji: string;
   label: string;
   desc: string;
 }[] = [
-  { valor: "CLINICO", emoji: "🏥", label: "Médico", desc: "Clínica geral, especialidades" },
-  { valor: "ODONTOLOGICO", emoji: "🦷", label: "Odonto", desc: "Odontologia e saúde bucal" },
-  { valor: "NUTRICIONAL", emoji: "🥗", label: "Nutrição", desc: "Avaliação nutricional" },
-  { valor: "PSICOLOGICO", emoji: "🧠", label: "Psicologia", desc: "Saúde mental e terapia" },
-  { valor: "ESTETICO", emoji: "💆", label: "Estético", desc: "Procedimentos estéticos" },
+  { valor: "CLINICO", label: "Médico", desc: "Clínica geral, especialidades" },
+  { valor: "ODONTOLOGICO", label: "Odonto", desc: "Odontologia e saúde bucal" },
+  { valor: "NUTRICIONAL", label: "Nutrição", desc: "Avaliação nutricional" },
+  { valor: "PSICOLOGICO", label: "Psicologia", desc: "Saúde mental e terapia" },
+  { valor: "ESTETICO", label: "Estético", desc: "Procedimentos estéticos" },
 ];
 
 // ─── Etapa 1 — Busca de paciente ─────────────────────────────────────────────
@@ -159,7 +158,6 @@ function EtapaTipo({ onSelecionar }: { onSelecionar: (tipo: TipoProntuario) => v
           onClick={() => onSelecionar(t.valor)}
           className="flex flex-col items-center gap-2 p-5 rounded-2xl border-2 border-slate-100 bg-white hover:border-[var(--primary,#4a4ae2)] hover:bg-[var(--primary-soft,#eeeeff)] transition-all group"
         >
-          <span className="text-3xl">{t.emoji}</span>
           <p className="text-[10px] font-black uppercase tracking-widest text-slate-700 group-hover:text-[var(--primary,#4a4ae2)]">
             {t.label}
           </p>
@@ -223,7 +221,7 @@ function EtapaAgendamento({
             className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border border-slate-100 bg-white hover:border-[var(--primary,#4a4ae2)] hover:bg-[var(--primary-soft,#eeeeff)] transition-all text-left"
           >
             <div className="w-9 h-9 rounded-xl bg-green-50 border border-green-200 flex items-center justify-center shrink-0">
-              <span className="text-base">📅</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-[10px] font-black text-slate-700">
