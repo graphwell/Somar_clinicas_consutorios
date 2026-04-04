@@ -154,7 +154,7 @@ export default function Sidebar({
             <NavItem href="/dashboard/insurance" label="Convênios" Icon={IconConvenio} active={is("/dashboard/insurance")} />
           )}
           {labels.temAssinatura && !isProfissional && (
-            <NavItem href="/dashboard/subscriptions" label="Planos" Icon={IconAssinaturas} active={is("/dashboard/subscriptions")} />
+            <NavItem href="/dashboard/billing" label="Planos" Icon={IconAssinaturas} active={is("/dashboard/billing")} />
           )}
           {isAdmin && (
             <NavItem href="/dashboard/reports" label="Relatórios" Icon={IconRelatorios} active={is("/dashboard/reports")} />
