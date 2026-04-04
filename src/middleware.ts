@@ -1,117 +1,73 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { verifyToken } from './lib/auth';
 
+// Rotas de API que NÃO precisam de token — passam direto
+const API_PUBLICAS = [
+  '/api/auth/',
+  '/api/billing/webhook',
+  '/api/subscriptions/webhook',
+  '/api/bot/',
+  '/api/n8n/',
+  '/api/public/',
+];
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Lista de prefixos de API que exigem proteção Multi-Tenant
-  const protectedPrefixes = [
-    '/api/dashboard',
-    '/api/reports',
-    '/api/settings',
-    '/api/services',
-    '/api/campaigns',
-    '/api/upload',
-    '/api/export',
-    '/api/billing',
-    '/api/admin',
-    '/api/tenant',
-    '/api/appointments',
-    '/api/team',
-    '/api/patients',
-    '/api/bot',
-    '/api/convenios',
-    '/api/prontuario',
-    '/api/odontograma',
-    '/api/specialties',
-    '/api/chat',
-    '/api/marketing',
-    '/api/integrations',
-    '/api/finance'
-  ];
-
-  if (protectedPrefixes.some(prefix => pathname.startsWith(prefix))) {
-    try {
-      const authHeader = request.headers.get('authorization');
-      const token = authHeader?.split(' ')[1];
-
-      if (!token) {
-        // Rotas de bot podem não ter token (usam query params ou apiKey)
-        if (pathname.startsWith('/api/bot')) {
-          return NextResponse.next();
-        }
-        return NextResponse.json({ error: 'Sessão expirada ou inválida' }, { status: 401 });
-      }
-
-      const payload = await verifyToken(token);
-      if (!payload) {
-        return NextResponse.json({ 
-          error: 'Acesso negado: Token inválido ou segredo divergente',
-          debug: { hasToken: !!token, tokenLength: token?.length }
-        }, { status: 403 });
-      }
-
-      if (!payload.tenantId) {
-        return NextResponse.json({ 
-          error: 'Acesso negado: Tenant não identificado no payload',
-          debug: { payload } 
-        }, { status: 403 });
-      }
-
-      // Autorização para Admin Synka
-      if (pathname.startsWith('/api/admin') && payload.role !== 'synka_admin') {
-        return NextResponse.json({ 
-          error: 'Acesso restrito: Apenas administradores Synka',
-          role: payload.role 
-        }, { status: 403 });
-      }
-
-      // Injetamos o tenantId verificado no header da REQUISIÇÃO para que as rotas de API recebam
-      const requestHeaders = new Headers(request.headers);
-      requestHeaders.set('x-tenant-id', payload.tenantId);
-      requestHeaders.set('x-user-id', payload.userId);
-      requestHeaders.set('x-user-role', payload.role);
-      if (payload.profissionalId) {
-        requestHeaders.set('x-profissional-id', payload.profissionalId);
-      }
-
-      return NextResponse.next({
-        request: {
-          headers: requestHeaders,
-        },
-      });
-    } catch (error) {
-      console.error('Middleware Error:', error);
-      return NextResponse.json({ error: 'Erro interno no Middleware' }, { status: 500 });
-    }
+  // Deixar passar rotas públicas sem validar token
+  if (API_PUBLICAS.some(p => pathname.startsWith(p))) {
+    return NextResponse.next();
   }
 
-  return NextResponse.next();
+  try {
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.split(' ')[1];
+
+    if (!token) {
+      return NextResponse.json({ error: 'Sessão expirada ou inválida' }, { status: 401 });
+    }
+
+    const payload = await verifyToken(token);
+    if (!payload) {
+      return NextResponse.json({
+        error: 'Acesso negado: Token inválido ou segredo divergente',
+        debug: { hasToken: !!token, tokenLength: token?.length },
+      }, { status: 403 });
+    }
+
+    if (!payload.tenantId) {
+      return NextResponse.json({
+        error: 'Acesso negado: Tenant não identificado no payload',
+        debug: { payload },
+      }, { status: 403 });
+    }
+
+    // Autorização para rotas de admin Synka
+    if (pathname.startsWith('/api/admin') && payload.role !== 'synka_admin') {
+      return NextResponse.json({
+        error: 'Acesso restrito: Apenas administradores Synka',
+        role: payload.role,
+      }, { status: 403 });
+    }
+
+    // Injetar contexto do tenant nos headers para as route handlers
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set('x-tenant-id', payload.tenantId);
+    requestHeaders.set('x-user-id', payload.userId);
+    requestHeaders.set('x-user-role', payload.role);
+    if (payload.profissionalId) {
+      requestHeaders.set('x-profissional-id', payload.profissionalId);
+    }
+
+    return NextResponse.next({ request: { headers: requestHeaders } });
+  } catch (error) {
+    console.error('Middleware Error:', error);
+    return NextResponse.json({ error: 'Erro interno no Middleware' }, { status: 500 });
+  }
 }
 
+// Matcher genérico: intercepta TODAS as rotas /api/* automaticamente.
+// Qualquer nova rota criada já estará protegida sem precisar editar este arquivo.
 export const config = {
-  matcher: [
-    '/api/dashboard/:path*',
-    '/api/reports/:path*',
-    '/api/settings/:path*',
-    '/api/services/:path*',
-    '/api/campaigns/:path*',
-    '/api/upload/:path*',
-    '/api/export/:path*',
-    '/api/billing/:path*',
-    '/api/tenant/:path*',
-    '/api/appointments/:path*',
-    '/api/team/:path*',
-    '/api/patients/:path*',
-    '/api/convenios/:path*',
-    '/api/bot/:path*',
-    '/api/whatsapp/:path*',
-    '/api/prontuario/:path*',
-    '/api/odontograma/:path*',
-    '/api/specialties/:path*',
-    '/api/chat/:path*',
-    '/api/marketing/:path*',
-    '/api/integrations/:path*',
-    '/api/finance/:path*'
-  ],
+  matcher: ['/api/:path*'],
 };
