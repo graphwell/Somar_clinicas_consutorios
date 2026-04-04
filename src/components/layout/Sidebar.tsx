@@ -1,9 +1,9 @@
 "use client";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useNicho } from "@/context/NichoContext";
-import { clearAuthSession } from "@/lib/api-utils";
+import { clearAuthSession, fetchWithAuth } from "@/lib/api-utils";
 import Avatar from "@/components/ui/Avatar";
 import { SynkaLogo } from '@/components/SynkaLogo';
 import {
@@ -68,6 +68,25 @@ export default function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname();
   const { labels } = useNicho();
+  const [planoAtual, setPlanoAtual] = useState<string>('trial');
+  const [diasRestantes, setDiasRestantes] = useState<number>(15);
+
+  useEffect(() => {
+    fetchWithAuth('/api/billing/planos')
+      .then(r => r.json())
+      .then(data => {
+        if (data?.assinatura) {
+          setPlanoAtual(data.assinatura.plano ?? 'trial');
+          if (data.assinatura.trialFim) {
+            const dias = Math.max(0, Math.ceil(
+              (new Date(data.assinatura.trialFim).getTime() - Date.now()) / 86400000
+            ));
+            setDiasRestantes(dias);
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const role = currentUser?.role || "recepcao";
   const isAdmin = role === "admin" || role === "synka_admin";
@@ -174,9 +193,6 @@ export default function Sidebar({
           {isAdmin && (
             <NavItem href="/dashboard/finance" label="Financeiro" Icon={IconFinanceiro} active={is("/dashboard/finance")} />
           )}
-          {!isProfissional && (
-            <NavItem href="/dashboard/subscriptions" label="Assinaturas" Icon={IconAssinaturas} active={is("/dashboard/subscriptions")} />
-          )}
           {isAdmin && (
             <NavItem href="/dashboard/integrations" label="Integrações" Icon={IconIntegracoes} active={is("/dashboard/integrations")} />
           )}
@@ -187,6 +203,65 @@ export default function Sidebar({
             <NavItem href="/dashboard/settings/permissoes" label="Permissões" Icon={IconConfiguracoes} active={is("/dashboard/settings/permissoes")} />
           )}
         </nav>
+
+        {/* Meu Plano — acima do avatar */}
+        <div className="px-3 pb-1">
+          <Link
+            href="/dashboard/billing"
+            className="flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-150"
+            style={{ color: 'rgba(255,255,255,0.55)' }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.07)';
+              (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.85)';
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLElement).style.background = '';
+              (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.55)';
+            }}
+          >
+            <div className="flex items-center gap-2.5">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0">
+                <rect x="1.333" y="3.333" width="13.333" height="9.333" rx="1.5" stroke="currentColor" strokeWidth="1.5"/>
+                <path d="M1.333 6.667h13.333" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                <path d="M4 10h2M7.333 10h1.333" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+              <span className="text-[13px] font-medium">Meu Plano</span>
+            </div>
+            {planoAtual === 'trial' && (
+              <span
+                className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full uppercase tracking-wide"
+                style={diasRestantes <= 3
+                  ? { background: '#EF4444', color: 'white' }
+                  : diasRestantes <= 7
+                    ? { background: '#F59E0B', color: '#78350F' }
+                    : { background: 'rgba(245,158,11,0.25)', color: '#FCD34D' }
+                }
+              >
+                {diasRestantes <= 0 ? 'Expirado' : `${diasRestantes}d`}
+              </span>
+            )}
+            {planoAtual === 'start' && (
+              <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full uppercase" style={{ background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)' }}>
+                Start
+              </span>
+            )}
+            {planoAtual === 'solo' && (
+              <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full uppercase" style={{ background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)' }}>
+                Solo
+              </span>
+            )}
+            {planoAtual === 'pro' && (
+              <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full uppercase" style={{ background: 'rgba(64,145,108,0.3)', color: '#95D5B2' }}>
+                Pro
+              </span>
+            )}
+            {planoAtual === 'business' && (
+              <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full uppercase" style={{ background: 'rgba(196,151,58,0.2)', color: '#FCD34D' }}>
+                Business
+              </span>
+            )}
+          </Link>
+        </div>
 
         {/* Footer — Usuário + Logout */}
         <div

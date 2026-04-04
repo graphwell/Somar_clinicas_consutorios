@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
 import { fetchWithAuth } from '@/lib/api-utils';
+import { IconWhatsApp, IconCheck, IconSettings, IconSpinner } from '@/components/icons/IntegrationIcons';
 
 type WaStatus =
   | 'idle'
@@ -109,10 +110,26 @@ export function WhatsAppCard() {
 
   const statusBadge = () => {
     switch (wa.status) {
-      case 'conectado': return <span className="text-[9px] font-black uppercase px-4 py-1.5 rounded-full border shadow-sm bg-status-success-bg text-status-success border-status-success/20">✓ Conectado</span>;
-      case 'aguardando_scan': return <span className="text-[9px] font-black uppercase px-4 py-1.5 rounded-full border shadow-sm bg-yellow-50 text-yellow-600 border-yellow-200">⏳ Aguardando scan</span>;
-      case 'aguardando_instancia': return <span className="text-[9px] font-black uppercase px-4 py-1.5 rounded-full border shadow-sm bg-blue-50 text-blue-500 border-blue-200">🔧 Em configuração</span>;
-      default: return <span className="text-[9px] font-black uppercase px-4 py-1.5 rounded-full border shadow-sm bg-slate-50 text-text-placeholder border-card-border">○ Inativo</span>;
+      case 'conectado': return (
+        <span className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase px-3 py-1.5 rounded-full border shadow-sm bg-status-success-bg text-status-success border-status-success/20">
+          <IconCheck size={10} /> Conectado
+        </span>
+      );
+      case 'aguardando_scan': return (
+        <span className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase px-3 py-1.5 rounded-full border shadow-sm bg-yellow-50 text-yellow-600 border-yellow-200">
+          <IconSpinner size={10} /> Aguardando scan
+        </span>
+      );
+      case 'aguardando_instancia': return (
+        <span className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase px-3 py-1.5 rounded-full border shadow-sm bg-blue-50 text-blue-500 border-blue-200">
+          <IconSettings size={10} /> Em configuração
+        </span>
+      );
+      default: return (
+        <span className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase px-3 py-1.5 rounded-full border shadow-sm bg-slate-50 text-text-placeholder border-card-border">
+          <span className="w-1.5 h-1.5 rounded-full bg-current opacity-40" /> Inativo
+        </span>
+      );
     }
   };
 
@@ -188,8 +205,8 @@ export function WhatsAppCard() {
       <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:scale-150 transition-transform" />
       <div>
         <div className="flex justify-between items-start mb-10">
-          <div className="w-20 h-20 rounded-[2rem] bg-slate-50 border border-card-border flex items-center justify-center text-4xl shadow-inner group-hover:rotate-6 transition-all">
-            💬
+          <div className="w-20 h-20 rounded-[2rem] bg-slate-50 border border-card-border flex items-center justify-center shadow-inner group-hover:rotate-6 transition-all" style={{ color: '#40916C' }}>
+            <IconWhatsApp size={32} />
           </div>
           {statusBadge()}
         </div>
