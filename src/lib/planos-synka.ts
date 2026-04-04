@@ -23,31 +23,39 @@ export const PLANOS: Record<string, PlanoInfo> = {
     descricao: 'Experimente todas as funções grátis',
     precoBRL: 0,
     stripePriceId: '', // trial não passa pro Stripe
-    features: ['Agendamento Ilimitado', 'WhatsApp Bot', 'Integração MercadoPago']
+    features: ['Agendamento Ilimitado', 'WhatsApp Bot', 'Acesso completo ao Business']
+  },
+  start: {
+    id: 'start',
+    nome: 'Start',
+    descricao: 'Para começar com o pé direito',
+    precoBRL: 37.90,
+    stripePriceId: process.env.STRIPE_PRICE_START || '',
+    features: ['1 profissional', 'Link de agendamento público', 'Lembrete WhatsApp automático', 'Confirmação de presença', 'Instância WhatsApp central']
   },
   solo: {
     id: 'solo',
-    nome: 'Plano Solo',
-    descricao: 'Indicado para profissionais individuais',
+    nome: 'Solo',
+    descricao: 'Para profissionais autônomos',
     precoBRL: 79.00,
     stripePriceId: process.env.STRIPE_PRICE_SOLO || '',
-    features: ['1 profissional', '1 número de WhatsApp', 'Agendamento completo', 'Confirmação automática', 'Painel de controle simples']
+    features: ['Até 2 profissionais', 'WhatsApp próprio conectado', 'Prontuário eletrônico', 'Financeiro básico', 'Convênios']
   },
   pro: {
     id: 'pro',
-    nome: 'Plano Pro',
-    descricao: 'Indicado para pequenas equipes',
+    nome: 'Pro',
+    descricao: 'Para clínicas em crescimento',
     precoBRL: 127.00,
     stripePriceId: process.env.STRIPE_PRICE_PRO || '',
-    features: ['Até 5 profissionais', '1 número de WhatsApp', 'Organização de equipe', 'Confirmações automáticas', 'Automação básica']
+    features: ['Até 5 profissionais', 'Financeiro completo', 'Marketing e campanhas', 'Combos e upsell', 'Planos de assinatura', 'Relatórios completos']
   },
   business: {
     id: 'business',
-    nome: 'Plano Business',
-    descricao: 'Indicado para clínicas e salões',
+    nome: 'Business',
+    descricao: 'Para clínicas e redes estabelecidas',
     precoBRL: 197.00,
-    stripePriceId: process.env.STRIPE_PRICE_BUSINESS || '', 
-    features: ['Até 10 profissionais', '1 número de WhatsApp', 'Automações avançadas', 'Prioridade de suporte']
+    stripePriceId: process.env.STRIPE_PRICE_BUSINESS || '',
+    features: ['Até 10 profissionais', 'Prontuário com IA e voz', 'Suporte prioritário', 'API de integração', 'Multi-unidades em breve']
   }
 };
 
