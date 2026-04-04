@@ -3,7 +3,7 @@ import prisma from '@/lib/prisma';
 import { signToken } from '@/lib/auth';
 import crypto from 'crypto';
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://somar-clinicas-consutorios.vercel.app';
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://synka.somar.ia.br';
 
 // GET /api/auth/google/callback — recebe o code do Google e autentica
 export async function GET(request: Request) {

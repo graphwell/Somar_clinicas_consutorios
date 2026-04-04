@@ -16,7 +16,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Sem assinatura ativa para gerenciar.' }, { status: 400 });
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://somar-clinicas-consutorios.vercel.app';
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://synka.somar.ia.br';
     const session = await stripe.billingPortal.sessions.create({
       customer: assinatura.stripeCustomerId,
       return_url: `${appUrl}/dashboard/billing`,

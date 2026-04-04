@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { signToken } from '@/lib/auth';
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://somar-clinicas-consutorios.vercel.app';
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://synka.somar.ia.br';
 
 // GET /api/auth/verificar-email?token=xxxxx
 export async function GET(request: Request) {

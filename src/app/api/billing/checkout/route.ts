@@ -52,7 +52,7 @@ export async function POST(request: Request) {
       }
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://somar-clinicas-consutorios.vercel.app';
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://synka.somar.ia.br';
     const metadataUpsells = addons.map(a => a.id).join(',');
 
     const session = await stripe.checkout.sessions.create({
