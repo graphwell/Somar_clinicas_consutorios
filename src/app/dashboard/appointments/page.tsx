@@ -66,6 +66,49 @@ function isAtrasado(ag: Agendamento) {
   return new Date(ag.fimDataHora) < new Date();
 }
 
+// ─── Badge de Plano ──────────────────────────────────────────────────────────
+
+function PlanoBadge({ pacienteId, servicoId }: { pacienteId: string; servicoId?: string }) {
+  const [info, setInfo] = React.useState<any>(null);
+
+  React.useEffect(() => {
+    if (!pacienteId) return;
+    const params = new URLSearchParams({ pacienteId });
+    if (servicoId) params.set('servicoId', servicoId);
+    fetchWithAuth(`/api/subscriptions/verificar?${params}`)
+      .then(r => r.json())
+      .then(d => { if (d.temPlano) setInfo(d); })
+      .catch(() => {});
+  }, [pacienteId, servicoId]);
+
+  if (!info) return null;
+
+  const limiteSuperado = info.limite !== null && info.usado >= info.limite;
+
+  if (limiteSuperado) {
+    return (
+      <div className="mt-1.5 px-2 py-1.5 rounded-lg text-[9px]" style={{ background: '#FFFBEB', border: '1px solid #FCD34D' }}>
+        <p className="font-black" style={{ color: '#92400E' }}>⚠️ Limite do plano atingido</p>
+        <p style={{ color: '#B45309' }}>{info.usado}/{info.limite} {info.tipo === 'limitado' ? 'usos' : ''} usados
+          {info.descontoExtra ? ` · Será cobrado com ${info.descontoExtra}% OFF` : ''}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-1.5 px-2 py-1.5 rounded-lg text-[9px]" style={{ background: '#F0FAF4', border: '1px solid #C8DDD4' }}>
+      <p className="font-black" style={{ color: '#2D6A4F' }}>💎 {info.planoNome}</p>
+      {info.servicoIncluso && info.limite !== null && (
+        <p style={{ color: '#40916C' }}>{info.usado} de {info.limite} usados · Não será cobrado</p>
+      )}
+      {info.servicoIncluso && info.tipo === 'ilimitado' && (
+        <p style={{ color: '#40916C' }}>Ilimitado · Não será cobrado</p>
+      )}
+    </div>
+  );
+}
+
 // ─── Card do Agendamento ─────────────────────────────────────────────────────
 
 function CardAtendimento({
@@ -162,6 +205,11 @@ function CardAtendimento({
             <p className="text-[10px] text-text-muted italic bg-slate-50 px-2 py-1 rounded-lg border border-card-border">
               {ag.observacoes}
             </p>
+          )}
+
+          {/* Badge de plano de assinatura */}
+          {(ag.status === 'pendente' || ag.status === 'confirmado') && (
+            <PlanoBadge pacienteId={ag.paciente.id} servicoId={ag.servico?.id} />
           )}
         </div>
 
@@ -315,6 +363,24 @@ export default function AtendimentosHojePage() {
         setAgendamentos(prev =>
           prev.map(a => a.id === id ? { ...a, ...atualizado } : a)
         );
+
+        // Debitar uso de plano quando check-in confirmado
+        if (status === 'confirmado') {
+          const ag = agendamentos.find(a => a.id === id);
+          if (ag?.paciente?.id && ag?.servico?.id) {
+            fetchWithAuth(`/api/subscriptions/verificar?pacienteId=${ag.paciente.id}&servicoId=${ag.servico.id}`)
+              .then(r => r.json())
+              .then(info => {
+                if (info.temPlano && info.assinaturaId && info.servicoIncluso && !info.limiteSuperado) {
+                  return fetchWithAuth(`/api/subscriptions/clientes/${info.assinaturaId}/uso`, {
+                    method: 'POST',
+                    body: JSON.stringify({ servicoId: ag.servico!.id }),
+                  });
+                }
+              })
+              .catch(() => {});
+          }
+        }
         // Recalcular totais localmente
         setTotais(prev => {
           const oldStatus = agendamentos.find(a => a.id === id)?.status;

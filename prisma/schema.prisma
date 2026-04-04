@@ -456,14 +456,20 @@ model Notificacao {
 }
 
 model PlanoAssinatura {
-  id          String   @id @default(cuid())
-  empresaId   String
-  nome        String   // ex: "Corte + Barba"
-  descricao   String?
-  valor       Float    // Usando Float para consistência com o restante do projeto
-  periodicidade String // "mensal" | "trimestral"
-  servicos    Json     // lista de serviços incluídos
-  ativo       Boolean  @default(true)
+  id            String   @id @default(cuid())
+  empresaId     String
+  nome          String   // ex: "Corte + Barba"
+  descricao     String?
+  valor         Float    // Usando Float para consistência com o restante do projeto
+  periodicidade String   // "mensal" | "trimestral" | "anual"
+  servicos      Json     // lista de serviços incluídos
+  ativo         Boolean  @default(true)
+  isTemplate    Boolean  @default(false)
+  templateTipo  String?  // 'basico' | 'premium' | 'vip'
+  stripePriceId String?
+  agendamentoPrioritario Boolean @default(false)
+  descontoProdutos       Float?
+  descontoServicosExtras Float?
   tenantId    String
   clinica     Clinica  @relation(fields: [tenantId], references: [tenantId])
   assinantes  AssinaturaCliente[]
@@ -474,18 +480,25 @@ model PlanoAssinatura {
 }
 
 model AssinaturaCliente {
-  id          String   @id @default(cuid())
-  pacienteId  String   
-  planoId     String
-  dataInicio  DateTime @default(now())
-  dataFim     DateTime?
-  status      String   @default("ativo") // "ativo" | "cancelado" | "vencido"
-  valorPago   Float
-  paciente    Paciente @relation(fields: [pacienteId], references: [id])
-  plano       PlanoAssinatura @relation(fields: [planoId], references: [id])
-  tenantId    String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id               String   @id @default(cuid())
+  pacienteId       String
+  planoId          String
+  dataInicio       DateTime @default(now())
+  dataFim          DateTime?
+  status           String   @default("ativo") // "ativo" | "cancelado" | "suspenso" | "expirado"
+  valorPago        Float
+  stripeSubId      String?
+  stripeCustomerId String?
+  proximaCobranca  DateTime?
+  ultimaCobranca   DateTime?
+  contadorUso      Json     @default("{}")
+  periodoInicio    DateTime @default(now())
+  periodoFim       DateTime?
+  paciente         Paciente        @relation(fields: [pacienteId], references: [id])
+  plano            PlanoAssinatura @relation(fields: [planoId], references: [id])
+  tenantId         String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   @@map("assinaturas_cliente")
 }

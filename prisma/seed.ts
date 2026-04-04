@@ -587,6 +587,85 @@ async function main() {
 
   console.log('✅ Transações financeiras demo criadas:', txDados.length)
 
+  // ============================================
+  // PLANOS & ASSINATURAS DEMO
+  // ============================================
+
+  await prisma.planoAssinatura.upsert({
+    where: { id: 'plano-demo-premium' },
+    update: {},
+    create: {
+      id:                    'plano-demo-premium',
+      tenantId:              'demo-synka-master',
+      empresaId:             'demo-synka-master',
+      nome:                  'Plano Premium',
+      descricao:             'O mais escolhido da clínica',
+      valor:                 149.90,
+      periodicidade:         'mensal',
+      ativo:                 true,
+      agendamentoPrioritario: true,
+      descontoServicosExtras: 10,
+      servicos: [
+        { servicoId: 'servico-estetica-limpeza-de-pele-demo',    nomeServico: 'Limpeza de Pele',    tipo: 'limitado',   quantidade: 2 },
+        { servicoId: 'servico-estetica-massagem-relaxante-demo', nomeServico: 'Massagem Relaxante', tipo: 'ilimitado',  quantidade: null },
+      ],
+    },
+  })
+
+  await prisma.planoAssinatura.upsert({
+    where: { id: 'plano-demo-vip' },
+    update: {},
+    create: {
+      id:                    'plano-demo-vip',
+      tenantId:              'demo-synka-master',
+      empresaId:             'demo-synka-master',
+      nome:                  'Plano VIP',
+      descricao:             'Para clientes especiais',
+      valor:                 249.90,
+      periodicidade:         'mensal',
+      ativo:                 true,
+      agendamentoPrioritario: true,
+      descontoProdutos:      20,
+      descontoServicosExtras: 15,
+      servicos: [
+        { servicoId: 'servico-estetica-limpeza-de-pele-demo',    nomeServico: 'Limpeza de Pele',      tipo: 'ilimitado', quantidade: null },
+        { servicoId: 'servico-estetica-massagem-relaxante-demo', nomeServico: 'Massagem Relaxante',   tipo: 'ilimitado', quantidade: null },
+        { servicoId: 'servico-estetica-drenagem-linfática-demo', nomeServico: 'Drenagem Linfática',  tipo: 'ilimitado', quantidade: null },
+      ],
+    },
+  })
+
+  const periodoFimDemo = new Date()
+  periodoFimDemo.setMonth(periodoFimDemo.getMonth() + 1)
+
+  await prisma.assinaturaCliente.upsert({
+    where: { id: 'assinatura-demo-1' },
+    update: {},
+    create: {
+      id:              'assinatura-demo-1',
+      pacienteId:      'paciente-demo-9',
+      planoId:         'plano-demo-premium',
+      tenantId:        'demo-synka-master',
+      status:          'ativo',
+      valorPago:       149.90,
+      periodoInicio:   new Date(),
+      periodoFim:      periodoFimDemo,
+      proximaCobranca: periodoFimDemo,
+      contadorUso: {
+        'servico-estetica-limpeza-de-pele-demo':    { usado: 1, limite: 2 },
+        'servico-estetica-massagem-relaxante-demo': { usado: 3, limite: null },
+      },
+    },
+  })
+
+  // Marcar Sofia como assinante
+  await prisma.paciente.update({
+    where: { id: 'paciente-demo-9' },
+    data:  { isSubscriber: true },
+  })
+
+  console.log('✅ Planos e assinaturas demo criados')
+
   console.log('')
   console.log('🎉 Seed completo!')
   console.log('')
