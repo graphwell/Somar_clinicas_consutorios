@@ -666,6 +666,463 @@ async function main() {
 
   console.log('✅ Planos e assinaturas demo criados')
 
+  // ============================================================
+  // DEMO 2 — BARBEARIA
+  // ============================================================
+
+  await prisma.clinica.upsert({
+    where: { tenantId: 'demo-barbearia' },
+    update: {},
+    create: {
+      tenantId:            'demo-barbearia',
+      slug:                'demo-barbearia',
+      nome:                'Barbearia Demo Synka',
+      nicho:               'BARBEARIA',
+      razaoSocial:         'Barbearia Demonstração Ltda',
+      cnpj:                '11.111.111/0001-11',
+      endereco:            'Rua dos Barbeiros, 42 — Fortaleza/CE',
+      adminPhone:          '(85) 88888-0001',
+      botActive:           true,
+      onboardingCompleted: true,
+      multiProfissional:   true,
+      openingTime:         '08:00',
+      closingTime:         '20:00',
+      workingDays:         '1,2,3,4,5,6',
+      configBranding: { nomeExibicao: 'Barbearia Demo Synka', corPrimaria: '#1B2B3A', logoUrl: null },
+    },
+  })
+
+  await prisma.usuario.upsert({
+    where: { email: 'admin@demo-barbearia.synka.com.br' },
+    update: {},
+    create: {
+      nome: 'Admin', sobrenome: 'Barbearia',
+      email: 'admin@demo-barbearia.synka.com.br',
+      senhaHash, role: 'admin', tenantId: 'demo-barbearia',
+      emailVerificado: true, primeiroAcesso: false, perfilCompleto: true,
+    },
+  })
+
+  const profsBarbearia = [
+    { id: 'prof-barb-rodrigo',   nome: 'Rodrigo Santana',  esp: 'Barbeiro Sênior',   color: '#1B2B3A',
+      horarios: { seg:{i:'09:00',f:'20:00'}, ter:{i:'09:00',f:'20:00'}, qua:{i:'09:00',f:'20:00'}, qui:{i:'09:00',f:'20:00'}, sex:{i:'09:00',f:'20:00'}, sab:{i:'09:00',f:'16:00'} } },
+    { id: 'prof-barb-leo',        nome: 'Leonardo Freitas', esp: 'Barbeiro',          color: '#40916C',
+      horarios: { seg:{i:'10:00',f:'19:00'}, ter:{i:'10:00',f:'19:00'}, qua:{i:'10:00',f:'19:00'}, qui:{i:'10:00',f:'19:00'}, sex:{i:'10:00',f:'19:00'}, sab:{i:'10:00',f:'15:00'} } },
+    { id: 'prof-barb-thiago',    nome: 'Thiago Moreira',   esp: 'Barbeiro Pigmentação', color: '#C4973A',
+      horarios: { ter:{i:'09:00',f:'18:00'}, qua:{i:'09:00',f:'18:00'}, qui:{i:'09:00',f:'18:00'}, sex:{i:'09:00',f:'18:00'}, sab:{i:'08:00',f:'16:00'} } },
+  ]
+
+  for (const p of profsBarbearia) {
+    await prisma.profissional.upsert({
+      where: { id: p.id }, update: {},
+      create: { id: p.id, nome: p.nome, especialidade: p.esp, color: p.color, ativo: true, tenantId: 'demo-barbearia', horariosJson: p.horarios, percentualRepasse: 50, repasseTipo: 'percentual' },
+    })
+    await prisma.usuario.upsert({
+      where: { email: `${p.id}@demo-barbearia.synka.com.br` }, update: {},
+      create: {
+        nome: p.nome.split(' ')[0], email: `${p.id}@demo-barbearia.synka.com.br`,
+        senhaHash, role: 'profissional', tenantId: 'demo-barbearia',
+        profissionalId: p.id, emailVerificado: true, primeiroAcesso: false, perfilCompleto: true,
+      },
+    })
+  }
+
+  const servicosBarbearia = [
+    { nome: 'Corte Masculino',    dur: 30, buf: 5,  preco: 45,  color: '#1B2B3A' },
+    { nome: 'Barba',              dur: 20, buf: 5,  preco: 30,  color: '#2D4A6A' },
+    { nome: 'Corte + Barba',      dur: 45, buf: 10, preco: 65,  color: '#40916C' },
+    { nome: 'Pigmentação',        dur: 60, buf: 15, preco: 90,  color: '#C4973A' },
+    { nome: 'Hidratação Capilar', dur: 40, buf: 10, preco: 55,  color: '#52B788' },
+    { nome: 'Design Sobrancelha', dur: 15, buf: 5,  preco: 20,  color: '#8A9BB0' },
+  ]
+
+  for (const s of servicosBarbearia) {
+    const sid = `servico-barb-${s.nome.toLowerCase().replace(/[^a-z0-9]/g,'-')}-demo`
+    await prisma.servico.upsert({
+      where: { id: sid }, update: {},
+      create: { id: sid, nome: s.nome, duracaoMinutos: s.dur, bufferTimeMinutes: s.buf, preco: s.preco, color: s.color, ativo: true, tenantId: 'demo-barbearia' },
+    })
+  }
+
+  const schedsBarbearia = [
+    ...([1,2,3,4,5].map(d => ({ profissionalId: 'prof-barb-rodrigo', diaSemana: d, horaInicio: '09:00', horaFim: '20:00', lunchStart: '13:00', lunchEnd: '14:00' }))),
+    { profissionalId: 'prof-barb-rodrigo', diaSemana: 6, horaInicio: '09:00', horaFim: '16:00', lunchStart: null, lunchEnd: null },
+    ...([1,2,3,4,5].map(d => ({ profissionalId: 'prof-barb-leo', diaSemana: d, horaInicio: '10:00', horaFim: '19:00', lunchStart: '13:00', lunchEnd: '14:00' }))),
+    { profissionalId: 'prof-barb-leo', diaSemana: 6, horaInicio: '10:00', horaFim: '15:00', lunchStart: null, lunchEnd: null },
+    ...([2,3,4,5].map(d => ({ profissionalId: 'prof-barb-thiago', diaSemana: d, horaInicio: '09:00', horaFim: '18:00', lunchStart: '12:30', lunchEnd: '13:30' }))),
+    { profissionalId: 'prof-barb-thiago', diaSemana: 6, horaInicio: '08:00', horaFim: '16:00', lunchStart: null, lunchEnd: null },
+  ]
+
+  for (const s of schedsBarbearia) {
+    await prisma.professionalSchedule.upsert({
+      where: { profissionalId_diaSemana: { profissionalId: s.profissionalId, diaSemana: s.diaSemana } },
+      update: s, create: { ...s, ativo: true },
+    })
+  }
+
+  const clientesBarbearia = [
+    { nome: 'Rafael Almeida',     tel: '(85) 97000-0001', nasc: new Date('1995-04-10'), v: 12 },
+    { nome: 'Bruno Cavalcante',   tel: '(85) 97000-0002', nasc: new Date('1990-08-22'), v: 8  },
+    { nome: 'Kaique Souza',       tel: '(85) 97000-0003', nasc: new Date('2000-01-15'), v: 5  },
+    { nome: 'Felipe Nascimento',  tel: '(85) 97000-0004', nasc: new Date('1988-11-30'), v: 20 },
+    { nome: 'Matheus Oliveira',   tel: '(85) 97000-0005', nasc: new Date('2003-07-04'), v: 3  },
+    { nome: 'Diego Fernandes',    tel: '(85) 97000-0006', nasc: new Date('1993-02-18'), v: 15 },
+    { nome: 'Arthur Pereira',     tel: '(85) 97000-0007', nasc: new Date('1998-09-09'), v: 7  },
+  ]
+
+  for (let i = 0; i < clientesBarbearia.length; i++) {
+    const c = clientesBarbearia[i]
+    await prisma.paciente.upsert({
+      where: { id: `cliente-barb-${i+1}` }, update: {},
+      create: { id: `cliente-barb-${i+1}`, nome: c.nome, telefone: c.tel, dataNascimento: c.nasc, tipoAtendimento: 'particular', contagemVisitas: c.v, totalGasto: c.v * 55, ultimaVisita: new Date(Date.now() - Math.random() * 20 * 86400000), tenantId: 'demo-barbearia' },
+    })
+  }
+
+  const agBarbearia = [
+    { h: 9,  m: 0,  prof: 'prof-barb-rodrigo', pac: 'cliente-barb-1', serv: 'servico-barb-corte-masculino-demo',    st: 'concluido' },
+    { h: 9,  m: 35, prof: 'prof-barb-rodrigo', pac: 'cliente-barb-2', serv: 'servico-barb-corte---barba-demo',      st: 'concluido' },
+    { h: 10, m: 30, prof: 'prof-barb-rodrigo', pac: 'cliente-barb-3', serv: 'servico-barb-corte-masculino-demo',    st: 'confirmado' },
+    { h: 11, m: 0,  prof: 'prof-barb-rodrigo', pac: 'cliente-barb-4', serv: 'servico-barb-barba-demo',              st: 'pendente' },
+    { h: 14, m: 0,  prof: 'prof-barb-rodrigo', pac: 'cliente-barb-5', serv: 'servico-barb-corte---barba-demo',      st: 'pendente' },
+    { h: 10, m: 0,  prof: 'prof-barb-leo',     pac: 'cliente-barb-6', serv: 'servico-barb-corte-masculino-demo',    st: 'concluido' },
+    { h: 11, m: 0,  prof: 'prof-barb-leo',     pac: 'cliente-barb-7', serv: 'servico-barb-pigmenta--o-demo',        st: 'concluido' },
+    { h: 13, m: 0,  prof: 'prof-barb-leo',     pac: 'cliente-barb-1', serv: 'servico-barb-corte-masculino-demo',    st: 'pendente' },
+    { h: 9,  m: 0,  prof: 'prof-barb-thiago',  pac: 'cliente-barb-3', serv: 'servico-barb-pigmenta--o-demo',        st: 'concluido' },
+    { h: 11, m: 0,  prof: 'prof-barb-thiago',  pac: 'cliente-barb-5', serv: 'servico-barb-design-sobrancelha-demo', st: 'pendente' },
+  ]
+
+  for (let i = 0; i < agBarbearia.length; i++) {
+    const a = agBarbearia[i]
+    const dataHora = new Date(dataHoje); dataHora.setHours(a.h, a.m, 0, 0)
+    const fimDataHora = new Date(dataHora.getTime() + 30 * 60000)
+    await prisma.agendamento.upsert({
+      where: { eventoId: `demo-barb-agend-${i+1}` }, update: { status: a.st },
+      create: { eventoId: `demo-barb-agend-${i+1}`, pacienteId: a.pac, profissionalId: a.prof, servicoId: a.serv, dataHora, fimDataHora, durationMinutes: 30, status: a.st, categoria: 'atendimento', tipoAtendimento: 'particular', tenantId: 'demo-barbearia' },
+    })
+  }
+
+  const txBarbearia = [
+    { id: 'tx-barb-jan-001', tipo: 'income',  descricao: 'Atendimentos — Rodrigo (jan)', valor: 1800, status: 'paid',    categoria: 'atendimento', formaPagamento: 'pix',      profissionalId: 'prof-barb-rodrigo', dataPagamento: new Date('2026-01-31'), tenantId: 'demo-barbearia' },
+    { id: 'tx-barb-jan-002', tipo: 'income',  descricao: 'Atendimentos — Leo (jan)',     valor: 1400, status: 'paid',    categoria: 'atendimento', formaPagamento: 'dinheiro', profissionalId: 'prof-barb-leo',     dataPagamento: new Date('2026-01-31'), tenantId: 'demo-barbearia' },
+    { id: 'tx-barb-jan-003', tipo: 'income',  descricao: 'Atendimentos — Thiago (jan)', valor: 900,  status: 'paid',    categoria: 'atendimento', formaPagamento: 'pix',      profissionalId: 'prof-barb-thiago',  dataPagamento: new Date('2026-01-31'), tenantId: 'demo-barbearia' },
+    { id: 'tx-barb-jan-004', tipo: 'expense', descricao: 'Aluguel — janeiro',           valor: 1500, status: 'paid',    categoria: 'aluguel',     formaPagamento: 'boleto',   dataPagamento: new Date('2026-01-05'), tenantId: 'demo-barbearia' },
+    { id: 'tx-barb-jan-005', tipo: 'expense', descricao: 'Produtos e insumos',          valor: 400,  status: 'paid',    categoria: 'materiais',   formaPagamento: 'cartao_debito', dataPagamento: new Date('2026-01-10'), tenantId: 'demo-barbearia' },
+    { id: 'tx-barb-fev-001', tipo: 'income',  descricao: 'Atendimentos — Rodrigo (fev)', valor: 2100, status: 'paid',  categoria: 'atendimento', formaPagamento: 'pix',      profissionalId: 'prof-barb-rodrigo', dataPagamento: new Date('2026-02-28'), tenantId: 'demo-barbearia' },
+    { id: 'tx-barb-fev-002', tipo: 'income',  descricao: 'Atendimentos — Leo (fev)',     valor: 1650, status: 'paid',  categoria: 'atendimento', formaPagamento: 'dinheiro', profissionalId: 'prof-barb-leo',     dataPagamento: new Date('2026-02-28'), tenantId: 'demo-barbearia' },
+    { id: 'tx-barb-fev-003', tipo: 'expense', descricao: 'Aluguel — fevereiro',         valor: 1500, status: 'paid',  categoria: 'aluguel',     formaPagamento: 'boleto',   dataPagamento: new Date('2026-02-05'), tenantId: 'demo-barbearia' },
+    { id: 'tx-barb-mar-001', tipo: 'income',  descricao: 'Atendimentos — Rodrigo (mar)', valor: 1950, status: 'paid',  categoria: 'atendimento', formaPagamento: 'pix',      profissionalId: 'prof-barb-rodrigo', dataPagamento: new Date('2026-03-31'), tenantId: 'demo-barbearia' },
+    { id: 'tx-barb-mar-002', tipo: 'income',  descricao: 'Atendimentos pendentes',       valor: 620,  status: 'pending', categoria: 'atendimento', dataVencimento: new Date('2026-04-10'), tenantId: 'demo-barbearia' },
+    { id: 'tx-barb-mar-003', tipo: 'expense', descricao: 'Aluguel — abril (previsto)',   valor: 1500, status: 'pending', categoria: 'aluguel',     dataVencimento: new Date('2026-04-05'), tenantId: 'demo-barbearia' },
+  ]
+
+  for (const tx of txBarbearia) {
+    await prisma.transacaoFinanceira.upsert({
+      where: { id: tx.id }, update: {},
+      create: { id: tx.id, tipo: tx.tipo, descricao: tx.descricao, valor: tx.valor, status: tx.status, categoria: tx.categoria, formaPagamento: (tx as any).formaPagamento ?? null, profissionalId: (tx as any).profissionalId ?? null, dataPagamento: (tx as any).dataPagamento ?? null, dataVencimento: (tx as any).dataVencimento ?? null, tenantId: tx.tenantId },
+    })
+  }
+
+  console.log('✅ Demo Barbearia criado')
+
+  // ============================================================
+  // DEMO 3 — CLÍNICA ESTÉTICA
+  // ============================================================
+
+  await prisma.clinica.upsert({
+    where: { tenantId: 'demo-estetica' },
+    update: {},
+    create: {
+      tenantId:            'demo-estetica',
+      slug:                'demo-estetica',
+      nome:                'Studio Estética Demo Synka',
+      nicho:               'CLINICA_ESTETICA',
+      razaoSocial:         'Studio Estética Demonstração Ltda',
+      cnpj:                '22.222.222/0001-22',
+      endereco:            'Av. Beleza, 200 — Fortaleza/CE',
+      adminPhone:          '(85) 88888-0002',
+      botActive:           true,
+      onboardingCompleted: true,
+      multiProfissional:   true,
+      openingTime:         '08:00',
+      closingTime:         '19:00',
+      workingDays:         '1,2,3,4,5,6',
+      configBranding: { nomeExibicao: 'Studio Estética Demo Synka', corPrimaria: '#D4537E', logoUrl: null },
+    },
+  })
+
+  await prisma.usuario.upsert({
+    where: { email: 'admin@demo-estetica.synka.com.br' },
+    update: {},
+    create: {
+      nome: 'Admin', sobrenome: 'Estética',
+      email: 'admin@demo-estetica.synka.com.br',
+      senhaHash, role: 'admin', tenantId: 'demo-estetica',
+      emailVerificado: true, primeiroAcesso: false, perfilCompleto: true,
+    },
+  })
+
+  const profsEstetica = [
+    { id: 'prof-est-patricia', nome: 'Patrícia Viana',   esp: 'Esteticista Facial',  color: '#D4537E',
+      dias: [1,2,3,4,5], hi: '09:00', hf: '18:00', li: '12:30', lf: '13:30' },
+    { id: 'prof-est-larissa',  nome: 'Larissa Moura',    esp: 'Esteticista Corporal', color: '#9B72CF',
+      dias: [1,2,3,4,5,6], hi: '08:00', hf: '17:00', li: '12:00', lf: '13:00' },
+    { id: 'prof-est-beatriz',  nome: 'Beatriz Andrade',  esp: 'Dermato Esteticista', color: '#C4973A',
+      dias: [2,3,4,5,6], hi: '10:00', hf: '19:00', li: '13:00', lf: '14:00' },
+  ]
+
+  for (const p of profsEstetica) {
+    await prisma.profissional.upsert({
+      where: { id: p.id }, update: {},
+      create: { id: p.id, nome: p.nome, especialidade: p.esp, color: p.color, ativo: true, tenantId: 'demo-estetica', percentualRepasse: 50, repasseTipo: 'percentual' },
+    })
+    await prisma.usuario.upsert({
+      where: { email: `${p.id}@demo-estetica.synka.com.br` }, update: {},
+      create: {
+        nome: p.nome.split(' ')[0], email: `${p.id}@demo-estetica.synka.com.br`,
+        senhaHash, role: 'profissional', tenantId: 'demo-estetica',
+        profissionalId: p.id, emailVerificado: true, primeiroAcesso: false, perfilCompleto: true,
+      },
+    })
+    for (const d of p.dias) {
+      await prisma.professionalSchedule.upsert({
+        where: { profissionalId_diaSemana: { profissionalId: p.id, diaSemana: d } },
+        update: {}, create: { profissionalId: p.id, diaSemana: d, horaInicio: p.hi, horaFim: p.hf, lunchStart: p.li, lunchEnd: p.lf, ativo: true },
+      })
+    }
+  }
+
+  const servicosEstetica = [
+    { nome: 'Limpeza de Pele',       dur: 60,  buf: 15, preco: 150, color: '#D4537E' },
+    { nome: 'Drenagem Linfática',    dur: 60,  buf: 10, preco: 130, color: '#9B72CF' },
+    { nome: 'Peeling Químico',       dur: 50,  buf: 15, preco: 200, color: '#C4973A' },
+    { nome: 'Massagem Relaxante',    dur: 60,  buf: 15, preco: 140, color: '#52B788' },
+    { nome: 'Design de Sobrancelha', dur: 30,  buf: 5,  preco: 60,  color: '#8A9BB0' },
+    { nome: 'Microagulhamento',      dur: 90,  buf: 20, preco: 350, color: '#E87BA0' },
+  ]
+
+  for (const s of servicosEstetica) {
+    const sid = `servico-est-${s.nome.toLowerCase().replace(/[^a-z0-9]/g,'-')}-demo`
+    await prisma.servico.upsert({
+      where: { id: sid }, update: {},
+      create: { id: sid, nome: s.nome, duracaoMinutos: s.dur, bufferTimeMinutes: s.buf, preco: s.preco, color: s.color, ativo: true, tenantId: 'demo-estetica' },
+    })
+  }
+
+  const clientesEstetica = [
+    { nome: 'Camila Torres',        tel: '(85) 96000-0001', nasc: new Date('1993-05-20'), v: 10 },
+    { nome: 'Isabela Mendonça',     tel: '(85) 96000-0002', nasc: new Date('1988-12-05'), v: 6  },
+    { nome: 'Priscila Rocha',       tel: '(85) 96000-0003', nasc: new Date('2001-03-14'), v: 3  },
+    { nome: 'Renata Silveira',      tel: '(85) 96000-0004', nasc: new Date('1979-07-22'), v: 18 },
+    { nome: 'Juliana Barros',       tel: '(85) 96000-0005', nasc: new Date('1996-10-08'), v: 5  },
+    { nome: 'Fernanda Queiroz',     tel: '(85) 96000-0006', nasc: new Date('1991-01-30'), v: 12 },
+    { nome: 'Letícia Cavalcante',   tel: '(85) 96000-0007', nasc: new Date('2002-06-17'), v: 2  },
+  ]
+
+  for (let i = 0; i < clientesEstetica.length; i++) {
+    const c = clientesEstetica[i]
+    await prisma.paciente.upsert({
+      where: { id: `cliente-est-${i+1}` }, update: {},
+      create: { id: `cliente-est-${i+1}`, nome: c.nome, telefone: c.tel, dataNascimento: c.nasc, tipoAtendimento: 'particular', contagemVisitas: c.v, totalGasto: c.v * 140, ultimaVisita: new Date(Date.now() - Math.random() * 25 * 86400000), tenantId: 'demo-estetica' },
+    })
+  }
+
+  const agEstetica = [
+    { h: 9,  m: 0,  prof: 'prof-est-patricia', pac: 'cliente-est-1', serv: 'servico-est-limpeza-de-pele-demo',    st: 'concluido'  },
+    { h: 10, m: 15, prof: 'prof-est-patricia', pac: 'cliente-est-2', serv: 'servico-est-design-de-sobrancelha-demo', st: 'concluido' },
+    { h: 11, m: 0,  prof: 'prof-est-patricia', pac: 'cliente-est-3', serv: 'servico-est-peeling-qu-mico-demo',    st: 'confirmado' },
+    { h: 14, m: 0,  prof: 'prof-est-patricia', pac: 'cliente-est-4', serv: 'servico-est-limpeza-de-pele-demo',    st: 'pendente'   },
+    { h: 15, m: 30, prof: 'prof-est-patricia', pac: 'cliente-est-5', serv: 'servico-est-microagulhamento-demo',   st: 'pendente'   },
+    { h: 9,  m: 0,  prof: 'prof-est-larissa',  pac: 'cliente-est-6', serv: 'servico-est-drenagem-linf-tica-demo', st: 'concluido'  },
+    { h: 10, m: 15, prof: 'prof-est-larissa',  pac: 'cliente-est-7', serv: 'servico-est-massagem-relaxante-demo', st: 'concluido'  },
+    { h: 14, m: 0,  prof: 'prof-est-larissa',  pac: 'cliente-est-1', serv: 'servico-est-drenagem-linf-tica-demo', st: 'pendente'   },
+    { h: 10, m: 0,  prof: 'prof-est-beatriz',  pac: 'cliente-est-3', serv: 'servico-est-peeling-qu-mico-demo',    st: 'pendente'   },
+    { h: 14, m: 30, prof: 'prof-est-beatriz',  pac: 'cliente-est-6', serv: 'servico-est-microagulhamento-demo',   st: 'pendente'   },
+  ]
+
+  for (let i = 0; i < agEstetica.length; i++) {
+    const a = agEstetica[i]
+    const dataHora = new Date(dataHoje); dataHora.setHours(a.h, a.m, 0, 0)
+    const fimDataHora = new Date(dataHora.getTime() + 60 * 60000)
+    await prisma.agendamento.upsert({
+      where: { eventoId: `demo-est-agend-${i+1}` }, update: { status: a.st },
+      create: { eventoId: `demo-est-agend-${i+1}`, pacienteId: a.pac, profissionalId: a.prof, servicoId: a.serv, dataHora, fimDataHora, durationMinutes: 60, status: a.st, categoria: 'procedimento', tipoAtendimento: 'particular', tenantId: 'demo-estetica' },
+    })
+  }
+
+  const txEstetica = [
+    { id: 'tx-est-jan-001', tipo: 'income',  descricao: 'Procedimentos — Patrícia (jan)', valor: 2100, status: 'paid',    categoria: 'procedimento', formaPagamento: 'pix',      profissionalId: 'prof-est-patricia', dataPagamento: new Date('2026-01-31'), tenantId: 'demo-estetica' },
+    { id: 'tx-est-jan-002', tipo: 'income',  descricao: 'Procedimentos — Larissa (jan)',  valor: 1700, status: 'paid',    categoria: 'procedimento', formaPagamento: 'cartao_credito', profissionalId: 'prof-est-larissa', dataPagamento: new Date('2026-01-31'), tenantId: 'demo-estetica' },
+    { id: 'tx-est-jan-003', tipo: 'expense', descricao: 'Aluguel — janeiro',              valor: 1800, status: 'paid',    categoria: 'aluguel',     formaPagamento: 'boleto',   dataPagamento: new Date('2026-01-05'), tenantId: 'demo-estetica' },
+    { id: 'tx-est-jan-004', tipo: 'expense', descricao: 'Insumos estéticos',               valor: 800,  status: 'paid',    categoria: 'materiais',   formaPagamento: 'cartao_debito', dataPagamento: new Date('2026-01-12'), tenantId: 'demo-estetica' },
+    { id: 'tx-est-fev-001', tipo: 'income',  descricao: 'Procedimentos — Patrícia (fev)', valor: 2400, status: 'paid',    categoria: 'procedimento', formaPagamento: 'pix',      profissionalId: 'prof-est-patricia', dataPagamento: new Date('2026-02-28'), tenantId: 'demo-estetica' },
+    { id: 'tx-est-fev-002', tipo: 'income',  descricao: 'Procedimentos — Beatriz (fev)',  valor: 1400, status: 'paid',    categoria: 'procedimento', formaPagamento: 'pix',      profissionalId: 'prof-est-beatriz',  dataPagamento: new Date('2026-02-28'), tenantId: 'demo-estetica' },
+    { id: 'tx-est-fev-003', tipo: 'expense', descricao: 'Aluguel — fevereiro',            valor: 1800, status: 'paid',    categoria: 'aluguel',     formaPagamento: 'boleto',   dataPagamento: new Date('2026-02-05'), tenantId: 'demo-estetica' },
+    { id: 'tx-est-mar-001', tipo: 'income',  descricao: 'Procedimentos — equipe (mar)',   valor: 3200, status: 'paid',    categoria: 'procedimento', formaPagamento: 'pix',      dataPagamento: new Date('2026-03-31'), tenantId: 'demo-estetica' },
+    { id: 'tx-est-mar-002', tipo: 'income',  descricao: 'Clientes pendentes',              valor: 450,  status: 'pending', categoria: 'procedimento', dataVencimento: new Date('2026-04-08'), tenantId: 'demo-estetica' },
+    { id: 'tx-est-mar-003', tipo: 'expense', descricao: 'Aluguel — abril (previsto)',      valor: 1800, status: 'pending', categoria: 'aluguel',      dataVencimento: new Date('2026-04-05'), tenantId: 'demo-estetica' },
+  ]
+
+  for (const tx of txEstetica) {
+    await prisma.transacaoFinanceira.upsert({
+      where: { id: tx.id }, update: {},
+      create: { id: tx.id, tipo: tx.tipo, descricao: tx.descricao, valor: tx.valor, status: tx.status, categoria: tx.categoria, formaPagamento: (tx as any).formaPagamento ?? null, profissionalId: (tx as any).profissionalId ?? null, dataPagamento: (tx as any).dataPagamento ?? null, dataVencimento: (tx as any).dataVencimento ?? null, tenantId: tx.tenantId },
+    })
+  }
+
+  console.log('✅ Demo Studio Estética criado')
+
+  // ============================================================
+  // DEMO 4 — SALÃO DE BELEZA
+  // ============================================================
+
+  await prisma.clinica.upsert({
+    where: { tenantId: 'demo-salao' },
+    update: {},
+    create: {
+      tenantId:            'demo-salao',
+      slug:                'demo-salao',
+      nome:                'Salão Beleza Demo Synka',
+      nicho:               'SALAO_BELEZA',
+      razaoSocial:         'Salão Demonstração Ltda',
+      cnpj:                '33.333.333/0001-33',
+      endereco:            'Rua das Flores, 88 — Fortaleza/CE',
+      adminPhone:          '(85) 88888-0003',
+      botActive:           true,
+      onboardingCompleted: true,
+      multiProfissional:   true,
+      openingTime:         '09:00',
+      closingTime:         '19:00',
+      workingDays:         '1,2,3,4,5,6',
+      configBranding: { nomeExibicao: 'Salão Beleza Demo Synka', corPrimaria: '#9B72CF', logoUrl: null },
+    },
+  })
+
+  await prisma.usuario.upsert({
+    where: { email: 'admin@demo-salao.synka.com.br' },
+    update: {},
+    create: {
+      nome: 'Admin', sobrenome: 'Salão',
+      email: 'admin@demo-salao.synka.com.br',
+      senhaHash, role: 'admin', tenantId: 'demo-salao',
+      emailVerificado: true, primeiroAcesso: false, perfilCompleto: true,
+    },
+  })
+
+  const profsSalao = [
+    { id: 'prof-sal-amanda',   nome: 'Amanda Ribeiro',    esp: 'Cabelereira',    color: '#9B72CF', dias: [1,2,3,4,5,6], hi: '09:00', hf: '18:00', li: '12:00', lf: '13:00' },
+    { id: 'prof-sal-vanessa',  nome: 'Vanessa Correia',   esp: 'Colorista',      color: '#D4537E', dias: [1,2,3,4,5],   hi: '09:00', hf: '18:00', li: '12:00', lf: '13:00' },
+    { id: 'prof-sal-tatiane',  nome: 'Tatiane Nunes',     esp: 'Manicure/Pedicure', color: '#52B788', dias: [1,2,3,4,5,6], hi: '09:00', hf: '17:00', li: '12:30', lf: '13:30' },
+    { id: 'prof-sal-bruna',    nome: 'Bruna Monteiro',    esp: 'Esteticista',    color: '#C4973A', dias: [2,3,4,5,6],   hi: '10:00', hf: '19:00', li: '13:00', lf: '14:00' },
+  ]
+
+  for (const p of profsSalao) {
+    await prisma.profissional.upsert({
+      where: { id: p.id }, update: {},
+      create: { id: p.id, nome: p.nome, especialidade: p.esp, color: p.color, ativo: true, tenantId: 'demo-salao', percentualRepasse: 50, repasseTipo: 'percentual' },
+    })
+    await prisma.usuario.upsert({
+      where: { email: `${p.id}@demo-salao.synka.com.br` }, update: {},
+      create: {
+        nome: p.nome.split(' ')[0], email: `${p.id}@demo-salao.synka.com.br`,
+        senhaHash, role: 'profissional', tenantId: 'demo-salao',
+        profissionalId: p.id, emailVerificado: true, primeiroAcesso: false, perfilCompleto: true,
+      },
+    })
+    for (const d of p.dias) {
+      await prisma.professionalSchedule.upsert({
+        where: { profissionalId_diaSemana: { profissionalId: p.id, diaSemana: d } },
+        update: {}, create: { profissionalId: p.id, diaSemana: d, horaInicio: p.hi, horaFim: p.hf, lunchStart: p.li, lunchEnd: p.lf, ativo: true },
+      })
+    }
+  }
+
+  const servicosSalao = [
+    { nome: 'Corte Feminino',        dur: 45,  buf: 10, preco: 80,  color: '#9B72CF' },
+    { nome: 'Escova',                dur: 60,  buf: 10, preco: 70,  color: '#B892EF' },
+    { nome: 'Coloração',             dur: 120, buf: 20, preco: 180, color: '#D4537E' },
+    { nome: 'Mechas / Luzes',        dur: 150, buf: 20, preco: 220, color: '#E87BA0' },
+    { nome: 'Hidratação Capilar',    dur: 60,  buf: 15, preco: 90,  color: '#52B788' },
+    { nome: 'Manicure',              dur: 30,  buf: 5,  preco: 35,  color: '#C4973A' },
+    { nome: 'Pedicure',              dur: 45,  buf: 10, preco: 45,  color: '#EF9F27' },
+    { nome: 'Manicure + Pedicure',   dur: 70,  buf: 10, preco: 70,  color: '#BA7517' },
+  ]
+
+  for (const s of servicosSalao) {
+    const sid = `servico-sal-${s.nome.toLowerCase().replace(/[^a-z0-9]/g,'-')}-demo`
+    await prisma.servico.upsert({
+      where: { id: sid }, update: {},
+      create: { id: sid, nome: s.nome, duracaoMinutos: s.dur, bufferTimeMinutes: s.buf, preco: s.preco, color: s.color, ativo: true, tenantId: 'demo-salao' },
+    })
+  }
+
+  const clientesSalao = [
+    { nome: 'Aline Ferreira',     tel: '(85) 95000-0001', nasc: new Date('1994-03-12'), v: 14 },
+    { nome: 'Carla Mendes',       tel: '(85) 95000-0002', nasc: new Date('1989-08-25'), v: 9  },
+    { nome: 'Débora Alves',       tel: '(85) 95000-0003', nasc: new Date('1999-11-03'), v: 5  },
+    { nome: 'Elaine Souza',       tel: '(85) 95000-0004', nasc: new Date('1975-06-18'), v: 22 },
+    { nome: 'Flávia Costa',       tel: '(85) 95000-0005', nasc: new Date('2003-01-07'), v: 3  },
+    { nome: 'Giovana Lima',       tel: '(85) 95000-0006', nasc: new Date('1997-09-29'), v: 11 },
+    { nome: 'Helena Barros',      tel: '(85) 95000-0007', nasc: new Date('1986-04-14'), v: 7  },
+    { nome: 'Ingrid Pereira',     tel: '(85) 95000-0008', nasc: new Date('2001-12-21'), v: 4  },
+  ]
+
+  for (let i = 0; i < clientesSalao.length; i++) {
+    const c = clientesSalao[i]
+    await prisma.paciente.upsert({
+      where: { id: `cliente-sal-${i+1}` }, update: {},
+      create: { id: `cliente-sal-${i+1}`, nome: c.nome, telefone: c.tel, dataNascimento: c.nasc, tipoAtendimento: 'particular', contagemVisitas: c.v, totalGasto: c.v * 90, ultimaVisita: new Date(Date.now() - Math.random() * 30 * 86400000), tenantId: 'demo-salao' },
+    })
+  }
+
+  const agSalao = [
+    { h: 9,  m: 0,  prof: 'prof-sal-amanda',  pac: 'cliente-sal-1', serv: 'servico-sal-corte-feminino-demo',       st: 'concluido'  },
+    { h: 10, m: 0,  prof: 'prof-sal-amanda',  pac: 'cliente-sal-2', serv: 'servico-sal-escova-demo',               st: 'concluido'  },
+    { h: 11, m: 30, prof: 'prof-sal-amanda',  pac: 'cliente-sal-3', serv: 'servico-sal-hidrata--o-capilar-demo',   st: 'confirmado' },
+    { h: 14, m: 0,  prof: 'prof-sal-amanda',  pac: 'cliente-sal-4', serv: 'servico-sal-corte-feminino-demo',       st: 'pendente'   },
+    { h: 15, m: 30, prof: 'prof-sal-amanda',  pac: 'cliente-sal-5', serv: 'servico-sal-escova-demo',               st: 'pendente'   },
+    { h: 9,  m: 0,  prof: 'prof-sal-vanessa', pac: 'cliente-sal-6', serv: 'servico-sal-colora--o-demo',            st: 'concluido'  },
+    { h: 11, m: 30, prof: 'prof-sal-vanessa', pac: 'cliente-sal-7', serv: 'servico-sal-mechas---luzes-demo',       st: 'confirmado' },
+    { h: 14, m: 30, prof: 'prof-sal-vanessa', pac: 'cliente-sal-8', serv: 'servico-sal-colora--o-demo',            st: 'pendente'   },
+    { h: 9,  m: 0,  prof: 'prof-sal-tatiane', pac: 'cliente-sal-1', serv: 'servico-sal-manicure---pedicure-demo',  st: 'concluido'  },
+    { h: 10, m: 15, prof: 'prof-sal-tatiane', pac: 'cliente-sal-3', serv: 'servico-sal-manicure-demo',             st: 'concluido'  },
+    { h: 11, m: 0,  prof: 'prof-sal-tatiane', pac: 'cliente-sal-5', serv: 'servico-sal-pedicure-demo',             st: 'pendente'   },
+    { h: 14, m: 0,  prof: 'prof-sal-tatiane', pac: 'cliente-sal-7', serv: 'servico-sal-manicure---pedicure-demo',  st: 'pendente'   },
+  ]
+
+  for (let i = 0; i < agSalao.length; i++) {
+    const a = agSalao[i]
+    const dataHora = new Date(dataHoje); dataHora.setHours(a.h, a.m, 0, 0)
+    const fimDataHora = new Date(dataHora.getTime() + 60 * 60000)
+    await prisma.agendamento.upsert({
+      where: { eventoId: `demo-sal-agend-${i+1}` }, update: { status: a.st },
+      create: { eventoId: `demo-sal-agend-${i+1}`, pacienteId: a.pac, profissionalId: a.prof, servicoId: a.serv, dataHora, fimDataHora, durationMinutes: 60, status: a.st, categoria: 'atendimento', tipoAtendimento: 'particular', tenantId: 'demo-salao' },
+    })
+  }
+
+  const txSalao = [
+    { id: 'tx-sal-jan-001', tipo: 'income',  descricao: 'Atendimentos — Amanda (jan)',  valor: 2400, status: 'paid',    categoria: 'atendimento', formaPagamento: 'pix',      profissionalId: 'prof-sal-amanda',  dataPagamento: new Date('2026-01-31'), tenantId: 'demo-salao' },
+    { id: 'tx-sal-jan-002', tipo: 'income',  descricao: 'Atendimentos — Vanessa (jan)', valor: 2100, status: 'paid',    categoria: 'atendimento', formaPagamento: 'cartao_credito', profissionalId: 'prof-sal-vanessa', dataPagamento: new Date('2026-01-31'), tenantId: 'demo-salao' },
+    { id: 'tx-sal-jan-003', tipo: 'income',  descricao: 'Atendimentos — Tatiane (jan)', valor: 1200, status: 'paid',    categoria: 'atendimento', formaPagamento: 'dinheiro', profissionalId: 'prof-sal-tatiane', dataPagamento: new Date('2026-01-31'), tenantId: 'demo-salao' },
+    { id: 'tx-sal-jan-004', tipo: 'expense', descricao: 'Aluguel — janeiro',            valor: 2000, status: 'paid',    categoria: 'aluguel',     formaPagamento: 'boleto',   dataPagamento: new Date('2026-01-05'), tenantId: 'demo-salao' },
+    { id: 'tx-sal-jan-005', tipo: 'expense', descricao: 'Produtos capilares',            valor: 600,  status: 'paid',    categoria: 'materiais',   formaPagamento: 'cartao_debito', dataPagamento: new Date('2026-01-10'), tenantId: 'demo-salao' },
+    { id: 'tx-sal-fev-001', tipo: 'income',  descricao: 'Atendimentos — equipe (fev)',  valor: 5200, status: 'paid',    categoria: 'atendimento', formaPagamento: 'pix',      dataPagamento: new Date('2026-02-28'), tenantId: 'demo-salao' },
+    { id: 'tx-sal-fev-002', tipo: 'expense', descricao: 'Aluguel — fevereiro',          valor: 2000, status: 'paid',    categoria: 'aluguel',     formaPagamento: 'boleto',   dataPagamento: new Date('2026-02-05'), tenantId: 'demo-salao' },
+    { id: 'tx-sal-fev-003', tipo: 'expense', descricao: 'Produtos capilares e esmaltes', valor: 750, status: 'paid',    categoria: 'materiais',   formaPagamento: 'cartao_debito', dataPagamento: new Date('2026-02-12'), tenantId: 'demo-salao' },
+    { id: 'tx-sal-mar-001', tipo: 'income',  descricao: 'Atendimentos — equipe (mar)',  valor: 4800, status: 'paid',    categoria: 'atendimento', formaPagamento: 'pix',      dataPagamento: new Date('2026-03-31'), tenantId: 'demo-salao' },
+    { id: 'tx-sal-mar-002', tipo: 'income',  descricao: 'Clientes pendentes',            valor: 560,  status: 'pending', categoria: 'atendimento', dataVencimento: new Date('2026-04-07'), tenantId: 'demo-salao' },
+    { id: 'tx-sal-mar-003', tipo: 'expense', descricao: 'Aluguel — abril (previsto)',    valor: 2000, status: 'pending', categoria: 'aluguel',     dataVencimento: new Date('2026-04-05'), tenantId: 'demo-salao' },
+    { id: 'tx-sal-mar-004', tipo: 'expense', descricao: 'Reposição de produtos',         valor: 500,  status: 'pending', categoria: 'materiais',   dataVencimento: new Date('2026-04-12'), tenantId: 'demo-salao' },
+  ]
+
+  for (const tx of txSalao) {
+    await prisma.transacaoFinanceira.upsert({
+      where: { id: tx.id }, update: {},
+      create: { id: tx.id, tipo: tx.tipo, descricao: tx.descricao, valor: tx.valor, status: tx.status, categoria: tx.categoria, formaPagamento: (tx as any).formaPagamento ?? null, profissionalId: (tx as any).profissionalId ?? null, dataPagamento: (tx as any).dataPagamento ?? null, dataVencimento: (tx as any).dataVencimento ?? null, tenantId: tx.tenantId },
+    })
+  }
+
+  console.log('✅ Demo Salão de Beleza criado')
+
   console.log('')
   console.log('🎉 Seed completo!')
   console.log('')
