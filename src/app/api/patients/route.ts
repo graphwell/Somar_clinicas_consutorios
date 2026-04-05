@@ -76,6 +76,22 @@ export async function POST(request: Request) {
       },
     });
 
+    // Criar ficha vazia automaticamente para nichos de beleza
+    const NICHOS_BELEZA = ['SALAO_BELEZA', 'BARBEARIA', 'CLINICA_ESTETICA'];
+    try {
+      const clinica = await prisma.clinica.findUnique({
+        where: { tenantId },
+        select: { nicho: true },
+      });
+      if (clinica && NICHOS_BELEZA.includes(clinica.nicho)) {
+        await prisma.fichaCliente.upsert({
+          where: { pacienteId: paciente.id },
+          update: {},
+          create: { pacienteId: paciente.id, tenantId, nicho: clinica.nicho },
+        });
+      }
+    } catch { /* não bloquear cadastro se ficha falhar */ }
+
     return NextResponse.json(paciente);
   } catch (error: any) {
     console.error('[PATIENTS_POST_ERROR]', error);

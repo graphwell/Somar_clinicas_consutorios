@@ -249,8 +249,11 @@ export default function PatientsPage() {
   const [novoTelefone, setNovoTelefone] = useState('');
   const [novoNascimento, setNovoNascimento] = useState('');
   const [savingNovo, setSavingNovo] = useState(false);
-  const { labels } = useNicho();
+  const { labels, nicho } = useNicho();
   const router = useRouter();
+  const NICHOS_BELEZA = ['SALAO_BELEZA', 'BARBEARIA', 'CLINICA_ESTETICA'];
+  const isBeleza = NICHOS_BELEZA.includes(nicho);
+  const [clienteSalvo, setClienteSalvo] = useState<{ id: string; nome: string } | null>(null);
 
   useEffect(() => {
     fetchWithAuth('/api/patients')
@@ -272,6 +275,8 @@ export default function PatientsPage() {
         setPacientes(prev => [{ ...novo, _count: { agendamentos: 0 }, agendamentos: [] }, ...prev]);
         setShowNovo(false);
         setNovoNome(''); setNovoTelefone(''); setNovoNascimento('');
+        // Para nichos de beleza: oferecer preencher a ficha
+        if (isBeleza) setClienteSalvo({ id: novo.id, nome: novo.nome });
       }
     } finally {
       setSavingNovo(false);
@@ -378,6 +383,40 @@ export default function PatientsPage() {
       )}
 
       {selectedPatient && <PatientChart patient={selectedPatient} onClose={() => setSelectedPatient(null)} />}
+
+      {/* Modal: sugestão de preencher ficha após cadastro (nichos de beleza) */}
+      {clienteSalvo && isBeleza && (
+        <div className="fixed inset-0 z-[210] flex items-center justify-center" onClick={() => setClienteSalvo(null)}>
+          <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm" />
+          <div className="relative bg-white rounded-[2.5rem] shadow-2xl border border-card-border p-8 w-full max-w-sm text-center animate-in zoom-in-95 duration-200"
+            onClick={e => e.stopPropagation()}>
+            <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#40916C" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-black uppercase tracking-tight text-text-main">{labels.termoPaciente} cadastrado!</h3>
+            <p className="text-sm text-text-muted mt-2 mb-6">
+              Deseja preencher a ficha de <strong>{clienteSalvo.nome}</strong> agora?
+              Isso ajuda o profissional a conhecer as preferências antes do primeiro atendimento.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setClienteSalvo(null)}
+                className="flex-1 py-3 bg-slate-50 border border-card-border rounded-xl text-[9px] font-black uppercase hover:bg-slate-100 transition-colors"
+              >
+                Preencher depois
+              </button>
+              <button
+                onClick={() => router.push(`/dashboard/ficha/${clienteSalvo.id}?novo=true`)}
+                className="flex-1 btn-primary py-3 text-[9px]"
+              >
+                Preencher ficha →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showNovo && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center" onClick={() => setShowNovo(false)}>

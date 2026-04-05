@@ -1,6 +1,6 @@
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
-import { useParams } from "next/navigation";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { useParams, useSearchParams } from "next/navigation";
 import { useNicho } from "@/context/NichoContext";
 import { fetchWithAuth } from "@/lib/api-utils";
 import { FichaBarbearia } from "@/components/ficha/FichaBarbearia";
@@ -19,9 +19,26 @@ function fmtMes(iso: string) {
 
 type TabId = "ficha" | "fotos" | "historico";
 
+const CAMPOS_PROGRESSO: Record<string, string[]> = {
+  BARBEARIA: ['estiloPreferido', 'maquinaNumero', 'barbaEstilo', 'produtosFavoritos', 'profissionalPreferidoId', 'observacoesGerais'],
+  SALAO_BELEZA: ['tipoCabelo', 'porosidade', 'coloracaoAtual', 'produtosUsados', 'profissionalPreferidoId', 'observacoesGerais'],
+  CLINICA_ESTETICA: ['tipoPele', 'fitzpatrick', 'alergiasSubstancias', 'medicamentosUso', 'protocolosRealizados', 'observacoesGerais'],
+};
+
+const CAMPOS_LABEL: Record<string, string> = {
+  estiloPreferido: 'Estilo', maquinaNumero: 'Máquina', barbaEstilo: 'Barba',
+  produtosFavoritos: 'Produto favorito', profissionalPreferidoId: 'Profissional preferido',
+  observacoesGerais: 'Observações', tipoCabelo: 'Tipo de cabelo', porosidade: 'Porosidade',
+  coloracaoAtual: 'Coloração', produtosUsados: 'Produtos usados', tipoPele: 'Tipo de pele',
+  fitzpatrick: 'Fototipo', alergiasSubstancias: 'Alergias', medicamentosUso: 'Medicamentos',
+  protocolosRealizados: 'Protocolos',
+};
+
 export default function FichaClientePage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const pacienteId = params.pacienteId as string;
+  const isNovo = searchParams.get('novo') === 'true';
   const { nicho, labels } = useNicho();
 
   const [paciente, setPaciente] = useState<any>(null);
@@ -32,6 +49,24 @@ export default function FichaClientePage() {
   const [profissionais, setProfissionais] = useState<{ id: string; nome: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<TabId>("ficha");
+
+  // Progresso de preenchimento
+  const progresso = useMemo(() => {
+    if (!ficha) return 0;
+    const campos = CAMPOS_PROGRESSO[nicho] ?? [];
+    if (!campos.length) return 0;
+    const preenchidos = campos.filter(c => ficha[c] !== null && ficha[c] !== undefined && ficha[c] !== '').length;
+    return Math.round((preenchidos / campos.length) * 100);
+  }, [ficha, nicho]);
+
+  const camposVazios = useMemo(() => {
+    if (!ficha) return [];
+    const campos = CAMPOS_PROGRESSO[nicho] ?? [];
+    return campos
+      .filter(c => !ficha[c])
+      .map(c => ({ key: c, label: CAMPOS_LABEL[c] ?? c }))
+      .slice(0, 5);
+  }, [ficha, nicho]);
 
   const carregar = useCallback(async () => {
     setLoading(true);
@@ -107,6 +142,60 @@ export default function FichaClientePage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-5 pb-20 animate-premium">
+
+      {/* Banner: ficha nova (?novo=true) */}
+      {isNovo && (
+        <div className="bg-green-50 border border-green-200 rounded-2xl p-5">
+          <div className="flex items-start gap-4">
+            <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#40916C" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-black text-sm text-green-800 uppercase tracking-tight">
+                Preencha a ficha de {paciente.nome}
+              </h3>
+              <p className="text-xs text-green-700 mt-1">
+                Quanto mais informações você preencher, melhor será o atendimento.
+                Clique em qualquer campo para editar.
+              </p>
+
+              {/* Barra de progresso */}
+              <div className="mt-3">
+                <div className="flex justify-between text-[10px] mb-1">
+                  <span className="text-green-700 font-medium">Preenchimento da ficha</span>
+                  <span className="text-green-800 font-black">{progresso}%</span>
+                </div>
+                <div className="h-2 bg-green-200 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-green-500 rounded-full transition-all duration-500"
+                    style={{ width: `${progresso}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Chips de campos vazios prioritários */}
+              {camposVazios.length > 0 && (
+                <div className="mt-3">
+                  <p className="text-[10px] text-green-700 mb-1.5">Campos importantes para preencher:</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {camposVazios.map(campo => (
+                      <span
+                        key={campo.key}
+                        className="text-[10px] bg-white border border-green-200 text-green-700 px-2.5 py-1 rounded-full font-medium"
+                      >
+                        + {campo.label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Header do cliente */}
       <div className="bg-white border border-card-border rounded-[2.5rem] p-6 md:p-8 shadow-sm">

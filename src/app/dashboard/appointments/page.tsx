@@ -5,6 +5,24 @@ import { fetchWithAuth } from "@/lib/api-utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+type FichaResumo = {
+  estiloPreferido?: string | null;
+  maquinaNumero?: string | null;
+  barbaEstilo?: string | null;
+  produtosFavoritos?: string | null;
+  tipoCabelo?: string | null;
+  coloracaoAtual?: string | null;
+  tipoPele?: string | null;
+  alergiasSubstancias?: string | null;
+  alertas?: string | null;
+};
+
+type FichaStatus = {
+  preenchida: boolean;
+  alertas: string | null;
+  resumo: FichaResumo | null;
+} | null;
+
 type Agendamento = {
   id: string;
   dataHora: string;
@@ -18,6 +36,7 @@ type Agendamento = {
   paciente: { id: string; nome: string; telefone: string; dataNascimento?: string; convenio?: string };
   profissional?: { id: string; nome: string } | null;
   servico?: { id: string; nome: string; duracaoMinutos?: number; preco?: number; color?: string } | null;
+  fichaStatus?: FichaStatus;
 };
 
 type Totais = Record<string, number>;
@@ -115,21 +134,25 @@ function CardAtendimento({
   ag,
   labels,
   isBeleza,
+  nicho,
   onStatusChange,
   updating,
 }: {
   ag: Agendamento;
   labels: any;
   isBeleza: boolean;
+  nicho: string;
   onStatusChange: (id: string, status: string) => void;
   updating: string | null;
 }) {
+  const [expandido, setExpandido] = useState(false);
   const cfg = STATUS_CONFIG[ag.status] || STATUS_CONFIG.pendente;
   const acoes = FLUXO[ag.status] || [];
   const atrasado = isAtrasado(ag);
   const idade = fmtIdade(ag.paciente.dataNascimento);
   const cor = ag.servico?.color || '#6366f1';
   const isUpdating = updating === ag.id;
+  const ficha = ag.fichaStatus;
 
   return (
     <div className={`group relative bg-white border rounded-2xl overflow-hidden transition-all duration-200 hover:shadow-md ${atrasado ? 'border-orange-300' : 'border-card-border'}`}>
@@ -196,10 +219,38 @@ function CardAtendimento({
           {/* Telefone + atalhos */}
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-[10px] font-mono text-text-placeholder">{ag.paciente.telefone}</p>
-            <a href={isBeleza ? `/dashboard/ficha/${ag.paciente.id}` : `/dashboard/clinical-records?pacienteId=${ag.paciente.id}`}
-              className="text-[8px] font-black uppercase px-2 py-0.5 rounded-lg bg-primary-soft text-primary border border-primary/10 hover:bg-primary/10 transition-colors">
-              {isBeleza ? 'Ficha' : 'Prontuário'}
-            </a>
+            {isBeleza ? (
+              <div className="flex items-center gap-1.5">
+                <a
+                  href={`/dashboard/ficha/${ag.paciente.id}`}
+                  className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-lg border flex items-center gap-1 transition-colors ${
+                    ficha?.alertas
+                      ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'
+                      : ficha?.preenchida
+                        ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
+                        : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+                  }`}
+                >
+                  Ficha
+                  {ficha?.alertas && <span className="w-1.5 h-1.5 rounded-full bg-red-500 ml-0.5" />}
+                  {!ficha?.alertas && !ficha?.preenchida && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 ml-0.5" />}
+                </a>
+                {isBeleza && ficha?.resumo && (
+                  <button
+                    onClick={() => setExpandido(e => !e)}
+                    className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded-lg bg-slate-50 text-text-placeholder border border-card-border hover:bg-slate-100 transition-colors"
+                    title="Ver resumo da ficha"
+                  >
+                    {expandido ? '▲' : '▼'}
+                  </button>
+                )}
+              </div>
+            ) : (
+              <a href={`/dashboard/clinical-records?pacienteId=${ag.paciente.id}`}
+                className="text-[8px] font-black uppercase px-2 py-0.5 rounded-lg bg-primary-soft text-primary border border-primary/10 hover:bg-primary/10 transition-colors">
+                Prontuário
+              </a>
+            )}
             <a href={`https://wa.me/55${ag.paciente.telefone.replace(/\D/g, '')}`}
               target="_blank" rel="noreferrer"
               className="text-[8px] font-black uppercase px-2 py-0.5 rounded-lg bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-colors">
@@ -217,6 +268,37 @@ function CardAtendimento({
           {/* Badge de plano de assinatura */}
           {(ag.status === 'pendente' || ag.status === 'confirmado') && (
             <PlanoBadge pacienteId={ag.paciente.id} servicoId={ag.servico?.id} />
+          )}
+
+          {/* Painel resumo da ficha (expandível) */}
+          {isBeleza && expandido && ficha?.resumo && (
+            <div className="mt-1 pt-3 border-t border-card-border space-y-2">
+              {ficha.alertas && (
+                <div className="flex items-center gap-2 bg-red-50 rounded-lg px-3 py-2">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  <p className="text-[10px] font-black text-red-700">{ficha.alertas}</p>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-1.5">
+                {nicho === 'BARBEARIA' && (<>
+                  {ficha.resumo.estiloPreferido && <div className="bg-slate-50 rounded-lg p-2"><p className="text-[8px] uppercase tracking-wide text-text-placeholder">Estilo</p><p className="text-[10px] font-black text-text-main mt-0.5">{ficha.resumo.estiloPreferido}</p></div>}
+                  {ficha.resumo.maquinaNumero && <div className="bg-slate-50 rounded-lg p-2"><p className="text-[8px] uppercase tracking-wide text-text-placeholder">Máquina</p><p className="text-[10px] font-black text-text-main mt-0.5">Nº {ficha.resumo.maquinaNumero}</p></div>}
+                  {ficha.resumo.barbaEstilo && <div className="bg-slate-50 rounded-lg p-2"><p className="text-[8px] uppercase tracking-wide text-text-placeholder">Barba</p><p className="text-[10px] font-black text-text-main mt-0.5">{ficha.resumo.barbaEstilo}</p></div>}
+                  {ficha.resumo.produtosFavoritos && <div className="bg-slate-50 rounded-lg p-2"><p className="text-[8px] uppercase tracking-wide text-text-placeholder">Produto</p><p className="text-[10px] font-black text-text-main mt-0.5">{ficha.resumo.produtosFavoritos}</p></div>}
+                </>)}
+                {nicho === 'SALAO_BELEZA' && (<>
+                  {ficha.resumo.tipoCabelo && <div className="bg-slate-50 rounded-lg p-2"><p className="text-[8px] uppercase tracking-wide text-text-placeholder">Cabelo</p><p className="text-[10px] font-black text-text-main mt-0.5">{ficha.resumo.tipoCabelo}</p></div>}
+                  {ficha.resumo.coloracaoAtual && <div className="bg-slate-50 rounded-lg p-2"><p className="text-[8px] uppercase tracking-wide text-text-placeholder">Coloração</p><p className="text-[10px] font-black text-text-main mt-0.5">{ficha.resumo.coloracaoAtual}</p></div>}
+                </>)}
+                {nicho === 'CLINICA_ESTETICA' && (<>
+                  {ficha.resumo.tipoPele && <div className="bg-slate-50 rounded-lg p-2"><p className="text-[8px] uppercase tracking-wide text-text-placeholder">Pele</p><p className="text-[10px] font-black text-text-main mt-0.5">{ficha.resumo.tipoPele}</p></div>}
+                  {ficha.resumo.alergiasSubstancias && <div className="bg-red-50 rounded-lg p-2 col-span-2"><p className="text-[8px] uppercase tracking-wide text-red-400">Alergias</p><p className="text-[10px] font-black text-red-700 mt-0.5">{ficha.resumo.alergiasSubstancias}</p></div>}
+                </>)}
+              </div>
+              <a href={`/dashboard/ficha/${ag.paciente.id}`} className="flex items-center justify-center gap-1.5 text-[9px] font-black text-primary hover:underline mt-1">
+                Ver ficha completa →
+              </a>
+            </div>
           )}
         </div>
 
@@ -540,6 +622,24 @@ export default function AtendimentosHojePage() {
         </div>
       </div>
 
+      {/* ── Legenda indicadores ficha (beleza) ── */}
+      {isBeleza && (
+        <div className="flex items-center gap-4 text-[9px] text-text-placeholder flex-wrap">
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-green-400" />
+            Ficha preenchida
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-amber-400" />
+            Ficha incompleta
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-red-500" />
+            Tem alertas
+          </span>
+        </div>
+      )}
+
       {/* ── Filtros ── */}
       <div className="flex flex-wrap items-center gap-3">
         {/* Busca */}
@@ -592,7 +692,7 @@ export default function AtendimentosHojePage() {
               </h2>
               <div className="space-y-2">
                 {[...confirmados, ...pendentes].map(a => (
-                  <CardAtendimento key={a.id} ag={a} labels={labels} isBeleza={isBeleza} onStatusChange={mudarStatus} updating={updating} />
+                  <CardAtendimento key={a.id} ag={a} labels={labels} isBeleza={isBeleza} nicho={nicho} onStatusChange={mudarStatus} updating={updating} />
                 ))}
               </div>
             </section>
@@ -602,7 +702,7 @@ export default function AtendimentosHojePage() {
           {filtroStatus !== 'todos' && (
             <div className="space-y-2">
               {lista.map(a => (
-                <CardAtendimento key={a.id} ag={a} labels={labels} isBeleza={isBeleza} onStatusChange={mudarStatus} updating={updating} />
+                <CardAtendimento key={a.id} ag={a} labels={labels} isBeleza={isBeleza} nicho={nicho} onStatusChange={mudarStatus} updating={updating} />
               ))}
             </div>
           )}
@@ -616,7 +716,7 @@ export default function AtendimentosHojePage() {
               </h2>
               <div className="space-y-2 opacity-70">
                 {concluidos.map(a => (
-                  <CardAtendimento key={a.id} ag={a} labels={labels} isBeleza={isBeleza} onStatusChange={mudarStatus} updating={updating} />
+                  <CardAtendimento key={a.id} ag={a} labels={labels} isBeleza={isBeleza} nicho={nicho} onStatusChange={mudarStatus} updating={updating} />
                 ))}
               </div>
             </section>
@@ -631,7 +731,7 @@ export default function AtendimentosHojePage() {
               </h2>
               <div className="space-y-2 opacity-60">
                 {faltaram.map(a => (
-                  <CardAtendimento key={a.id} ag={a} labels={labels} isBeleza={isBeleza} onStatusChange={mudarStatus} updating={updating} />
+                  <CardAtendimento key={a.id} ag={a} labels={labels} isBeleza={isBeleza} nicho={nicho} onStatusChange={mudarStatus} updating={updating} />
                 ))}
               </div>
             </section>
@@ -646,7 +746,7 @@ export default function AtendimentosHojePage() {
               </h2>
               <div className="space-y-2 opacity-50">
                 {cancelados.map(a => (
-                  <CardAtendimento key={a.id} ag={a} labels={labels} isBeleza={isBeleza} onStatusChange={mudarStatus} updating={updating} />
+                  <CardAtendimento key={a.id} ag={a} labels={labels} isBeleza={isBeleza} nicho={nicho} onStatusChange={mudarStatus} updating={updating} />
                 ))}
               </div>
             </section>

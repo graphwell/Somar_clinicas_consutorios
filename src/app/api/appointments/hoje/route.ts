@@ -36,6 +36,30 @@ export async function GET(req: Request) {
       orderBy: { dataHora: 'asc' },
     });
 
+    // Status das fichas para nichos de beleza
+    const NICHOS_BELEZA = ['SALAO_BELEZA', 'BARBEARIA', 'CLINICA_ESTETICA'];
+    const clinica = await prisma.clinica.findUnique({ where: { tenantId }, select: { nicho: true } });
+    let fichaMap: Record<string, any> = {};
+    if (clinica && NICHOS_BELEZA.includes(clinica.nicho)) {
+      const pacienteIds = [...new Set(agendamentos.map(a => a.paciente.id))];
+      const fichas = await prisma.fichaCliente.findMany({
+        where: { pacienteId: { in: pacienteIds }, tenantId },
+        select: {
+          pacienteId: true,
+          alertas: true,
+          estiloPreferido: true,
+          maquinaNumero: true,
+          barbaEstilo: true,
+          produtosFavoritos: true,
+          tipoCabelo: true,
+          coloracaoAtual: true,
+          tipoPele: true,
+          alergiasSubstancias: true,
+        },
+      });
+      fichaMap = Object.fromEntries(fichas.map(f => [f.pacienteId, f]));
+    }
+
     // Totais por status
     const totais = agendamentos.reduce(
       (acc, a) => {
@@ -46,7 +70,19 @@ export async function GET(req: Request) {
       {} as Record<string, number>
     );
 
-    return NextResponse.json({ agendamentos, totais });
+    const agendamentosComFicha = agendamentos.map(a => {
+      const f = fichaMap[a.paciente.id];
+      return {
+        ...a,
+        fichaStatus: f ? {
+          preenchida: !!(f.estiloPreferido || f.tipoPele || f.tipoCabelo || f.maquinaNumero || f.barbaEstilo),
+          alertas: f.alertas ?? null,
+          resumo: f,
+        } : null,
+      };
+    });
+
+    return NextResponse.json({ agendamentos: agendamentosComFicha, totais });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

@@ -94,6 +94,11 @@ export default function ModalAgendamento({
   const [tipoCobranca, setTipoCobranca] = useState<TipoCobranca>("normal");
   const [verificandoPlano, setVerificandoPlano] = useState(false);
 
+  // Primeira visita (beleza)
+  const [primeiraVisita, setPrimeiraVisita] = useState(false);
+  const [fichaPreenchida, setFichaPreenchida] = useState(false);
+  const [avisoPrimeiraVez, setAvisoPrimeiraVez] = useState(true);
+
   // Step 3
   const [enviarLembrete, setEnviarLembrete] = useState(true);
 
@@ -138,6 +143,24 @@ export default function ModalAgendamento({
       }
     }
   }, [open, ehBeleza]);
+
+  // Verificar primeira visita ao selecionar paciente (beleza)
+  useEffect(() => {
+    if (!ehBeleza || !selectedPaciente?.id) {
+      setPrimeiraVisita(false);
+      setFichaPreenchida(false);
+      setAvisoPrimeiraVez(true);
+      return;
+    }
+    fetchWithAuth(`/api/ficha-cliente/${selectedPaciente.id}/status`)
+      .then(r => r.json())
+      .then(d => {
+        setPrimeiraVisita(d.totalVisitas === 0);
+        setFichaPreenchida(d.fichaPreenchida ?? false);
+        setAvisoPrimeiraVez(true);
+      })
+      .catch(() => {});
+  }, [ehBeleza, selectedPaciente?.id]);
 
   // Verificar plano quando paciente + serviço selecionados (beleza)
   useEffect(() => {
@@ -398,17 +421,54 @@ export default function ModalAgendamento({
             </div>
           )}
           {selectedPaciente && (
-            <div className="flex items-center justify-between bg-sage-50 border border-sage-100 rounded-lg px-3 py-2">
-              <div>
-                <p className="text-sm font-medium text-sage-700">{selectedPaciente.nome}</p>
-                <p className="text-[11px] text-sage-500">{selectedPaciente.telefone}</p>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between bg-sage-50 border border-sage-100 rounded-lg px-3 py-2">
+                <div>
+                  <p className="text-sm font-medium text-sage-700">{selectedPaciente.nome}</p>
+                  <p className="text-[11px] text-sage-500">{selectedPaciente.telefone}</p>
+                </div>
+                <button
+                  onClick={() => { setSelectedPaciente(null); setSearch(""); }}
+                  className="text-sage-400 hover:text-sage-600 text-xs"
+                >
+                  Trocar
+                </button>
               </div>
-              <button
-                onClick={() => { setSelectedPaciente(null); setSearch(""); }}
-                className="text-sage-400 hover:text-sage-600 text-xs"
-              >
-                Trocar
-              </button>
+
+              {/* Aviso de primeira visita (beleza) */}
+              {ehBeleza && primeiraVisita && avisoPrimeiraVez && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                  <div className="flex items-start gap-2">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B45309" strokeWidth="2.5" strokeLinecap="round" className="mt-0.5 shrink-0"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-black text-amber-800">Primeira visita de {selectedPaciente.nome}</p>
+                      <p className="text-[10px] text-amber-600 mt-0.5">
+                        {fichaPreenchida
+                          ? "A ficha já foi preenchida."
+                          : "A ficha ainda não foi preenchida. Recomendamos preencher antes do atendimento."}
+                      </p>
+                      {!fichaPreenchida && (
+                        <div className="flex items-center gap-2 mt-2">
+                          <button
+                            type="button"
+                            onClick={() => window.open(`/dashboard/ficha/${selectedPaciente.id}?novo=true`, '_blank')}
+                            className="text-[10px] font-black text-amber-700 bg-amber-100 px-2.5 py-1 rounded-lg hover:bg-amber-200 transition-colors"
+                          >
+                            Preencher ficha →
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setAvisoPrimeiraVez(false)}
+                            className="text-[10px] text-amber-600 hover:underline"
+                          >
+                            Continuar sem preencher
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
           <button
