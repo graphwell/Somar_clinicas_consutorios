@@ -111,7 +111,7 @@ const PLANOS: PlanoConfig[] = [
 const FAQ = [
   {
     q: 'Preciso de cartão de crédito para o trial?',
-    a: 'Não. O trial de 15 dias é completamente grátis e sem necessidade de cartão. Você só informa o pagamento quando decidir assinar um plano.',
+    a: 'Não. O trial de 30 dias é completamente grátis e sem necessidade de cartão. Você só informa o pagamento quando decidir assinar um plano.',
   },
   {
     q: 'Posso mudar de plano depois?',
@@ -349,7 +349,7 @@ export default function PlanosPage() {
             className="w-2 h-2 rounded-full"
             style={{ background: '#40916C', animation: 'pulse 2s cubic-bezier(0.4,0,0.6,1) infinite' }}
           />
-          Trial de 15 dias grátis
+          Trial de 30 dias grátis
         </div>
 
         <h1 className="font-display text-[42px] leading-tight mb-3" style={{ color: '#1B2B3A', fontSize: 'clamp(28px, 5vw, 42px)' }}>
@@ -411,7 +411,7 @@ export default function PlanosPage() {
             </div>
             <div>
               <p className="text-[15px] font-medium" style={{ color: '#1B2B3A' }}>
-                Teste grátis por 15 dias
+                Teste grátis por 30 dias
               </p>
               <p className="text-[13px] mt-0.5" style={{ color: '#8A9BB0' }}>
                 Acesso completo ao plano Business. Sem cartão de crédito.
@@ -789,7 +789,7 @@ export default function PlanosPage() {
             Comece grátis hoje
           </h2>
           <p className="text-[16px] mb-8" style={{ color: 'rgba(255,255,255,0.7)' }}>
-            15 dias de acesso completo. Sem cartão de crédito.
+            30 dias de acesso completo. Sem cartão de crédito.
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-3">

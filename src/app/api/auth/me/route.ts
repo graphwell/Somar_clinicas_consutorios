@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
           tenantId,
           status: 'trial',
           plano: 'trial',
-          trialFim: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000) // +15 dias default
+          trialFim: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // +30 dias default
         }
       });
     }

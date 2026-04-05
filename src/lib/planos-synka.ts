@@ -16,14 +16,16 @@ export interface UpsellInfo {
   stripePriceId: string;
 }
 
+export const TRIAL_DIAS = 30;
+
 export const PLANOS: Record<string, PlanoInfo> = {
   trial: {
     id: 'trial',
-    nome: 'Trial 15 Dias',
-    descricao: 'Experimente todas as funções grátis',
+    nome: 'Trial 30 Dias',
+    descricao: 'Experimente todas as funções grátis por 30 dias',
     precoBRL: 0,
     stripePriceId: '', // trial não passa pro Stripe
-    features: ['Agendamento Ilimitado', 'WhatsApp Bot', 'Acesso completo ao Business']
+    features: ['Agendamento ilimitado', 'Lembretes via WhatsApp', 'Acesso completo ao Business']
   },
   start: {
     id: 'start',
@@ -31,31 +33,59 @@ export const PLANOS: Record<string, PlanoInfo> = {
     descricao: 'Para começar com o pé direito',
     precoBRL: 37.90,
     stripePriceId: process.env.STRIPE_PRICE_START || '',
-    features: ['1 profissional', 'Link de agendamento público', 'Lembrete WhatsApp automático', 'Confirmação de presença', 'Instância WhatsApp central']
+    features: [
+      '1 profissional cadastrado',
+      'Link para clientes agendarem online',
+      'Lembretes automáticos via WhatsApp',
+      'Confirmação de presença automática',
+      'Sem precisar de WhatsApp próprio',
+    ]
   },
   solo: {
     id: 'solo',
     nome: 'Solo',
-    descricao: 'Para profissionais autônomos',
+    descricao: 'Para profissionais autônomos e pequenas equipes',
     precoBRL: 79.00,
     stripePriceId: process.env.STRIPE_PRICE_SOLO || '',
-    features: ['Até 2 profissionais', 'WhatsApp próprio conectado', 'Prontuário eletrônico', 'Financeiro básico', 'Convênios']
+    features: [
+      'Até 2 profissionais',
+      'Link para clientes agendarem online',
+      'Lembretes via WhatsApp do seu negócio',
+      'Ficha digital dos pacientes/clientes',
+      'Controle financeiro básico',
+      'Gestão de planos de saúde',
+    ]
   },
   pro: {
     id: 'pro',
     nome: 'Pro',
-    descricao: 'Para clínicas em crescimento',
+    descricao: 'Para clínicas e salões em crescimento',
     precoBRL: 127.00,
     stripePriceId: process.env.STRIPE_PRICE_PRO || '',
-    features: ['Até 5 profissionais', 'Financeiro completo', 'Marketing e campanhas', 'Combos e upsell', 'Planos de assinatura', 'Relatórios completos']
+    features: [
+      'Até 5 profissionais',
+      'Tudo do Solo',
+      'Campanhas automáticas no WhatsApp',
+      'Combos e ofertas no agendamento',
+      'Planos de fidelidade para clientes',
+      'Relatórios completos de desempenho',
+      'Controle financeiro completo',
+    ]
   },
   business: {
     id: 'business',
     nome: 'Business',
-    descricao: 'Para clínicas e redes estabelecidas',
+    descricao: 'Para clínicas estabelecidas e redes',
     precoBRL: 197.00,
     stripePriceId: process.env.STRIPE_PRICE_BUSINESS || '',
-    features: ['Até 10 profissionais', 'Prontuário com IA e voz', 'Suporte prioritário', 'API de integração', 'Multi-unidades em breve']
+    features: [
+      'Até 10 profissionais',
+      'Tudo do Pro',
+      'Ficha digital com IA e transcrição por voz',
+      'Suporte com prioridade',
+      'Integração com outros sistemas',
+      'Múltiplas unidades/filiais em breve',
+    ]
   }
 };
 

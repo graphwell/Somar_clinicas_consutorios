@@ -51,17 +51,17 @@ const PLANOS = [
     precoInt: '37',
     precoDec: ',90',
     incluso: [
-      '1 profissional',
-      'Link de agendamento público',
-      'Lembrete automático WhatsApp',
-      'Confirmação de presença',
-      'WhatsApp via instância Synka',
+      '1 profissional cadastrado',
+      'Link para clientes agendarem online',
+      'Lembretes automáticos via WhatsApp',
+      'Confirmação de presença automática',
+      'Sem precisar de WhatsApp próprio',
     ],
     naoIncluso: [
-      'WhatsApp próprio',
-      'Prontuário eletrônico',
+      'WhatsApp do seu negócio conectado',
+      'Ficha digital dos pacientes',
       'Controle financeiro',
-      'Marketing e campanhas',
+      'Campanhas e marketing',
       'Relatórios de desempenho',
     ],
     botao: 'Assinar Start',
@@ -72,21 +72,20 @@ const PLANOS = [
     desc: 'Para pequenas equipes e consultórios',
     precoInt: '79',
     precoDec: ',00',
-    tagEco: 'Inclui prontuário e financeiro — gerencie tudo em um lugar',
+    tagEco: 'Inclui ficha digital e financeiro — gerencie tudo em um lugar',
     incluso: [
       'Até 2 profissionais',
-      'Link de agendamento público',
-      'Lembrete automático WhatsApp',
-      'WhatsApp próprio conectado',
-      'Prontuário eletrônico',
+      'Link para clientes agendarem online',
+      'Lembretes via WhatsApp do seu negócio',
+      'Ficha digital dos pacientes/clientes',
       'Controle financeiro básico',
-      'Gestão de convênios',
+      'Gestão de planos de saúde',
     ],
     naoIncluso: [
-      'Prontuário com IA e voz',
-      'Marketing e campanhas',
-      'Combos e upsell',
-      'Planos de assinatura clientes',
+      'Ficha com IA e transcrição por voz',
+      'Campanhas e marketing',
+      'Combos e ofertas automáticas',
+      'Planos de fidelidade para clientes',
       'Relatórios avançados',
     ],
     botao: 'Assinar Solo',
@@ -100,16 +99,16 @@ const PLANOS = [
     destaque: true,
     incluso: [
       { text: 'Até 5 profissionais', novo: false },
-      { text: 'Marketing e campanhas WhatsApp', novo: true },
-      { text: 'Combos e upsell automático', novo: true },
-      { text: 'Planos de assinatura para clientes', novo: true },
-      { text: 'Relatórios completos', novo: false },
+      { text: 'Campanhas automáticas no WhatsApp', novo: true },
+      { text: 'Combos e ofertas no agendamento', novo: true },
+      { text: 'Planos de fidelidade para clientes', novo: true },
+      { text: 'Relatórios completos de desempenho', novo: false },
       { text: 'Controle financeiro completo', novo: false },
     ],
     naoIncluso: [
-      'Prontuário com IA e voz',
+      'Ficha com IA e transcrição por voz',
       'Suporte prioritário',
-      'API de integração',
+      'Integração com outros sistemas',
     ],
     botao: 'Assinar Pro',
   },
@@ -119,14 +118,14 @@ const PLANOS = [
     desc: 'Para clínicas estabelecidas e redes',
     precoInt: '197',
     precoDec: ',00',
-    tagPremium: 'Prontuário com IA + voz incluído',
+    tagPremium: 'Ficha digital com IA e voz incluída',
     incluso: [
       'Até 10 profissionais',
       'Tudo do Pro',
-      'Prontuário com IA e transcrição por voz',
-      'Suporte prioritário',
-      'API de integração',
-      'Em breve: Multi-unidades',
+      'Ficha digital com IA e transcrição por voz',
+      'Suporte com prioridade',
+      'Integração com outros sistemas',
+      'Múltiplas unidades/filiais em breve',
     ],
     naoIncluso: [],
     botao: 'Assinar Business',
@@ -156,10 +155,10 @@ const TABELA = [
   {
     grupo: 'Operação',
     linhas: [
-      { label: 'Prontuário', start: false, solo: true, pro: true, business: true },
-      { label: 'Prontuário c/ IA', start: false, solo: false, pro: false, business: true },
+      { label: 'Ficha digital do paciente', start: false, solo: true, pro: true, business: true },
+      { label: 'Ficha com IA e voz', start: false, solo: false, pro: false, business: true },
       { label: 'Financeiro', start: false, solo: 'básico', pro: true, business: true },
-      { label: 'Convênios', start: false, solo: true, pro: true, business: true },
+      { label: 'Planos de saúde', start: false, solo: true, pro: true, business: true },
     ],
   },
   {
@@ -175,7 +174,7 @@ const TABELA = [
     linhas: [
       { label: 'Relatórios', start: false, solo: 'básico', pro: true, business: true },
       { label: 'Suporte prioritário', start: false, solo: false, pro: false, business: true },
-      { label: 'API de integração', start: false, solo: false, pro: false, business: true },
+      { label: 'Integração com outros sistemas', start: false, solo: false, pro: false, business: true },
     ],
   },
 ];
@@ -231,9 +230,16 @@ export default function BillingPage() {
       .catch(() => {});
   }, []);
 
-  const diasRestantes = assinatura?.trialFim
-    ? Math.max(0, Math.ceil((new Date(assinatura.trialFim).getTime() - Date.now()) / 86400000))
-    : 15;
+  const { diasRestantes, diasUsados, totalDias } = (() => {
+    if (!assinatura?.trialFim) return { diasRestantes: 30, diasUsados: 0, totalDias: 30 };
+    const inicio = assinatura.trialInicio ? new Date(assinatura.trialInicio) : new Date(new Date(assinatura.trialFim).getTime() - 30 * 86400000);
+    const fim = new Date(assinatura.trialFim);
+    const hoje = new Date();
+    const total = Math.round((fim.getTime() - inicio.getTime()) / 86400000);
+    const usados = Math.max(0, Math.round((hoje.getTime() - inicio.getTime()) / 86400000));
+    const restantes = Math.max(0, Math.round((fim.getTime() - hoje.getTime()) / 86400000));
+    return { diasRestantes: restantes, diasUsados: Math.min(usados, total), totalDias: total };
+  })();
 
   const planoAtual: string = assinatura?.plano ?? 'trial';
   const statusAtual: string = assinatura?.status ?? 'trial';
@@ -313,13 +319,13 @@ export default function BillingPage() {
                 background: '#D8F3DC', borderRadius: '2px', overflow: 'hidden',
               }}>
                 <div style={{
-                  width: `${Math.min(100, ((15 - diasRestantes) / 15) * 100)}%`,
+                  width: `${totalDias > 0 ? Math.min(100, (diasUsados / totalDias) * 100) : 0}%`,
                   height: '100%', background: diasRestantes <= 3 ? '#EF4444' : '#40916C',
                   borderRadius: '2px', transition: 'width 0.3s ease',
                 }} />
               </div>
               <p style={{ fontSize: '11px', color: '#8A9BB0', marginTop: '4px' }}>
-                {Math.max(0, 15 - diasRestantes)} de 15 dias usados
+                {diasUsados} de {totalDias} dias usados
               </p>
             </div>
           </div>
@@ -612,7 +618,7 @@ export default function BillingPage() {
                 textAlign: 'center', marginTop: '10px',
                 fontWeight: isDestaque ? 500 : 400,
               }}>
-                {isDestaque ? 'Teste 15 dias grátis · Cancele quando quiser' : 'Cancele quando quiser'}
+                {isDestaque ? 'Teste 30 dias grátis · Cancele quando quiser' : 'Cancele quando quiser'}
               </p>
             </div>
           );

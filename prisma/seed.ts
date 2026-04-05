@@ -63,14 +63,15 @@ async function main() {
     data: { acessoExpiraEm: null, emailVerificado: true, primeiroAcesso: false },
   })
 
-  // ─── ASSINATURAS DEMO: garante trial ativo por 1 ano ───
-  const trialFimDemo = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+  // ─── ASSINATURAS DEMO: garante trial ativo por 30 dias ───
+  const trialInicioDemo = new Date()
+  const trialFimDemo = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
   const DEMO_TENANTS = ['demo-synka-master', 'demo-barbearia', 'demo-estetica', 'demo-salao']
   for (const tid of DEMO_TENANTS) {
     await prisma.assinatura.upsert({
       where:  { tenantId: tid },
-      update: { status: 'trial', plano: 'trial', trialFim: trialFimDemo, canceladoEm: null },
-      create: { tenantId: tid, status: 'trial', plano: 'trial', trialFim: trialFimDemo },
+      update: { status: 'trial', plano: 'trial', trialInicio: trialInicioDemo, trialFim: trialFimDemo, canceladoEm: null },
+      create: { tenantId: tid, status: 'trial', plano: 'trial', trialInicio: trialInicioDemo, trialFim: trialFimDemo },
     })
   }
 

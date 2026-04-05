@@ -69,7 +69,7 @@ export default function Sidebar({
   const pathname = usePathname();
   const { labels } = useNicho();
   const [planoAtual, setPlanoAtual] = useState<string>('trial');
-  const [diasRestantes, setDiasRestantes] = useState<number>(15);
+  const [diasRestantes, setDiasRestantes] = useState<number>(30);
 
   useEffect(() => {
     fetchWithAuth('/api/billing/planos')
@@ -171,9 +171,6 @@ export default function Sidebar({
           )}
           {labels.temConvenio && !isProfissional && (
             <NavItem href="/dashboard/insurance" label="Convênios" Icon={IconConvenio} active={is("/dashboard/insurance")} />
-          )}
-          {labels.temAssinatura && !isProfissional && (
-            <NavItem href="/dashboard/billing" label="Planos" Icon={IconAssinaturas} active={is("/dashboard/billing")} />
           )}
           {isAdmin && (
             <NavItem href="/dashboard/reports" label="Relatórios" Icon={IconRelatorios} active={is("/dashboard/reports")} />
