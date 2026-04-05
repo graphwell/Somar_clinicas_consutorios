@@ -52,7 +52,7 @@ const FLUXO: Record<string, { label: string; nextStatus: string; style: string }
 };
 
 function fmtHora(iso: string) {
-  return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Fortaleza' });
 }
 
 function fmtIdade(dataNascimento?: string) {
@@ -114,11 +114,13 @@ function PlanoBadge({ pacienteId, servicoId }: { pacienteId: string; servicoId?:
 function CardAtendimento({
   ag,
   labels,
+  isBeleza,
   onStatusChange,
   updating,
 }: {
   ag: Agendamento;
   labels: any;
+  isBeleza: boolean;
   onStatusChange: (id: string, status: string) => void;
   updating: string | null;
 }) {
@@ -179,9 +181,14 @@ function CardAtendimento({
                 {labels.tratamentoProfissional} {ag.profissional.nome}
               </span>
             )}
-            {(ag.convenio || ag.paciente.convenio) && (
+            {!isBeleza && (ag.convenio || ag.paciente.convenio) && (
               <span className="bg-primary-soft text-primary px-2 py-0.5 rounded-lg border border-primary/10 font-black text-[8px]">
                 {ag.convenio || ag.paciente.convenio}
+              </span>
+            )}
+            {ag.tipoAtendimento === 'plano_assinatura' && (
+              <span className="bg-green-50 text-green-700 px-2 py-0.5 rounded-lg border border-green-200 font-black text-[8px]">
+                Plano ativo
               </span>
             )}
           </div>
@@ -191,7 +198,7 @@ function CardAtendimento({
             <p className="text-[10px] font-mono text-text-placeholder">{ag.paciente.telefone}</p>
             <a href={`/dashboard/clinical-records?pacienteId=${ag.paciente.id}`}
               className="text-[8px] font-black uppercase px-2 py-0.5 rounded-lg bg-primary-soft text-primary border border-primary/10 hover:bg-primary/10 transition-colors">
-              Prontuário
+              {isBeleza ? 'Ficha' : 'Prontuário'}
             </a>
             <a href={`https://wa.me/55${ag.paciente.telefone.replace(/\D/g, '')}`}
               target="_blank" rel="noreferrer"
@@ -245,9 +252,11 @@ function CardAtendimento({
 // ─── Página Principal ─────────────────────────────────────────────────────────
 
 export default function AtendimentosHojePage() {
-  const { labels } = useNicho();
+  const { labels, nicho } = useNicho();
+  const NICHOS_BELEZA = ['SALAO_BELEZA', 'BARBEARIA', 'CLINICA_ESTETICA'];
+  const isBeleza = NICHOS_BELEZA.includes(nicho);
 
-  const hoje = new Date().toISOString().split('T')[0];
+  const hoje = new Intl.DateTimeFormat('fr-CA', { timeZone: 'America/Fortaleza' }).format(new Date());
   const [data, setData] = useState(hoje);
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
   const [totais, setTotais] = useState<Totais>({});
@@ -447,10 +456,10 @@ export default function AtendimentosHojePage() {
             </div>
             <div>
               <h1 className="text-xl font-black italic uppercase tracking-tighter text-text-main">
-                Atendimentos do Dia
+                {isBeleza ? 'Agenda do Dia' : 'Atendimentos do Dia'}
               </h1>
               <p className="text-[9px] font-black uppercase tracking-[0.25em] text-text-placeholder opacity-60 mt-0.5">
-                {isHoje ? 'Hoje · ' : ''}{new Date(data + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}
+                {isBeleza ? `Gerencie os ${labels.termoPacientePlural.toLowerCase()} de hoje` : 'Gerencie os atendimentos de hoje'} · {new Date(data + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}
               </p>
             </div>
           </div>
@@ -583,7 +592,7 @@ export default function AtendimentosHojePage() {
               </h2>
               <div className="space-y-2">
                 {[...confirmados, ...pendentes].map(a => (
-                  <CardAtendimento key={a.id} ag={a} labels={labels} onStatusChange={mudarStatus} updating={updating} />
+                  <CardAtendimento key={a.id} ag={a} labels={labels} isBeleza={isBeleza} onStatusChange={mudarStatus} updating={updating} />
                 ))}
               </div>
             </section>
@@ -593,7 +602,7 @@ export default function AtendimentosHojePage() {
           {filtroStatus !== 'todos' && (
             <div className="space-y-2">
               {lista.map(a => (
-                <CardAtendimento key={a.id} ag={a} labels={labels} onStatusChange={mudarStatus} updating={updating} />
+                <CardAtendimento key={a.id} ag={a} labels={labels} isBeleza={isBeleza} onStatusChange={mudarStatus} updating={updating} />
               ))}
             </div>
           )}
@@ -607,7 +616,7 @@ export default function AtendimentosHojePage() {
               </h2>
               <div className="space-y-2 opacity-70">
                 {concluidos.map(a => (
-                  <CardAtendimento key={a.id} ag={a} labels={labels} onStatusChange={mudarStatus} updating={updating} />
+                  <CardAtendimento key={a.id} ag={a} labels={labels} isBeleza={isBeleza} onStatusChange={mudarStatus} updating={updating} />
                 ))}
               </div>
             </section>
@@ -622,7 +631,7 @@ export default function AtendimentosHojePage() {
               </h2>
               <div className="space-y-2 opacity-60">
                 {faltaram.map(a => (
-                  <CardAtendimento key={a.id} ag={a} labels={labels} onStatusChange={mudarStatus} updating={updating} />
+                  <CardAtendimento key={a.id} ag={a} labels={labels} isBeleza={isBeleza} onStatusChange={mudarStatus} updating={updating} />
                 ))}
               </div>
             </section>
@@ -637,7 +646,7 @@ export default function AtendimentosHojePage() {
               </h2>
               <div className="space-y-2 opacity-50">
                 {cancelados.map(a => (
-                  <CardAtendimento key={a.id} ag={a} labels={labels} onStatusChange={mudarStatus} updating={updating} />
+                  <CardAtendimento key={a.id} ag={a} labels={labels} isBeleza={isBeleza} onStatusChange={mudarStatus} updating={updating} />
                 ))}
               </div>
             </section>
