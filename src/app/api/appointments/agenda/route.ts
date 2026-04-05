@@ -133,14 +133,15 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
 
     const dataParam = searchParams.get('data') || new Date().toISOString().split('T')[0];
-    const data = new Date(dataParam + 'T00:00:00');
-    const fimDia = new Date(dataParam + 'T23:59:59');
+    // Usar -03:00 para garantir intervalo correto no horário de Brasília/Fortaleza
+    const data = new Date(dataParam + 'T00:00:00-03:00');
+    const fimDia = new Date(dataParam + 'T23:59:59-03:00');
 
     const diaSemana = data.getDay(); // 0=Dom … 6=Sáb
 
     // Clínica — horário de funcionamento
     const clinica = await prisma.clinica.findUnique({
-      where: { id: tenantId },
+      where: { tenantId },
       select: { openingTime: true, closingTime: true },
     });
     const clinicaStart = toMin(clinica?.openingTime ?? '08:00');

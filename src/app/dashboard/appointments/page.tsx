@@ -310,7 +310,7 @@ export default function AtendimentosHojePage() {
     if (!encPacId || !encHorario) return;
     setEncSaving(true);
     try {
-      const dataHora = `${data}T${encHorario}:00`;
+      const dataHora = `${data}T${encHorario}:00-03:00`;
       const res = await fetchWithAuth('/api/appointments', {
         method: 'POST',
         body: JSON.stringify({

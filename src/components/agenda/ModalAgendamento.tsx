@@ -74,7 +74,9 @@ export default function ModalAgendamento({
   const [servicos, setServicos] = useState<any[]>([]);
   const [selectedServico, setSelectedServico] = useState<any>(null);
   const [selectedProfId, setSelectedProfId] = useState(profissionalId || "");
-  const [selectedDate, setSelectedDate] = useState(data.toISOString().split("T")[0]);
+  const [selectedDate, setSelectedDate] = useState(
+    `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`
+  );
   const [selectedHora, setSelectedHora] = useState(horario || "09:00");
   const [comboSugestao, setComboSugestao] = useState<any>(null);
   const [adicionarCombo, setAdicionarCombo] = useState(false);
@@ -108,7 +110,7 @@ export default function ModalAgendamento({
       setNovoTel("");
       setSelectedServico(null);
       setSelectedProfId(profissionalId || "");
-      setSelectedDate(data.toISOString().split("T")[0]);
+      setSelectedDate(`${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`);
       setSelectedHora(horario || "09:00");
       setComboSugestao(null);
       setAdicionarCombo(false);
@@ -230,7 +232,7 @@ export default function ModalAgendamento({
         return;
       }
 
-      const dataHora = `${selectedDate}T${selectedHora}:00`;
+      const dataHora = `${selectedDate}T${selectedHora}:00-03:00`;
       const duration = selectedServico?.duracaoMinutos || 30;
 
       // Determinar tipoAtendimento final
