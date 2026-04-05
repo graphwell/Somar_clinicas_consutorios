@@ -311,7 +311,7 @@ export default function AtendimentosHojePage() {
     setEncSaving(true);
     try {
       const dataHora = `${data}T${encHorario}:00`;
-      await fetchWithAuth('/api/appointments', {
+      const res = await fetchWithAuth('/api/appointments', {
         method: 'POST',
         body: JSON.stringify({
           pacienteId: encPacId,
@@ -322,10 +322,17 @@ export default function AtendimentosHojePage() {
           categoria: 'encaixe',
         }),
       });
+      if (!res.ok) {
+        const err = await res.json();
+        alert(err.error || 'Erro ao salvar agendamento');
+        return;
+      }
       setShowEncaixe(false);
       setEncPacBusca(''); setEncPacId(''); setEncPacNome('');
       setEncServId(''); setEncProfId('');
       carregar(data);
+    } catch (e: any) {
+      alert(e.message || 'Erro ao salvar agendamento');
     } finally { setEncSaving(false); }
   }
 
