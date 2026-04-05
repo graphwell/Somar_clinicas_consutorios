@@ -1,0 +1,221 @@
+// ─── prontuario-ia / schema.prisma ───────────────────────────────────────────
+// Copiar estes models para o seu prisma/schema.prisma.
+// Requer Empresa (tenant), Cliente/Paciente e Profissional já existentes.
+
+enum StatusDente {
+  HIGIDO             // dente saudável
+  CARIE              // com cárie
+  RESTAURADO         // restaurado/obturado
+  EXTRACAO_INDICADA  // indicado para extração
+  EXTRAIDO           // já extraído
+  COROA              // com coroa protética
+  IMPLANTE           // implante
+  CANAL              // com tratamento de canal
+  FRATURA            // fratura
+}
+
+// Registro de evolução/consulta — campos para múltiplos nichos
+// Usar o campo "tipo" para filtrar qual conjunto de campos preencher
+model ProntuarioRegistro {
+  id             String   @id @default(cuid())
+  pacienteId     String
+  tenantId       String
+  profissionalId String?
+  tipo           String   // CLINICO | ODONTOLOGICO | NUTRICIONAL | ESTETICO
+  agendamentoId  String?  // vinculado ao agendamento (opcional)
+
+  // ── Campos clínicos gerais ────────────────────────────────────
+  queixaPrincipal     String?
+  evolucao            String?  // texto livre da consulta (WYSIWYG)
+  historiaMolestia    String?
+  historicoMedico     String?
+  medicamentosUso     String?
+  alergias            String?  // texto livre (complementa PacienteAlergia)
+  exameSolicitado     String?
+  exameResultado      String?
+  hipoteseDiagnostica String?
+  conduta             String?
+  retornoEm           DateTime?
+
+  // ── CID-10 ────────────────────────────────────────────────────
+  cidCodigo    String?  // ex: "J06.9"
+  cidDescricao String?  // ex: "Infecção aguda das vias aéreas superiores"
+
+  // ── Métricas vitais ───────────────────────────────────────────
+  pressaoSistolica  Int?   // ex: 120
+  pressaoDiastolica Int?   // ex: 80
+  temperatura       Float? // em °C
+  saturacao         Int?   // SpO2 em %
+  glicemia          Int?   // em mg/dL
+
+  // ── SOAP (Subjetivo/Objetivo/Avaliação/Plano) ─────────────────
+  soapSubjetivo String?
+  soapObjetivo  String?
+  soapAvaliacao String?
+  soapPlano     String?
+
+  // ── Campos nutricionais ────────────────────────────────────────
+  historicoAlimentar String?
+  restricoes         String?
+  objetivoPaciente   String?
+  planoAlimentar     String?
+  recordatorio24h    String?
+  metas              String?
+
+  // ── Campos de estética ─────────────────────────────────────────
+  protocoloEstetico String?
+  regiaoTratada     String?
+  produtosUsados    String?
+  fotosAntesDep     Json?   // [{ antes: "url", depois: "url" }]
+
+  // ── IA e Voz ──────────────────────────────────────────────────
+  iaRascunho          String?  // rascunho gerado pela IA (editável)
+  iaPromptUsado       String?  // prompt enviado para auditoria
+  iaRevisado          Boolean  @default(false)
+  transcricaoOriginal String?  // transcrição de voz antes da estruturação
+
+  // ── Psicologia ─────────────────────────────────────────────────
+  escalasAplicadas      Json?   // { phq9: {...}, gad7: {...} }
+  objetivosTerapeuticos String?
+  evolucaoPsico         String?
+
+  // ── Assinatura Digital ─────────────────────────────────────────
+  assinadoPor    String?   // userId do profissional
+  assinadoEm     DateTime?
+  assinaturaHash String?   // SHA-256 do conteúdo na assinatura
+
+  // Relacionamentos
+  // paciente     Cliente?    @relation(fields: [pacienteId], references: [id])
+  // profissional Profissional? @relation(...)
+  medidas     MedidaCorporal[]
+  odontograma OdontogramaItem[]
+  arquivos    ProntuarioArquivo[]
+  cidsSugeridos CidSugerido[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("prontuario_registros")
+}
+
+// CIDs sugeridos pela IA para um prontuário
+model CidSugerido {
+  id           String             @id @default(cuid())
+  prontuarioId String
+  codigo       String             // ex: "J06.9"
+  descricao    String
+  relevancia   Float              @default(1.0) // 0.0 a 1.0
+  confirmado   Boolean            @default(false) // médico confirmou?
+  prontuario   ProntuarioRegistro @relation(fields: [prontuarioId], references: [id], onDelete: Cascade)
+  createdAt    DateTime           @default(now())
+  @@map("cids_sugeridos")
+}
+
+// Arquivo anexado ao prontuário (exame, foto, documento)
+model ProntuarioArquivo {
+  id          String             @id @default(cuid())
+  evolutionId String             // ID do ProntuarioRegistro
+  pacienteId  String
+  tenantId    String
+  nome        String
+  tipo        String             // EXAME | FOTO | DOCUMENTO | RECEITA | ATESTADO
+  url         String?            // null após exclusão LGPD
+  descricao   String?
+  iaResumo    String?            // texto extraído pela IA — persiste após exclusão
+  deletarEm   DateTime?          // prazo LGPD (ex: 48h após upload)
+  deletado    Boolean            @default(false)
+  consentimento Boolean          @default(false) // LGPD: paciente consentiu?
+  evolution   ProntuarioRegistro @relation(fields: [evolutionId], references: [id], onDelete: Cascade)
+  createdAt   DateTime           @default(now())
+  @@map("prontuario_arquivos")
+}
+
+// Template de campos por especialidade — reutilizável
+model ProntuarioTemplate {
+  id             String   @id @default(cuid())
+  profissionalId String?  // null = template global da plataforma
+  tenantId       String
+  nome           String
+  especialidade  String?
+  isGlobal       Boolean  @default(false) // template padrão da plataforma
+  campos         Json     // estrutura dos campos e valores padrão
+  createdAt      DateTime @default(now())
+  @@map("prontuario_templates")
+}
+
+// Medidas corporais — associadas a uma evolução
+model MedidaCorporal {
+  id            String             @id @default(cuid())
+  prontuarioId  String
+  peso          Float?             // kg
+  altura        Float?             // cm
+  imc           Float?             // calculado
+  percGordura   Float?             // %
+  circAbdominal Float?             // cm
+  circQuadril   Float?             // cm
+  circBraco     Float?             // cm
+  circCoxa      Float?             // cm
+  prontuario    ProntuarioRegistro @relation(fields: [prontuarioId], references: [id], onDelete: Cascade)
+  createdAt     DateTime           @default(now())
+  @@map("medidas_corporais")
+}
+
+// Item do odontograma — um registro por dente
+model OdontogramaItem {
+  id            String             @id @default(cuid())
+  prontuarioId  String
+  pacienteId    String
+  tenantId      String
+  numeroDente   Int                // notação ISO 3950 (ex: 11, 18, 48)
+  status        StatusDente        @default(HIGIDO)
+  facesAfetadas Json?              // ["mesial","distal","oclusal","vestibular","lingual"]
+  observacao    String?
+  atualizadoPor String?            // userId
+  prontuario    ProntuarioRegistro @relation(fields: [prontuarioId], references: [id], onDelete: Cascade)
+  atualizadoEm  DateTime           @updatedAt
+  createdAt     DateTime           @default(now())
+  @@unique([prontuarioId, numeroDente])
+  @@map("odontograma_itens")
+}
+
+// Histórico de alterações do odontograma
+model OdontogramaHistorico {
+  id             String       @id @default(cuid())
+  numeroDente    Int
+  statusAnterior StatusDente?
+  statusNovo     StatusDente
+  observacao     String?
+  alteradoPor    String?
+  tenantId       String
+  pacienteId     String
+  createdAt      DateTime     @default(now())
+  @@map("odontograma_historico")
+}
+
+// Alergias do paciente — cadastro persistente (não por consulta)
+model PacienteAlergia {
+  id         String   @id @default(cuid())
+  pacienteId String
+  tenantId   String
+  descricao  String   // ex: "Dipirona", "Amendoim", "Látex"
+  gravidade  String   @default("MODERADA") // LEVE | MODERADA | GRAVE
+  createdAt  DateTime @default(now())
+  @@map("paciente_alergias")
+}
+
+// Medicamentos em uso — cadastro persistente
+model PacienteMedicamento {
+  id         String    @id @default(cuid())
+  pacienteId String
+  tenantId   String
+  nome       String    // ex: "Losartana"
+  dosagem    String?   // ex: "50mg"
+  frequencia String?   // ex: "1x ao dia"
+  uso        String    @default("CONTINUO") // CONTINUO | TEMPORARIO
+  inicio     DateTime?
+  fim        DateTime? // null para uso contínuo
+  ativo      Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  @@map("paciente_medicamentos")
+}

@@ -32,7 +32,16 @@
       "Bash(PGPASSWORD=123456 psql -h 147.79.86.65 -U n8n_user -d saas_db -c \"SELECT p.id, p.nome, p.ativo, p.\"\"tenantId\"\" FROM profissionais p LIMIT 20;\")",
       "Bash(ls:*)",
       "Bash(mkdir -p \"C:/SOMAR/projeto-somar-n8n/src/app/api/convenios/[id]/profissionais\")",
-      "Bash(mkdir -p \"C:/SOMAR/projeto-somar-n8n/src/app/api/convenios/[id]/tabela\")"
+      "Bash(mkdir -p \"C:/SOMAR/projeto-somar-n8n/src/app/api/convenios/[id]/tabela\")",
+      "Bash(python3 -c ':*)",
+      "Bash(node:*)",
+      "Bash(python3 -c \"import sys,json; lines=sys.stdin.read\\(\\).strip\\(\\).split\\('\\\\n'\\); [print\\(json.loads\\(l\\).get\\('content',''\\)[:500] if isinstance\\(json.loads\\(l\\).get\\('content',''\\),str\\) else ''\\) for l in lines[-10:] if l]\")",
+      "Bash(PGPASSWORD=123456 psql:*)",
+      "Bash(mkdir -p \"C:/SOMAR/projeto-somar-n8n/src/app/api/ficha-cliente/[pacienteId]\")",
+      "Bash(mkdir -p \"C:/SOMAR/projeto-somar-n8n/src/app/api/ficha-cliente/[pacienteId]/fotos\")",
+      "Bash(mkdir -p \"C:/SOMAR/projeto-somar-n8n/src/app/api/ficha-cliente/[pacienteId]/fotos/[fotoId]\")",
+      "Bash(mkdir -p \"C:/SOMAR/projeto-somar-n8n/src/app/api/ficha-cliente/[pacienteId]/visitas\")",
+      "Bash(mkdir -p \"C:/SOMAR/projeto-somar-n8n/src/app/dashboard/ficha/[pacienteId]\")"
     ]
   }
 }

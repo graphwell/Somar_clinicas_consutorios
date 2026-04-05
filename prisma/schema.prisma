@@ -50,6 +50,7 @@ model Clinica {
   odontogramaHistorico OdontogramaHistorico[]
   prontuarioTemplates  ProntuarioTemplate[]
   permissoes           PermissaoRole[]
+  fichasCliente        FichaCliente[]
 }
 
 enum NichoType {
@@ -127,6 +128,7 @@ model Paciente {
   prontuarios     ProntuarioRegistro[]
   alergias        PacienteAlergia[]
   medicamentos    PacienteMedicamento[]
+  fichaCliente    FichaCliente?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
@@ -867,4 +869,90 @@ model OdontogramaHistorico {
   createdAt     DateTime    @default(now())
 
   @@map("odontograma_historico")
+}
+
+// ─── Ficha do Cliente — Nichos de Beleza ─────────────────────────────────────
+
+model FichaCliente {
+  id          String   @id @default(cuid())
+  pacienteId  String   @unique
+  tenantId    String
+  nicho       String   // BARBEARIA | SALAO_BELEZA | CLINICA_ESTETICA
+
+  // Comum a todos
+  profissionalPreferidoId String?
+  observacoesGerais       String?
+  alertas                 String?
+  produtosFavoritos       String?
+
+  // BARBEARIA
+  estiloPreferido  String?
+  maquinaNumero    String?
+  barbaEstilo      String?
+  produtoBarba     String?
+
+  // SALÃO DE BELEZA
+  tipoCabelo         String?
+  porosidade         String?
+  coloracaoAtual     String?
+  historicoColoracao String?
+  ultimaQuimica      DateTime?
+  tipoQuimica        String?
+  produtosUsados     String?
+  reacoesProdutos    String?
+
+  // CLÍNICA ESTÉTICA
+  tipoPele             String?
+  fitzpatrick          String?
+  patologiasPele       String?
+  medicamentosUso      String?
+  alergiasSubstancias  String?
+  protocolosRealizados String?
+  resultadosEvolucao   String?
+  ultimaLimpezaPele    DateTime?
+
+  paciente  Paciente       @relation(fields: [pacienteId], references: [id])
+  clinica   Clinica        @relation(fields: [tenantId], references: [tenantId])
+  fotos     FotoCliente[]
+  visitas   VisitaCliente[]
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@map("fichas_cliente")
+}
+
+model FotoCliente {
+  id               String       @id @default(cuid())
+  fichaId          String
+  tenantId         String
+  pacienteId       String
+  tipo             String       // antes | depois | referencia | evolucao
+  urlArquivo       String       @db.Text
+  descricao        String?
+  servicoNome      String?
+  profissionalNome String?
+  deletarEm        DateTime?
+  deletado         Boolean      @default(false)
+  ficha            FichaCliente @relation(fields: [fichaId], references: [id], onDelete: Cascade)
+  createdAt        DateTime     @default(now())
+
+  @@map("fotos_cliente")
+}
+
+model VisitaCliente {
+  id               String       @id @default(cuid())
+  fichaId          String
+  pacienteId       String
+  tenantId         String
+  agendamentoId    String?
+  servicoNome      String
+  profissionalNome String?
+  valor            Float?
+  observacoes      String?
+  satisfacao       Int?
+  fotosIds         String[]
+  ficha            FichaCliente @relation(fields: [fichaId], references: [id], onDelete: Cascade)
+  createdAt        DateTime     @default(now())
+
+  @@map("visitas_cliente")
 }

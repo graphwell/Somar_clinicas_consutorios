@@ -1,0 +1,153 @@
+// ─── agenda-multiprofissional / schema.prisma ────────────────────────────────
+// Copiar estes models para o seu prisma/schema.prisma.
+// Requer os models Empresa (tenant) e Cliente/Paciente já existentes.
+
+// Profissional vinculado ao tenant
+model Profissional {
+  id                   String   @id @default(uuid())
+  nome                 String
+  especialidade        String?
+  registroProfissional String?  // CRM, CREFITO, etc.
+  bio                  String?
+  fotoUrl              String?
+  color                String?  @default("#4a4ae2") // cor no calendário
+  ativo                Boolean  @default(true)
+  tenantId             String
+
+  // Configuração de repasse financeiro
+  percentualRepasse Float?  @default(0)  // percentual sobre o valor do serviço
+  repasseFixo       Float?  @default(0)  // valor fixo alternativo
+  repasseTipo       String? @default("percentual") // percentual | fixo
+
+  escalas      ProfessionalSchedule[]
+  servicos     Servico[]  // M:N — quais serviços este profissional executa
+  agendamentos Agendamento[]
+  convenios    ProfissionalConvenio[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("profissionais")
+}
+
+// Horários de trabalho por dia da semana
+// Criar um registro para cada dia que o profissional trabalha
+model ProfessionalSchedule {
+  id             String       @id @default(uuid())
+  profissionalId String
+  diaSemana      Int          // 0=domingo, 1=segunda, ..., 6=sábado
+  horaInicio     String       // "08:00"
+  horaFim        String       // "18:00"
+  lunchStart     String?      // "12:00" — início do almoço (opcional)
+  lunchEnd       String?      // "13:00" — fim do almoço (opcional)
+  ativo          Boolean      @default(true)
+  profissional   Profissional @relation(fields: [profissionalId], references: [id])
+
+  @@unique([profissionalId, diaSemana])
+  @@map("professional_schedules")
+}
+
+// Serviço oferecido pela empresa
+model Servico {
+  id                String   @id @default(uuid())
+  nome              String
+  descricao         String?
+  duracaoMinutos    Int      @default(30) // duração do atendimento
+  bufferTimeMinutes Int      @default(0)  // tempo de preparação entre atendimentos
+  preco             Float    @default(0.0)
+  color             String?  @default("#3B82F6") // cor no calendário
+  nicho             String?  // categoria/especialidade
+  ativo             Boolean  @default(true)
+  tenantId          String
+
+  profissionais  Profissional[]    // M:N — quais profissionais executam
+  agendamentos   Agendamento[]
+  gatilhosUpsell ComboUpsell[]    @relation("GatilhoUpsell")
+  ofertasUpsell  ComboUpsell[]    @relation("OfertaUpsell")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("servicos")
+}
+
+// Agendamento de um atendimento
+model Agendamento {
+  id              String   @id @default(uuid())
+  pacienteId      String
+  profissionalId  String?  // null = agendamento sem profissional fixo
+  servicoId       String?
+  dataHora        DateTime // início do atendimento
+  fimDataHora     DateTime // fim = dataHora + durationMinutes
+  durationMinutes Int      @default(30)
+  status          String   @default("pendente") // pendente | confirmado | concluido | cancelado
+  eventoId        String   @unique // ID externo (ex: manual_1234_abc)
+  categoria       String?  @default("consulta") // primeira | consulta | retorno
+  convenio        String?  // nome do convênio (se for atendimento por convênio)
+  tipoAtendimento String   @default("particular") // particular | convenio
+  tenantId        String
+  observacoes     String?
+
+  // profissional Profissional? @relation(fields: [profissionalId], references: [id])
+  // paciente     Cliente       @relation(fields: [pacienteId], references: [id])
+  // servico      Servico?      @relation(fields: [servicoId], references: [id])
+  // clinica      Empresa       @relation(fields: [tenantId], references: [tenantId])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("agendamentos")
+}
+
+// Upsell: quando cliente agenda serviço A, oferecer serviço B com desconto
+model ComboUpsell {
+  idItem             String  @id @default(uuid()) @map("id")
+  tenantId           String
+  servicoGatilhoId   String  // serviço que dispara a oferta
+  servicoOferecidoId String  // serviço que está sendo ofertado
+  descricaoOferta    String  // texto exibido ao cliente
+  desconto           Float   @default(0.0) // percentual de desconto
+  ativo              Boolean @default(true)
+
+  gatilho Servico @relation("GatilhoUpsell", fields: [servicoGatilhoId], references: [id])
+  oferta  Servico @relation("OfertaUpsell", fields: [servicoOferecidoId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@map("combos_upsell")
+}
+
+// Convênio de saúde/plano aceito pela empresa
+model ConvenioEmpresa {
+  id           String  @id @default(uuid())
+  nomeConvenio String
+  codigo       String? // código ANS ou identificador
+  telefone     String?
+  site         String?
+  observacoes  String?
+  logoUrl      String?
+  ativo        Boolean @default(true)
+  tenantId     String
+
+  profissionais ProfissionalConvenio[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("convenios_empresa")
+}
+
+// Relação M:N entre Profissional e Convênio — quais profissionais aceitam cada convênio
+model ProfissionalConvenio {
+  id             String          @id @default(uuid())
+  profissionalId String
+  convenioId     String
+  tenantId       String
+  ativo          Boolean         @default(true)
+  // profissional Profissional    @relation(...)
+  // convenio     ConvenioEmpresa @relation(...)
+  createdAt      DateTime        @default(now())
+
+  @@unique([profissionalId, convenioId])
+  @@map("profissional_convenios")
+}

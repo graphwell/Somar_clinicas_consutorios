@@ -1,0 +1,65 @@
+// ─── financeiro / schema.prisma ──────────────────────────────────────────────
+// Copiar estes models para o seu prisma/schema.prisma.
+// Requer Empresa (tenant) e Profissional já existentes.
+
+// Registro financeiro — receita ou despesa
+model TransacaoFinanceira {
+  id             String    @id @default(uuid())
+  tenantId       String
+  tipo           String    @default("income")  // income | expense
+  status         String    @default("pending") // pending | paid | canceled
+  valor          Float     @default(0.0)
+  descricao      String?
+  categoria      String?   @default("Geral") // aluguel | salario | insumos | consulta | etc.
+  agendamentoId  String?   @unique           // se gerado por agendamento
+
+  // Forma de pagamento
+  formaPagamento String?   // pix | dinheiro | cartao_debito | cartao_credito | convenio | boleto
+  parcelas       Int?      @default(1)
+  contaBancaria  String?   // conta destino/origem
+
+  // Vínculos opcionais
+  profissionalId String?   // profissional que gerou a receita
+  convenioId     String?   // convênio (texto livre — sem FK para flexibilidade)
+  observacao     String?
+
+  // Datas de controle
+  dataVencimento DateTime?
+  dataPagamento  DateTime?
+
+  // Número de recibo — gerado automaticamente: REC-YYYYMM-NNN
+  numeroRecibo   String?
+
+  // Relacionamentos
+  // clinica      Empresa      @relation(fields: [tenantId], references: [tenantId])
+  // agendamento  Agendamento? @relation(fields: [agendamentoId], references: [id])
+  // profissional Profissional? @relation(fields: [profissionalId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("transacoes_financeiras")
+}
+
+// Consolidação mensal de repasse por profissional
+// Um registro por profissional por mês
+model RepasseProfissional {
+  id             String   @id @default(uuid())
+  tenantId       String
+  profissionalId String
+  periodo        String   // "YYYY-MM" ex: "2026-04"
+  totalBruto     Float    @default(0) // soma das receitas geradas pelo profissional no período
+  percentual     Float    @default(0) // percentual configurado no profissional
+  totalRepasse   Float    @default(0) // valor calculado a repassar
+  status         String   @default("pendente") // pendente | pago | cancelado
+  pago_em        DateTime?
+  observacao     String?
+
+  // profissional Profissional @relation(fields: [profissionalId], references: [id])
+  // clinica      Empresa      @relation(fields: [tenantId], references: [tenantId])
+
+  createdAt DateTime @default(now())
+
+  @@unique([tenantId, profissionalId, periodo])
+  @@map("repasses_profissional")
+}

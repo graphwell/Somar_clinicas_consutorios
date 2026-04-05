@@ -1,0 +1,75 @@
+// ─── planos-assinaturas-clientes / schema.prisma ─────────────────────────────
+// Copiar estes models para o seu prisma/schema.prisma.
+// Requer Empresa (tenant) e Cliente/Paciente já existentes.
+
+// Plano de assinatura criado pela empresa para seus clientes
+model PlanoAssinatura {
+  id            String   @id @default(cuid())
+  empresaId     String   // tenantId da empresa
+  tenantId      String   // duplicado para consistência com o padrão do sistema
+
+  nome          String   // ex: "Corte + Barba"
+  descricao     String?
+  valor         Float    // valor mensal/trimestral/anual conforme periodicidade
+  periodicidade String   // "mensal" | "trimestral" | "anual"
+
+  // Serviços incluídos no plano
+  // Estrutura JSON: [{ servicoId: "uuid", nome: "Corte", quantidade: 2, tipo: "limitado" | "ilimitado" }]
+  servicos      Json
+
+  ativo         Boolean  @default(true)
+
+  // Template pré-configurado (opcional — para ativar com 1 clique)
+  isTemplate    Boolean  @default(false)
+  templateTipo  String?  // 'basico' | 'premium' | 'vip'
+
+  // Integração Stripe (opcional)
+  stripePriceId String?  // criado automaticamente ao criar o plano
+
+  // Benefícios adicionais
+  agendamentoPrioritario Boolean @default(false)
+  descontoProdutos       Float?  // percentual de desconto em produtos
+  descontoServicosExtras Float?  // percentual de desconto em serviços não incluídos
+
+  assinantes AssinaturaCliente[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("planos_assinatura")
+}
+
+// Assinatura de um cliente específico em um plano
+model AssinaturaCliente {
+  id               String   @id @default(cuid())
+  pacienteId       String   // ID do cliente
+  planoId          String
+  tenantId         String
+
+  dataInicio       DateTime @default(now())
+  dataFim          DateTime? // null = não expirou
+  status           String   @default("ativo") // ativo | cancelado | suspenso | expirado
+
+  valorPago        Float    // valor que o cliente paga
+
+  // Integração Stripe (opcional)
+  stripeSubId      String?
+  stripeCustomerId String?
+  proximaCobranca  DateTime?
+  ultimaCobranca   DateTime?
+
+  // Controle de uso por serviço
+  // Estrutura JSON: { "servicoId": { "usado": 1, "limite": 2 } }
+  // limite null = ilimitado
+  contadorUso   Json     @default("{}")
+  periodoInicio DateTime @default(now())  // início do período atual
+  periodoFim    DateTime?                 // fim do período atual (renovação reseta os contadores)
+
+  // paciente Cliente         @relation(fields: [pacienteId], references: [id])
+  // plano    PlanoAssinatura @relation(fields: [planoId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("assinaturas_cliente")
+}

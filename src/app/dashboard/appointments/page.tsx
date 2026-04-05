@@ -196,7 +196,7 @@ function CardAtendimento({
           {/* Telefone + atalhos */}
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-[10px] font-mono text-text-placeholder">{ag.paciente.telefone}</p>
-            <a href={`/dashboard/clinical-records?pacienteId=${ag.paciente.id}`}
+            <a href={isBeleza ? `/dashboard/ficha/${ag.paciente.id}` : `/dashboard/clinical-records?pacienteId=${ag.paciente.id}`}
               className="text-[8px] font-black uppercase px-2 py-0.5 rounded-lg bg-primary-soft text-primary border border-primary/10 hover:bg-primary/10 transition-colors">
               {isBeleza ? 'Ficha' : 'Prontuário'}
             </a>

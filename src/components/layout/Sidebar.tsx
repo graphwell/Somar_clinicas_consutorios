@@ -163,6 +163,9 @@ export default function Sidebar({
           )}
 
           <SectionLabel label="Operação" />
+          {labels.temFichaCliente && (
+            <NavItem href="/dashboard/ficha" label="Fichas" Icon={IconProntuario} active={is("/dashboard/ficha")} />
+          )}
           {labels.temProntuario && (
             <NavItem href="/dashboard/clinical-records" label={labels.termoProntuario || "Prontuário"} Icon={prontuarioIcon} active={is("/dashboard/clinical-records")} />
           )}

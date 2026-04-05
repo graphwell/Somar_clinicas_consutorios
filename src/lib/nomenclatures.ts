@@ -26,6 +26,7 @@ export interface NichoLabels {
 
   // Flags de módulos
   temProntuario:            boolean;
+  temFichaCliente:          boolean; // nichos de beleza
   temConvenio:              boolean;
   temAssinatura:            boolean;
   temEspecialidades:        boolean;
@@ -59,6 +60,7 @@ function getNomenclatureBase(n: NichoType): Omit<NichoLabels, 'cliente'> {
         termoProntuario:         'Prontuário',
         tipoProntuario:          'CLINICO',
         temProntuario:           true,
+        temFichaCliente:         false,
         temConvenio:             true,
         temAssinatura:           false,
         temEspecialidades:       false,
@@ -84,6 +86,7 @@ function getNomenclatureBase(n: NichoType): Omit<NichoLabels, 'cliente'> {
         termoProntuario:         'Prontuário',
         tipoProntuario:          'CLINICO',
         temProntuario:           true,
+        temFichaCliente:         false,
         temConvenio:             true,
         temAssinatura:           false,
         temEspecialidades:       true,
@@ -109,6 +112,7 @@ function getNomenclatureBase(n: NichoType): Omit<NichoLabels, 'cliente'> {
         termoProntuario:         'Prontuário Odontológico',
         tipoProntuario:          'ODONTOLOGICO',
         temProntuario:           true,
+        temFichaCliente:         false,
         temConvenio:             true,
         temAssinatura:           false,
         temEspecialidades:       false,
@@ -134,6 +138,7 @@ function getNomenclatureBase(n: NichoType): Omit<NichoLabels, 'cliente'> {
         termoProntuario:         'Prontuário',
         tipoProntuario:          'CLINICO',
         temProntuario:           true,
+        temFichaCliente:         false,
         temConvenio:             true,
         temAssinatura:           false,
         temEspecialidades:       false,
@@ -159,6 +164,7 @@ function getNomenclatureBase(n: NichoType): Omit<NichoLabels, 'cliente'> {
         termoProntuario:         'Prontuário Nutricional',
         tipoProntuario:          'NUTRICIONAL',
         temProntuario:           true,
+        temFichaCliente:         false,
         temConvenio:             true,
         temAssinatura:           false,
         temEspecialidades:       false,
@@ -181,9 +187,10 @@ function getNomenclatureBase(n: NichoType): Omit<NichoLabels, 'cliente'> {
         termoAtendimentoPlural:  'Procedimentos',
         termoAgendar:            'Agendar Procedimento',
         termoAgenda:             'Agenda',
-        termoProntuario:         'Anamnese',
-        tipoProntuario:          'CLINICO',
-        temProntuario:           true,
+        termoProntuario:         'Ficha',
+        tipoProntuario:          null,
+        temProntuario:           false,
+        temFichaCliente:         true,
         temConvenio:             false,
         temAssinatura:           false,
         temEspecialidades:       false,
@@ -209,6 +216,7 @@ function getNomenclatureBase(n: NichoType): Omit<NichoLabels, 'cliente'> {
         termoProntuario:         'Ficha',
         tipoProntuario:          null,
         temProntuario:           false,
+        temFichaCliente:         true,
         temConvenio:             false,
         temAssinatura:           true,
         temEspecialidades:       false,
@@ -234,6 +242,7 @@ function getNomenclatureBase(n: NichoType): Omit<NichoLabels, 'cliente'> {
         termoProntuario:         'Ficha',
         tipoProntuario:          null,
         temProntuario:           false,
+        temFichaCliente:         true,
         temConvenio:             false,
         temAssinatura:           true,
         temEspecialidades:       false,
@@ -259,6 +268,7 @@ function getNomenclatureBase(n: NichoType): Omit<NichoLabels, 'cliente'> {
         termoProntuario:         'Ficha',
         tipoProntuario:          null,
         temProntuario:           false,
+        temFichaCliente:         false,
         temConvenio:             false,
         temAssinatura:           false,
         temEspecialidades:       false,

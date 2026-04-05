@@ -1,0 +1,122 @@
+// ─── auth-multitenant / schema.prisma ────────────────────────────────────────
+// Copiar estes models para o seu prisma/schema.prisma.
+// Adapte o nome "Empresa" para o conceito de tenant do seu domínio.
+// Lembre-se de adicionar os relacionamentos inversos nos outros models.
+
+// Enum de tipos de negócio (opcional — remover se não precisar de multi-nicho)
+enum NichoType {
+  CLINICA_MEDICA
+  CLINICA_MULTI
+  CLINICA_ESTETICA
+  SALAO_BELEZA
+  BARBEARIA
+  FISIOTERAPIA
+  ODONTOLOGIA
+  NUTRICAO
+  OUTRO
+}
+
+// O tenant — cada instância do seu SaaS
+// CUSTOMIZAR: renomear para Workspace, Empresa, Conta, etc.
+model Empresa {
+  id                  String    @id @default(uuid())
+  tenantId            String    @unique               // chave de isolamento usada em toda query
+  slug                String    @unique @default("empresa-default")
+  nome                String
+  nicho               NichoType @default(OUTRO)
+  configBranding      Json?     // { logoUrl, primaryColor, etc }
+  onboardingCompleted Boolean   @default(false)
+
+  // Relacionamentos — adicionar conforme outros módulos forem instalados
+  usuarios            Usuario[]
+
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@map("empresas") // CUSTOMIZAR: nome da tabela
+}
+
+// Usuário — sempre vinculado a um tenant
+model Usuario {
+  id             String    @id @default(uuid())
+  nome           String?
+  sobrenome      String?
+  telefone       String?
+  email          String    @unique
+  senhaHash      String?   // null para usuários OAuth
+  role           String    @default("operador") // admin | operador | profissional | plataforma_admin
+  tenantId       String
+
+  // Verificação de e-mail
+  emailVerificado Boolean  @default(false)
+
+  // Acesso temporário (opcional — útil para roles de prazo limitado)
+  acessoExpiraEm  DateTime?
+
+  // Onboarding
+  primeiroAcesso  Boolean  @default(true)
+  perfilCompleto  Boolean  @default(false)
+
+  // Avatar
+  avatarUrl       String?  // base64 data URL ou URL externa
+
+  empresa   Empresa  @relation(fields: [tenantId], references: [tenantId])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("usuarios")
+}
+
+// Token de convite para novos membros da equipe
+model InviteToken {
+  id            String   @id @default(uuid())
+  token         String   @unique
+  email         String   // e-mail do convidado
+  nome          String?  // nome pré-preenchido (opcional)
+  role          String   @default("operador") // role que será atribuída ao aceitar
+  tenantId      String   // qual empresa está convidando
+  convidadoPor  String?  // userId de quem gerou o convite
+  used          Boolean  @default(false)
+  expiresAt     DateTime // padrão: now() + 7 dias
+  createdAt     DateTime @default(now())
+
+  @@map("invite_tokens")
+}
+
+// Token de verificação de e-mail (enviado no cadastro)
+model EmailVerificacao {
+  id        String   @id @default(uuid())
+  email     String
+  token     String   @unique
+  usado     Boolean  @default(false)
+  expiraEm  DateTime // padrão: now() + 24h
+  createdAt DateTime @default(now())
+
+  @@map("email_verificacoes")
+}
+
+// Token de reset de senha
+model SenhaReset {
+  id        String   @id @default(uuid())
+  email     String
+  token     String   @unique
+  usado     Boolean  @default(false)
+  expiraEm  DateTime // padrão: now() + 1h
+  createdAt DateTime @default(now())
+
+  @@map("senha_resets")
+}
+
+// Permissões granulares por role — controle fino de acesso por recurso/ação
+// Exemplo: role=recepcao, recurso=financeiro, acao=ver → ativo=false bloqueia
+model PermissaoRole {
+  id       String  @id @default(uuid())
+  tenantId String
+  role     String  // admin | operador | profissional
+  recurso  String  // agenda | clientes | financeiro | relatorios | configuracoes
+  acao     String  // ver | criar | editar | deletar
+  ativo    Boolean @default(true)
+
+  @@unique([tenantId, role, recurso, acao])
+  @@map("permissoes_role")
+}

@@ -1,0 +1,31 @@
+// ─── billing-saas / schema.prisma ────────────────────────────────────────────
+// Copiar este model para o seu prisma/schema.prisma.
+// Requer Empresa (tenant) já existente.
+// Um registro de Assinatura por empresa (1:1 com tenantId).
+
+model Assinatura {
+  id                 String    @id @default(uuid())
+  tenantId           String    @unique // 1:1 com a empresa
+
+  // Integração Stripe
+  stripeCustomerId   String?   // ID do customer no Stripe
+  stripeSubId        String?   // ID da subscription no Stripe
+
+  // Plano atual
+  plano              String    @default("trial") // trial | solo | pro | business (CUSTOMIZAR)
+  status             String    @default("trial") // trial | active | past_due | canceling | canceled | expired
+
+  // Período de trial
+  trialInicio        DateTime  @default(now())
+  trialFim           DateTime? // null = sem trial (assinante direto)
+
+  // Datas de controle
+  proximoVencimento  DateTime?
+  canceladoEm       DateTime?
+  motivoCancelamento String?
+  valorMensal        Float?    // valor atual da assinatura
+
+  updatedAt          DateTime  @updatedAt
+
+  @@map("assinaturas")
+}

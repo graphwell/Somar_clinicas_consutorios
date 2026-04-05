@@ -9,8 +9,10 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('q');
+    const incluirFicha = searchParams.get('incluirFicha') === 'true';
+    const limite = searchParams.get('limite') ? parseInt(searchParams.get('limite')!) : undefined;
 
-    const where: any = { tenantId };
+    const where: any = { tenantId, deletedAt: null };
     if (query) {
       where.OR = [
         { nome: { contains: query, mode: 'insensitive' } },
@@ -33,10 +35,18 @@ export async function GET(request: Request) {
           orderBy: { dataHora: 'desc' },
           take: 1,
           include: { servico: true }
-        }
+        },
+        ...(incluirFicha ? {
+          fichaCliente: {
+            select: {
+              alertas: true,
+              fotos: { where: { deletado: false }, select: { id: true } },
+            },
+          },
+        } : {}),
       },
-      orderBy: { createdAt: 'desc' },
-      take: query ? 5 : undefined
+      orderBy: { nome: 'asc' },
+      take: query ? 5 : (limite ?? undefined),
     });
 
     return NextResponse.json(pacientes);

@@ -79,9 +79,49 @@ export async function PATCH(req: Request) {
       include: {
         paciente: { select: { id: true, nome: true, telefone: true } },
         profissional: { select: { id: true, nome: true } },
-        servico: { select: { id: true, nome: true } },
+        servico: { select: { id: true, nome: true, preco: true } },
       },
     });
+
+    // Registrar visita na ficha do cliente para nichos de beleza
+    if (status === 'done') {
+      const NICHOS_BELEZA = ['SALAO_BELEZA', 'BARBEARIA', 'CLINICA_ESTETICA'];
+      const clinica = await prisma.clinica.findUnique({
+        where: { tenantId },
+        select: { nicho: true },
+      });
+      if (clinica && NICHOS_BELEZA.includes(clinica.nicho)) {
+        const pacienteId = atualizado.paciente.id;
+        let ficha = await prisma.fichaCliente.findUnique({ where: { pacienteId } });
+        if (!ficha) {
+          ficha = await prisma.fichaCliente.create({
+            data: { pacienteId, tenantId, nicho: clinica.nicho },
+          });
+        }
+        await prisma.visitaCliente.create({
+          data: {
+            fichaId: ficha.id,
+            pacienteId,
+            tenantId,
+            agendamentoId: atualizado.id,
+            servicoNome: atualizado.servico?.nome ?? 'Serviço',
+            profissionalNome: atualizado.profissional?.nome ?? null,
+            valor: (atualizado.servico as any)?.preco ?? null,
+          },
+        });
+        // Atualizar stats do paciente
+        await prisma.paciente.update({
+          where: { id: pacienteId },
+          data: {
+            ultimaVisita: new Date(),
+            contagemVisitas: { increment: 1 },
+            ...((atualizado.servico as any)?.preco
+              ? { totalGasto: { increment: (atualizado.servico as any).preco } }
+              : {}),
+          },
+        });
+      }
+    }
 
     return NextResponse.json(atualizado);
   } catch (error: any) {

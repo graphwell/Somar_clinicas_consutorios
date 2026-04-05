@@ -1,0 +1,153 @@
+// ─── whatsapp-marketing / schema.prisma ──────────────────────────────────────
+// Copiar estes models para o seu prisma/schema.prisma.
+// Requer o model Empresa (tenant) já existente.
+
+enum WhatsappStatus {
+  LIVRE       // disponível para ser vinculada
+  EM_USO      // vinculada e ativa para uma empresa
+  DEMO        // instância compartilhada para demonstração
+  OFFLINE     // desconectada
+  AGUARDANDO  // aguardando QR Code ser escaneado
+}
+
+enum WhatsappPlataforma {
+  WASENDERAPI // provedor principal
+  ULTRAMSG    // provedor alternativo
+}
+
+// Instância WhatsApp (sessão) — gerenciada pela plataforma
+// Uma empresa pode ter uma ou mais instâncias (conforme o plano)
+model WhatsappInstance {
+  id          String             @id @default(cuid())
+  empresaId   String?            // null = instância livre (sem empresa vinculada)
+  sessionId   String             @unique // ID da sessão no provedor
+  bearerToken String             // NUNCA expor para o cliente ou n8n
+  numeroWa    String?            // ex: "5511999999999"
+  status      WhatsappStatus     @default(LIVRE)
+  plataforma  WhatsappPlataforma @default(WASENDERAPI)
+  webhookUrl  String?            // URL que o provedor deve chamar ao receber mensagens
+  observacoes String?
+
+  criadoEm    DateTime @default(now())
+  conectadoEm DateTime?
+  ultimoPing  DateTime?
+
+  // Relacionamento com a empresa (opcional — instância pode estar livre)
+  // empresa Empresa? @relation(fields: [empresaId], references: [tenantId])
+
+  @@map("whatsapp_instances")
+}
+
+// Configuração de marketing por empresa — uma por tenant
+model MarketingConfig {
+  id        String  @id @default(uuid())
+  tenantId  String  @unique
+
+  // Credenciais da instância própria (opcional)
+  wasenderApiKey    String? // NUNCA retornar completo no GET — mascarar
+  wasenderSessionId String?
+
+  // Lembrete de agendamento
+  lembreteAtivo              Boolean @default(true)
+  lembreteAntecedenciaHoras  Int     @default(24)   // enviar X horas antes
+  lembreteHorario            String  @default("09:00") // horário de envio em lote
+  lembreteTemplate           String? // template com variáveis {{nome}}, {{data}}, etc.
+
+  // Mensagem de aniversário
+  aniversarioAtivo           Boolean @default(true)
+  aniversarioHorario         String  @default("08:00")
+  aniversarioDescontoPct     Int     @default(15) // desconto oferecido
+  aniversarioTemplate        String?
+
+  // Config geral
+  linkConfirmacao String? // link para confirmar agendamento
+  nomeEmpresa     String? // nome exibido nas mensagens
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("marketing_configs")
+}
+
+// Combo de upsell — oferecer serviço B após o cliente fazer serviço A
+model MarketingCombo {
+  id             String   @id @default(uuid())
+  tenantId       String
+  nome           String
+  descricao      String?
+  servicos       String[] // IDs dos serviços incluídos
+  gatilhoServico String?  // ID do serviço que dispara a oferta
+  precoOriginal  Decimal? @db.Decimal(10, 2)
+  precoCombo     Decimal  @db.Decimal(10, 2)
+  descontoPct    Int?
+  ativo          Boolean  @default(true)
+  validadeDias   Int      @default(30) // quantos dias a oferta é válida após o gatilho
+  templateWhatsapp String? // mensagem personalizada para este combo
+
+  createdAt DateTime @default(now())
+  envios    MarketingEnvio[]
+
+  @@map("marketing_combos")
+}
+
+// Log de todos os envios via WhatsApp
+model MarketingEnvio {
+  id              String   @id @default(uuid())
+  tenantId        String
+  tipo            String   // 'lembrete' | 'aniversario' | 'combo' | 'campanha'
+  clienteNome     String?
+  clienteTelefone String   // número de destino
+  mensagemEnviada String?
+  comboId         String?  // se foi envio de combo
+  wasenderMsgId   String?  // ID retornado pelo provedor
+  status          String   @default("enviado") // 'enviado' | 'erro' | 'pendente'
+  erroDetalhe     String?
+
+  enviadoEm DateTime @default(now())
+
+  combo MarketingCombo? @relation(fields: [comboId], references: [id])
+
+  @@map("marketing_envios")
+}
+
+// Campanha em massa — envio para segmento de clientes
+model MarketingCampanha {
+  id                  String   @id @default(uuid())
+  tenantId            String
+  nome                String
+  tipo                String?  // 'todos' | 'aniversariantes' | 'inativos' | 'servico'
+  filtroServico       String?  // ID do serviço (para tipo='servico')
+  filtroInativoDias   Int?     // dias sem vir (para tipo='inativos')
+  template            String   // mensagem com variáveis
+  totalDestinatarios  Int      @default(0)
+  totalEnviados       Int      @default(0)
+  totalErros          Int      @default(0)
+  status              String   @default("rascunho") // rascunho | enviando | concluida | cancelado
+  agendadoPara        DateTime?
+  criadoEm            DateTime @default(now())
+  concluidoEm         DateTime?
+
+  @@map("marketing_campanhas")
+}
+
+// Campanha de aviso simplificada — integrada ao painel principal
+model CampanhaAviso {
+  id                  String   @id @default(uuid())
+  tenantId            String
+  titulo              String
+  mensagem            String
+  segmentoFiltrosJson String?  // JSON serializado com filtros
+  dataEnvio           DateTime?
+  status              String   @default("pendente") // rascunho | enviando | concluida | cancelado
+  totalEnviado        Int      @default(0)
+  totalErros          Int      @default(0)
+  tipo                String   @default("todos") // todos | aniversariantes | inativos | servico
+  filtroServico       String?
+  filtroInativoDias   Int?
+  concluidoEm         DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("campanhas_aviso")
+}
