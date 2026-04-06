@@ -31,7 +31,7 @@ export async function GET(
           },
         },
         assinaturas: {
-          where: { ativo: true },
+          where: { status: 'ativo' },
           include: { plano: { select: { nome: true } } },
           take: 1,
         },
