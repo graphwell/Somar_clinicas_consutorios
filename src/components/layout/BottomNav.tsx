@@ -69,9 +69,10 @@ export default function BottomNav() {
 
       {/* Bottom Nav bar */}
       <nav
-        className="fixed bottom-0 inset-x-0 z-40 lg:hidden safe-bottom"
+        className="fixed bottom-0 inset-x-0 z-40 lg:hidden"
         style={{
-          height: 56,
+          height: 'calc(56px + env(safe-area-inset-bottom, 0px))',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
           background: "white",
           borderTop: "1px solid #EEE9DF",
         }}

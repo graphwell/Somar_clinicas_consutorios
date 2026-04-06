@@ -176,7 +176,7 @@ function PatientChart({ patient: initialPatient, onClose }: { patient: Paciente;
                 {patient.nome.charAt(0)}
               </div>
               <div>
-                 <h3 className="text-2xl font-black italic uppercase tracking-tighter text-text-main">{patient.nome}</h3>
+                 <h3 className="text-2xl font-black tracking-tight text-text-main">{patient.nome}</h3>
                  <p className="text-[10px] font-black text-text-muted uppercase tracking-widest mt-1 opacity-60">{labels.termoProntuario} Digital</p>
               </div>
            </div>
@@ -342,10 +342,10 @@ export default function PatientsPage() {
               <thead className="bg-slate-50 text-text-placeholder border-b border-slate-50 uppercase text-[9px] font-black tracking-[0.3em]">
                 <tr>
                   <th className="px-12 py-8 font-black">Identificação</th>
-                  <th className="px-12 py-8 font-black">WhatsApp Business</th>
-                  <th className="px-12 py-8 font-black text-center">Frequência</th>
-                  <th className="px-12 py-8 font-black">Última Visita</th>
-                  <th className="px-12 py-8 font-black text-right">Módulo Prontuário</th>
+                  <th className="px-12 py-8 font-black">Telefone</th>
+                  <th className="px-12 py-8 font-black text-center hidden sm:table-cell">Frequência</th>
+                  <th className="px-12 py-8 font-black hidden md:table-cell">Última Visita</th>
+                  <th className="px-12 py-8 font-black text-right">Prontuário</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -353,17 +353,18 @@ export default function PatientsPage() {
                    <tr key={p.id} className="group hover:bg-slate-50/50 transition-all">
                     <td className="px-12 py-10">
                        <div className="flex items-center gap-3">
-                        <p className="font-black text-text-main text-lg tracking-tighter uppercase italic group-hover:text-primary transition-colors">{p.nome}</p>
-                        {p.isSubscriber && <span className="text-[10px] animate-bounce">⭐</span>}
+                        <p className="font-semibold text-text-main text-sm group-hover:text-primary transition-colors">{p.nome}</p>
+                        {p.isSubscriber && (
+                          <span className="text-[10px] font-black text-amber-500 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Premium</span>
+                        )}
                        </div>
-                       <p className="text-[9px] font-black text-text-placeholder uppercase tracking-widest mt-1 opacity-40">Ref: ID-{p.id.slice(-5)}</p>
                     </td>
-                    <td className="px-12 py-10 text-text-muted font-bold font-mono text-sm">{p.telefone}</td>
-                    <td className="px-12 py-10 text-center">
+                    <td className="px-12 py-10 text-text-muted font-medium text-sm">{p.telefone}</td>
+                    <td className="px-12 py-10 text-center hidden sm:table-cell">
                       <span className="bg-primary-soft text-primary px-5 py-2 rounded-full border border-primary/10 font-black text-[10px]">{p._count.agendamentos}x</span>
                     </td>
-                    <td className="px-12 py-10 text-text-placeholder font-black text-[11px] uppercase italic">
-                      {p.agendamentos?.[0] ? new Date(p.agendamentos[0].dataHora).toLocaleDateString('pt-BR') : 'Sem Visitas'}
+                    <td className="px-12 py-10 text-text-placeholder text-[11px] hidden md:table-cell">
+                      {p.agendamentos?.[0] ? new Date(p.agendamentos[0].dataHora).toLocaleDateString('pt-BR') : 'Sem visitas'}
                     </td>
                     <td className="px-12 py-10 text-right">
                        <button onClick={() => setSelectedPatient(p)} className="btn-secondary py-3 px-8 text-[9px]">{labels.prontuario}</button>

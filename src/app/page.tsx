@@ -11,6 +11,34 @@ const ROTATING_PHRASES = [
   { pain: 'erros de anotação causando conflito de horários', fix: 'Agenda sincronizada. Sem conflitos.' },
 ];
 
+const NICHO_FRASES = [
+  {
+    problema: 'perder pacientes',
+    contexto: 'por não responder?',
+    subtitulo: 'A Synka agenda, lembra e confirma consultas automaticamente enquanto você foca no que importa: tratar pessoas.',
+  },
+  {
+    problema: 'perder clientes',
+    contexto: 'por falta de lembretes?',
+    subtitulo: 'A Synka envia lembretes automáticos e confirma horários pelo WhatsApp enquanto você foca no que importa: atender bem.',
+  },
+  {
+    problema: 'agenda vazia',
+    contexto: 'na cadeira do barbeiro?',
+    subtitulo: 'A Synka preenche sua agenda automaticamente, envia lembretes e reduz faltas enquanto você foca no que importa: cortar bem.',
+  },
+  {
+    problema: 'perder clientes',
+    contexto: 'por falta de organização?',
+    subtitulo: 'A Synka organiza sua agenda, envia lembretes e fideliza clientes automaticamente enquanto você foca no que importa: cuidar da beleza.',
+  },
+  {
+    problema: 'faltas e cancelamentos',
+    contexto: 'sem aviso prévio?',
+    subtitulo: 'A Synka confirma presença automaticamente pelo WhatsApp e preenche horários vagos enquanto você foca no que importa: seus pacientes.',
+  },
+];
+
 const BENEFIT_ICONS: Record<string, React.ReactNode> = {
   'IA no WhatsApp': <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12h4m0 0l2-2m-2 2l2 2M12 8v4"/></svg>,
   'Agenda em Tempo Real': <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
@@ -35,6 +63,9 @@ export default function LandingPage() {
   const statsRef = useRef<HTMLDivElement>(null);
   const countsTargets = [70, 24, 300];
 
+  const [fraseAtual, setFraseAtual] = useState(0);
+  const [animando, setAnimando] = useState(false);
+
   useEffect(() => {
     const interval = setInterval(() => {
       setVisible(false);
@@ -43,6 +74,17 @@ export default function LandingPage() {
         setVisible(true);
       }, 400);
     }, 3500);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setAnimando(true);
+      setTimeout(() => {
+        setFraseAtual(prev => (prev + 1) % NICHO_FRASES.length);
+        setAnimando(false);
+      }, 300);
+    }, 3000);
     return () => clearInterval(interval);
   }, []);
 
@@ -68,7 +110,7 @@ export default function LandingPage() {
   const phrase = ROTATING_PHRASES[phraseIdx];
 
   return (
-    <div className="min-h-screen bg-[#050510] text-white font-sans overflow-x-hidden">
+    <div className="min-h-[100svh] bg-[#050510] text-white font-sans overflow-x-hidden">
 
       {/* ── Nav ── */}
       <nav className="fixed top-0 w-full z-50 bg-white shadow-sm border-b border-gray-100">
@@ -90,7 +132,7 @@ export default function LandingPage() {
       </nav>
 
       {/* ── Hero ── */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center text-center px-6 pt-32 pb-16 overflow-hidden">
+      <section className="relative min-h-[100svh] flex flex-col items-center justify-center text-center px-6 pt-32 pb-16 overflow-hidden">
         {/* Background glow */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-[#40916C]/12 rounded-full blur-[120px]" />
@@ -104,24 +146,53 @@ export default function LandingPage() {
         </div>
 
         {/* Main heading */}
-        <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold leading-tight max-w-5xl mb-6">
-          Sua clínica cansou de
-          <br />
-          <span className="bg-gradient-to-r from-[#52B788] via-[#40916C] to-[#2D6A4F] bg-clip-text text-transparent">
-            perder pacientes
-          </span>{' '}
-          por não responder?
+        <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold leading-tight max-w-5xl mb-6">
+          Seu negócio cansou de{' '}
+          <span
+            style={{
+              color: '#52B788',
+              display: 'inline-block',
+              transition: 'opacity 300ms ease',
+              opacity: animando ? 0 : 1,
+            }}
+          >
+            {NICHO_FRASES[fraseAtual].problema}
+          </span>
+          {' '}{NICHO_FRASES[fraseAtual].contexto}
         </h1>
 
-        <p className="text-gray-400 text-lg max-w-2xl mb-12">
-          A Synka coloca um atendente de IA dentro do seu WhatsApp — agendando, lembrando e remarcando consultas enquanto você foca no que importa: <strong className="text-white">tratar pessoas.</strong>
+        <p
+          className="text-gray-400 text-lg max-w-2xl mb-4"
+          style={{ transition: 'opacity 300ms ease', opacity: animando ? 0 : 1 }}
+        >
+          {NICHO_FRASES[fraseAtual].subtitulo}
         </p>
 
+        {/* Dots */}
+        <div className="flex gap-1.5 justify-center mb-10">
+          {NICHO_FRASES.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => { setFraseAtual(i); setAnimando(false); }}
+              style={{
+                width: i === fraseAtual ? 20 : 6,
+                height: 6,
+                borderRadius: 3,
+                background: i === fraseAtual ? '#52B788' : 'rgba(255,255,255,0.3)',
+                transition: 'all 300ms ease',
+                border: 'none',
+                cursor: 'pointer',
+                padding: 0,
+              }}
+            />
+          ))}
+        </div>
+
         {/* CTA buttons */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-20">
+        <div className="flex flex-col sm:flex-row gap-4 mb-20 w-full sm:w-auto items-center">
           <Link href="/auth/login"
-            className="px-8 py-4 bg-[#40916C] hover:bg-[#2D6A4F] rounded-2xl text-base font-bold transition-all shadow-[0_8px_32px_rgba(64,145,108,0.4)] hover:shadow-[0_8px_40px_rgba(64,145,108,0.6)] hover:-translate-y-0.5">
-            Começar grátis — 7 dias
+            className="w-full sm:w-auto max-w-xs px-8 py-4 bg-[#40916C] hover:bg-[#2D6A4F] rounded-2xl text-base font-bold transition-all shadow-[0_8px_32px_rgba(64,145,108,0.4)] hover:shadow-[0_8px_40px_rgba(64,145,108,0.6)] hover:-translate-y-0.5 text-center">
+            Começar grátis — 30 dias
           </Link>
           <a href="#como-funciona"
             className="px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-base font-semibold transition-all">
@@ -221,7 +292,7 @@ export default function LandingPage() {
           <h2 className="text-4xl sm:text-5xl font-extrabold mb-6 leading-tight">
             Comece hoje.<br />
             <span className="bg-gradient-to-r from-[#52B788] to-[#2D6A4F] bg-clip-text text-transparent">
-              Primeiros 7 dias gratuitos.
+              Primeiros 30 dias gratuitos.
             </span>
           </h2>
           <p className="text-gray-400 mb-10 text-lg">Sem cartão de crédito. Sem burocracia. Em 24h sua IA está no ar.</p>

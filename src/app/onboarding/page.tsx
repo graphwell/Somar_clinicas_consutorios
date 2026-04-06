@@ -14,6 +14,27 @@ const NICHOS = [
   { id: 'OUTRO', label: 'Outro' },
 ];
 
+const NICHO_ICONES: Record<string, React.ReactNode> = {
+  CLINICA_MEDICA: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>,
+  ODONTOLOGIA: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2C9 2 6 4.5 6 7c0 2.5 1 4.5 2 6L9 21h6l1-8c1-1.5 2-3.5 2-6 0-2.5-3-5-6-5z"/></svg>,
+  CLINICA_ESTETICA: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22V12M12 12C12 12 7 9 7 5a5 5 0 0110 0c0 4-5 7-5 7z"/></svg>,
+  SALAO_BELEZA: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3l12 12M6 3L3 6l6 6M18 15l3-3-6-6"/><circle cx="17" cy="17" r="3"/></svg>,
+  FISIOTERAPIA: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
+  NUTRICAO: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22c4-4 8-8 8-12a8 8 0 00-16 0c0 4 4 8 8 12z"/><path d="M12 10v4M10 12h4"/></svg>,
+  CLINICA_MULTI: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>,
+  OUTRO: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>,
+};
+
+const NICHO_NOME_LABEL: Record<string, string> = {
+  SALAO_BELEZA: 'Nome do salão',
+  CLINICA_ESTETICA: 'Nome do estúdio',
+  CLINICA_MEDICA: 'Nome da clínica',
+  ODONTOLOGIA: 'Nome da clínica',
+  FISIOTERAPIA: 'Nome da clínica',
+  NUTRICAO: 'Nome do consultório',
+  CLINICA_MULTI: 'Nome da clínica',
+};
+
 const DAYS = [
   { id: 1, label: 'Seg' }, { id: 2, label: 'Ter' }, { id: 3, label: 'Qua' },
   { id: 4, label: 'Qui' }, { id: 5, label: 'Sex' }, { id: 6, label: 'Sáb' }, { id: 7, label: 'Dom' },
@@ -185,7 +206,7 @@ export default function OnboardingPage() {
   const headerGradient = 'linear-gradient(160deg, #1B3A2D 0%, #40916C 100%)';
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: '#F5F0E8' }}>
+    <div className="min-h-[100svh] flex items-center justify-center p-4" style={{ background: '#F5F0E8' }}>
       <div className="w-full max-w-lg bg-white rounded-3xl shadow-xl overflow-hidden border border-warm-200">
 
         {/* Header */}
@@ -272,9 +293,11 @@ export default function OnboardingPage() {
           {step === 2 && (
             <div className="space-y-5">
               <div className="space-y-1">
-                <label className="text-xs font-medium text-slate-300 uppercase tracking-wider">Nome da clínica *</label>
+                <label className="text-xs font-medium text-slate-300 uppercase tracking-wider">
+                  {NICHO_NOME_LABEL[nicho] ?? 'Nome do negócio'} *
+                </label>
                 <input value={nomeClinica} onChange={e => setNomeClinica(e.target.value)}
-                  className="input-premium w-full" placeholder="Clínica Sorriso" />
+                  className="input-premium w-full" placeholder={NICHO_NOME_LABEL[nicho] ?? 'Nome do negócio'} />
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-medium text-slate-300 uppercase tracking-wider">Segmento *</label>
@@ -284,12 +307,17 @@ export default function OnboardingPage() {
                       key={n.id}
                       type="button"
                       onClick={() => setNicho(n.id)}
-                      className={`flex flex-col items-center gap-1 p-2 rounded-xl border text-center transition-all h-16 ${
+                      className={`flex flex-col items-center gap-1 p-2 rounded-xl border text-center transition-all h-20 ${
                         nicho === n.id
                           ? 'border-sage-500 bg-sage-50 shadow-sm'
                           : 'border-warm-200 hover:border-warm-300 opacity-60 hover:opacity-100'
                       }`}
                     >
+                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+                        nicho === n.id ? 'bg-sage-100 text-sage-700' : 'bg-warm-100 text-slate-300'
+                      }`}>
+                        {NICHO_ICONES[n.id]}
+                      </div>
                       <span className="text-[9px] font-medium text-slate-700 leading-tight">{n.label}</span>
                     </button>
                   ))}
@@ -304,8 +332,8 @@ export default function OnboardingPage() {
                 <input type="checkbox" checked={multiProfissional} onChange={e => setMultiProfissional(e.target.checked)}
                   className="mt-0.5 h-4 w-4 rounded accent-sage-500" />
                 <div>
-                  <p className="text-sm font-medium text-slate-700">Mais de um profissional atendendo?</p>
-                  <p className="text-xs text-slate-300">Ativa agendas individuais por profissional.</p>
+                  <p className="text-sm font-medium text-slate-700">Equipe com múltiplos profissionais</p>
+                  <p className="text-xs text-slate-300">Cada profissional terá sua própria agenda.</p>
                 </div>
               </label>
             </div>

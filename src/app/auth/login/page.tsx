@@ -82,7 +82,7 @@ function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen flex" style={{ background: '#F5F0E8' }}>
+    <div className="min-h-[100svh] flex" style={{ background: '#F5F0E8' }}>
 
       {/* LADO ESQUERDO — visual (apenas desktop) */}
       <div
@@ -278,7 +278,7 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen" style={{ background: '#F5F0E8' }} />}>
+    <Suspense fallback={<div className="min-h-[100svh]" style={{ background: '#F5F0E8' }} />}>
       <LoginForm />
     </Suspense>
   );
