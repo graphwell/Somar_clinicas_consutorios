@@ -36,10 +36,10 @@ function fromMin(total: number): string {
   return `${Math.floor(total / 60).toString().padStart(2, '0')}:${(total % 60).toString().padStart(2, '0')}`;
 }
 
-/** Extrai HH:MM no fuso America/Sao_Paulo de um objeto Date UTC */
+/** Extrai HH:MM no fuso America/Fortaleza de um objeto Date UTC */
 function dateToSPMin(date: Date): number {
   const parts = new Intl.DateTimeFormat('pt-BR', {
-    timeZone: 'America/Sao_Paulo',
+    timeZone: 'America/Fortaleza',
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,

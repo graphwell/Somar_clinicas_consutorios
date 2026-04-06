@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Avatar from "@/components/ui/Avatar";
 import Badge from "@/components/ui/Badge";
 import { SkeletonCard } from "@/components/ui/Skeleton";
@@ -78,11 +78,13 @@ function toMinutes(hhmm: string): number {
   const [h, m] = hhmm.split(":").map(Number);
   return h * 60 + m;
 }
-function formatTime(iso: string) {
-  return new Date(iso).toLocaleTimeString("pt-BR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+function formatTime(iso: string): string {
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'America/Fortaleza',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(new Date(iso));
 }
 function formatDateHeader(d: Date): string {
   return d.toLocaleDateString("pt-BR", {
@@ -105,7 +107,13 @@ function isToday(d: Date): boolean {
   );
 }
 function nowLocalHHMM(): string {
-  return new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const formatter = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'America/Fortaleza',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  return formatter.format(new Date());
 }
 
 /* ─── CardAgendamento ───────────────────────────────────── */
@@ -231,9 +239,7 @@ function ColunaProfissional({
                         style={{ background: prof.color }}
                       />
                     ) : slot.tipo === 'buffer' ? (
-                      <div className="h-8 rounded-lg bg-warm-200 border border-dashed border-warm-400 flex items-center justify-center">
-                        <span className="text-[9px] text-slate-100 uppercase tracking-wide">buffer</span>
-                      </div>
+                      <div className="h-8" style={{ borderTop: '1px dashed #EEE9DF', cursor: 'default' }} />
                     ) : slot.tipo === 'almoco' ? (
                       <div className="h-8 rounded-lg bg-warm-200 flex items-center justify-center">
                         <span className="text-[10px] text-slate-100">Almoço</span>
