@@ -19,7 +19,13 @@ type ConvenioStat = {
   faturamento: number;
 };
 
-/* ─── SVG Bar Chart ───────────────────────────────────────────── */
+type Periodo = 'Esta semana' | 'Este mês' | 'Último mês' | 'Este ano';
+type TabId = 'geral' | 'servicos' | 'clientes' | 'convenios' | 'exportar';
+
+const NICHOS_BELEZA = ['SALAO_BELEZA', 'BARBEARIA', 'CLINICA_ESTETICA'];
+const PERIODOS: Periodo[] = ['Esta semana', 'Este mês', 'Último mês', 'Este ano'];
+
+/* ─── BarChart SVG ───────────────────────────────────────────────── */
 function BarChart({ data }: { data: ConvenioStat[] }) {
   const maxAt = Math.max(...data.map((d) => d.atendimentos), 1);
   const maxFat = Math.max(...data.map((d) => d.faturamento), 1);
@@ -32,70 +38,39 @@ function BarChart({ data }: { data: ConvenioStat[] }) {
   return (
     <div className="overflow-x-auto">
       <svg viewBox={`0 0 ${W} ${H + 60}`} className="w-full min-w-[400px]" style={{ maxHeight: 260 }}>
-        {/* Eixo Y */}
         {[0, 0.25, 0.5, 0.75, 1].map((t) => (
-          <line key={t} x1={30} y1={H - t * H + 8} x2={W} y2={H - t * H + 8} stroke="#f0ede8" strokeWidth={0.5} />
+          <line key={t} x1={30} y1={H - t * H + 8} x2={W} y2={H - t * H + 8} stroke="#EEE9DF" strokeWidth={0.8} />
         ))}
-
         {data.map((item, i) => {
           const x = 30 + i * gap;
           const hAt = (item.atendimentos / maxAt) * (H - 16);
           const hFat = (item.faturamento / maxFat) * (H - 16);
           const color = colors[i % colors.length];
-
           return (
             <g key={item.id + item.nome}>
-              {/* Barra faturamento (mais clara, atrás) */}
-              <rect
-                x={x + barW * 0.55}
-                y={H - hFat + 8}
-                width={barW * 0.45}
-                height={hFat}
-                fill={color}
-                opacity={0.3}
-                rx={3}
-              />
-              {/* Barra atendimentos (mais escura, frente) */}
-              <rect
-                x={x}
-                y={H - hAt + 8}
-                width={barW * 0.5}
-                height={hAt}
-                fill={color}
-                rx={3}
-              />
-              {/* Valor atendimentos */}
+              <rect x={x + barW * 0.55} y={H - hFat + 8} width={barW * 0.45} height={hFat} fill={color} opacity={0.3} rx={3} />
+              <rect x={x} y={H - hAt + 8} width={barW * 0.5} height={hAt} fill={color} rx={3} />
               {item.atendimentos > 0 && (
                 <text x={x + barW * 0.25} y={H - hAt + 4} textAnchor="middle" fontSize={9} fill={color} fontWeight="600">
                   {item.atendimentos}
                 </text>
               )}
-              {/* Label nome */}
-              <text
-                x={x + barW * 0.5}
-                y={H + 24}
-                textAnchor="middle"
-                fontSize={9}
-                fill="#94a3b8"
-                fontWeight="700"
-              >
+              <text x={x + barW * 0.5} y={H + 24} textAnchor="middle" fontSize={9} fill="#8A9BB0" fontWeight="700">
                 {item.nome.length > 10 ? item.nome.slice(0, 9) + '…' : item.nome}
               </text>
             </g>
           );
         })}
-
-        {/* Legenda */}
         <rect x={30} y={H + 42} width={10} height={10} fill="#40916C" rx={2} />
-        <text x={44} y={H + 51} fontSize={9} fill="#94a3b8" fontWeight="600">Atendimentos</text>
+        <text x={44} y={H + 51} fontSize={9} fill="#8A9BB0" fontWeight="600">Atendimentos</text>
         <rect x={140} y={H + 42} width={10} height={10} fill="#40916C" opacity={0.3} rx={2} />
-        <text x={154} y={H + 51} fontSize={9} fill="#94a3b8" fontWeight="600">Faturamento</text>
+        <text x={154} y={H + 51} fontSize={9} fill="#8A9BB0" fontWeight="600">Faturamento</text>
       </svg>
     </div>
   );
 }
 
-/* ─── Aba Convênios ───────────────────────────────────────────── */
+/* ─── Aba Convênios (apenas para saúde) ──────────────────────────── */
 function TabConvenios() {
   const [data, setData] = useState<ConvenioStat[]>([]);
   const [loading, setLoading] = useState(true);
@@ -114,7 +89,7 @@ function TabConvenios() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="w-5 h-5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+        <div style={{ width: 20, height: 20, border: '2px solid #40916C', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
       </div>
     );
   }
@@ -122,77 +97,72 @@ function TabConvenios() {
   if (data.length === 0) {
     return (
       <div className="text-center py-20">
-        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" className="mx-auto mb-3 opacity-20 text-gray-500"><path d="M4 26V14L14 4l10 10V26H4z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/><path d="M9.5 26V19h9v7" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/><path d="M14 8v5M11.5 10.5h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
-        <p className="text-xs text-gray-500 uppercase font-black tracking-widest">Nenhum dado de convênio ainda</p>
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" className="mx-auto mb-3" style={{ opacity: 0.2 }}>
+          <path d="M4 26V14L14 4l10 10V26H4z" stroke="#1B2B3A" strokeWidth="2" strokeLinejoin="round" />
+          <path d="M9.5 26V19h9v7" stroke="#1B2B3A" strokeWidth="2" strokeLinejoin="round" />
+        </svg>
+        <p style={{ fontSize: 11, color: '#8A9BB0', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.1em' }}>
+          Nenhum dado de convênio ainda
+        </p>
       </div>
     );
   }
 
+  const summaryCards = [
+    { label: 'Planos distintos', value: String(data.filter(d => d.id !== '__particular__').length), cor: '#40916C' },
+    { label: 'Total Atendimentos', value: String(totalAt), cor: '#378ADD' },
+    { label: 'Total Faturado', value: `R$ ${totalFat.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, cor: '#F4A261' },
+  ];
+
   return (
-    <div className="space-y-8">
-      {/* Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <div className="bg-[#0a0a20]/60 border border-white/5 rounded-3xl p-5 flex items-center gap-4">
-          <div className="w-10 h-10 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-400"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2.5 16.5V9.5L9 3l6.5 6.5V16.5H2.5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/><path d="M6 16.5V12h6v4.5" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/></svg></div>
-          <div>
-            <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest">Planos distintos</p>
-            <p className="text-2xl font-black text-emerald-400 mt-0.5">{data.filter((d) => d.id !== '__particular__').length}</p>
-          </div>
-        </div>
-        <div className="bg-[#0a0a20]/60 border border-white/5 rounded-3xl p-5 flex items-center gap-4">
-          <div className="w-10 h-10 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-400"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="3" y="2.25" width="12" height="13.5" rx="1.5" stroke="currentColor" strokeWidth="1.5"/><path d="M6 6h6M6 9h6M6 12h3.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg></div>
-          <div>
-            <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest">Atendimentos</p>
-            <p className="text-2xl font-black text-indigo-400 mt-0.5">{totalAt}</p>
-          </div>
-        </div>
-        <div className="bg-[#0a0a20]/60 border border-white/5 rounded-3xl p-5 flex items-center gap-4 col-span-2 md:col-span-1">
-          <div className="w-10 h-10 bg-orange-500/10 rounded-2xl flex items-center justify-center text-orange-400"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="1.5" y="3.75" width="15" height="10.5" rx="1.5" stroke="currentColor" strokeWidth="1.5"/><path d="M1.5 7.5H16.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><circle cx="9" cy="11.25" r="1.5" stroke="currentColor" strokeWidth="1.3"/></svg></div>
-          <div>
-            <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest">Faturamento</p>
-            <p className="text-xl font-black text-orange-400 mt-0.5">
-              R$ {totalFat.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+    <div className="space-y-4">
+      {/* Resumo */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {summaryCards.map((card, i) => (
+          <div key={i} style={{ background: 'white', border: '1px solid #EEE9DF', borderRadius: 16, padding: 20, position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: card.cor, borderRadius: '3px 3px 0 0' }} />
+            <p style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 500, color: '#8A9BB0', marginBottom: 8, marginTop: 4 }}>
+              {card.label}
             </p>
+            <p style={{ fontSize: 22, fontWeight: 700, color: '#1B2B3A', lineHeight: 1 }}>{card.value}</p>
           </div>
-        </div>
+        ))}
       </div>
 
       {/* Gráfico */}
-      <div className="bg-[#0a0a20]/60 border border-white/5 rounded-3xl p-8">
-        <h3 className="text-sm font-bold mb-6 flex items-center gap-2 text-white">
+      <div style={{ background: 'white', border: '1px solid #EEE9DF', borderRadius: 16, padding: 24 }}>
+        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 500, color: '#1B2B3A', marginBottom: 20 }}>
           Atendimentos por convênio
         </h3>
         <BarChart data={data} />
       </div>
 
       {/* Tabela */}
-      <div className="bg-[#0a0a20]/60 border border-white/5 rounded-3xl overflow-hidden">
-        <table className="w-full text-left">
-          <thead className="border-b border-white/5">
-            <tr>
-              <th className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Convênio</th>
-              <th className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest text-right">Atendimentos</th>
-              <th className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest text-right">Faturamento</th>
-              <th className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest text-right">% do total</th>
+      <div style={{ background: 'white', border: '1px solid #EEE9DF', borderRadius: 16, overflow: 'hidden' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid #EEE9DF' }}>
+              {['Convênio', 'Atendimentos', 'Faturamento', '% do total'].map((h, i) => (
+                <th key={h} style={{ padding: '12px 20px', fontSize: 10, fontWeight: 700, color: '#8A9BB0', textTransform: 'uppercase', letterSpacing: '0.08em', textAlign: i === 0 ? 'left' : 'right' }}>
+                  {h}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
             {data.map((item, i) => (
-              <tr key={item.id + item.nome + i} className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors">
-                <td className="px-6 py-3 font-bold text-gray-200 text-sm">{item.nome}</td>
-                <td className="px-6 py-3 text-right text-gray-400 tabular-nums">{item.atendimentos}</td>
-                <td className="px-6 py-3 text-right text-emerald-400 font-mono tabular-nums text-sm">
+              <tr key={item.id + item.nome + i} style={{ borderBottom: '1px solid #F8F6F1' }}>
+                <td style={{ padding: '12px 20px', fontSize: 13, fontWeight: 500, color: '#1B2B3A' }}>{item.nome}</td>
+                <td style={{ padding: '12px 20px', fontSize: 13, color: '#4A6480', textAlign: 'right' }}>{item.atendimentos}</td>
+                <td style={{ padding: '12px 20px', fontSize: 13, color: '#40916C', fontWeight: 500, textAlign: 'right' }}>
                   {item.faturamento > 0 ? `R$ ${item.faturamento.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '—'}
                 </td>
-                <td className="px-6 py-3 text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <div className="w-16 h-1.5 bg-white/5 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-emerald-500 rounded-full"
-                        style={{ width: `${totalAt > 0 ? (item.atendimentos / totalAt) * 100 : 0}%` }}
-                      />
+                <td style={{ padding: '12px 20px', textAlign: 'right' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
+                    <div style={{ width: 64, height: 6, background: '#EEE9DF', borderRadius: 3, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${totalAt > 0 ? (item.atendimentos / totalAt) * 100 : 0}%`, background: '#40916C', borderRadius: 3 }} />
                     </div>
-                    <span className="text-xs text-gray-500 tabular-nums w-9 text-right">
+                    <span style={{ fontSize: 12, color: '#8A9BB0', width: 32, textAlign: 'right' }}>
                       {totalAt > 0 ? ((item.atendimentos / totalAt) * 100).toFixed(0) : 0}%
                     </span>
                   </div>
@@ -206,191 +176,374 @@ function TabConvenios() {
   );
 }
 
-/* ─── Página principal ────────────────────────────────────────── */
-type Tab = 'geral' | 'convenios';
+/* ─── Ícone download ────────────────────────────── */
+function IconDownload() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#40916C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" y1="15" x2="12" y2="3" />
+    </svg>
+  );
+}
 
+/* ─── Página principal ───────────────────────────────────────────── */
 export default function ReportsPage() {
-  const { labels } = useNicho();
+  const { nicho, labels } = useNicho();
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<Tab>('geral');
+  const [tab, setTab] = useState<TabId>('geral');
+  const [periodo, setPeriodo] = useState<Periodo>('Este mês');
+
+  const isBeleza = NICHOS_BELEZA.includes(nicho);
+
+  const abas: { id: TabId; label: string }[] = isBeleza
+    ? [
+        { id: 'geral', label: 'Visão Geral' },
+        { id: 'servicos', label: 'Serviços' },
+        { id: 'clientes', label: 'Clientes' },
+        { id: 'exportar', label: 'Exportar' },
+      ]
+    : [
+        { id: 'geral', label: 'Visão Geral' },
+        { id: 'servicos', label: 'Serviços' },
+        { id: 'clientes', label: 'Clientes' },
+        { id: 'convenios', label: 'Convênios' },
+        { id: 'exportar', label: 'Exportar' },
+      ];
 
   useEffect(() => {
     fetchWithAuth('/api/reports/stats')
       .then(res => res.json())
-      .then(data => {
-        if (!data.error) setStats(data);
-      })
+      .then(data => { if (!data.error) setStats(data); })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
 
   const kpis = [
     {
-      label: 'Faturamento Mensal',
+      label: 'Faturamento do Mês',
       value: stats ? `R$ ${stats.totalFaturado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'R$ 0,00',
-      icon: <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="1.833" y="4.583" width="18.333" height="12.833" rx="1.833" stroke="currentColor" strokeWidth="1.6"/><path d="M1.833 9.167H20.167" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/><circle cx="11" cy="13.75" r="1.833" stroke="currentColor" strokeWidth="1.4"/></svg>,
-      color: 'text-emerald-400',
-      bg: 'bg-emerald-500/10'
+      sublabel: 'Total recebido',
+      cor: '#40916C',
     },
     {
       label: 'Taxa de Confirmação',
       value: stats ? `${stats.taxaConfirmacao.toFixed(1)}%` : '0%',
-      icon: <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="8.25" stroke="currentColor" strokeWidth="1.6"/><path d="M7.333 11l2.75 2.75 4.584-4.583" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>,
-      color: 'text-indigo-400',
-      bg: 'bg-indigo-500/10'
+      sublabel: 'Dos agendamentos',
+      cor: '#378ADD',
     },
     {
-      label: 'Base Coletada',
-      value: stats ? `${stats.totalPacientes} ${labels.termoPaciente}s` : `0 ${labels.termoPaciente}s`,
-      icon: <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="8.25" cy="7.333" r="3.208" stroke="currentColor" strokeWidth="1.6"/><path d="M1.833 18.333c0-3.498 2.875-6.333 6.417-6.333s6.417 2.835 6.417 6.333" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/><circle cx="15.583" cy="7.333" r="2.292" stroke="currentColor" strokeWidth="1.4"/><path d="M18.333 16.5c0-2.278-1.179-4.219-2.978-5.04" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>,
-      color: 'text-orange-400',
-      bg: 'bg-orange-500/10'
+      label: isBeleza ? 'Clientes Atendidos' : 'Pacientes Atendidos',
+      value: stats ? String(stats.totalPacientes) : '0',
+      sublabel: 'No período selecionado',
+      cor: '#9B72CF',
     },
   ];
 
-  return (
-    <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
+  const exportacoesBeleza = [
+    { tipo: 'clientes', label: 'Relatório de Clientes', descricao: 'Lista completa com visitas', api: '/api/export/clientes' },
+    { tipo: 'historico', label: 'Histórico Mensal', descricao: 'Atendimentos do período', api: '/api/export/agendamentos' },
+    { tipo: 'servicos', label: 'Serviços Populares', descricao: 'Ranking por faturamento', api: '/api/export/servicos' },
+    { tipo: 'financeiro', label: 'Exportação Financeira', descricao: 'Receitas e pagamentos', api: '/api/export/financeiro' },
+  ];
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+  const exportacoesSaude = [
+    { tipo: 'pacientes', label: 'Relatório de Pacientes', descricao: 'Lista completa com consultas', api: '/api/export/clientes' },
+    { tipo: 'historico', label: 'Histórico Mensal', descricao: 'Atendimentos do período', api: '/api/export/agendamentos' },
+    { tipo: 'convenios', label: 'Ranking de Convênios', descricao: 'Faturamento por plano', api: '/api/export/convenios' },
+    { tipo: 'financeiro', label: 'Exportação Financeira', descricao: 'Receitas e pagamentos', api: '/api/export/financeiro' },
+  ];
+
+  const exportacoes = isBeleza ? exportacoesBeleza : exportacoesSaude;
+
+  const maxFaturamento = stats ? Math.max(...stats.topServicos.map(s => s.faturamento), 1) : 1;
+
+  const insightTexto = stats
+    ? stats.taxaConfirmacao < 50
+      ? `Sua taxa de confirmação está em ${stats.taxaConfirmacao.toFixed(1)}%. Considere ativar os lembretes de WhatsApp para reduzir as faltas.`
+      : `Ótimo desempenho! Sua base chegou a ${stats.totalPacientes} ${labels.termoPaciente}${stats.totalPacientes !== 1 ? 's' : ''}. Que tal campanhas de upsell para os mais ativos?`
+    : 'Carregando análise do período...';
+
+  const proximaData = (() => {
+    const d = new Date();
+    const next = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+    return next.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+  })();
+
+  /* ── Blocos reutilizáveis ── */
+  const CardInsight = () => (
+    <div style={{ background: '#F0FAF4', border: '1.5px solid #D8F3DC', borderRadius: 16, padding: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+        <div style={{ width: 36, height: 36, borderRadius: 10, background: '#D8F3DC', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" />
+            <path d="M7 11V7a5 5 0 0110 0v4" />
+            <circle cx="9" cy="16" r="1" fill="#2D6A4F" stroke="none" />
+            <circle cx="15" cy="16" r="1" fill="#2D6A4F" stroke="none" />
+            <path d="M10 19h4" />
+          </svg>
+        </div>
         <div>
-          <h2 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
-            Gestão & Inteligência
-          </h2>
-          <p className="text-gray-400 mt-1">Dados reais do mês atual consolidando faturamento e performance.</p>
+          <p style={{ fontSize: 13, fontWeight: 500, color: '#1B4332' }}>Insight da Synka IA</p>
+          <p style={{ fontSize: 11, color: '#40916C' }}>Análise do período</p>
         </div>
       </div>
+      <p style={{ fontSize: 13, color: '#2D6A4F', lineHeight: 1.6, fontStyle: 'italic' }}>
+        "{insightTexto}"
+      </p>
+      <p style={{ fontSize: 10, color: '#8A9BB0', marginTop: 12, paddingTop: 12, borderTop: '1px solid #D8F3DC' }}>
+        * Gerado por IA — pode conter erros. Verifique os dados.
+      </p>
+    </div>
+  );
 
-      {/* Tabs */}
-      <div className="flex gap-1 bg-white/5 border border-white/5 rounded-2xl p-1 w-fit">
-        {([
-          { key: 'geral', label: 'Visão Geral' },
-          { key: 'convenios', label: 'Convênios' },
-        ] as { key: Tab; label: string }[]).map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={`px-5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
-              tab === t.key ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300'
-            }`}
+  const CardProximaExportacao = () => (
+    <div style={{ background: 'white', border: '1px solid #EEE9DF', borderRadius: 16, padding: 20, textAlign: 'center' }}>
+      <p style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#8A9BB0', marginBottom: 8 }}>
+        Próxima exportação automática
+      </p>
+      <p style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 500, color: '#1B2B3A', marginBottom: 16 }}>
+        {proximaData}
+      </p>
+      <button style={{ width: '100%', height: 40, border: '1.5px solid #40916C', borderRadius: 8, background: 'transparent', color: '#40916C', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>
+        Agendar exportação
+      </button>
+    </div>
+  );
+
+  const CardExportacoes = () => (
+    <div style={{ background: 'white', border: '1px solid #EEE9DF', borderRadius: 16, padding: 24 }}>
+      <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 500, color: '#1B2B3A', marginBottom: 4 }}>
+        Exportar Relatórios
+      </h3>
+      <p style={{ fontSize: 12, color: '#8A9BB0', marginBottom: 20 }}>Baixe os dados em CSV ou PDF</p>
+      <div className="grid grid-cols-2 gap-2.5">
+        {exportacoes.map(exp => (
+          <a
+            key={exp.tipo}
+            href={exp.api}
+            style={{ background: '#F8F6F1', border: '1px solid #EEE9DF', borderRadius: 10, padding: 14, textDecoration: 'none', display: 'block' }}
           >
-            {t.label}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <IconDownload />
+              <span style={{ fontSize: 11, fontWeight: 600, color: '#40916C', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                {exp.label}
+              </span>
+            </div>
+            <p style={{ fontSize: 11, color: '#8A9BB0' }}>{exp.descricao}</p>
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{ maxWidth: 1100, margin: '0 auto', paddingBottom: 80 }}>
+
+      {/* Header */}
+      <div style={{ marginBottom: 24 }}>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 500, color: '#1B2B3A' }}>
+          Crescimento & Inteligência
+        </h1>
+        <p style={{ fontSize: 14, color: '#8A9BB0', marginTop: 4 }}>
+          Dados reais consolidando faturamento e performance
+        </p>
+      </div>
+
+      {/* Seletor de período */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
+        {PERIODOS.map(p => (
+          <button
+            key={p}
+            onClick={() => setPeriodo(p)}
+            style={{
+              padding: '6px 14px',
+              borderRadius: 20,
+              border: periodo === p ? 'none' : '1px solid #EEE9DF',
+              background: periodo === p ? '#40916C' : 'white',
+              color: periodo === p ? 'white' : '#4A6480',
+              fontSize: 12,
+              fontWeight: 500,
+              cursor: 'pointer',
+            }}
+          >
+            {p}
+          </button>
+        ))}
+      </div>
+
+      {/* Abas por nicho */}
+      <div style={{ display: 'flex', gap: 0, marginBottom: 28, borderBottom: '1px solid #EEE9DF', flexWrap: 'wrap' }}>
+        {abas.map(a => (
+          <button
+            key={a.id}
+            onClick={() => setTab(a.id)}
+            style={{
+              padding: '8px 18px',
+              fontSize: 11,
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              border: 'none',
+              borderBottom: tab === a.id ? '2px solid #40916C' : '2px solid transparent',
+              background: 'transparent',
+              color: tab === a.id ? '#40916C' : '#8A9BB0',
+              cursor: 'pointer',
+              marginBottom: -1,
+              transition: 'color 150ms',
+            }}
+          >
+            {a.label}
           </button>
         ))}
       </div>
 
       {/* ── ABA VISÃO GERAL ── */}
       {tab === 'geral' && (
-        <>
-          {/* KPI Row */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {loading ? (
-              [1, 2, 3].map(i => <div key={i} className="h-32 bg-white/5 animate-pulse rounded-3xl" />)
-            ) : (
-              kpis.map((k, i) => (
-                <div key={i} className="bg-[#0a0a20]/60 border border-white/5 rounded-3xl p-6 flex items-center gap-5 hover:border-white/10 transition-colors">
-                  <div className={`w-14 h-14 ${k.bg} ${k.color} rounded-2xl flex items-center justify-center text-2xl shadow-inner`}>
-                    {k.icon}
+        <div className="space-y-4">
+          {/* KPI cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {loading
+              ? [0, 1, 2].map(i => (
+                  <div key={i} style={{ height: 100, background: 'white', border: '1px solid #EEE9DF', borderRadius: 16 }} className="animate-pulse" />
+                ))
+              : kpis.map((k, i) => (
+                  <div key={i} style={{ background: 'white', border: '1px solid #EEE9DF', borderRadius: 16, padding: 20, position: 'relative', overflow: 'hidden' }}>
+                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: k.cor, borderRadius: '3px 3px 0 0' }} />
+                    <p style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 500, color: '#8A9BB0', marginBottom: 8, marginTop: 4 }}>
+                      {k.label}
+                    </p>
+                    <p style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 500, color: '#1B2B3A', lineHeight: 1 }}>
+                      {k.value}
+                    </p>
+                    <p style={{ fontSize: 11, color: '#8A9BB0', marginTop: 6 }}>{k.sublabel}</p>
                   </div>
-                  <div>
-                    <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest">{k.label}</p>
-                    <p className={`text-2xl font-black ${k.color} mt-0.5`}>{k.value}</p>
-                  </div>
-                </div>
-              ))
-            )}
+                ))
+            }
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Left Col: Top Services */}
-            <div className="lg:col-span-2 space-y-6">
-              <div className="bg-[#0a0a20]/60 border border-white/5 rounded-3xl p-8 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 blur-[100px] pointer-events-none" />
-                <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+          {/* Grid principal */}
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-4 items-start">
+            {/* Coluna principal */}
+            <div className="space-y-4">
+              {/* Faturamento por Serviço */}
+              <div style={{ background: 'white', border: '1px solid #EEE9DF', borderRadius: 16, padding: 24 }}>
+                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 500, color: '#1B2B3A', marginBottom: 20 }}>
                   Faturamento por {labels.termoServico}
                 </h3>
-                <div className="space-y-4">
-                  {loading ? (
-                    <div className="space-y-3">
-                      <div className="h-4 bg-white/5 w-full rounded" />
-                      <div className="h-4 bg-white/5 w-[80%] rounded" />
-                    </div>
-                  ) : stats?.topServicos.length === 0 ? (
-                    <p className="text-sm text-gray-500 italic py-4">Nenhum dado financeiro para este mês.</p>
-                  ) : (
-                    stats?.topServicos.map((s, i) => (
-                      <div key={i} className="flex flex-col gap-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="font-medium text-gray-300">{s.nome}</span>
-                          <span className="font-mono text-emerald-400">R$ {s.faturamento.toFixed(2)}</span>
-                        </div>
-                        <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-indigo-500 to-emerald-400 transition-all duration-1000"
-                            style={{ width: `${(s.faturamento / stats.totalFaturado) * 100}%` }}
-                          />
-                        </div>
-                        <p className="text-[10px] text-gray-500 text-right">{s.count} agendamentos</p>
+                {loading ? (
+                  <div className="space-y-3">
+                    {[80, 60, 45].map((w, i) => (
+                      <div key={i} style={{ height: 12, background: '#F8F6F1', borderRadius: 6, width: `${w}%` }} className="animate-pulse" />
+                    ))}
+                  </div>
+                ) : !stats?.topServicos.length ? (
+                  <p style={{ fontSize: 13, color: '#8A9BB0', fontStyle: 'italic' }}>Nenhum dado para este período.</p>
+                ) : (
+                  stats.topServicos.map((s, i) => (
+                    <div key={i} style={{ marginBottom: 16 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                        <span style={{ fontSize: 13, color: '#1B2B3A' }}>{s.nome}</span>
+                        <span style={{ fontSize: 13, fontWeight: 500, color: '#40916C' }}>
+                          R$ {s.faturamento.toFixed(2)}
+                        </span>
                       </div>
-                    ))
-                  )}
-                </div>
+                      <div style={{ height: 6, background: '#EEE9DF', borderRadius: 3, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${(s.faturamento / maxFaturamento) * 100}%`, background: '#40916C', borderRadius: 3, transition: 'width 0.5s ease' }} />
+                      </div>
+                      <p style={{ fontSize: 11, color: '#8A9BB0', textAlign: 'right', marginTop: 4 }}>{s.count} agendamentos</p>
+                    </div>
+                  ))
+                )}
               </div>
 
-              <div className="bg-[#0a0a20]/60 border border-white/5 rounded-3xl p-8">
-                <h3 className="text-lg font-bold mb-6 flex items-center gap-2">Arquivos para Exportação</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {[
-                    { label: 'Relatório de Clientes', desc: 'Base completa em CSV', api: '/api/export/clientes', color: 'bg-indigo-500/10 text-indigo-400' },
-                    { label: 'Histórico Mensal', desc: 'Todos os horários e status', api: '/api/export/agendamentos', color: 'bg-emerald-500/10 text-emerald-400' },
-                    { label: 'Ranking de Convênios', desc: 'Desempenho por plano', api: '/api/export/convenios', color: 'bg-orange-500/10 text-orange-400' },
-                    { label: 'Exportação Financeira', desc: 'Totais faturados por dia', api: '/api/export/financeiro', color: 'bg-rose-500/10 text-rose-400' },
-                  ].map((exp, i) => (
-                    <a key={i} href={exp.api} className="p-4 border border-white/5 bg-white/2 rounded-2xl hover:bg-white/5 transition-all group">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className={`text-[10px] uppercase font-black px-2 py-0.5 rounded ${exp.color}`}>{exp.label}</span>
-                        <span className="opacity-0 group-hover:opacity-100 transition-opacity">⬇</span>
-                      </div>
-                      <p className="text-xs text-gray-500">{exp.desc}</p>
-                    </a>
-                  ))}
-                </div>
-              </div>
+              {/* Exportações */}
+              <CardExportacoes />
             </div>
 
-            {/* Right Col */}
-            <div className="space-y-6">
-              <div className="bg-gradient-to-br from-[#1a1a40] to-[#0a0a20] border border-[#4a4ae2]/20 rounded-3xl p-6 shadow-xl relative overflow-hidden group">
-                <div className="absolute -top-10 -right-10 w-32 h-32 bg-[#4a4ae2]/20 rounded-full blur-3xl" />
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="3" y="6" width="12" height="9" rx="2" stroke="currentColor" strokeWidth="1.5"/><path d="M6 6V5a3 3 0 016 0v1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><circle cx="6.5" cy="10.5" r="1" fill="currentColor"/><circle cx="11.5" cy="10.5" r="1" fill="currentColor"/><path d="M7 13h4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg></div>
-                  <div>
-                    <h4 className="font-black text-sm uppercase tracking-wider text-white">Insight da Synka</h4>
-                    <p className="text-[10px] text-[#a0a0ff] font-bold tracking-widest">IA ANALYTICS</p>
-                  </div>
-                </div>
-                <div className="bg-white/5 p-4 rounded-2xl text-xs text-gray-300 border border-white/5 italic leading-relaxed">
-                  {stats && stats.taxaConfirmacao < 50 ? (
-                    `"Sua taxa de confirmação está em ${stats.taxaConfirmacao.toFixed(1)}%. Sugiro ativar os Lembretes de WhatsApp no Marketing Hub para reduzir as faltas."`
-                  ) : (
-                    `"Ótimo desempenho! Sua base cresceu para ${stats?.totalPacientes} ${labels.termoPaciente}s. Que tal disparar um combo de upsell para os mais ativos?"`
-                  )}
-                </div>
-              </div>
-
-              <div className="bg-[#0a0a20]/40 border border-white/5 rounded-3xl p-6 text-center">
-                <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-2">Próxima Exportação Automática</p>
-                <p className="text-xl font-bold text-white">01 / Abr / 2026</p>
-                <button className="mt-4 w-full py-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-bold transition-all border border-white/10">Agendar Novo Envio</button>
-              </div>
+            {/* Coluna lateral */}
+            <div className="space-y-4">
+              <CardInsight />
+              <CardProximaExportacao />
             </div>
           </div>
-        </>
+        </div>
       )}
 
-      {/* ── ABA CONVÊNIOS ── */}
-      {tab === 'convenios' && <TabConvenios />}
+      {/* ── ABA SERVIÇOS ── */}
+      {tab === 'servicos' && (
+        <div style={{ background: 'white', border: '1px solid #EEE9DF', borderRadius: 16, padding: 24 }}>
+          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 500, color: '#1B2B3A', marginBottom: 20 }}>
+            Desempenho por {labels.termoServico}
+          </h3>
+          {loading ? (
+            <div className="space-y-3">
+              {[80, 60, 45].map((w, i) => (
+                <div key={i} style={{ height: 12, background: '#F8F6F1', borderRadius: 6, width: `${w}%` }} className="animate-pulse" />
+              ))}
+            </div>
+          ) : !stats?.topServicos.length ? (
+            <p style={{ fontSize: 13, color: '#8A9BB0', fontStyle: 'italic' }}>Nenhum dado para este período.</p>
+          ) : (
+            stats.topServicos.map((s, i) => (
+              <div key={i} style={{ marginBottom: 20 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <span style={{ fontSize: 13, color: '#1B2B3A', fontWeight: 500 }}>{s.nome}</span>
+                  <span style={{ fontSize: 13, fontWeight: 500, color: '#40916C' }}>R$ {s.faturamento.toFixed(2)}</span>
+                </div>
+                <div style={{ height: 6, background: '#EEE9DF', borderRadius: 3, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${(s.faturamento / maxFaturamento) * 100}%`, background: '#40916C', borderRadius: 3, transition: 'width 0.5s ease' }} />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+                  <span style={{ fontSize: 11, color: '#8A9BB0' }}>{s.count} agendamentos</span>
+                  {stats.totalFaturado > 0 && (
+                    <span style={{ fontSize: 11, color: '#8A9BB0' }}>
+                      {((s.faturamento / stats.totalFaturado) * 100).toFixed(0)}% do total
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* ── ABA CLIENTES ── */}
+      {tab === 'clientes' && (
+        <div style={{ background: 'white', border: '1px solid #EEE9DF', borderRadius: 16, padding: 48, textAlign: 'center' }}>
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#EEE9DF" strokeWidth="1.5" style={{ margin: '0 auto 16px' }}>
+            <circle cx="9" cy="7" r="4" />
+            <path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2" />
+            <circle cx="17" cy="7" r="2" />
+            <path d="M23 21v-2a2 2 0 00-2-2h-2" />
+          </svg>
+          <p style={{ fontSize: 14, fontWeight: 500, color: '#1B2B3A', marginBottom: 8 }}>
+            Análise de {labels.termoPaciente}s
+          </p>
+          <p style={{ fontSize: 12, color: '#8A9BB0', marginBottom: 20 }}>
+            Em breve: retenção, LTV e frequência de visitas.
+          </p>
+          <a
+            href="/dashboard/patients"
+            style={{ display: 'inline-block', padding: '8px 20px', borderRadius: 8, background: '#40916C', color: 'white', fontSize: 12, fontWeight: 500, textDecoration: 'none' }}
+          >
+            Ver {labels.termoPaciente}s →
+          </a>
+        </div>
+      )}
+
+      {/* ── ABA CONVÊNIOS (saúde apenas) ── */}
+      {tab === 'convenios' && !isBeleza && <TabConvenios />}
+
+      {/* ── ABA EXPORTAR ── */}
+      {tab === 'exportar' && (
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-4 items-start">
+          <CardExportacoes />
+          <CardProximaExportacao />
+        </div>
+      )}
+
     </div>
   );
 }
