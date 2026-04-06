@@ -1,7 +1,9 @@
 "use client";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { fetchWithAuth } from "@/lib/api-utils";
+import { useNicho } from "@/context/NichoContext";
 
+const NICHOS_BELEZA = ['SALAO_BELEZA', 'BARBEARIA', 'CLINICA_ESTETICA'];
 
 /* ─── Tipos ──────────────────────────────────────────────────── */
 interface Resumo {
@@ -42,9 +44,12 @@ function brl(v: number) {
 function pct(v: number, positiveGood = true) {
   const abs = Math.abs(v).toFixed(1);
   const up = v >= 0;
-  const color = up === positiveGood ? "text-emerald-400" : "text-red-400";
-  const arrow = up ? "↑" : "↓";
-  return <span className={`text-[11px] font-bold ${color}`}>{arrow} {abs}%</span>;
+  const good = up === positiveGood;
+  return (
+    <span style={{ fontSize: 11, fontWeight: 600, color: good ? '#40916C' : '#E24B4A' }}>
+      {up ? '↑' : '↓'} {abs}%
+    </span>
+  );
 }
 function periodoLabel(key: string) {
   const [ano, mes] = key.split("-").map(Number);
@@ -61,20 +66,21 @@ function nextPeriodo(key: string) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 function statusBadge(status: string) {
-  const map: Record<string, string> = {
-    paid: "bg-emerald-500/15 text-emerald-400",
-    pending: "bg-amber-500/15 text-amber-400",
-    canceled: "bg-gray-500/15 text-gray-400",
-    realizado: "bg-emerald-500/15 text-emerald-400",
-    previsto: "bg-blue-500/15 text-blue-400",
+  const styles: Record<string, { bg: string; color: string }> = {
+    paid:      { bg: '#D8F3DC', color: '#2D6A4F' },
+    pending:   { bg: '#FAEEDA', color: '#BA7517' },
+    canceled:  { bg: '#EEE9DF', color: '#8A9BB0' },
+    realizado: { bg: '#D8F3DC', color: '#2D6A4F' },
+    previsto:  { bg: '#DBE9FA', color: '#1A5EA8' },
   };
-  const labels: Record<string, string> = {
-    paid: "Pago", pending: "Pendente", canceled: "Cancelado",
-    realizado: "Realizado", previsto: "Previsto",
+  const labelMap: Record<string, string> = {
+    paid: 'Pago', pending: 'Pendente', canceled: 'Cancelado',
+    realizado: 'Realizado', previsto: 'Previsto',
   };
+  const s = styles[status] || { bg: '#EEE9DF', color: '#8A9BB0' };
   return (
-    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${map[status] || "bg-gray-500/15 text-gray-400"}`}>
-      {labels[status] || status}
+    <span style={{ fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 20, background: s.bg, color: s.color, textTransform: 'uppercase' as const, letterSpacing: '0.4px', flexShrink: 0 }}>
+      {labelMap[status] || status}
     </span>
   );
 }
@@ -101,29 +107,26 @@ function GraficoEvolucao({ dados }: { dados: Resumo["evolucao"] }) {
 
   const receitaPath = dados.map((d, i) => `${i === 0 ? "M" : "L"} ${xPos(i)} ${yPos(d.receita)}`).join(" ");
   const despesaPath = dados.map((d, i) => `${i === 0 ? "M" : "L"} ${xPos(i)} ${yPos(d.despesa)}`).join(" ");
-
   const yLabels = Array.from({ length: steps + 1 }, (_, i) => (maxVal / steps) * i);
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ maxHeight: 200 }}>
-      {/* Grid */}
       {yLabels.map((v, i) => (
         <g key={i}>
-          <line x1={PAD.l} y1={yPos(v)} x2={W - PAD.r} y2={yPos(v)} stroke="#ffffff08" strokeWidth={1} />
-          <text x={PAD.l - 4} y={yPos(v) + 4} textAnchor="end" fontSize={9} fill="#64748b">
+          <line x1={PAD.l} y1={yPos(v)} x2={W - PAD.r} y2={yPos(v)} stroke="#EEE9DF" strokeWidth={1} />
+          <text x={PAD.l - 4} y={yPos(v) + 4} textAnchor="end" fontSize={9} fill="#8A9BB0">
             {v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v.toFixed(0)}
           </text>
         </g>
       ))}
-      {/* Área receita */}
       <defs>
         <linearGradient id="gRec" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#40916C" stopOpacity="0.3" />
+          <stop offset="0%" stopColor="#40916C" stopOpacity="0.12" />
           <stop offset="100%" stopColor="#40916C" stopOpacity="0" />
         </linearGradient>
         <linearGradient id="gDesp" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#f87171" stopOpacity="0.3" />
-          <stop offset="100%" stopColor="#f87171" stopOpacity="0" />
+          <stop offset="0%" stopColor="#E24B4A" stopOpacity="0.08" />
+          <stop offset="100%" stopColor="#E24B4A" stopOpacity="0" />
         </linearGradient>
       </defs>
       {dados.length > 1 && (
@@ -131,22 +134,16 @@ function GraficoEvolucao({ dados }: { dados: Resumo["evolucao"] }) {
           <path d={`${receitaPath} L ${xPos(n - 1)} ${H - PAD.b} L ${xPos(0)} ${H - PAD.b} Z`} fill="url(#gRec)" />
           <path d={`${despesaPath} L ${xPos(n - 1)} ${H - PAD.b} L ${xPos(0)} ${H - PAD.b} Z`} fill="url(#gDesp)" />
           <path d={receitaPath} fill="none" stroke="#40916C" strokeWidth={2} strokeLinejoin="round" />
-          <path d={despesaPath} fill="none" stroke="#f87171" strokeWidth={2} strokeLinejoin="round" />
+          <path d={despesaPath} fill="none" stroke="#E24B4A" strokeWidth={2} strokeLinejoin="round" />
         </>
       )}
-      {/* Pontos */}
       {dados.map((d, i) => (
         <g key={i}>
           <circle cx={xPos(i)} cy={yPos(d.receita)} r={3} fill="#40916C" />
-          <circle cx={xPos(i)} cy={yPos(d.despesa)} r={3} fill="#f87171" />
-          <text x={xPos(i)} y={H - PAD.b + 14} textAnchor="middle" fontSize={9} fill="#64748b">{d.mes}</text>
+          <circle cx={xPos(i)} cy={yPos(d.despesa)} r={3} fill="#E24B4A" />
+          <text x={xPos(i)} y={H - PAD.b + 14} textAnchor="middle" fontSize={9} fill="#8A9BB0">{d.mes}</text>
         </g>
       ))}
-      {/* Legenda */}
-      <circle cx={PAD.l} cy={H - 4} r={4} fill="#40916C" />
-      <text x={PAD.l + 8} y={H} fontSize={9} fill="#94a3b8">Receita</text>
-      <circle cx={PAD.l + 60} cy={H - 4} r={4} fill="#f87171" />
-      <text x={PAD.l + 68} y={H} fontSize={9} fill="#94a3b8">Despesa</text>
     </svg>
   );
 }
@@ -157,12 +154,12 @@ function PizzaReceitas({ resumo }: { resumo: Resumo }) {
     { nome: "Particular", total: resumo.receitaParticular, color: "#40916C" },
     ...(resumo.receitaPorConvenio?.map((c, i) => ({
       nome: c?.nome, total: c?.total,
-      color: ["#52B788", "#74C69D", "#95D5B2", "#B7E4C7"][i % 4],
+      color: ["#C4973A", "#378ADD", "#9B72CF", "#52B788"][i % 4],
     })) || []),
   ].filter((i) => i.total > 0);
 
   const total = itens.reduce((s, i) => s + i.total, 0);
-  if (total === 0) return <p className="text-xs text-gray-500 text-center py-8">Sem dados</p>;
+  if (total === 0) return <p style={{ fontSize: 12, color: '#8A9BB0', textAlign: 'center', padding: '32px 0' }}>Sem dados</p>;
 
   const R = 60; const cx = 80; const cy = 75;
   let angle = -Math.PI / 2;
@@ -178,17 +175,17 @@ function PizzaReceitas({ resumo }: { resumo: Resumo }) {
   });
 
   return (
-    <div className="flex items-center gap-4">
-      <svg viewBox="0 0 160 150" className="shrink-0 w-32">
+    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+      <svg viewBox="0 0 160 150" style={{ flexShrink: 0, width: 120 }}>
         {sectors.map((s, i) => <path key={i} d={s.path} fill={s.color} />)}
-        <circle cx={cx} cy={cy} r={30} fill="#0a0a20" />
+        <circle cx={cx} cy={cy} r={30} fill="white" />
       </svg>
-      <div className="space-y-1.5 flex-1 min-w-0">
+      <div style={{ flex: 1, minWidth: 0 }}>
         {sectors.map((s, i) => (
-          <div key={i} className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full shrink-0" style={{ background: s.color }} />
-            <span className="text-[11px] text-gray-400 truncate">{s.nome}</span>
-            <span className="text-[11px] text-gray-300 ml-auto shrink-0">{(s.frac * 100).toFixed(0)}%</span>
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: s.color }} />
+            <span style={{ fontSize: 11, color: '#4A6480', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{s.nome}</span>
+            <span style={{ fontSize: 11, color: '#1B2B3A', fontWeight: 500, flexShrink: 0 }}>{(s.frac * 100).toFixed(0)}%</span>
           </div>
         ))}
       </div>
@@ -196,29 +193,32 @@ function PizzaReceitas({ resumo }: { resumo: Resumo }) {
   );
 }
 
-/* ─── KPI Card compacto ──────────────────────────────────────── */
-function KpiCard({ label, value, variacao, color, icon }: {
-  label: string; value: string; variacao?: number; color: string; icon: React.ReactNode;
+/* ─── KPI Card ───────────────────────────────────────────────── */
+function KpiCard({ label, value, variacao, color }: {
+  label: string; value: string; variacao?: number; color: string;
 }) {
   return (
-    <div className={`shrink-0 min-w-[160px] bg-[#0a0a20]/60 border border-white/5 rounded-2xl px-4 py-3 relative overflow-hidden`}>
-      <div className={`absolute top-0 left-0 right-0 h-0.5 ${color}`} />
-      <div className="flex items-start justify-between gap-2 mb-1">
-        <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest leading-tight">{label}</p>
-        <span className="opacity-40">{icon}</span>
-      </div>
-      <p className="text-[22px] font-black text-white leading-none">{value}</p>
+    <div style={{ flexShrink: 0, minWidth: 160, background: 'white', border: '1px solid #EEE9DF', borderRadius: 16, padding: '16px 20px', position: 'relative', overflow: 'hidden' }}
+      className="snap-start">
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: color, borderRadius: '3px 3px 0 0' }} />
+      <p style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 500, color: '#8A9BB0', marginTop: 4, marginBottom: 8 }}>
+        {label}
+      </p>
+      <p style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 500, color: '#1B2B3A', lineHeight: 1 }}>
+        {value}
+      </p>
       {variacao !== undefined && (
-        <div className="mt-1">{pct(variacao)}<span className="text-[10px] text-gray-600 ml-1">vs mês ant.</span></div>
+        <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+          {pct(variacao)}
+          <span style={{ fontSize: 10, color: '#8A9BB0' }}>vs mês ant.</span>
+        </div>
       )}
     </div>
   );
 }
 
 /* ─── Modal Marcar Recebido/Pago ─────────────────────────────── */
-function ModalPagar({
-  tx, onClose, onDone,
-}: { tx: Transacao | null; onClose: () => void; onDone: () => void }) {
+function ModalPagar({ tx, onClose, onDone }: { tx: Transacao | null; onClose: () => void; onDone: () => void }) {
   const [forma, setForma] = useState("pix");
   const [data, setData] = useState(new Date().toISOString().split("T")[0]);
   const [saving, setSaving] = useState(false);
@@ -235,27 +235,31 @@ function ModalPagar({
     } catch {} finally { setSaving(false); }
   }
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <div className="bg-[#111827] border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
-        <h3 className="font-bold text-white mb-1">{label}</h3>
-        <p className="text-xs text-gray-400 mb-4 truncate">{tx.descricao}</p>
-        <div className="space-y-3">
+    <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(0,0,0,0.45)' }}>
+      <div style={{ background: 'white', border: '1px solid #EEE9DF', borderRadius: 20, padding: 24, width: '100%', maxWidth: 380, boxShadow: '0 20px 60px rgba(0,0,0,0.12)' }}>
+        <h3 style={{ fontSize: 15, fontWeight: 600, color: '#1B2B3A', marginBottom: 4 }}>{label}</h3>
+        <p style={{ fontSize: 12, color: '#8A9BB0', marginBottom: 20 }}>{tx.descricao}</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div>
-            <label className="block text-[10px] text-gray-500 uppercase font-bold mb-1">Forma de pagamento</label>
-            <select className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none" value={forma} onChange={(e) => setForma(e.target.value)}>
+            <label style={{ display: 'block', fontSize: 10, color: '#8A9BB0', textTransform: 'uppercase', fontWeight: 700, marginBottom: 6 }}>Forma de pagamento</label>
+            <select style={{ width: '100%', border: '1px solid #EEE9DF', borderRadius: 10, padding: '10px 12px', fontSize: 13, color: '#1B2B3A', background: 'white', outline: 'none' }}
+              value={forma} onChange={(e) => setForma(e.target.value)}>
               {["pix", "dinheiro", "cartao_debito", "cartao_credito", "convenio", "boleto"].map((f) => (
                 <option key={f} value={f}>{formaLabel(f)}</option>
               ))}
             </select>
           </div>
           <div>
-            <label className="block text-[10px] text-gray-500 uppercase font-bold mb-1">Data</label>
-            <input type="date" className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none" value={data} onChange={(e) => setData(e.target.value)} />
+            <label style={{ display: 'block', fontSize: 10, color: '#8A9BB0', textTransform: 'uppercase', fontWeight: 700, marginBottom: 6 }}>Data</label>
+            <input type="date" style={{ width: '100%', border: '1px solid #EEE9DF', borderRadius: 10, padding: '10px 12px', fontSize: 13, color: '#1B2B3A', background: 'white', outline: 'none' }}
+              value={data} onChange={(e) => setData(e.target.value)} />
           </div>
         </div>
-        <div className="flex gap-2 mt-5">
-          <button onClick={onClose} className="flex-1 py-2.5 text-sm border border-white/10 rounded-xl text-gray-400 hover:bg-white/5 transition-colors">Cancelar</button>
-          <button disabled={saving} onClick={confirm} className="flex-1 py-2.5 text-sm bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-50 font-bold transition-colors">
+        <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
+          <button onClick={onClose} style={{ flex: 1, padding: '10px 0', fontSize: 13, border: '1px solid #EEE9DF', borderRadius: 10, color: '#8A9BB0', background: 'white', cursor: 'pointer' }}>
+            Cancelar
+          </button>
+          <button disabled={saving} onClick={confirm} style={{ flex: 1, padding: '10px 0', fontSize: 13, fontWeight: 600, background: '#40916C', color: 'white', border: 'none', borderRadius: 10, cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
             {saving ? "…" : "Confirmar"}
           </button>
         </div>
@@ -307,30 +311,49 @@ function ModalTransacao({
     } catch { setError("Erro ao salvar"); } finally { setSaving(false); }
   }
 
+  const inputStyle: React.CSSProperties = {
+    width: '100%', border: '1px solid #EEE9DF', borderRadius: 10,
+    padding: '10px 12px', fontSize: 13, color: '#1B2B3A',
+    background: 'white', outline: 'none', boxSizing: 'border-box',
+  };
+  const labelStyle: React.CSSProperties = {
+    display: 'block', fontSize: 10, color: '#8A9BB0',
+    textTransform: 'uppercase', fontWeight: 700, marginBottom: 6,
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
-      <div className="bg-[#0f1623] border border-white/10 rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-5 border-b border-white/5">
-          <div className="flex gap-2">
+    <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(0,0,0,0.5)' }}>
+      <div style={{ background: 'white', border: '1px solid #EEE9DF', borderRadius: 20, width: '100%', maxWidth: 500, boxShadow: '0 20px 60px rgba(0,0,0,0.12)', maxHeight: '90vh', overflowY: 'auto' }}>
+        {/* Header do modal */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 20px 16px', borderBottom: '1px solid #EEE9DF' }}>
+          <div style={{ display: 'flex', gap: 8 }}>
             {(["income", "expense"] as const).map((t) => (
-              <button key={t} onClick={() => setTipo(t)}
-                className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${tipo === t ? (t === "income" ? "bg-emerald-600 text-white" : "bg-red-600 text-white") : "text-gray-500 hover:text-gray-300"}`}>
+              <button key={t} onClick={() => setTipo(t)} style={{
+                padding: '6px 16px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: 'none',
+                background: tipo === t ? (t === "income" ? '#40916C' : '#E24B4A') : '#F8F6F1',
+                color: tipo === t ? 'white' : '#8A9BB0',
+              }}>
                 {t === "income" ? "Receita" : "Despesa"}
               </button>
             ))}
           </div>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-300 rounded-lg hover:bg-white/5 transition-colors"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M9 3L3 9M3 3l6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg></button>
+          <button onClick={onClose} style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #EEE9DF', borderRadius: 8, background: 'white', cursor: 'pointer', color: '#8A9BB0' }}>
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M9 3L3 9M3 3l6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
+          </button>
         </div>
-        <div className="p-5 space-y-4">
-          {error && <p className="text-xs text-red-400 bg-red-500/10 px-3 py-2 rounded-lg">{error}</p>}
-          <div className="grid grid-cols-2 gap-3">
+
+        <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {error && (
+            <p style={{ fontSize: 12, color: '#E24B4A', background: '#FCEBEB', padding: '10px 14px', borderRadius: 8 }}>{error}</p>
+          )}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
-              <label className="block text-[10px] text-gray-500 uppercase font-bold mb-1">Valor (R$) *</label>
-              <input type="number" step="0.01" className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500" placeholder="0,00" value={valor} onChange={(e) => setValor(e.target.value)} autoFocus />
+              <label style={labelStyle}>Valor (R$) *</label>
+              <input type="number" step="0.01" style={inputStyle} placeholder="0,00" value={valor} onChange={(e) => setValor(e.target.value)} autoFocus />
             </div>
             <div>
-              <label className="block text-[10px] text-gray-500 uppercase font-bold mb-1">Forma de Pagamento</label>
-              <select className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none" value={forma} onChange={(e) => setForma(e.target.value)}>
+              <label style={labelStyle}>Forma de Pagamento</label>
+              <select style={inputStyle} value={forma} onChange={(e) => setForma(e.target.value)}>
                 {["pix", "dinheiro", "cartao_debito", "cartao_credito", "convenio", "boleto"].map((f) => (
                   <option key={f} value={f}>{formaLabel(f)}</option>
                 ))}
@@ -338,13 +361,13 @@ function ModalTransacao({
             </div>
           </div>
           <div>
-            <label className="block text-[10px] text-gray-500 uppercase font-bold mb-1">Descrição *</label>
-            <input className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500" placeholder="Ex: Consulta Dr. Carlos" value={descricao} onChange={(e) => setDescricao(e.target.value)} />
+            <label style={labelStyle}>Descrição *</label>
+            <input style={inputStyle} placeholder="Ex: Consulta Dr. Carlos" value={descricao} onChange={(e) => setDescricao(e.target.value)} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
-              <label className="block text-[10px] text-gray-500 uppercase font-bold mb-1">Categoria</label>
-              <select className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none" value={categoria} onChange={(e) => setCategoria(e.target.value)}>
+              <label style={labelStyle}>Categoria</label>
+              <select style={inputStyle} value={categoria} onChange={(e) => setCategoria(e.target.value)}>
                 <option value="">Selecionar…</option>
                 {(tipo === "income" ? categoriasReceita : categoriasDespesa).map((c) => (
                   <option key={c} value={c}>{c.replace(/_/g, " ")}</option>
@@ -353,8 +376,8 @@ function ModalTransacao({
             </div>
             {tipo === "income" && profissionais.length > 0 && (
               <div>
-                <label className="block text-[10px] text-gray-500 uppercase font-bold mb-1">Profissional</label>
-                <select className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none" value={profId} onChange={(e) => setProfId(e.target.value)}>
+                <label style={labelStyle}>Profissional</label>
+                <select style={inputStyle} value={profId} onChange={(e) => setProfId(e.target.value)}>
                   <option value="">Nenhum</option>
                   {profissionais?.map((p) => <option key={p?.id} value={p?.id}>{p?.nome}</option>)}
                 </select>
@@ -363,40 +386,50 @@ function ModalTransacao({
           </div>
           {tipo === "expense" && (
             <div>
-              <label className="block text-[10px] text-gray-500 uppercase font-bold mb-2">Status</label>
-              <div className="flex gap-2">
+              <label style={labelStyle}>Status</label>
+              <div style={{ display: 'flex', gap: 8 }}>
                 {(["paid", "pending"] as const).map((s) => (
-                  <button key={s} onClick={() => setStatusTx(s)}
-                    className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all ${statusTx === s ? "bg-white/10 text-white border-white/20" : "text-gray-500 border-white/5 hover:border-white/10"}`}>
+                  <button key={s} onClick={() => setStatusTx(s)} style={{
+                    flex: 1, padding: '10px 0', borderRadius: 10, fontSize: 12, fontWeight: 500, cursor: 'pointer',
+                    border: '1px solid ' + (statusTx === s ? '#40916C' : '#EEE9DF'),
+                    background: statusTx === s ? '#F0FAF4' : 'white',
+                    color: statusTx === s ? '#40916C' : '#8A9BB0',
+                  }}>
                     {s === "paid" ? "Pago agora" : "Registrar pendente"}
                   </button>
                 ))}
               </div>
             </div>
           )}
-          <div className="grid grid-cols-2 gap-3">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             {(tipo === "income" || statusTx === "paid") && (
               <div>
-                <label className="block text-[10px] text-gray-500 uppercase font-bold mb-1">Data do pagamento</label>
-                <input type="date" className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none" value={dataPgto} onChange={(e) => setDataPgto(e.target.value)} />
+                <label style={labelStyle}>Data do pagamento</label>
+                <input type="date" style={inputStyle} value={dataPgto} onChange={(e) => setDataPgto(e.target.value)} />
               </div>
             )}
             {tipo === "expense" && statusTx === "pending" && (
               <div>
-                <label className="block text-[10px] text-gray-500 uppercase font-bold mb-1">Data de vencimento</label>
-                <input type="date" className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none" value={dataVenc} onChange={(e) => setDataVenc(e.target.value)} />
+                <label style={labelStyle}>Data de vencimento</label>
+                <input type="date" style={inputStyle} value={dataVenc} onChange={(e) => setDataVenc(e.target.value)} />
               </div>
             )}
           </div>
           <div>
-            <label className="block text-[10px] text-gray-500 uppercase font-bold mb-1">Observação</label>
-            <textarea rows={2} className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none resize-none" value={obs} onChange={(e) => setObs(e.target.value)} />
+            <label style={labelStyle}>Observação</label>
+            <textarea rows={2} style={{ ...inputStyle, resize: 'none' }} value={obs} onChange={(e) => setObs(e.target.value)} />
           </div>
         </div>
-        <div className="flex gap-2 p-5 pt-0">
-          <button onClick={onClose} className="flex-1 py-3 text-sm border border-white/10 rounded-xl text-gray-400 hover:bg-white/5 transition-colors">Cancelar</button>
-          <button disabled={saving} onClick={handleSave}
-            className={`flex-1 py-3 text-sm font-bold rounded-xl text-white transition-colors disabled:opacity-50 ${tipo === "income" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-red-600 hover:bg-red-700"}`}>
+
+        <div style={{ display: 'flex', gap: 8, padding: '0 20px 20px' }}>
+          <button onClick={onClose} style={{ flex: 1, padding: '12px 0', fontSize: 13, border: '1px solid #EEE9DF', borderRadius: 10, color: '#8A9BB0', background: 'white', cursor: 'pointer' }}>
+            Cancelar
+          </button>
+          <button disabled={saving} onClick={handleSave} style={{
+            flex: 1, padding: '12px 0', fontSize: 13, fontWeight: 600, border: 'none', borderRadius: 10,
+            background: tipo === "income" ? '#40916C' : '#E24B4A',
+            color: 'white', cursor: 'pointer', opacity: saving ? 0.6 : 1,
+          }}>
             {saving ? "Salvando…" : "Confirmar"}
           </button>
         </div>
@@ -417,18 +450,30 @@ function TxMenu({ tx, onPagar, onCancelar, onRecibo }: {
     return () => document.removeEventListener("mousedown", h);
   }, [open]);
   return (
-    <div className="relative" ref={ref}>
-      <button onClick={() => setOpen((v) => !v)} className="w-7 h-7 flex items-center justify-center text-gray-500 hover:text-gray-300 rounded-lg hover:bg-white/5 transition-colors text-sm">⋯</button>
+    <div style={{ position: 'relative' }} ref={ref}>
+      <button onClick={() => setOpen((v) => !v)} style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #EEE9DF', borderRadius: 6, background: 'white', cursor: 'pointer', color: '#8A9BB0', fontSize: 14 }}>⋯</button>
       {open && (
-        <div className="absolute right-0 top-8 z-20 bg-[#1a2035] border border-white/10 rounded-xl shadow-xl py-1 min-w-[140px]">
+        <div style={{ position: 'absolute', right: 0, top: 34, zIndex: 20, background: 'white', border: '1px solid #EEE9DF', borderRadius: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.1)', minWidth: 150, overflow: 'hidden' }}>
           {tx.status === "pending" && (
-            <button onClick={() => { setOpen(false); onPagar(); }} className="w-full text-left px-3 py-2 text-xs text-gray-300 hover:bg-white/5">Marcar como pago</button>
+            <button onClick={() => { setOpen(false); onPagar(); }} style={{ width: '100%', textAlign: 'left', padding: '10px 14px', fontSize: 12, color: '#1B2B3A', background: 'white', border: 'none', cursor: 'pointer' }}
+              onMouseEnter={e => (e.currentTarget.style.background = '#F8F6F1')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'white')}>
+              Marcar como pago
+            </button>
           )}
           {tx.status === "paid" && tx.numeroRecibo && (
-            <button onClick={() => { setOpen(false); onRecibo(); }} className="w-full text-left px-3 py-2 text-xs text-gray-300 hover:bg-white/5">Imprimir recibo</button>
+            <button onClick={() => { setOpen(false); onRecibo(); }} style={{ width: '100%', textAlign: 'left', padding: '10px 14px', fontSize: 12, color: '#1B2B3A', background: 'white', border: 'none', cursor: 'pointer' }}
+              onMouseEnter={e => (e.currentTarget.style.background = '#F8F6F1')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'white')}>
+              Imprimir recibo
+            </button>
           )}
           {tx.status !== "canceled" && (
-            <button onClick={() => { setOpen(false); onCancelar(); }} className="w-full text-left px-3 py-2 text-xs text-red-400 hover:bg-white/5">Cancelar</button>
+            <button onClick={() => { setOpen(false); onCancelar(); }} style={{ width: '100%', textAlign: 'left', padding: '10px 14px', fontSize: 12, color: '#E24B4A', background: 'white', border: 'none', cursor: 'pointer' }}
+              onMouseEnter={e => (e.currentTarget.style.background = '#F8F6F1')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'white')}>
+              Cancelar
+            </button>
           )}
         </div>
       )}
@@ -451,32 +496,46 @@ function TxItem({ tx, onRefresh }: { tx: Transacao; onRefresh: () => void }) {
 
   return (
     <>
-      <div className="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.02] transition-colors border-b border-white/[0.03] last:border-0">
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm shrink-0 ${isReceita ? "bg-emerald-500/15 text-emerald-400" : "bg-red-500/15 text-red-400"}`}>
-          {isReceita ? "↑" : "↓"}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', borderBottom: '1px solid #EEE9DF', background: 'white', transition: 'background 150ms' }}
+        className="last:border-0"
+        onMouseEnter={e => (e.currentTarget.style.background = '#F8F6F1')}
+        onMouseLeave={e => (e.currentTarget.style.background = 'white')}>
+
+        {/* Ícone direcional */}
+        <div style={{ width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: isReceita ? '#F0FAF4' : '#FCEBEB' }}>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d={isReceita ? 'M7 11V3M3 7l4-4 4 4' : 'M7 3v8M11 7l-4 4-4-4'}
+              stroke={isReceita ? '#40916C' : '#E24B4A'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-sm font-medium text-gray-200 truncate">{tx.descricao || "—"}</p>
+
+        {/* Descrição */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <p style={{ fontSize: 13, fontWeight: 500, color: '#1B2B3A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {tx.descricao || "—"}
+            </p>
             {statusBadge(tx.status)}
           </div>
-          <p className="text-[11px] text-gray-500 mt-0.5 flex flex-wrap items-center gap-1.5">
-            {tx.agendamento?.paciente && <span>{tx.agendamento.paciente?.nome}</span>}
-            {tx.profissional && <><span>•</span><span>{tx.profissional?.nome}</span></>}
-            <span>•</span>
+          <p style={{ fontSize: 11, color: '#8A9BB0', marginTop: 2 }}>
+            {tx.agendamento?.paciente && <span>{tx.agendamento.paciente?.nome} · </span>}
+            {tx.profissional && <span>{tx.profissional?.nome} · </span>}
             <span>{new Date(tx.createdAt).toLocaleDateString("pt-BR")}</span>
-            {tx.formaPagamento && <><span>•</span><span>{formaLabel(tx.formaPagamento)}</span></>}
+            {tx.formaPagamento && <span> · {formaLabel(tx.formaPagamento)}</span>}
           </p>
         </div>
-        <div className="text-right shrink-0 flex items-center gap-2">
+
+        {/* Valor e ações */}
+        <div style={{ textAlign: 'right', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
           <div>
-            <p className={`text-sm font-bold tabular-nums ${isReceita ? "text-emerald-400" : "text-red-400"}`}>
+            <p style={{ fontSize: 14, fontWeight: 600, color: isReceita ? '#40916C' : '#E24B4A' }}>
               {isReceita ? "+" : "-"}{brl(tx.valor)}
             </p>
-            {tx.numeroRecibo && <p className="text-[10px] text-gray-600">{tx.numeroRecibo}</p>}
+            {tx.numeroRecibo && <p style={{ fontSize: 10, color: '#8A9BB0' }}>{tx.numeroRecibo}</p>}
           </div>
           {tx.status === "pending" && (
-            <button onClick={() => setModalPagar(true)} className="hidden sm:block px-2 py-1 text-[10px] font-bold border border-emerald-500/30 text-emerald-400 rounded-lg hover:bg-emerald-500/10 transition-colors whitespace-nowrap">
+            <button onClick={() => setModalPagar(true)} style={{ padding: '4px 10px', fontSize: 11, fontWeight: 500, border: '1px solid #40916C', color: '#40916C', borderRadius: 6, background: 'transparent', cursor: 'pointer' }}
+              className="hidden sm:block">
               {isReceita ? "Receber" : "Pagar"}
             </button>
           )}
@@ -516,43 +575,48 @@ function TabExtrato({ periodo, onRefresh: parentRefresh }: { periodo: string; on
   }, [page, filtroTipo, q, dataInicio, dataFim]);
 
   useEffect(() => { load(); }, [load]);
-
   function refresh() { load(); parentRefresh(); }
 
   return (
-    <div className="space-y-3">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {/* Filtros */}
-      <div className="flex flex-wrap gap-2">
-        <div className="flex gap-1 bg-white/5 border border-white/5 rounded-xl p-0.5">
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 2, background: '#F8F6F1', border: '1px solid #EEE9DF', borderRadius: 10, padding: 3 }}>
           {["todos", "income", "expense"].map((t) => (
-            <button key={t} onClick={() => { setFiltroTipo(t); setPage(1); }}
-              className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ${filtroTipo === t ? "bg-white/10 text-white" : "text-gray-500 hover:text-gray-300"}`}>
+            <button key={t} onClick={() => { setFiltroTipo(t); setPage(1); }} style={{
+              padding: '6px 12px', borderRadius: 7, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: 'none',
+              background: filtroTipo === t ? 'white' : 'transparent',
+              color: filtroTipo === t ? '#1B2B3A' : '#8A9BB0',
+              boxShadow: filtroTipo === t ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+            }}>
               {t === "todos" ? "Todos" : t === "income" ? "Receitas" : "Despesas"}
             </button>
           ))}
         </div>
-        <div className="flex-1 min-w-[160px] relative">
-          <input className="w-full bg-white/5 border border-white/5 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-white/20 placeholder-gray-600"
-            placeholder="Buscar descrição…" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} />
-        </div>
-        <p className="text-[11px] text-gray-600 self-center">{total} transações</p>
+        <input style={{ flex: 1, minWidth: 160, border: '1px solid #EEE9DF', borderRadius: 10, padding: '8px 12px', fontSize: 12, color: '#1B2B3A', background: 'white', outline: 'none' }}
+          placeholder="Buscar descrição…" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} />
+        <span style={{ fontSize: 11, color: '#8A9BB0', alignSelf: 'center' }}>{total} transações</span>
       </div>
+
       {/* Lista */}
-      <div className="bg-[#0a0a20]/60 border border-white/5 rounded-2xl overflow-hidden">
+      <div style={{ background: 'white', border: '1px solid #EEE9DF', borderRadius: 16, overflow: 'hidden' }}>
         {loading ? (
-          <div className="py-12 text-center"><div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto" /></div>
+          <div style={{ padding: '48px 0', textAlign: 'center' }}>
+            <div style={{ width: 20, height: 20, border: '2px solid #40916C', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite', margin: '0 auto' }} />
+          </div>
         ) : txs.length === 0 ? (
-          <div className="py-12 text-center text-gray-600 text-xs">Nenhuma transação encontrada</div>
+          <div style={{ padding: '48px 0', textAlign: 'center', fontSize: 12, color: '#8A9BB0' }}>Nenhuma transação encontrada</div>
         ) : (
           txs.map((tx) => <TxItem key={tx.id} tx={tx} onRefresh={refresh} />)
         )}
       </div>
+
       {/* Paginação */}
       {pages > 1 && (
-        <div className="flex items-center justify-center gap-2">
-          <button disabled={page === 1} onClick={() => setPage((p) => p - 1)} className="px-3 py-1.5 text-xs border border-white/10 rounded-lg text-gray-400 disabled:opacity-30 hover:bg-white/5">← Ant</button>
-          <span className="text-xs text-gray-500">{page} / {pages}</span>
-          <button disabled={page === pages} onClick={() => setPage((p) => p + 1)} className="px-3 py-1.5 text-xs border border-white/10 rounded-lg text-gray-400 disabled:opacity-30 hover:bg-white/5">Próx →</button>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          <button disabled={page === 1} onClick={() => setPage((p) => p - 1)} style={{ padding: '6px 12px', fontSize: 12, border: '1px solid #EEE9DF', borderRadius: 8, color: '#4A6480', background: 'white', cursor: 'pointer', opacity: page === 1 ? 0.4 : 1 }}>← Ant</button>
+          <span style={{ fontSize: 12, color: '#8A9BB0' }}>{page} / {pages}</span>
+          <button disabled={page === pages} onClick={() => setPage((p) => p + 1)} style={{ padding: '6px 12px', fontSize: 12, border: '1px solid #EEE9DF', borderRadius: 8, color: '#4A6480', background: 'white', cursor: 'pointer', opacity: page === pages ? 0.4 : 1 }}>Próx →</button>
         </div>
       )}
     </div>
@@ -586,28 +650,38 @@ function TabPendentes({ tipo, periodo, onRefresh: parentRefresh }: { tipo: "inco
   const vencidas = txs.filter((t) => t.dataVencimento && new Date(t.dataVencimento) < new Date());
 
   return (
-    <div className="space-y-3">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {vencidas.length > 0 && (
-        <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3 flex items-center gap-3">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0 text-amber-400"><path d="M8 1.333L14.667 13.333H1.333L8 1.333z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M8 6v3M8 11h.008" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
-          <div>
-            <p className="text-xs font-bold text-amber-400">{vencidas.length} {vencidas.length === 1 ? "cobrança vencida" : "cobranças vencidas"} — {brl(vencidas.reduce((s, t) => s + t.valor, 0))}</p>
-          </div>
+        <div style={{ background: '#FAEEDA', border: '1px solid #F4C97A', borderRadius: 12, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0 }}>
+            <path d="M8 1.333L14.667 13.333H1.333L8 1.333z" stroke="#BA7517" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M8 6v3M8 11h.008" stroke="#BA7517" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
+          <p style={{ fontSize: 12, fontWeight: 600, color: '#BA7517' }}>
+            {vencidas.length} {vencidas.length === 1 ? "cobrança vencida" : "cobranças vencidas"} — {brl(vencidas.reduce((s, t) => s + t.valor, 0))}
+          </p>
         </div>
       )}
-      <div className="bg-[#0a0a20]/60 border border-white/5 rounded-2xl overflow-hidden">
+
+      <div style={{ background: 'white', border: '1px solid #EEE9DF', borderRadius: 16, overflow: 'hidden' }}>
         {loading ? (
-          <div className="py-12 text-center"><div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto" /></div>
+          <div style={{ padding: '48px 0', textAlign: 'center' }}>
+            <div style={{ width: 20, height: 20, border: '2px solid #40916C', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite', margin: '0 auto' }} />
+          </div>
         ) : txs.length === 0 ? (
-          <div className="py-12 text-center text-gray-600 text-xs">Nada a {label} neste período</div>
+          <div style={{ padding: '48px 0', textAlign: 'center', fontSize: 12, color: '#8A9BB0' }}>Nada a {label} neste período</div>
         ) : (
           txs.map((tx) => <TxItem key={tx.id} tx={tx} onRefresh={refresh} />)
         )}
       </div>
+
       {txs.length > 0 && (
-        <div className="flex justify-between items-center px-1">
-          <span className="text-xs text-gray-500">{txs.length} item(s)</span>
-          <span className="text-sm font-bold text-white">Total a {label}: <span className={tipo === "income" ? "text-emerald-400" : "text-red-400"}>{brl(totalPendente)}</span></span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px' }}>
+          <span style={{ fontSize: 12, color: '#8A9BB0' }}>{txs.length} item(s)</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#1B2B3A' }}>
+            Total a {label}:{' '}
+            <span style={{ color: tipo === "income" ? '#40916C' : '#E24B4A' }}>{brl(totalPendente)}</span>
+          </span>
         </div>
       )}
     </div>
@@ -650,50 +724,56 @@ function TabRepasses({ periodo, onRefresh: parentRefresh }: { periodo: string; o
   const total = repasses.reduce((s, r) => s + r.totalRepasse, 0);
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-gray-500">Repasses calculados com base nos atendimentos concluídos</p>
-        <button disabled={calculando} onClick={calcular}
-          className="px-4 py-2 text-xs font-bold bg-white/5 border border-white/10 rounded-xl text-gray-300 hover:bg-white/10 disabled:opacity-50 transition-colors">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <p style={{ fontSize: 12, color: '#8A9BB0' }}>Repasses calculados com base nos atendimentos concluídos</p>
+        <button disabled={calculando} onClick={calcular} style={{ padding: '8px 16px', fontSize: 12, fontWeight: 500, border: '1px solid #EEE9DF', borderRadius: 10, color: '#4A6480', background: 'white', cursor: 'pointer', opacity: calculando ? 0.6 : 1 }}>
           {calculando ? "Calculando…" : "Calcular repasses do mês"}
         </button>
       </div>
-      <div className="bg-[#0a0a20]/60 border border-white/5 rounded-2xl overflow-hidden">
+
+      <div style={{ background: 'white', border: '1px solid #EEE9DF', borderRadius: 16, overflow: 'hidden' }}>
         {loading ? (
-          <div className="py-12 text-center"><div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto" /></div>
+          <div style={{ padding: '48px 0', textAlign: 'center' }}>
+            <div style={{ width: 20, height: 20, border: '2px solid #40916C', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite', margin: '0 auto' }} />
+          </div>
         ) : repasses.length === 0 ? (
-          <div className="py-12 text-center text-gray-600 text-xs">
+          <div style={{ padding: '48px 0', textAlign: 'center', fontSize: 12, color: '#8A9BB0' }}>
             <p>Nenhum repasse calculado para este período.</p>
-            <p className="mt-1">Clique em "Calcular repasses do mês" para gerar.</p>
+            <p style={{ marginTop: 4 }}>Clique em "Calcular repasses do mês" para gerar.</p>
           </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead><tr className="border-b border-white/5">
-              <th className="text-left px-4 py-3 text-[10px] text-gray-500 uppercase font-bold">Profissional</th>
-              <th className="text-right px-4 py-3 text-[10px] text-gray-500 uppercase font-bold hidden sm:table-cell">Receita</th>
-              <th className="text-right px-4 py-3 text-[10px] text-gray-500 uppercase font-bold hidden sm:table-cell">%</th>
-              <th className="text-right px-4 py-3 text-[10px] text-gray-500 uppercase font-bold">Repasse</th>
-              <th className="text-center px-4 py-3 text-[10px] text-gray-500 uppercase font-bold">Status</th>
-              <th className="w-10" />
-            </tr></thead>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid #EEE9DF' }}>
+                <th style={{ textAlign: 'left', padding: '12px 20px', fontSize: 10, color: '#8A9BB0', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.08em' }}>Profissional</th>
+                <th style={{ textAlign: 'right', padding: '12px 20px', fontSize: 10, color: '#8A9BB0', textTransform: 'uppercase', fontWeight: 700 }} className="hidden sm:table-cell">Receita</th>
+                <th style={{ textAlign: 'right', padding: '12px 20px', fontSize: 10, color: '#8A9BB0', textTransform: 'uppercase', fontWeight: 700 }} className="hidden sm:table-cell">%</th>
+                <th style={{ textAlign: 'right', padding: '12px 20px', fontSize: 10, color: '#8A9BB0', textTransform: 'uppercase', fontWeight: 700 }}>Repasse</th>
+                <th style={{ textAlign: 'center', padding: '12px 20px', fontSize: 10, color: '#8A9BB0', textTransform: 'uppercase', fontWeight: 700 }}>Status</th>
+                <th style={{ width: 40 }} />
+              </tr>
+            </thead>
             <tbody>
               {repasses.map((r) => (
-                <tr key={r.id} className="border-b border-white/[0.03] hover:bg-white/[0.02]">
-                  <td className="px-4 py-3">
-                    <p className="font-medium text-gray-200 text-sm">{r?.profissional?.nome}</p>
-                    {r.profissional.especialidade && <p className="text-[11px] text-gray-500">{r.profissional.especialidade}</p>}
+                <tr key={r.id} style={{ borderBottom: '1px solid #F8F6F1' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = '#F8F6F1')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'white')}>
+                  <td style={{ padding: '12px 20px' }}>
+                    <p style={{ fontSize: 13, fontWeight: 500, color: '#1B2B3A' }}>{r?.profissional?.nome}</p>
+                    {r.profissional.especialidade && <p style={{ fontSize: 11, color: '#8A9BB0' }}>{r.profissional.especialidade}</p>}
                   </td>
-                  <td className="px-4 py-3 text-right text-gray-400 tabular-nums hidden sm:table-cell">{brl(r.totalBruto)}</td>
-                  <td className="px-4 py-3 text-right text-gray-500 tabular-nums hidden sm:table-cell">{r.percentual.toFixed(0)}%</td>
-                  <td className="px-4 py-3 text-right font-bold text-emerald-400 tabular-nums">{brl(r.totalRepasse)}</td>
-                  <td className="px-4 py-3 text-center">
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${r.status === "pago" ? "bg-emerald-500/15 text-emerald-400" : "bg-amber-500/15 text-amber-400"}`}>
+                  <td style={{ padding: '12px 20px', textAlign: 'right', fontSize: 13, color: '#4A6480' }} className="hidden sm:table-cell">{brl(r.totalBruto)}</td>
+                  <td style={{ padding: '12px 20px', textAlign: 'right', fontSize: 13, color: '#8A9BB0' }} className="hidden sm:table-cell">{r.percentual.toFixed(0)}%</td>
+                  <td style={{ padding: '12px 20px', textAlign: 'right', fontSize: 13, fontWeight: 600, color: '#40916C' }}>{brl(r.totalRepasse)}</td>
+                  <td style={{ padding: '12px 20px', textAlign: 'center' }}>
+                    <span style={{ fontSize: 10, fontWeight: 600, padding: '3px 10px', borderRadius: 20, background: r.status === "pago" ? '#D8F3DC' : '#FAEEDA', color: r.status === "pago" ? '#2D6A4F' : '#BA7517', textTransform: 'uppercase' as const }}>
                       {r.status === "pago" ? "Pago" : "Pendente"}
                     </span>
                   </td>
-                  <td className="px-2 py-3">
+                  <td style={{ padding: '8px 12px' }}>
                     {r.status === "pendente" && (
-                      <button onClick={() => marcarPago(r.id)} className="text-[10px] text-emerald-400 hover:text-emerald-300 font-bold whitespace-nowrap">Pagar</button>
+                      <button onClick={() => marcarPago(r.id)} style={{ fontSize: 11, fontWeight: 500, color: '#40916C', background: 'none', border: 'none', cursor: 'pointer' }}>Pagar</button>
                     )}
                   </td>
                 </tr>
@@ -702,9 +782,12 @@ function TabRepasses({ periodo, onRefresh: parentRefresh }: { periodo: string; o
           </table>
         )}
       </div>
+
       {repasses.length > 0 && (
-        <div className="flex justify-end">
-          <span className="text-sm font-bold text-white">Total repasses: <span className="text-emerald-400">{brl(total)}</span></span>
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#1B2B3A' }}>
+            Total repasses: <span style={{ color: '#40916C' }}>{brl(total)}</span>
+          </span>
         </div>
       )}
     </div>
@@ -713,6 +796,9 @@ function TabRepasses({ periodo, onRefresh: parentRefresh }: { periodo: string; o
 
 /* ─── Página principal ────────────────────────────────────────── */
 export default function FinancePage() {
+  const { nicho } = useNicho();
+  const isBeleza = NICHOS_BELEZA.includes(nicho);
+
   const hoje = new Date();
   const [periodo, setPeriodo] = useState(`${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`);
   const [resumo, setResumo] = useState<Resumo | null>(null);
@@ -736,7 +822,6 @@ export default function FinancePage() {
     fetchWithAuth("/api/team").then((r) => r.json()).then((d) => setProfissionais(Array.isArray(d) ? d : [])).catch(() => {});
   }, []);
 
-  // Exportar CSV
   function exportarCSV() {
     if (!resumo) return;
     const [ano, mes] = periodo.split("-").map(Number);
@@ -747,26 +832,48 @@ export default function FinancePage() {
 
   const periodoMaximo = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
 
+  const tabs: { key: Tab; label: string }[] = [
+    { key: "extrato", label: "Extrato" },
+    { key: "receber", label: `A Receber${resumo && resumo.aReceber > 0 ? ` · ${brl(resumo.aReceber)}` : ""}` },
+    { key: "pagar", label: `A Pagar${resumo && resumo.aPagar > 0 ? ` · ${brl(resumo.aPagar)}` : ""}` },
+    { key: "repasses", label: "Repasses" },
+  ];
+
   return (
-    <div className="max-w-6xl mx-auto space-y-5 pb-16 animate-in fade-in duration-300">
+    <div style={{ maxWidth: 1100, margin: '0 auto', paddingBottom: 64 }} className="space-y-5 animate-in fade-in duration-300">
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }} className="sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-2xl font-extrabold tracking-tight text-white">Financeiro</h2>
-          <p className="text-gray-500 text-sm mt-0.5">Gestão financeira da clínica</p>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 500, color: '#1B2B3A' }}>Financeiro</h2>
+          <p style={{ fontSize: 13, color: '#8A9BB0', marginTop: 2 }}>
+            {isBeleza ? 'Gestão financeira do seu negócio' : 'Gestão financeira da clínica'}
+          </p>
         </div>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-          {/* Seletor período */}
-          <div className="flex items-center gap-1 bg-white/5 border border-white/5 rounded-xl px-2 py-1.5">
-            <button onClick={() => setPeriodo(prevPeriodo(periodo))} className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-white transition-colors rounded-lg hover:bg-white/5">←</button>
-            <span className="text-sm font-medium text-white px-2 min-w-[140px] text-center capitalize">{periodoLabel(periodo)}</span>
-            <button disabled={periodo >= periodoMaximo} onClick={() => setPeriodo(nextPeriodo(periodo))} className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-white disabled:opacity-30 transition-colors rounded-lg hover:bg-white/5">→</button>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }} className="sm:flex-row sm:items-center">
+          {/* Navegador de período */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 0, background: 'white', border: '1px solid #EEE9DF', borderRadius: 10 }}>
+            <button onClick={() => setPeriodo(prevPeriodo(periodo))} style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', color: '#8A9BB0', cursor: 'pointer', fontSize: 14 }}>←</button>
+            <span style={{ fontSize: 13, fontWeight: 500, color: '#1B2B3A', minWidth: 140, textAlign: 'center', textTransform: 'capitalize' }}>{periodoLabel(periodo)}</span>
+            <button disabled={periodo >= periodoMaximo} onClick={() => setPeriodo(nextPeriodo(periodo))} style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', color: '#8A9BB0', cursor: 'pointer', fontSize: 14, opacity: periodo >= periodoMaximo ? 0.3 : 1 }}>→</button>
           </div>
-          <div className="flex gap-2">
-            <button onClick={() => setModalTipo("income")} className="flex-1 sm:flex-none px-3 py-2 min-h-[44px] text-xs font-bold bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors">+ Receita</button>
-            <button onClick={() => setModalTipo("expense")} className="flex-1 sm:flex-none px-3 py-2 min-h-[44px] text-xs font-bold bg-red-600/80 text-white rounded-xl hover:bg-red-700 transition-colors">+ Despesa</button>
-            <button onClick={exportarCSV} className="px-3 py-2 min-h-[44px] text-xs border border-white/10 text-gray-400 rounded-xl hover:bg-white/5 transition-colors">↓</button>
+
+          <div style={{ display: 'flex', gap: 8 }}>
+            {/* + Receita */}
+            <button onClick={() => setModalTipo("income")} style={{ height: 36, padding: '0 16px', background: '#40916C', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="white" strokeWidth="1.5" strokeLinecap="round" /></svg>
+              <span className="hidden sm:inline">Receita</span>
+              <span className="sm:hidden">+R</span>
+            </button>
+            {/* + Despesa */}
+            <button onClick={() => setModalTipo("expense")} style={{ height: 36, padding: '0 16px', background: 'transparent', color: '#E24B4A', border: '1.5px solid #E24B4A', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="#E24B4A" strokeWidth="1.5" strokeLinecap="round" /></svg>
+              <span className="hidden sm:inline">Despesa</span>
+              <span className="sm:hidden">+D</span>
+            </button>
+            {/* Export */}
+            <button onClick={exportarCSV} style={{ height: 36, padding: '0 12px', fontSize: 13, border: '1px solid #EEE9DF', color: '#8A9BB0', borderRadius: 8, background: 'white', cursor: 'pointer' }}>↓</button>
           </div>
         </div>
       </div>
@@ -774,13 +881,15 @@ export default function FinancePage() {
       {/* KPI Cards — scroll horizontal no mobile */}
       <div className="flex gap-3 overflow-x-auto pb-1 -mx-4 sm:mx-0 px-4 sm:px-0 snap-x">
         {loadingResumo ? (
-          [1, 2, 3, 4].map((i) => <div key={i} className="shrink-0 min-w-[160px] h-20 bg-white/5 animate-pulse rounded-2xl snap-start" />)
+          [1, 2, 3, 4].map((i) => (
+            <div key={i} style={{ flexShrink: 0, minWidth: 160, height: 80, background: 'white', border: '1px solid #EEE9DF', borderRadius: 16 }} className="animate-pulse snap-start" />
+          ))
         ) : resumo ? (
           <>
-            <KpiCard label="Receita Bruta" value={brl(resumo.receitaBruta)} variacao={resumo.variacaoReceita} color="bg-emerald-500" icon={<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1.333" y="3.333" width="13.333" height="9.333" rx="1.5" stroke="currentColor" strokeWidth="1.5"/><path d="M1.333 6.667h13.333" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><circle cx="8" cy="10" r="1.333" stroke="currentColor" strokeWidth="1.3"/></svg>} />
-            <KpiCard label="Despesas" value={brl(resumo.despesasTotal)} color="bg-red-500" icon={<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4l6 6 3-3 3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M11.333 13.333H2V4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>} />
-            <KpiCard label="Lucro Líquido" value={brl(resumo.lucroLiquido)} color={resumo.lucroLiquido >= 0 ? "bg-emerald-500" : "bg-red-500"} icon={<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.333" stroke="currentColor" strokeWidth="1.5"/><path d="M5.333 8l2 2 3.334-3.333" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>} />
-            <KpiCard label="Ticket Médio" value={brl(resumo.ticketMedio)} color="bg-amber-500" icon={<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M1.333 6a2 2 0 000 4v2.667A1.333 1.333 0 002.667 14h10.666A1.333 1.333 0 0014.667 12.667V10a2 2 0 000-4V3.333A1.333 1.333 0 0013.333 2H2.667A1.333 1.333 0 001.333 3.333V6z" stroke="currentColor" strokeWidth="1.5"/></svg>} />
+            <KpiCard label="Receita Bruta" value={brl(resumo.receitaBruta)} variacao={resumo.variacaoReceita} color="#40916C" />
+            <KpiCard label="Despesas" value={brl(resumo.despesasTotal)} color="#E24B4A" />
+            <KpiCard label="Lucro Líquido" value={brl(resumo.lucroLiquido)} color={resumo.lucroLiquido >= 0 ? "#40916C" : "#E24B4A"} />
+            <KpiCard label="Ticket Médio" value={brl(resumo.ticketMedio)} color="#C4973A" />
           </>
         ) : null}
       </div>
@@ -788,35 +897,57 @@ export default function FinancePage() {
       {/* Gráfico + Pizza */}
       {resumo && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-2 bg-[#0a0a20]/60 border border-white/5 rounded-2xl p-5">
-            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Evolução 6 meses</h3>
+          {/* Gráfico evolução */}
+          <div style={{ background: 'white', border: '1px solid #EEE9DF', borderRadius: 16, padding: 20 }} className="lg:col-span-2">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 500, color: '#1B2B3A' }}>Evolução 6 meses</h3>
+              <div style={{ display: 'flex', gap: 14 }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#4A6480' }}>
+                  <span style={{ width: 12, height: 2, background: '#40916C', borderRadius: 1, display: 'inline-block' }} />Receita
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#4A6480' }}>
+                  <span style={{ width: 12, height: 2, background: '#E24B4A', borderRadius: 1, display: 'inline-block' }} />Despesa
+                </span>
+              </div>
+            </div>
             <GraficoEvolucao dados={resumo.evolucao} />
           </div>
-          <div className="bg-[#0a0a20]/60 border border-white/5 rounded-2xl p-5 hidden lg:block">
-            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Receitas por origem</h3>
+
+          {/* Pizza receitas */}
+          <div style={{ background: 'white', border: '1px solid #EEE9DF', borderRadius: 16, padding: 20 }} className="hidden lg:block">
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 500, color: '#1B2B3A', marginBottom: 16 }}>Receitas por origem</h3>
             <PizzaReceitas resumo={resumo} />
-            <div className="mt-4 pt-4 border-t border-white/5 space-y-1">
-              <div className="flex justify-between text-xs"><span className="text-gray-500">A receber</span><span className="text-amber-400 font-bold">{brl(resumo.aReceber)}</span></div>
-              <div className="flex justify-between text-xs"><span className="text-gray-500">A pagar</span><span className="text-red-400 font-bold">{brl(resumo.aPagar)}</span></div>
-              <div className="flex justify-between text-xs"><span className="text-gray-500">Repasses pendentes</span><span className="text-gray-300 font-bold">{brl(resumo.repassesPendentes)}</span></div>
+            <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #EEE9DF', display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                <span style={{ color: '#8A9BB0' }}>A receber</span>
+                <span style={{ color: '#C4973A', fontWeight: 600 }}>{brl(resumo.aReceber)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                <span style={{ color: '#8A9BB0' }}>A pagar</span>
+                <span style={{ color: '#E24B4A', fontWeight: 600 }}>{brl(resumo.aPagar)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                <span style={{ color: '#8A9BB0' }}>Repasses pendentes</span>
+                <span style={{ color: '#1B2B3A', fontWeight: 600 }}>{brl(resumo.repassesPendentes)}</span>
+              </div>
             </div>
           </div>
         </div>
       )}
 
       {/* Tabs */}
-      <div className="border-b border-white/5 overflow-x-auto">
-        <div className="flex gap-0 min-w-max">
-          {([
-            { key: "extrato", label: "Extrato" },
-            { key: "receber", label: `A Receber${resumo && resumo.aReceber > 0 ? ` · ${brl(resumo.aReceber)}` : ""}` },
-            { key: "pagar", label: `A Pagar${resumo && resumo.aPagar > 0 ? ` · ${brl(resumo.aPagar)}` : ""}` },
-            { key: "repasses", label: "Repasses" },
-          ] as { key: Tab; label: string }[]).map((t) => (
-            <button key={t.key} onClick={() => setTab(t.key)}
-              className={`px-4 py-3 text-xs font-bold uppercase tracking-wider transition-all relative whitespace-nowrap ${tab === t.key ? "text-white" : "text-gray-500 hover:text-gray-300"}`}>
+      <div style={{ borderBottom: '1px solid #EEE9DF', overflowX: 'auto' }}>
+        <div style={{ display: 'flex', gap: 0, minWidth: 'max-content' }}>
+          {tabs.map((t) => (
+            <button key={t.key} onClick={() => setTab(t.key)} style={{
+              padding: '12px 16px', fontSize: 12, fontWeight: tab === t.key ? 600 : 400,
+              color: tab === t.key ? '#40916C' : '#8A9BB0',
+              borderBottom: `2px solid ${tab === t.key ? '#40916C' : 'transparent'}`,
+              background: 'transparent', border: 'none',
+              borderBottom: `2px solid ${tab === t.key ? '#40916C' : 'transparent'}`,
+              cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 150ms',
+            } as React.CSSProperties}>
               {t.label}
-              {tab === t.key && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500 rounded-t-full" />}
             </button>
           ))}
         </div>
