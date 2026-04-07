@@ -3,8 +3,13 @@ import prisma from '@/lib/prisma';
 import { getAuthorizedTenantId } from '@/lib/auth-helpers';
 import { generateEventoId } from '@/lib/utils-saas';
 import { createFinancialTransaction } from '@/lib/financial-automation';
+import { autenticarApiKey } from '@/lib/n8n-auth';
 
 export async function GET(request: Request) {
+  if (!autenticarApiKey(request)) {
+    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+  }
+
   const { searchParams } = new URL(request.url);
   const phone = searchParams.get('phone');
   const tenantId = searchParams.get('tenantId');
