@@ -10,6 +10,7 @@ const API_PUBLICAS = [
   '/api/n8n/',
   '/api/public/',
   '/api/health',
+  '/api/webhook/',
 ];
 
 export async function middleware(request: NextRequest) {

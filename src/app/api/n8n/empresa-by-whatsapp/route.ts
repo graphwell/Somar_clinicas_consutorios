@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { NichoType } from '@prisma/client';
+import { autenticarApiKey } from '@/lib/n8n-auth';
 
 export async function GET(request: Request) {
+  if (!autenticarApiKey(request)) {
+    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+  }
+
   const { searchParams } = new URL(request.url);
   const numero_wa = searchParams.get('numero_wa');
   const session_id = searchParams.get('session_id');

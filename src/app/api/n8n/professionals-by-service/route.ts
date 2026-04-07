@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { autenticarApiKey } from '@/lib/n8n-auth';
 
 const DIAS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
@@ -11,6 +12,10 @@ function formatDias(escalas: { diaSemana: number }[]): string {
 }
 
 export async function GET(request: Request) {
+  if (!autenticarApiKey(request)) {
+    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+  }
+
   const { searchParams } = new URL(request.url);
   const tenantId = searchParams.get('tenantId') || searchParams.get('empresa_id');
   const servicoId = searchParams.get('servicoId');
