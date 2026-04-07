@@ -42,7 +42,7 @@
     },
     {
       "parameters": {
-        "text": "={{ $('Webhook WhatsApp').item.json.body.message || $('Webhook WhatsApp').item.json.message }}",
+        "text": "={{ $('Webhook WhatsApp').item.json.body.mensagem || $('Webhook WhatsApp').item.json.mensagem }}",
         "options": {
           "systemMessage": "={{ $json.systemPrompt }}"
         }
@@ -72,7 +72,7 @@
     },
     {
       "parameters": {
-        "sessionId": "={{ $('Webhook WhatsApp').item.json.sender_number }}",
+        "sessionId": "={{ ($('Webhook WhatsApp').item.json.body.telefone || $('Webhook WhatsApp').item.json.telefone) }}",
         "contextWindowLength": 10
       },
       "id": "buffer-memory",
@@ -321,7 +321,7 @@
             },
             {
               "name": "to",
-              "value": "={{ $('Webhook WhatsApp').item.json.body.from || $('Webhook WhatsApp').item.json.sender_number }}"
+              "value": "={{ ($('Webhook WhatsApp').item.json.body.telefone || $('Webhook WhatsApp').item.json.telefone) || ($('Webhook WhatsApp').item.json.body.telefone || $('Webhook WhatsApp').item.json.telefone) }}"
             },
             {
               "name": "body",
@@ -393,7 +393,7 @@
           "parameters": [
             {
               "name": "to",
-              "value": "={{ $('Webhook WhatsApp').item.json.body.from || $('Webhook WhatsApp').item.json.sender_number }}"
+              "value": "={{ ($('Webhook WhatsApp').item.json.body.telefone || $('Webhook WhatsApp').item.json.telefone) || ($('Webhook WhatsApp').item.json.body.telefone || $('Webhook WhatsApp').item.json.telefone) }}"
             },
             {
               "name": "text",
