@@ -27,6 +27,7 @@ model Clinica {
   descricao           String?
   instagram           String?
   site                String?
+  aceitaPagamento     Boolean  @default(false)
   usuarios       Usuario[]
   pacientes      Paciente[]
   agendamentos   Agendamento[]
@@ -261,6 +262,8 @@ model Agendamento {
   servico         Servico?      @relation(fields: [servicoId], references: [id])
   
   observacoes     String?
+  tipoPagamento   String?  @default("hora")     // hora | total | sinal
+  origemAgendamento String? @default("interno") // interno | link_publico | bot
   transacao       TransacaoFinanceira?
 
   createdAt       DateTime      @default(now())

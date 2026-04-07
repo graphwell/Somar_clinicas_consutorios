@@ -56,6 +56,7 @@ export default function SettingsPage() {
           setEndereco(data.clinica.endereco || '');
           setAdminPhone(data.clinica.adminPhone || '');
           setNiche(data.clinica.nicho || 'Clínica Médica');
+          if (data.clinica.slug) setSlug(data.clinica.slug);
           setBotActive(data.clinica.botActive ?? true);
           setOpeningTime(data.clinica.openingTime || '08:00');
           setClosingTime(data.clinica.closingTime || '18:00');
@@ -70,6 +71,8 @@ export default function SettingsPage() {
   }, []);
 
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [slug, setSlug] = useState('');
+  const [linkCopiado, setLinkCopiado] = useState(false);
  
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -179,6 +182,51 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-12 pb-40 animate-premium">
+
+      {/* Widget: Link de Agendamento */}
+      {slug && (
+        <div className="bg-white border border-warm-200 rounded-xl p-5 space-y-3">
+          <div className="flex items-center gap-2">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#40916C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
+              <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
+            </svg>
+            <p className="text-xs uppercase tracking-wider font-semibold text-slate-500">Link de Agendamento Online</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex-1 bg-warm-100 rounded-lg px-3 py-2.5 text-sm text-slate-500 overflow-hidden text-ellipsis whitespace-nowrap border border-warm-200">
+              {typeof window !== 'undefined' ? window.location.origin : ''}/agendar/{slug}
+            </div>
+            <button
+              onClick={() => {
+                const link = `${window.location.origin}/agendar/${slug}`;
+                navigator.clipboard.writeText(link).then(() => {
+                  setLinkCopiado(true);
+                  setTimeout(() => setLinkCopiado(false), 2000);
+                });
+              }}
+              className="px-3 py-2.5 rounded-lg border border-warm-200 text-sm font-medium text-slate-500 hover:bg-warm-100 transition-colors shrink-0 flex items-center gap-1.5"
+            >
+              {linkCopiado ? (
+                <>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#40916C" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                  <span className="text-sage-600">Copiado!</span>
+                </>
+              ) : (
+                <>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                  </svg>
+                  Copiar
+                </>
+              )}
+            </button>
+          </div>
+          <p className="text-xs text-slate-300">
+            Cole esse link na saudação do seu WhatsApp Business para que clientes agendem direto pelo celular.
+          </p>
+        </div>
+      )}
 
       {/* Meu Perfil */}
       <div className="premium-card p-6 bg-white space-y-5">

@@ -1,14 +1,24 @@
 "use client";
-import React, { useState, useEffect } from 'react';
-import { getNomenclature } from '@/lib/nomenclatures';
+import React, { useState, useEffect, useRef } from 'react';
+
+/* ─── Tipos ────────────────────────────────────────────── */
+interface ClinicaPublica {
+  nome: string;
+  nicho: string;
+  tenantId: string;
+  branding: { logoUrl?: string; primaryColor?: string } | null;
+  aceitaPagamento: boolean;
+}
 
 interface Servico {
   id: string;
   nome: string;
   preco: number;
   duracaoMinutos: number;
+  bufferTimeMinutes: number;
   color?: string;
   descricao?: string;
+  profissionais: Profissional[];
 }
 
 interface Profissional {
@@ -17,50 +27,69 @@ interface Profissional {
   especialidade?: string;
   fotoUrl?: string;
   color?: string;
-  servicos?: { id: string }[];
 }
 
-interface ClinicaData {
-  nome: string;
-  nicho: string;
-  tenantId: string;
-  branding: any;
-  servicos: Servico[];
-  profissionais: Profissional[];
+type Passo = 1 | 2 | 3 | 4 | 5 | 6;
+
+/* ─── Helpers ──────────────────────────────────────────── */
+function iniciais(nome: string): string {
+  return nome.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
+}
+function formatarTelefone(v: string): string {
+  const d = v.replace(/\D/g, '').slice(0, 11);
+  if (d.length <= 2) return d;
+  if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+}
+function diasSemanaAbrev(d: Date): string {
+  return ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][d.getDay()];
+}
+function formatarDataExibicao(iso: string): string {
+  const d = new Date(iso + 'T00:00:00');
+  return new Intl.DateTimeFormat('pt-BR', {
+    weekday: 'long', day: '2-digit', month: 'long',
+  }).format(d);
+}
+function gerarProximos14Dias(): string[] {
+  const dias: string[] = [];
+  const hoje = new Date();
+  for (let i = 0; i < 14; i++) {
+    const d = new Date(hoje);
+    d.setDate(hoje.getDate() + i);
+    dias.push(d.toISOString().split('T')[0]);
+  }
+  return dias;
+}
+function gerarLinkCalendario(params: {
+  titulo: string; data: string; horario: string; duracao: number;
+}): string {
+  const [h, m] = params.horario.split(':').map(Number);
+  const start = new Date(params.data + 'T00:00:00');
+  start.setHours(h, m, 0, 0);
+  const end = new Date(start.getTime() + params.duracao * 60000);
+  const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(params.titulo)}&dates=${fmt(start)}/${fmt(end)}`;
 }
 
-interface ComboSugestao {
-  id: string;
-  nome: string;
-  descricao: string | null;
-  servicos: string[];
-  precoOriginal: string | null;
-  precoCombo: string;
-  descontoPct: number | null;
-  validadeDias: number;
-}
-
-type Step = 'servico' | 'profissional' | 'data' | 'horario' | 'dados' | 'confirmacao';
-
-const STEPS: Step[] = ['servico', 'profissional', 'data', 'horario', 'dados', 'confirmacao'];
-
-function StepIndicator({ current, steps, stepLabels }: { current: Step; steps: Step[]; stepLabels: Record<Step, string> }) {
-  const idx = steps.indexOf(current);
+/* ─── Indicador de passos ──────────────────────────────── */
+function IndicadorPassos({ passo, cor }: { passo: Passo; cor: string }) {
+  const total = 5;
+  const atual = Math.min(passo, total);
   return (
-    <div className="flex items-center gap-1 mb-8">
-      {steps.map((s, i) => (
-        <React.Fragment key={s}>
-          <div className={`flex flex-col items-center gap-1 ${i <= idx ? 'opacity-100' : 'opacity-30'}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black border-2 transition-all
-              ${i < idx ? 'bg-emerald-500 border-emerald-500 text-white' :
-                i === idx ? 'bg-primary border-primary text-white shadow-lg shadow-primary/30' :
-                'bg-white border-slate-200 text-slate-400'}`}>
-              {i < idx ? <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg> : i + 1}
-            </div>
-            <span className="text-[8px] font-black uppercase tracking-wider text-slate-500 hidden sm:block">{stepLabels[s]}</span>
-          </div>
-          {i < steps.length - 1 && (
-            <div className={`flex-1 h-0.5 mb-4 transition-all ${i < idx ? 'bg-emerald-500' : 'bg-slate-100'}`} />
+    <div className="flex items-center justify-center gap-1 mb-6">
+      {Array.from({ length: total }).map((_, i) => (
+        <React.Fragment key={i}>
+          <div
+            style={{
+              width: i + 1 === atual ? 24 : 8,
+              height: 8,
+              borderRadius: 4,
+              background: i + 1 <= atual ? cor : '#EEE9DF',
+              transition: 'all 300ms ease',
+            }}
+          />
+          {i < total - 1 && (
+            <div style={{ height: 1, width: 20, background: i + 1 < atual ? cor : '#EEE9DF', transition: 'background 300ms' }} />
           )}
         </React.Fragment>
       ))}
@@ -68,582 +97,574 @@ function StepIndicator({ current, steps, stepLabels }: { current: Step; steps: S
   );
 }
 
+/* ─── Página principal ─────────────────────────────────── */
 export default function AgendarPage({ params }: { params: Promise<{ slug: string }> }) {
-  const [slug, setSlug] = useState<string>('');
-  const [clinica, setClinica] = useState<ClinicaData | null>(null);
-  const [loadingClinica, setLoadingClinica] = useState(true);
+  const [slug, setSlug] = useState('');
+  const [clinica, setClinica] = useState<ClinicaPublica | null>(null);
+  const [servicos, setServicos] = useState<Servico[]>([]);
+  const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
-  const [step, setStep] = useState<Step>('servico');
-  const [selectedServico, setSelectedServico] = useState<Servico | null>(null);
-  const [selectedProfissional, setSelectedProfissional] = useState<Profissional | null>(null);
-  const [selectedDate, setSelectedDate] = useState<string>('');
-  const [selectedSlot, setSelectedSlot] = useState<string>('');
+  const [passo, setPasso] = useState<Passo>(1);
+
+  // Passo 1 — Identificação
+  const [clienteNome, setClienteNome] = useState('');
+  const [clienteTelefone, setClienteTelefone] = useState('');
+
+  // Passo 2 — Serviço
+  const [servico, setServico] = useState<Servico | null>(null);
+
+  // Passo 3 — Profissional
+  const [profissional, setProfissional] = useState<{ id: string; nome: string } | null>(null);
+
+  // Passo 4 — Data e horário
+  const dias = gerarProximos14Dias();
+  const [dataSelecionada, setDataSelecionada] = useState<string>('');
   const [slots, setSlots] = useState<string[]>([]);
-  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [profEscolhido, setProfEscolhido] = useState<string | null>(null);
+  const [carregandoSlots, setCarregandoSlots] = useState(false);
+  const [horario, setHorario] = useState('');
+  const calendarRef = useRef<HTMLDivElement>(null);
 
-  const [nome, setNome] = useState('');
-  const [telefone, setTelefone] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [agendamentoCriado, setAgendamentoCriado] = useState<any>(null);
+  // Passo 5 — Pagamento
+  const [tipoPagamento, setTipoPagamento] = useState<'hora' | 'total' | 'sinal'>('hora');
 
-  // ── Combo Upsell ────────────────────────────────────────────────
-  const [combosSugeridos, setCombosSugeridos] = useState<ComboSugestao[]>([]);
-  const [showComboModal, setShowComboModal] = useState(false);
-  const [comboAceito, setComboAceito] = useState<ComboSugestao | null>(null);
-  const [proximoStep, setProximoStep] = useState<Step>('profissional');
+  // Passo 6 — Sucesso
+  const [confirmando, setConfirmando] = useState(false);
+  const [protocolo, setProtocolo] = useState('');
+  const [erroConfirm, setErroConfirm] = useState('');
 
-  useEffect(() => {
-    params.then(p => setSlug(p.slug));
-  }, [params]);
+  useEffect(() => { params.then(p => setSlug(p.slug)); }, [params]);
 
   useEffect(() => {
     if (!slug) return;
-    fetch(`/api/public/clinic/${slug}`)
-      .then(r => r.json())
-      .then(data => {
-        if (data.error) { setErro('Estabelecimento não encontrado.'); return; }
-        setClinica(data);
+    Promise.all([
+      fetch(`/api/public/clinic/${slug}`).then(r => r.json()),
+      fetch(`/api/public/clinic/${slug}/services`).then(r => r.json()),
+    ])
+      .then(([c, s]) => {
+        if (c.error) { setErro('Estabelecimento não encontrado.'); return; }
+        setClinica({ ...c, aceitaPagamento: c.aceitaPagamento ?? false });
+        setServicos(Array.isArray(s) ? s : []);
       })
-      .catch(() => setErro('Erro ao carregar dados do estabelecimento.'))
-      .finally(() => setLoadingClinica(false));
+      .catch(() => setErro('Erro ao carregar dados.'))
+      .finally(() => setCarregando(false));
   }, [slug]);
 
-  const profissionaisDoServico = clinica?.profissionais.filter(p =>
-    !selectedServico || !p.servicos?.length || p.servicos.some(s => s.id === selectedServico.id)
-  ) || [];
+  const cor = (clinica?.branding as any)?.primaryColor || '#40916C';
 
-  const minDate = () => {
-    const d = new Date();
-    d.setDate(d.getDate() + 1);
-    return d.toISOString().split('T')[0];
-  };
-
-  const maxDate = () => {
-    const d = new Date();
-    d.setDate(d.getDate() + 60);
-    return d.toISOString().split('T')[0];
-  };
-
-  const fetchSlots = async (date: string) => {
-    if (!clinica || !date) return;
-    setLoadingSlots(true);
+  const buscarSlots = async (data: string) => {
+    if (!servico) return;
+    setCarregandoSlots(true);
     setSlots([]);
-    try {
-      const params = new URLSearchParams({ date, tenantId: clinica.tenantId });
-      if (selectedProfissional) params.append('profissionalId', selectedProfissional.id);
-      const res = await fetch(`/api/bot/availability?${params}`);
-      const data = await res.json();
-      setSlots(data.availableSlots || []);
-    } catch {}
-    finally { setLoadingSlots(false); }
-  };
-
-  const handleDateSelect = (date: string) => {
-    setSelectedDate(date);
-    setSelectedSlot('');
-    fetchSlots(date);
-    setStep('horario');
-  };
-
-  // Busca combos sugeridos ao selecionar serviço (rota pública)
-  const buscarCombos = async (servico: Servico, nextStep: Step) => {
-    setSelectedServico(servico);
-    setProximoStep(nextStep);
-    if (!slug) { setStep(nextStep); return; }
+    setHorario('');
+    const profId = profissional?.id || 'qualquer';
     try {
       const res = await fetch(
-        `/api/public/combos?slug=${encodeURIComponent(slug)}&servico=${encodeURIComponent(servico.nome)}`
+        `/api/public/clinic/${slug}/slots?data=${data}&servicoId=${servico.id}&profissionalId=${profId}`
       );
-      const data = await res.json();
-      const combos: ComboSugestao[] = data.combos ?? [];
-      if (combos.length > 0) {
-        setCombosSugeridos(combos);
-        setShowComboModal(true);
-      } else {
-        setStep(nextStep);
-      }
-    } catch {
-      setStep(nextStep);
-    }
+      const d = await res.json();
+      setSlots(d.slots ?? []);
+      setProfEscolhido(d.profissionalEscolhidoId ?? null);
+    } catch { setSlots([]); }
+    finally { setCarregandoSlots(false); }
   };
 
-  const handleAceitarCombo = (combo: ComboSugestao) => {
-    setComboAceito(combo);
-    setShowComboModal(false);
-    setStep(proximoStep);
-  };
+  const avancar = () => setPasso(p => (p < 6 ? (p + 1) as Passo : p));
+  const voltar = () => setPasso(p => (p > 1 ? (p - 1) as Passo : p));
 
-  const handleRecusarCombo = () => {
-    setComboAceito(null);
-    setShowComboModal(false);
-    setStep(proximoStep);
-  };
-
-  const handleSubmit = async () => {
-    if (!clinica || !selectedSlot || !nome || !telefone) return;
-    setSaving(true);
+  const confirmar = async () => {
+    if (!servico || !dataSelecionada || !horario) return;
+    setConfirmando(true);
+    setErroConfirm('');
+    const profId = profEscolhido || profissional?.id || 'qualquer';
     try {
-      // Inclui info do combo aceito no campo observacoes
-      const observacoes = comboAceito
-        ? `[Combo aceito] ${comboAceito.nome} — R$ ${Number(comboAceito.precoCombo).toFixed(2)}${comboAceito.descontoPct ? ` (${comboAceito.descontoPct}% OFF)` : ''}`
-        : undefined;
-
-      const res = await fetch('/api/bot/appointments', {
+      const res = await fetch(`/api/public/clinic/${slug}/agendar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          tenantId: clinica.tenantId,
-          pacienteTelefone: telefone.replace(/\D/g, ''),
-          pacienteNome: nome,
-          dataHora: selectedSlot,
-          profissionalId: selectedProfissional?.id || null,
-          servicoId: selectedServico?.id || null,
-          observacoes,
-        })
+          servicoId: servico.id,
+          profissionalId: profId,
+          data: dataSelecionada,
+          horario,
+          clienteNome: clienteNome.trim(),
+          clienteTelefone: clienteTelefone.replace(/\D/g, ''),
+          tipoPagamento,
+        }),
       });
       const data = await res.json();
-      if (data.success) {
-        setAgendamentoCriado(data.agendamento);
-        setStep('confirmacao');
-      } else {
-        alert(data.error || 'Erro ao criar agendamento.');
-      }
-    } catch {
-      alert('Erro ao conectar com o servidor.');
-    } finally {
-      setSaving(false);
-    }
+      if (!res.ok) { setErroConfirm(data.error || 'Erro ao confirmar.'); return; }
+      setProtocolo(data.protocolo);
+      setPasso(6);
+    } catch { setErroConfirm('Erro de conexão. Tente novamente.'); }
+    finally { setConfirmando(false); }
   };
 
-  if (loadingClinica) {
+  /* ── Loading / Erro ── */
+  if (carregando) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <p className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-400 animate-pulse">Carregando...</p>
+      <div className="min-h-[100svh] flex items-center justify-center" style={{ background: '#F5F0E8' }}>
+        <div className="w-8 h-8 rounded-full border-2 border-sage-300 border-t-sage-600 animate-spin" style={{ borderTopColor: '#40916C', borderColor: '#D8F3DC' }} />
       </div>
     );
   }
-
   if (erro || !clinica) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-        <div className="text-center max-w-sm">
-          <div className="flex justify-center mb-4"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
-          <p className="font-black text-slate-600 uppercase tracking-tight">{erro || 'Estabelecimento não encontrado'}</p>
+      <div className="min-h-[100svh] flex items-center justify-center px-6" style={{ background: '#F5F0E8' }}>
+        <div className="text-center">
+          <p className="text-slate-500 text-sm">{erro || 'Estabelecimento não encontrado.'}</p>
         </div>
       </div>
     );
   }
 
-  const branding = clinica.branding as any;
-  const primaryColor = branding?.primaryColor || '#6366f1';
-  const labels = getNomenclature(clinica.nicho);
-
-  const STEP_LABELS: Record<Step, string> = {
-    servico:      labels.termoAtendimento,
-    profissional: labels.termoProfissional,
-    data:         'Data',
-    horario:      'Horário',
-    dados:        'Seus Dados',
-    confirmacao:  'Confirmação',
-  };
+  const logoUrl = (clinica.branding as any)?.logoUrl;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      {/* Header */}
-      <div className="bg-white border-b border-slate-100 shadow-sm">
-        <div className="max-w-lg mx-auto px-6 py-5 flex items-center gap-4">
-          {branding?.logoUrl ? (
-            <img src={branding.logoUrl} alt={clinica.nome} className="h-12 w-auto object-contain rounded-xl" />
-          ) : (
-            <div className="w-12 h-12 rounded-2xl flex items-center justify-center font-black text-white text-lg shadow-lg"
-              style={{ backgroundColor: primaryColor }}>
-              {clinica.nome.charAt(0)}
+    <div className="min-h-[100svh]" style={{ background: cor }}>
+      {/* Header fixo */}
+      <div className="sticky top-0 z-10 px-4 py-3 flex items-center gap-3" style={{ background: cor }}>
+        {logoUrl ? (
+          <img src={logoUrl} alt={clinica.nome} style={{ height: 32, width: 'auto', objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
+        ) : (
+          <div style={{
+            width: 32, height: 32, borderRadius: 8,
+            background: 'rgba(255,255,255,0.2)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: 'white', fontWeight: 700, fontSize: 14,
+          }}>
+            {clinica.nome.charAt(0)}
+          </div>
+        )}
+        <p style={{ color: 'white', fontWeight: 600, fontSize: 15 }}>{clinica.nome}</p>
+      </div>
+
+      {/* Conteúdo */}
+      <div style={{ padding: '0 16px 40px', maxWidth: 480, margin: '0 auto' }}>
+        {/* Card */}
+        <div style={{
+          background: 'white', borderRadius: 24, padding: '24px 20px',
+          boxShadow: '0 4px 24px rgba(27,43,58,0.10)',
+        }}>
+          {passo < 6 && <IndicadorPassos passo={passo} cor={cor} />}
+
+          {/* ── PASSO 1: Identificação ── */}
+          {passo === 1 && (
+            <div>
+              <div className="text-center mb-6">
+                <h2 style={{ fontSize: 20, fontWeight: 700, color: '#1B2B3A', marginBottom: 4 }}>
+                  Olá! Como podemos te chamar?
+                </h2>
+                <p style={{ fontSize: 13, color: '#8A9BB0' }}>
+                  Você receberá a confirmação no WhatsApp
+                </p>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.6px', color: '#8A9BB0', marginBottom: 6 }}>
+                    Seu nome completo
+                  </label>
+                  <input
+                    type="text"
+                    value={clienteNome}
+                    onChange={e => setClienteNome(e.target.value)}
+                    placeholder="Ex: João Silva"
+                    autoComplete="name"
+                    autoFocus
+                    style={{ width: '100%', height: 52, background: '#F8F6F1', border: '1.5px solid transparent', borderRadius: 12, padding: '0 16px', fontSize: 16, color: '#1B2B3A', outline: 'none', boxSizing: 'border-box' }}
+                    onFocus={e => { e.target.style.borderColor = cor; e.target.style.background = 'white'; }}
+                    onBlur={e => { e.target.style.borderColor = 'transparent'; e.target.style.background = '#F8F6F1'; }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.6px', color: '#8A9BB0', marginBottom: 6 }}>
+                    Seu WhatsApp
+                  </label>
+                  <input
+                    type="tel"
+                    inputMode="tel"
+                    value={clienteTelefone}
+                    onChange={e => setClienteTelefone(formatarTelefone(e.target.value))}
+                    placeholder="(85) 99999-0000"
+                    autoComplete="tel"
+                    style={{ width: '100%', height: 52, background: '#F8F6F1', border: '1.5px solid transparent', borderRadius: 12, padding: '0 16px', fontSize: 16, color: '#1B2B3A', outline: 'none', boxSizing: 'border-box' }}
+                    onFocus={e => { e.target.style.borderColor = cor; e.target.style.background = 'white'; }}
+                    onBlur={e => { e.target.style.borderColor = 'transparent'; e.target.style.background = '#F8F6F1'; }}
+                  />
+                  <p style={{ fontSize: 12, color: '#8A9BB0', marginTop: 4 }}>Você receberá a confirmação nesse número</p>
+                </div>
+              </div>
+              <button
+                onClick={avancar}
+                disabled={!clienteNome.trim() || clienteTelefone.replace(/\D/g, '').length < 10}
+                style={{ width: '100%', height: 52, borderRadius: 12, border: 'none', color: 'white', fontSize: 15, fontWeight: 500, cursor: 'pointer', marginTop: 24, background: cor, opacity: (!clienteNome.trim() || clienteTelefone.replace(/\D/g, '').length < 10) ? 0.4 : 1, transition: 'opacity 150ms' }}
+              >
+                Continuar →
+              </button>
             </div>
           )}
-          <div>
-            <h1 className="font-black text-slate-800 text-lg uppercase tracking-tight">{clinica.nome}</h1>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{labels.termoAgendar}</p>
-          </div>
-        </div>
-      </div>
 
-      <div className="max-w-lg mx-auto px-4 py-8">
-        {step !== 'confirmacao' && (
-          <StepIndicator current={step} steps={STEPS.filter(s => s !== 'confirmacao')} stepLabels={STEP_LABELS} />
-        )}
-
-        {/* ETAPA 1: Serviço/Atendimento */}
-        {step === 'servico' && (
-          <div className="space-y-4">
-            <div className="mb-6">
-              <h2 className="text-2xl font-black uppercase tracking-tight text-slate-800">Escolha o {labels.termoAtendimento}</h2>
-              <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider mt-1">Selecione o que deseja agendar</p>
-            </div>
-            {clinica.servicos.length === 0 && (
-              <p className="text-center text-slate-400 font-black uppercase text-xs py-12">Nenhum {labels.termoAtendimento.toLowerCase()} disponível</p>
-            )}
-            {clinica.servicos.map(s => (
-              <button key={s.id} onClick={() => buscarCombos(s, 'profissional')}
-                className="w-full bg-white border-2 border-slate-100 rounded-3xl p-6 text-left hover:border-opacity-60 transition-all hover:-translate-y-0.5 shadow-sm hover:shadow-md"
-                style={{ '--hover-border': s.color } as any}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner"
-                      style={{ backgroundColor: (s.color || primaryColor) + '20' }}>
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: s.color || primaryColor }} />
+          {/* ── PASSO 2: Serviço ── */}
+          {passo === 2 && (
+            <div>
+              <h2 style={{ fontSize: 18, fontWeight: 700, color: '#1B2B3A', marginBottom: 4 }}>O que você gostaria de fazer?</h2>
+              <p style={{ fontSize: 13, color: '#8A9BB0', marginBottom: 20 }}>Escolha o serviço desejado</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {servicos.length === 0 && (
+                  <p style={{ textAlign: 'center', color: '#8A9BB0', fontSize: 13, padding: '24px 0' }}>Nenhum serviço disponível.</p>
+                )}
+                {servicos.map(s => (
+                  <div
+                    key={s.id}
+                    onClick={() => setServico(s)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: 14, borderRadius: 12, cursor: 'pointer',
+                      border: `2px solid ${servico?.id === s.id ? cor : '#EEE9DF'}`,
+                      background: servico?.id === s.id ? `${cor}0D` : 'white',
+                      transition: 'all 150ms',
+                    }}
+                  >
+                    <div style={{
+                      width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+                      background: s.color ? `${s.color}25` : `${cor}20`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <div style={{ width: 12, height: 12, borderRadius: '50%', background: s.color || cor }} />
                     </div>
-                    <div>
-                      <p className="font-black text-slate-800 uppercase tracking-tight">{s.nome}</p>
-                      {s.descricao && <p className="text-[11px] text-slate-400 mt-0.5 font-medium">{s.descricao}</p>}
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontSize: 14, fontWeight: 500, color: '#1B2B3A' }}>{s.nome}</p>
+                      <p style={{ fontSize: 12, color: '#8A9BB0', marginTop: 2 }}>
+                        {s.duracaoMinutos} min{s.descricao ? ` · ${s.descricao}` : ''}
+                      </p>
                     </div>
+                    <p style={{ fontSize: 15, fontWeight: 600, color: cor, flexShrink: 0 }}>
+                      {s.preco > 0 ? `R$ ${s.preco.toFixed(2).replace('.', ',')}` : 'Grátis'}
+                    </p>
                   </div>
-                  <div className="text-right shrink-0">
-                    <p className="font-black text-slate-800 text-lg">R$ {s.preco.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                    <p className="text-[10px] text-slate-400 font-black">{s.duracaoMinutos} min</p>
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* ETAPA 2: Profissional */}
-        {step === 'profissional' && (
-          <div className="space-y-4">
-            <div className="mb-6 flex items-center gap-3">
-              <button onClick={() => setStep('servico')} className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors">←</button>
-              <div>
-                <h2 className="text-2xl font-black uppercase tracking-tight text-slate-800">Escolha o {labels.termoProfissional}</h2>
-                <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider mt-1">{labels.termoAtendimento}: {selectedServico?.nome}</p>
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+                <button onClick={voltar} style={{ flex: 1, height: 52, borderRadius: 12, border: '1.5px solid #EEE9DF', background: 'white', color: '#4A6480', fontSize: 15, fontWeight: 500, cursor: 'pointer' }}>← Voltar</button>
+                <button onClick={avancar} disabled={!servico} style={{ flex: 2, height: 52, borderRadius: 12, border: 'none', color: 'white', fontSize: 15, fontWeight: 500, cursor: 'pointer', background: cor, opacity: !servico ? 0.4 : 1, transition: 'opacity 150ms' }}>Continuar →</button>
               </div>
             </div>
-            <button onClick={() => { setSelectedProfissional(null); setStep('data'); }}
-              className="w-full bg-white border-2 border-dashed border-slate-200 rounded-3xl p-6 text-left hover:border-slate-300 transition-all shadow-sm">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 font-black text-lg">?</div>
-                <div>
-                  <p className="font-black text-slate-600 uppercase tracking-tight">Sem preferência</p>
-                  <p className="text-[11px] text-slate-400 mt-0.5 font-medium">Qualquer {labels.termoProfissional.toLowerCase()} disponível</p>
+          )}
+
+          {/* ── PASSO 3: Profissional ── */}
+          {passo === 3 && (
+            <div>
+              <h2 style={{ fontSize: 18, fontWeight: 700, color: '#1B2B3A', marginBottom: 4 }}>Com quem você prefere?</h2>
+              <p style={{ fontSize: 13, color: '#8A9BB0', marginBottom: 20 }}>Escolha seu profissional</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {/* Sem preferência */}
+                <div
+                  onClick={() => setProfissional({ id: 'qualquer', nome: 'Sem preferência' })}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 12, padding: 14, borderRadius: 12, cursor: 'pointer',
+                    border: `2px solid ${profissional?.id === 'qualquer' ? cor : '#EEE9DF'}`,
+                    background: profissional?.id === 'qualquer' ? `${cor}0D` : 'white',
+                    transition: 'all 150ms',
+                  }}
+                >
+                  <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#F0FAF4', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8A9BB0" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/>
+                      <circle cx="17" cy="8" r="3"/><path d="M21 21v-1.5a3 3 0 00-3-3h-1"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <p style={{ fontSize: 14, fontWeight: 500, color: '#1B2B3A' }}>Sem preferência</p>
+                    <p style={{ fontSize: 12, color: '#8A9BB0' }}>Primeiro horário disponível</p>
+                  </div>
+                </div>
+
+                {/* Profissionais do serviço */}
+                {(servico?.profissionais ?? []).map(p => (
+                  <div
+                    key={p.id}
+                    onClick={() => setProfissional({ id: p.id, nome: p.nome })}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 12, padding: 14, borderRadius: 12, cursor: 'pointer',
+                      border: `2px solid ${profissional?.id === p.id ? cor : '#EEE9DF'}`,
+                      background: profissional?.id === p.id ? `${cor}0D` : 'white',
+                      transition: 'all 150ms',
+                    }}
+                  >
+                    {p.fotoUrl ? (
+                      <img src={p.fotoUrl} alt={p.nome} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                    ) : (
+                      <div style={{ width: 40, height: 40, borderRadius: '50%', background: p.color || cor, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 600, fontSize: 14, flexShrink: 0 }}>
+                        {iniciais(p.nome)}
+                      </div>
+                    )}
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontSize: 14, fontWeight: 500, color: '#1B2B3A' }}>{p.nome}</p>
+                      {p.especialidade && <p style={{ fontSize: 12, color: '#8A9BB0' }}>{p.especialidade}</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+                <button onClick={voltar} style={{ flex: 1, height: 52, borderRadius: 12, border: '1.5px solid #EEE9DF', background: 'white', color: '#4A6480', fontSize: 15, fontWeight: 500, cursor: 'pointer' }}>← Voltar</button>
+                <button onClick={avancar} disabled={!profissional} style={{ flex: 2, height: 52, borderRadius: 12, border: 'none', color: 'white', fontSize: 15, fontWeight: 500, cursor: 'pointer', background: cor, opacity: !profissional ? 0.4 : 1, transition: 'opacity 150ms' }}>Continuar →</button>
+              </div>
+            </div>
+          )}
+
+          {/* ── PASSO 4: Data e Horário ── */}
+          {passo === 4 && (
+            <div>
+              <h2 style={{ fontSize: 18, fontWeight: 700, color: '#1B2B3A', marginBottom: 4 }}>Quando prefere?</h2>
+              <p style={{ fontSize: 13, color: '#8A9BB0', marginBottom: 16 }}>Escolha o dia e horário</p>
+
+              {/* Calendário horizontal */}
+              <div ref={calendarRef} style={{ overflowX: 'auto', marginLeft: -20, marginRight: -20, paddingLeft: 20, paddingRight: 20, paddingBottom: 8 }} className="no-scrollbar">
+                <div style={{ display: 'flex', gap: 8, width: 'max-content' }}>
+                  {dias.map(iso => {
+                    const d = new Date(iso + 'T00:00:00');
+                    const hoje = new Date();
+                    const isPast = d < hoje && d.toDateString() !== hoje.toDateString();
+                    const isSel = iso === dataSelecionada;
+                    return (
+                      <div
+                        key={iso}
+                        onClick={() => {
+                          if (isPast) return;
+                          setDataSelecionada(iso);
+                          buscarSlots(iso);
+                        }}
+                        style={{
+                          minWidth: 52, display: 'flex', flexDirection: 'column', alignItems: 'center',
+                          padding: '10px 4px', borderRadius: 12, cursor: isPast ? 'default' : 'pointer',
+                          background: isSel ? cor : isPast ? '#F8F6F1' : 'white',
+                          border: `1px solid ${isSel ? cor : isPast ? '#EEE9DF' : '#D8F3DC'}`,
+                          opacity: isPast ? 0.4 : 1, transition: 'all 150ms',
+                        }}
+                      >
+                        <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', color: isSel ? 'white' : '#8A9BB0', letterSpacing: '0.4px' }}>
+                          {diasSemanaAbrev(d)}
+                        </span>
+                        <span style={{ fontSize: 20, fontWeight: 600, color: isSel ? 'white' : '#1B2B3A', lineHeight: 1.2 }}>
+                          {d.getDate()}
+                        </span>
+                        {!isPast && (
+                          <div style={{ width: 4, height: 4, borderRadius: '50%', background: isSel ? 'rgba(255,255,255,0.6)' : cor, marginTop: 3 }} />
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-            </button>
-            {profissionaisDoServico.map(p => (
-              <button key={p.id} onClick={() => { setSelectedProfissional(p); setStep('data'); }}
-                className="w-full bg-white border-2 border-slate-100 rounded-3xl p-6 text-left hover:border-slate-200 transition-all hover:-translate-y-0.5 shadow-sm hover:shadow-md">
-                <div className="flex items-center gap-4">
-                  {p.fotoUrl ? (
-                    <img src={p.fotoUrl} alt={p.nome} className="w-12 h-12 rounded-2xl object-cover" />
+
+              {/* Slots */}
+              {dataSelecionada && (
+                <div style={{ marginTop: 20 }}>
+                  <p style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600, color: '#8A9BB0', marginBottom: 12 }}>
+                    {formatarDataExibicao(dataSelecionada)}
+                  </p>
+                  {carregandoSlots ? (
+                    <div style={{ textAlign: 'center', padding: '32px 0' }}>
+                      <div style={{ width: 24, height: 24, borderRadius: '50%', border: `2px solid ${cor}30`, borderTopColor: cor, animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
+                    </div>
+                  ) : slots.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                      <p style={{ fontSize: 13, color: '#8A9BB0' }}>Nenhum horário disponível neste dia</p>
+                      <p style={{ fontSize: 12, color: '#8A9BB0', marginTop: 4 }}>Tente outro dia</p>
+                    </div>
                   ) : (
-                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center font-black text-white text-lg shadow-inner"
-                      style={{ backgroundColor: p.color || primaryColor }}>
-                      {p.nome.charAt(0)}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                      {slots.map(h => (
+                        <div
+                          key={h}
+                          onClick={() => setHorario(h)}
+                          style={{
+                            padding: '12px 0', borderRadius: 10, textAlign: 'center',
+                            fontSize: 14, fontWeight: 500, cursor: 'pointer',
+                            background: horario === h ? cor : '#F8F6F1',
+                            color: horario === h ? 'white' : '#1B2B3A',
+                            border: `1px solid ${horario === h ? cor : '#EEE9DF'}`,
+                            transition: 'all 150ms',
+                          }}
+                        >
+                          {h}
+                        </div>
+                      ))}
                     </div>
                   )}
-                  <div>
-                    <p className="font-black text-slate-800 uppercase tracking-tight">{p.nome}</p>
-                    {p.especialidade && <p className="text-[11px] text-slate-400 mt-0.5 font-bold uppercase tracking-widest">{p.especialidade}</p>}
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* ETAPA 3: Data */}
-        {step === 'data' && (
-          <div className="space-y-6">
-            <div className="mb-2 flex items-center gap-3">
-              <button onClick={() => setStep('profissional')} className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors">←</button>
-              <div>
-                <h2 className="text-2xl font-black uppercase tracking-tight text-slate-800">Escolha a Data</h2>
-                <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider mt-1">
-                  {selectedProfissional ? `${labels.tratamentoProfissional ? labels.tratamentoProfissional + ' ' : ''}${selectedProfissional.nome}` : `Qualquer ${labels.termoProfissional.toLowerCase()}`} · {selectedServico?.nome}
-                </p>
-              </div>
-            </div>
-            <div className="bg-white border border-slate-100 rounded-3xl p-8 shadow-sm">
-              <input
-                type="date"
-                min={minDate()}
-                max={maxDate()}
-                onChange={e => handleDateSelect(e.target.value)}
-                className="w-full text-center text-2xl font-black text-slate-800 border-0 outline-none bg-transparent cursor-pointer"
-              />
-              <p className="text-center text-[10px] font-black uppercase tracking-widest text-slate-400 mt-4">Selecione uma data disponível</p>
-            </div>
-          </div>
-        )}
-
-        {/* ETAPA 4: Horário */}
-        {step === 'horario' && (
-          <div className="space-y-6">
-            <div className="mb-2 flex items-center gap-3">
-              <button onClick={() => setStep('data')} className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors">←</button>
-              <div>
-                <h2 className="text-2xl font-black uppercase tracking-tight text-slate-800">Escolha o Horário</h2>
-                <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider mt-1">
-                  {selectedDate ? new Date(selectedDate + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' }) : ''}
-                </p>
-              </div>
-            </div>
-            {loadingSlots ? (
-              <div className="py-16 text-center text-[11px] font-black uppercase tracking-widest text-slate-400 animate-pulse">Buscando horários...</div>
-            ) : slots.length === 0 ? (
-              <div className="py-16 text-center">
-                <div className="flex justify-center mb-3"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
-                <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">Sem horários disponíveis nesta data</p>
-                <button onClick={() => setStep('data')} className="mt-4 text-[10px] font-black uppercase tracking-widest text-indigo-500 hover:underline">Escolher outra data</button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-3 gap-3">
-                {slots.map(slot => {
-                  const hora = new Date(slot).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
-                  return (
-                    <button key={slot} onClick={() => { setSelectedSlot(slot); setStep('dados'); }}
-                      className="bg-white border-2 border-slate-100 rounded-2xl py-4 text-center font-black text-slate-700 text-sm hover:border-indigo-300 hover:text-indigo-600 transition-all hover:shadow-sm">
-                      {hora}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ETAPA 5: Dados do cliente */}
-        {step === 'dados' && (
-          <div className="space-y-6">
-            <div className="mb-2 flex items-center gap-3">
-              <button onClick={() => setStep('horario')} className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors">←</button>
-              <div>
-                <h2 className="text-2xl font-black uppercase tracking-tight text-slate-800">Seus Dados</h2>
-                <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider mt-1">Para confirmarmos seu agendamento</p>
-              </div>
-            </div>
-
-            {/* Resumo */}
-            <div className="bg-white border border-slate-100 rounded-3xl p-6 space-y-3 shadow-sm">
-              <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-3">Resumo do Agendamento</p>
-              <div className="flex justify-between items-center">
-                <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider">{labels.termoAtendimento}</span>
-                <span className="text-[12px] font-black text-slate-700">{selectedServico?.nome}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider">{labels.termoProfissional}</span>
-                <span className="text-[12px] font-black text-slate-700">{selectedProfissional?.nome || `Qualquer ${labels.termoProfissional.toLowerCase()}`}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider">Data & Hora</span>
-                <span className="text-[12px] font-black text-slate-700">
-                  {new Date(selectedDate + 'T00:00:00').toLocaleDateString('pt-BR')} às{' '}
-                  {new Date(selectedSlot).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}
-                </span>
-              </div>
-              {selectedServico && (
-                <div className="flex justify-between items-center pt-3 border-t border-slate-50">
-                  <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider">Valor</span>
-                  <span className="font-black text-slate-800 text-base">R$ {selectedServico.preco.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                 </div>
               )}
-            </div>
 
-            <div className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Seu Nome Completo</label>
-                <input
-                  value={nome}
-                  onChange={e => setNome(e.target.value)}
-                  placeholder="Ex: Maria Silva"
-                  className="w-full bg-white border-2 border-slate-100 rounded-2xl px-5 py-4 font-bold text-slate-700 placeholder:text-slate-300 focus:outline-none focus:border-indigo-300 transition-colors"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">WhatsApp</label>
-                <input
-                  value={telefone}
-                  onChange={e => setTelefone(e.target.value)}
-                  placeholder="(11) 99999-9999"
-                  type="tel"
-                  className="w-full bg-white border-2 border-slate-100 rounded-2xl px-5 py-4 font-bold text-slate-700 placeholder:text-slate-300 focus:outline-none focus:border-indigo-300 transition-colors"
-                />
+              <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+                <button onClick={voltar} style={{ flex: 1, height: 52, borderRadius: 12, border: '1.5px solid #EEE9DF', background: 'white', color: '#4A6480', fontSize: 15, fontWeight: 500, cursor: 'pointer' }}>← Voltar</button>
+                <button onClick={avancar} disabled={!dataSelecionada || !horario} style={{ flex: 2, height: 52, borderRadius: 12, border: 'none', color: 'white', fontSize: 15, fontWeight: 500, cursor: 'pointer', background: cor, opacity: !dataSelecionada || !horario ? 0.4 : 1, transition: 'opacity 150ms' }}>Continuar →</button>
               </div>
             </div>
+          )}
 
-            <button
-              onClick={handleSubmit}
-              disabled={saving || !nome.trim() || !telefone.trim()}
-              className="w-full py-5 rounded-3xl font-black text-white text-sm uppercase tracking-widest shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ backgroundColor: primaryColor }}>
-              {saving ? 'Confirmando...' : 'Confirmar Agendamento'}
-            </button>
-          </div>
-        )}
-
-        {/* ETAPA 6: Confirmação */}
-        {step === 'confirmacao' && agendamentoCriado && (
-          <div className="text-center space-y-8 py-8">
-            <div className="w-24 h-24 rounded-full bg-emerald-50 border-4 border-emerald-500 flex items-center justify-center mx-auto shadow-xl shadow-emerald-100">
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
-            </div>
+          {/* ── PASSO 5: Confirmar + Pagamento ── */}
+          {passo === 5 && servico && (
             <div>
-              <h2 className="text-3xl font-black uppercase tracking-tight text-slate-800 mb-2">Agendado!</h2>
-              <p className="text-slate-500 font-medium">Seu agendamento foi confirmado com sucesso.</p>
-            </div>
+              <h2 style={{ fontSize: 18, fontWeight: 700, color: '#1B2B3A', marginBottom: 4 }}>Confirmar agendamento</h2>
+              <p style={{ fontSize: 13, color: '#8A9BB0', marginBottom: 20 }}>Revise os detalhes antes de confirmar</p>
 
-            <div className="bg-white border border-slate-100 rounded-3xl p-8 text-left space-y-4 shadow-sm">
-              <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-4">Detalhes do Agendamento</p>
-              <div className="flex justify-between">
-                <span className="text-[11px] font-black text-slate-400 uppercase">Estabelecimento</span>
-                <span className="text-[12px] font-black text-slate-700">{clinica.nome}</span>
-              </div>
-              {selectedServico && (
-                <div className="flex justify-between">
-                  <span className="text-[11px] font-black text-slate-400 uppercase">{labels.termoAtendimento}</span>
-                  <span className="text-[12px] font-black text-slate-700">{selectedServico.nome}</span>
-                </div>
-              )}
-              {selectedProfissional && (
-                <div className="flex justify-between">
-                  <span className="text-[11px] font-black text-slate-400 uppercase">{labels.termoProfissional}</span>
-                  <span className="text-[12px] font-black text-slate-700">
-                    {labels.tratamentoProfissional ? `${labels.tratamentoProfissional} ` : ''}{selectedProfissional.nome}
+              {/* Resumo */}
+              <div style={{ background: '#F8F6F1', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+                {[
+                  { label: 'Serviço', value: servico.nome },
+                  { label: 'Profissional', value: profissional?.id === 'qualquer' ? 'Sem preferência' : profissional?.nome || '—' },
+                  { label: 'Data', value: formatarDataExibicao(dataSelecionada) },
+                  { label: 'Horário', value: horario },
+                ].map((item, i, arr) => (
+                  <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: i < arr.length - 1 ? '1px solid #EEE9DF' : 'none' }}>
+                    <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#8A9BB0' }}>{item.label}</span>
+                    <span style={{ fontSize: 13, fontWeight: 500, color: '#1B2B3A', textAlign: 'right', maxWidth: '60%' }}>{item.value}</span>
+                  </div>
+                ))}
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0 0', borderTop: '1px solid #EEE9DF', marginTop: 4 }}>
+                  <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#8A9BB0' }}>Valor</span>
+                  <span style={{ fontSize: 16, fontWeight: 600, color: cor }}>
+                    {servico.preco > 0 ? `R$ ${servico.preco.toFixed(2).replace('.', ',')}` : 'Grátis'}
                   </span>
                 </div>
-              )}
-              <div className="flex justify-between">
-                <span className="text-[11px] font-black text-slate-400 uppercase">Data</span>
-                <span className="text-[12px] font-black text-slate-700">
-                  {new Date(selectedDate + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}
-                </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-[11px] font-black text-slate-400 uppercase">Horário</span>
-                <span className="text-[12px] font-black text-slate-700">
-                  {new Date(selectedSlot).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}
-                </span>
-              </div>
-              <div className="flex justify-between pt-3 border-t border-slate-50">
-                <span className="text-[11px] font-black text-slate-400 uppercase">Status</span>
-                <span className="text-[11px] font-black uppercase px-3 py-1 bg-amber-50 text-amber-600 rounded-lg border border-amber-100">Pendente</span>
-              </div>
-              {comboAceito && (
-                <div className="mt-3 pt-3 border-t border-slate-50">
-                  <div className="flex items-start gap-3 p-3 bg-indigo-50 rounded-2xl border border-indigo-100">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                    <div>
-                      <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Combo adicionado</p>
-                      <p className="text-[12px] font-black text-slate-700 mt-0.5">{comboAceito.nome}</p>
-                      <p className="text-[11px] text-indigo-500 font-bold">
-                        R$ {Number(comboAceito.precoCombo).toFixed(2)}
-                        {comboAceito.descontoPct ? ` · ${comboAceito.descontoPct}% OFF` : ''}
-                      </p>
-                    </div>
+
+              {/* Pagamento */}
+              {servico.preco > 0 && (
+                <div style={{ marginBottom: 16 }}>
+                  <p style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600, color: '#8A9BB0', marginBottom: 10 }}>Como prefere pagar?</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {/* Pagar na hora — sempre visível */}
+                    {(['hora'] as const).concat(clinica.aceitaPagamento ? (['total', 'sinal'] as const) : []).map(tipo => {
+                      const opcoes = {
+                        hora: { label: 'Pagar na hora', sub: 'Pague no dia do atendimento' },
+                        total: { label: 'Pagar agora (100%)', sub: `R$ ${servico.preco.toFixed(2).replace('.', ',')} — garante seu horário` },
+                        sinal: { label: 'Sinal (50%)', sub: `R$ ${(servico.preco * 0.5).toFixed(2).replace('.', ',')} agora + R$ ${(servico.preco * 0.5).toFixed(2).replace('.', ',')} no dia` },
+                      };
+                      const op = opcoes[tipo];
+                      const sel = tipoPagamento === tipo;
+                      return (
+                        <label key={tipo} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: 14, borderRadius: 12, cursor: 'pointer', border: `2px solid ${sel ? cor : '#EEE9DF'}`, background: sel ? `${cor}0D` : 'white', transition: 'all 150ms' }}>
+                          <input type="radio" name="pagamento" checked={sel} onChange={() => setTipoPagamento(tipo)} style={{ accentColor: cor, marginTop: 2, flexShrink: 0 }} />
+                          <div style={{ flex: 1 }}>
+                            <p style={{ fontSize: 14, fontWeight: 500, color: '#1B2B3A' }}>
+                              {op.label}
+                              {tipo === 'total' && (
+                                <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 600, color: cor, background: `${cor}20`, padding: '2px 8px', borderRadius: 20 }}>Recomendado</span>
+                              )}
+                            </p>
+                            <p style={{ fontSize: 12, color: '#8A9BB0', marginTop: 2 }}>{op.sub}</p>
+                          </div>
+                        </label>
+                      );
+                    })}
                   </div>
                 </div>
               )}
-            </div>
 
-            <p className="text-[11px] text-slate-400 font-medium">
-              Você receberá uma confirmação via WhatsApp em breve. Até logo, {nome}!
-            </p>
-
-            <button onClick={() => {
-              setStep('servico');
-              setSelectedServico(null); setSelectedProfissional(null);
-              setSelectedDate(''); setSelectedSlot('');
-              setNome(''); setTelefone('');
-              setAgendamentoCriado(null);
-              setComboAceito(null); setCombosSugeridos([]);
-            }}
-              className="text-[11px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-colors underline underline-offset-4">
-              Fazer outro agendamento
-            </button>
-          </div>
-        )}
-      </div>
-
-      <footer className="py-8 text-center text-[9px] font-black uppercase tracking-widest text-slate-300">
-        Powered by Synka
-      </footer>
-
-      {/* ── Modal: Combo Sugerido ──────────────────────────────── */}
-      {showComboModal && combosSugeridos.length > 0 && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={handleRecusarCombo} />
-          <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-300">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-6 text-white">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                </div>
+              {/* Dados do cliente */}
+              <div style={{ background: '#F8F6F1', borderRadius: 12, padding: '12px 16px', marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest opacity-80">Oferta especial</p>
-                  <h3 className="font-black text-lg leading-tight">Que tal aproveitar também?</h3>
+                  <p style={{ fontSize: 14, fontWeight: 500, color: '#1B2B3A' }}>{clienteNome}</p>
+                  <p style={{ fontSize: 12, color: '#8A9BB0' }}>{clienteTelefone}</p>
                 </div>
+                <button onClick={() => setPasso(1)} style={{ fontSize: 12, color: '#8A9BB0', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Alterar</button>
+              </div>
+
+              {erroConfirm && (
+                <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10, padding: '10px 14px', marginBottom: 12 }}>
+                  <p style={{ fontSize: 13, color: '#DC2626' }}>{erroConfirm}</p>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={voltar} style={{ flex: 1, height: 52, borderRadius: 12, border: '1.5px solid #EEE9DF', background: 'white', color: '#4A6480', fontSize: 15, fontWeight: 500, cursor: 'pointer' }}>← Voltar</button>
+                <button onClick={confirmar} disabled={confirmando} style={{ flex: 2, height: 52, borderRadius: 12, border: 'none', color: 'white', fontSize: 15, fontWeight: 500, cursor: 'pointer', background: cor, opacity: confirmando ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  {confirmando ? (
+                    <>
+                      <div style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite' }} />
+                      Confirmando...
+                    </>
+                  ) : 'Confirmar agendamento'}
+                </button>
               </div>
             </div>
+          )}
 
-            <div className="p-6 space-y-4">
-              {combosSugeridos.map(combo => (
-                <div key={combo.id}
-                  className="border-2 border-indigo-100 rounded-2xl p-4 space-y-3 hover:border-indigo-300 transition-colors cursor-pointer"
-                  onClick={() => handleAceitarCombo(combo)}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1">
-                      <h4 className="font-black text-slate-800 text-sm">{combo.nome}</h4>
-                      {combo.descricao && (
-                        <p className="text-[11px] text-slate-500 mt-0.5 font-medium">{combo.descricao}</p>
-                      )}
-                    </div>
-                    {combo.descontoPct && (
-                      <span className="shrink-0 text-[10px] font-black bg-emerald-100 text-emerald-700 px-2 py-1 rounded-xl">
-                        {combo.descontoPct}% OFF
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="flex flex-wrap gap-1.5">
-                    {combo.servicos.map((s, i) => (
-                      <span key={i} className="text-[9px] font-black bg-indigo-50 text-indigo-600 px-2 py-1 rounded-lg uppercase tracking-wide">
-                        {s}
-                      </span>
-                    ))}
-                  </div>
-
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-50">
-                    <div>
-                      {combo.precoOriginal && (
-                        <p className="text-[10px] text-slate-400 line-through">
-                          R$ {Number(combo.precoOriginal).toFixed(2)}
-                        </p>
-                      )}
-                      <p className="font-black text-slate-800 text-base">
-                        R$ {Number(combo.precoCombo).toFixed(2)}
-                      </p>
-                    </div>
-                    <button
-                      onClick={e => { e.stopPropagation(); handleAceitarCombo(combo); }}
-                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors"
-                    >
-                      Adicionar →
-                    </button>
-                  </div>
+          {/* ── PASSO 6: Sucesso ── */}
+          {passo === 6 && servico && (
+            <div style={{ textAlign: 'center' }}>
+              {/* Ícone de sucesso */}
+              <div style={{ width: 80, height: 80, borderRadius: '50%', background: `${cor}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+                <div style={{ width: 56, height: 56, borderRadius: '50%', background: cor, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                    <path d="M23 7L11 19l-6-6" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
                 </div>
-              ))}
+              </div>
+
+              <h2 style={{ fontSize: 22, fontWeight: 700, color: '#1B2B3A', marginBottom: 6 }}>Agendamento confirmado!</h2>
+              <p style={{ fontSize: 13, color: '#8A9BB0', marginBottom: 16 }}>
+                Você receberá uma confirmação no WhatsApp
+              </p>
+
+              {/* Protocolo */}
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#F8F6F1', borderRadius: 20, padding: '6px 16px', marginBottom: 20 }}>
+                <span style={{ fontSize: 12, color: '#8A9BB0' }}>Protocolo:</span>
+                <span style={{ fontSize: 14, fontWeight: 600, color: '#1B2B3A', letterSpacing: '0.1em' }}>#{protocolo}</span>
+              </div>
+
+              {/* Resumo final */}
+              <div style={{ background: '#F8F6F1', borderRadius: 16, padding: 16, textAlign: 'left', marginBottom: 20 }}>
+                {[
+                  { icon: '📅', label: 'Data e horário', value: `${formatarDataExibicao(dataSelecionada)} às ${horario}` },
+                  { icon: '✂️', label: 'Serviço', value: servico.nome },
+                  { icon: '🏠', label: 'Local', value: clinica.nome },
+                ].map(item => (
+                  <div key={item.label} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '8px 0', borderBottom: '1px solid #EEE9DF' }}>
+                    <span style={{ fontSize: 18 }}>{item.icon}</span>
+                    <div>
+                      <p style={{ fontSize: 11, color: '#8A9BB0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{item.label}</p>
+                      <p style={{ fontSize: 13, fontWeight: 500, color: '#1B2B3A' }}>{item.value}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Adicionar ao calendário */}
+              <a
+                href={gerarLinkCalendario({ titulo: `${servico.nome} — ${clinica.nome}`, data: dataSelecionada, horario, duracao: servico.duracaoMinutos })}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '14px 0', borderRadius: 12, border: '1.5px solid #EEE9DF', background: 'white', color: '#4A6480', fontSize: 14, fontWeight: 500, textDecoration: 'none', marginBottom: 10, boxSizing: 'border-box' }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+                Adicionar ao calendário
+              </a>
 
               <button
-                onClick={handleRecusarCombo}
-                className="w-full py-3 text-[11px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-colors"
+                onClick={() => {
+                  setPasso(1); setServico(null); setProfissional(null);
+                  setDataSelecionada(''); setSlots([]); setHorario('');
+                  setTipoPagamento('hora'); setProtocolo(''); setErroConfirm('');
+                }}
+                style={{ fontSize: 14, color: cor, background: 'none', border: 'none', cursor: 'pointer', padding: '8px 0' }}
               >
-                Não, obrigado
+                Fazer outro agendamento
               </button>
             </div>
-          </div>
+          )}
         </div>
-      )}
+      </div>
+
+      {/* Footer */}
+      <div style={{ textAlign: 'center', padding: '0 0 16px', color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>
+        Powered by Synka
+      </div>
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
