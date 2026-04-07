@@ -35,20 +35,58 @@ export async function POST(req: NextRequest) {
     return n8nError('Corpo JSON inválido', 'INVALID_BODY');
   }
 
-  const { slug, clienteNome, clienteTelefone, servicoId, data, horario } = body;
-  if (!slug || !clienteNome || !clienteTelefone || !servicoId || !data || !horario) {
+  const slug = body.slug;
+  const clienteNome = body.clienteNome || (body as any).nome || (body as any).pacienteNome;
+  const clienteTelefone = body.clienteTelefone || (body as any).pacienteTelefone;
+  let servicoId = body.servicoId;
+  let tenantId = (body as any).tenantId;
+
+  let data = body.data;
+  let horario = body.horario;
+
+  // Fallback caso o bot n8n mande "dataHora" inteiro (ex: "2024-04-10T14:30:00Z")
+  if ((body as any).dataHora && (!data || !horario)) {
+    const dObj = new Date((body as any).dataHora);
+    // Extrai no fuso de Fortaleza para que o construtor depois não mude o dia
+    const fDate = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Fortaleza', dateStyle: 'short' }).format(dObj); // YYYY-MM-DD
+    const fTime = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Fortaleza', timeStyle: 'short' }).format(dObj); // HH:mm
+    data = fDate;
+    horario = fTime;
+  }
+
+  if ((!slug && !tenantId) || !clienteNome || !clienteTelefone || !data || !horario) {
     return n8nError(
-      'slug, clienteNome, clienteTelefone, servicoId, data e horario são obrigatórios',
+      'slug/tenantId, clienteNome, clienteTelefone, data(Hora) e horario são obrigatórios',
       'MISSING_PARAM'
     );
   }
 
   try {
-    const clinica = await prisma.clinica.findUnique({
-      where: { slug },
-      select: { tenantId: true, nome: true },
-    });
+    let clinica = null;
+    if (slug) {
+      clinica = await prisma.clinica.findUnique({
+        where: { slug },
+        select: { tenantId: true, nome: true },
+      });
+    } else if (tenantId) {
+      clinica = await prisma.clinica.findUnique({
+        where: { tenantId },
+        select: { tenantId: true, nome: true },
+      });
+    }
+
     if (!clinica) return n8nError('Clínica não encontrada', 'NOT_FOUND', 404);
+
+    // No modo N8N puro (bot antigo), o servicoId pode faltar se não foi bem amarrado
+    // Se faltar servicoId, busco o primeiro ativo para não quebrar a transição
+    if (!servicoId) {
+      const firstServ = await prisma.servico.findFirst({
+        where: { tenantId: clinica.tenantId, ativo: true },
+        select: { id: true },
+      });
+      if (firstServ) servicoId = firstServ.id;
+      else return n8nError('Serviço não informado e clínica não tem serviços', 'NOT_FOUND', 404);
+    }
 
     const servico = await prisma.servico.findFirst({
       where: { id: servicoId, tenantId: clinica.tenantId, ativo: true },

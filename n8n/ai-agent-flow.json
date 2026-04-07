@@ -11,7 +11,10 @@
       "name": "Webhook WhatsApp",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [ 100, 300 ]
+      "position": [
+        100,
+        300
+      ]
     },
     {
       "parameters": {
@@ -24,7 +27,10 @@
       "name": "Agente Autônomo",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1,
-      "position": [ 400, 300 ]
+      "position": [
+        400,
+        300
+      ]
     },
     {
       "parameters": {
@@ -35,7 +41,10 @@
       "name": "Google Gemini",
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
-      "position": [ 350, 500 ]
+      "position": [
+        350,
+        500
+      ]
     },
     {
       "parameters": {
@@ -46,19 +55,28 @@
       "name": "Memória da Conversa",
       "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
       "typeVersion": 1,
-      "position": [ 500, 500 ]
+      "position": [
+        500,
+        500
+      ]
     },
     {
       "parameters": {
         "name": "consultar_horarios",
         "description": "Retorna os horários disponíveis para agendamento. Passe a data desejada como YYYY-MM-DD.",
         "method": "GET",
-        "url": "https://api.somar.ia.br/api/bot/availability",
+        "url": "https://synka.somar.ia.br/api/n8n/agenda/disponibilidade",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "date", "value": "={{ $fromAI('date') }}" },
-            { "name": "tenantId", "value": "tenant_einstein_demo" }
+            {
+              "name": "date",
+              "value": "={{ $fromAI('date') }}"
+            },
+            {
+              "name": "tenantId",
+              "value": "={{ $json.tenantId }}"
+            }
           ]
         }
       },
@@ -66,21 +84,36 @@
       "name": "Ferramenta: Ver Horários",
       "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
       "typeVersion": 1,
-      "position": [ 650, 500 ]
+      "position": [
+        650,
+        500
+      ]
     },
     {
       "parameters": {
         "name": "agendar_ou_cancelar",
         "description": "Cria ou cancela um agendamento no sistema. Ações suportadas: 'schedule' ou 'cancel'. Dados necessários: pacienteTelefone, pacienteNome, dataHora (ISO).",
         "method": "POST",
-        "url": "https://api.somar.ia.br/api/bot/appointments?action={{ $fromAI('action') }}",
+        "url": "https://synka.somar.ia.br/api/n8n/agenda/criar",
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
-            { "name": "pacienteTelefone", "value": "={{ $fromAI('pacienteTelefone') }}" },
-            { "name": "pacienteNome", "value": "={{ $fromAI('pacienteNome') }}" },
-            { "name": "dataHora", "value": "={{ $fromAI('dataHora') }}" },
-            { "name": "tenantId", "value": "tenant_einstein_demo" }
+            {
+              "name": "nome",
+              "value": "={{ $fromAI(\"pacienteNome\") }}"
+            },
+            {
+              "name": "dataHora",
+              "value": "={{ $fromAI(\"dataHora\") }}"
+            },
+            {
+              "name": "pacienteTelefone",
+              "value": "={{ $fromAI(\"pacienteTelefone\") || $json.sessionId }}"
+            },
+            {
+              "name": "tenantId",
+              "value": "={{ $json.tenantId }}"
+            }
           ]
         }
       },
@@ -88,7 +121,10 @@
       "name": "Ferramenta: Gestão de Agendamento",
       "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
       "typeVersion": 1,
-      "position": [ 850, 500 ]
+      "position": [
+        850,
+        500
+      ]
     },
     {
       "parameters": {
@@ -97,8 +133,14 @@
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
-            { "name": "number", "value": "={{ $('Webhook WhatsApp').item.json.sender_number }}" },
-            { "name": "textMessage.text", "value": "={{ $json.output }}" }
+            {
+              "name": "number",
+              "value": "={{ $('Webhook WhatsApp').item.json.sender_number }}"
+            },
+            {
+              "name": "textMessage.text",
+              "value": "={{ $json.output }}"
+            }
           ]
         },
         "options": {}
@@ -107,38 +149,77 @@
       "name": "Disparar Resposta WhatsApp",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [ 750, 300 ]
+      "position": [
+        750,
+        300
+      ]
     }
   ],
   "connections": {
     "Webhook WhatsApp": {
       "main": [
-        [ { "node": "Agente Autônomo", "type": "main", "index": 0 } ]
+        [
+          {
+            "node": "Agente Autônomo",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Agente Autônomo": {
       "main": [
-        [ { "node": "Disparar Resposta WhatsApp", "type": "main", "index": 0 } ]
+        [
+          {
+            "node": "Disparar Resposta WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Google Gemini": {
       "ai_languageModel": [
-        [ { "node": "Agente Autônomo", "type": "ai_languageModel", "index": 0 } ]
+        [
+          {
+            "node": "Agente Autônomo",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
       ]
     },
     "Memória da Conversa": {
       "ai_memory": [
-        [ { "node": "Agente Autônomo", "type": "ai_memory", "index": 0 } ]
+        [
+          {
+            "node": "Agente Autônomo",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
       ]
     },
     "Ferramenta: Ver Horários": {
       "ai_tool": [
-        [ { "node": "Agente Autônomo", "type": "ai_tool", "index": 0 } ]
+        [
+          {
+            "node": "Agente Autônomo",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
       ]
     },
     "Ferramenta: Gestão de Agendamento": {
       "ai_tool": [
-        [ { "node": "Agente Autônomo", "type": "ai_tool", "index": 0 } ]
+        [
+          {
+            "node": "Agente Autônomo",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
       ]
     }
   },

@@ -11,18 +11,34 @@
       "name": "Webhook WhatsApp",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [ 100, 300 ]
+      "position": [
+        100,
+        300
+      ]
     },
     {
       "parameters": {
-        "url": "https://api.somar.ia.br/api/bot/context?tenantId=tenant_einstein_demo",
-        "options": {}
+        "url": "https://synka.somar.ia.br/api/n8n/clinic-info",
+        "options": {},
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "tenantId",
+              "value": "={{ $json.tenantId }}"
+            }
+          ]
+        },
+        "authentication": "headerAuth"
       },
       "id": "fetch-context",
       "name": "Carregar Contexto Clínica",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [ 300, 300 ]
+      "position": [
+        300,
+        300
+      ]
     },
     {
       "parameters": {
@@ -35,7 +51,10 @@
       "name": "Agente Autônomo Especializado",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1,
-      "position": [ 500, 300 ]
+      "position": [
+        500,
+        300
+      ]
     },
     {
       "parameters": {
@@ -46,7 +65,10 @@
       "name": "Google Gemini",
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
-      "position": [ 450, 500 ]
+      "position": [
+        450,
+        500
+      ]
     },
     {
       "parameters": {
@@ -57,7 +79,10 @@
       "name": "Memória da Conversa",
       "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
       "typeVersion": 1,
-      "position": [ 600, 500 ]
+      "position": [
+        600,
+        500
+      ]
     },
     {
       "parameters": {
@@ -68,8 +93,14 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "tenantId", "value": "tenant_einstein_demo" },
-            { "name": "tipo", "value": "={{ $fromAI('tipo') }}" }
+            {
+              "name": "tenantId",
+              "value": "tenant_einstein_demo"
+            },
+            {
+              "name": "tipo",
+              "value": "={{ $fromAI('tipo') }}"
+            }
           ]
         }
       },
@@ -77,7 +108,10 @@
       "name": "Ferramenta: Listar Opções",
       "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
       "typeVersion": 1,
-      "position": [ 750, 420 ]
+      "position": [
+        750,
+        420
+      ]
     },
     {
       "parameters": {
@@ -88,8 +122,14 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "tenantId", "value": "tenant_einstein_demo" },
-            { "name": "servicoId", "value": "={{ $fromAI('servicoId') }}" }
+            {
+              "name": "tenantId",
+              "value": "tenant_einstein_demo"
+            },
+            {
+              "name": "servicoId",
+              "value": "={{ $fromAI('servicoId') }}"
+            }
           ]
         }
       },
@@ -97,7 +137,10 @@
       "name": "Ferramenta: Profissionais por Serviço",
       "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
       "typeVersion": 1,
-      "position": [ 900, 480 ]
+      "position": [
+        900,
+        480
+      ]
     },
     {
       "parameters": {
@@ -108,8 +151,14 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "tenantId", "value": "tenant_einstein_demo" },
-            { "name": "whatsapp", "value": "={{ $fromAI('whatsapp') }}" }
+            {
+              "name": "tenantId",
+              "value": "tenant_einstein_demo"
+            },
+            {
+              "name": "whatsapp",
+              "value": "={{ $fromAI('whatsapp') }}"
+            }
           ]
         }
       },
@@ -117,20 +166,32 @@
       "name": "Ferramenta: Info do Cliente",
       "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
       "typeVersion": 1,
-      "position": [ 1050, 540 ]
+      "position": [
+        1050,
+        540
+      ]
     },
     {
       "parameters": {
         "name": "tool_availability",
         "description": "Retorna os horários disponíveis para uma data. Parâmetros obrigatórios: date (YYYY-MM-DD), profissionalId (ID do profissional escolhido).",
         "method": "GET",
-        "url": "https://api.somar.ia.br/api/n8n/availability",
+        "url": "https://synka.somar.ia.br/api/n8n/agenda/disponibilidade",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "date", "value": "={{ $fromAI('date') }}" },
-            { "name": "profissionalId", "value": "={{ $fromAI('profissionalId') }}" },
-            { "name": "tenantId", "value": "tenant_einstein_demo" }
+            {
+              "name": "date",
+              "value": "={{ $fromAI('date') }}"
+            },
+            {
+              "name": "profissionalId",
+              "value": "={{ $fromAI('profissionalId') }}"
+            },
+            {
+              "name": "tenantId",
+              "value": "={{ $json.tenantId }}"
+            }
           ]
         }
       },
@@ -138,19 +199,28 @@
       "name": "Ferramenta: Ver Horários",
       "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
       "typeVersion": 1,
-      "position": [ 1200, 420 ]
+      "position": [
+        1200,
+        420
+      ]
     },
     {
       "parameters": {
         "name": "tool_get_appointments",
         "description": "Busca agendamentos existentes pelo telefone do paciente (para obter o ID antes de remarcar ou cancelar). Parâmetro obrigatório: phone.",
         "method": "GET",
-        "url": "https://api.somar.ia.br/api/bot/appointments",
+        "url": "https://synka.somar.ia.br/api/n8n/cliente/buscar",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "phone", "value": "={{ $fromAI('phone') }}" },
-            { "name": "tenantId", "value": "tenant_einstein_demo" }
+            {
+              "name": "telefone",
+              "value": "={{ $json.sessionId || $fromAI(\"phone\") }}"
+            },
+            {
+              "name": "tenantId",
+              "value": "={{ $json.tenantId }}"
+            }
           ]
         }
       },
@@ -158,23 +228,36 @@
       "name": "Ferramenta: Consultar Agendamentos",
       "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
       "typeVersion": 1,
-      "position": [ 1050, 620 ]
+      "position": [
+        1050,
+        620
+      ]
     },
     {
       "parameters": {
         "name": "tool_book",
         "description": "Cria um novo agendamento. PROIBIDO usar antes do cliente confirmar com SIM. Parâmetros obrigatórios: pacienteTelefone, pacienteNome, dataHora (ISO 8601), profissionalId, servicoId.",
         "method": "POST",
-        "url": "https://api.somar.ia.br/api/bot/appointments",
+        "url": "https://synka.somar.ia.br/api/n8n/agenda/criar",
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
-            { "name": "pacienteTelefone", "value": "={{ $fromAI('pacienteTelefone') }}" },
-            { "name": "pacienteNome", "value": "={{ $fromAI('pacienteNome') }}" },
-            { "name": "dataHora", "value": "={{ $fromAI('dataHora') }}" },
-            { "name": "profissionalId", "value": "={{ $fromAI('profissionalId') }}" },
-            { "name": "servicoId", "value": "={{ $fromAI('servicoId') }}" },
-            { "name": "tenantId", "value": "tenant_einstein_demo" }
+            {
+              "name": "nome",
+              "value": "={{ $fromAI(\"pacienteNome\") }}"
+            },
+            {
+              "name": "dataHora",
+              "value": "={{ $fromAI(\"dataHora\") }}"
+            },
+            {
+              "name": "pacienteTelefone",
+              "value": "={{ $fromAI(\"pacienteTelefone\") || $json.sessionId }}"
+            },
+            {
+              "name": "tenantId",
+              "value": "={{ $json.tenantId }}"
+            }
           ]
         }
       },
@@ -182,20 +265,36 @@
       "name": "Ferramenta: Criar Agendamento",
       "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
       "typeVersion": 1,
-      "position": [ 1350, 480 ]
+      "position": [
+        1350,
+        480
+      ]
     },
     {
       "parameters": {
         "name": "tool_update_appointment",
         "description": "Remarca ou cancela um agendamento existente. Parâmetro obrigatório: id (obtido via tool_get_appointments). Opcional: status='cancelado' para cancelar, ou dataHora (ISO 8601) para remarcar.",
-        "method": "PUT",
-        "url": "https://api.somar.ia.br/api/bot/appointments/{{ $fromAI('id') }}",
+        "method": "PATCH",
+        "url": "https://synka.somar.ia.br/api/n8n/agenda/cancelar",
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
-            { "name": "status", "value": "={{ $fromAI('status') }}" },
-            { "name": "dataHora", "value": "={{ $fromAI('dataHora') }}" },
-            { "name": "tenantId", "value": "tenant_einstein_demo" }
+            {
+              "name": "id",
+              "value": "={{ $fromAI(\"id\") }}"
+            },
+            {
+              "name": "status",
+              "value": "={{ $fromAI(\"status\") }}"
+            },
+            {
+              "name": "dataHora",
+              "value": "={{ $fromAI(\"dataHora\") }}"
+            },
+            {
+              "name": "tenantId",
+              "value": "={{ $json.tenantId }}"
+            }
           ]
         }
       },
@@ -203,7 +302,10 @@
       "name": "Ferramenta: Remarcar ou Cancelar",
       "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
       "typeVersion": 1,
-      "position": [ 1350, 600 ]
+      "position": [
+        1350,
+        600
+      ]
     },
     {
       "parameters": {
@@ -213,9 +315,18 @@
         "contentType": "www-form-urlencoded",
         "bodyParameters": {
           "parameters": [
-            { "name": "token", "value": "nbk60ugo4t1craq9" },
-            { "name": "to", "value": "={{ $('Webhook WhatsApp').item.json.body.from || $('Webhook WhatsApp').item.json.sender_number }}" },
-            { "name": "body", "value": "={{ $json.output }}" }
+            {
+              "name": "token",
+              "value": "nbk60ugo4t1craq9"
+            },
+            {
+              "name": "to",
+              "value": "={{ $('Webhook WhatsApp').item.json.body.from || $('Webhook WhatsApp').item.json.sender_number }}"
+            },
+            {
+              "name": "body",
+              "value": "={{ $json.output }}"
+            }
           ]
         },
         "options": {}
@@ -224,68 +335,245 @@
       "name": "Disparar Resposta WhatsApp",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [ 850, 300 ]
+      "position": [
+        850,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://synka.somar.ia.br/api/n8n/clinic-info",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "tenantId",
+              "value": "={{ $json.tenantId || $('Webhook WhatsApp').item.json.tenantId || \"tenant_einstein_demo\" }}"
+            }
+          ]
+        },
+        "authentication": "headerAuth"
+      },
+      "id": "buscar-config-wa",
+      "name": "Buscar Config WA",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        700,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.whatsappInstanceKey }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "if-wa-config",
+      "name": "Tem instância própria?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        900,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.wasenderapi.com/api/send-message",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "to",
+              "value": "={{ $('Webhook WhatsApp').item.json.body.from || $('Webhook WhatsApp').item.json.sender_number }}"
+            },
+            {
+              "name": "text",
+              "value": "={{ $('Agente Autônomo Especializado').item.json.output }}"
+            }
+          ]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "send-wasender",
+      "name": "Disparar Resposta WaSender",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1100,
+        100
+      ]
     }
   ],
   "connections": {
     "Webhook WhatsApp": {
       "main": [
-        [ { "node": "Carregar Contexto Clínica", "type": "main", "index": 0 } ]
+        [
+          {
+            "node": "Carregar Contexto Clínica",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Carregar Contexto Clínica": {
       "main": [
-        [ { "node": "Agente Autônomo Especializado", "type": "main", "index": 0 } ]
+        [
+          {
+            "node": "Agente Autônomo Especializado",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Agente Autônomo Especializado": {
       "main": [
-        [ { "node": "Disparar Resposta WhatsApp", "type": "main", "index": 0 } ]
+        [
+          {
+            "node": "Buscar Config WA",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Google Gemini": {
       "ai_languageModel": [
-        [ { "node": "Agente Autônomo Especializado", "type": "ai_languageModel", "index": 0 } ]
+        [
+          {
+            "node": "Agente Autônomo Especializado",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
       ]
     },
     "Memória da Conversa": {
       "ai_memory": [
-        [ { "node": "Agente Autônomo Especializado", "type": "ai_memory", "index": 0 } ]
+        [
+          {
+            "node": "Agente Autônomo Especializado",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
       ]
     },
     "Ferramenta: Listar Opções": {
       "ai_tool": [
-        [ { "node": "Agente Autônomo Especializado", "type": "ai_tool", "index": 0 } ]
+        [
+          {
+            "node": "Agente Autônomo Especializado",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
       ]
     },
     "Ferramenta: Profissionais por Serviço": {
       "ai_tool": [
-        [ { "node": "Agente Autônomo Especializado", "type": "ai_tool", "index": 0 } ]
+        [
+          {
+            "node": "Agente Autônomo Especializado",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
       ]
     },
     "Ferramenta: Info do Cliente": {
       "ai_tool": [
-        [ { "node": "Agente Autônomo Especializado", "type": "ai_tool", "index": 0 } ]
+        [
+          {
+            "node": "Agente Autônomo Especializado",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
       ]
     },
     "Ferramenta: Ver Horários": {
       "ai_tool": [
-        [ { "node": "Agente Autônomo Especializado", "type": "ai_tool", "index": 0 } ]
+        [
+          {
+            "node": "Agente Autônomo Especializado",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
       ]
     },
     "Ferramenta: Consultar Agendamentos": {
       "ai_tool": [
-        [ { "node": "Agente Autônomo Especializado", "type": "ai_tool", "index": 0 } ]
+        [
+          {
+            "node": "Agente Autônomo Especializado",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
       ]
     },
     "Ferramenta: Criar Agendamento": {
       "ai_tool": [
-        [ { "node": "Agente Autônomo Especializado", "type": "ai_tool", "index": 0 } ]
+        [
+          {
+            "node": "Agente Autônomo Especializado",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
       ]
     },
     "Ferramenta: Remarcar ou Cancelar": {
       "ai_tool": [
-        [ { "node": "Agente Autônomo Especializado", "type": "ai_tool", "index": 0 } ]
+        [
+          {
+            "node": "Agente Autônomo Especializado",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Config WA": {
+      "main": [
+        [
+          {
+            "node": "Tem instância própria?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tem instância própria?": {
+      "main": [
+        [
+          {
+            "node": "Disparar Resposta WaSender",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Disparar Resposta WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     }
   },

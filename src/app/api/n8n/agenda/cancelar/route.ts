@@ -11,17 +11,31 @@ export const dynamic = 'force-dynamic';
  * Cancela agendamento via bot/n8n.
  */
 export async function POST(req: NextRequest) {
+  return handleCancelation(req, await getBodyParams(req));
+}
+
+export async function PATCH(req: NextRequest) {
+  return handleCancelation(req, await getBodyParams(req));
+}
+
+async function getBodyParams(req: NextRequest) {
+  const url = req.nextUrl;
+  let body: any = {};
+  if (req.method !== 'GET') {
+    try { body = await req.json(); } catch {}
+  }
+  return {
+    agendamentoId: body.agendamentoId || body.id || url.searchParams.get('id'),
+    tenantId: body.tenantId || url.searchParams.get('tenantId'),
+    motivo: body.motivo || url.searchParams.get('motivo'),
+  };
+}
+
+async function handleCancelation(req: NextRequest, body: { agendamentoId?: string, tenantId?: string, motivo?: string }) {
   if (!autenticarApiKey(req)) return UNAUTHORIZED();
 
-  let body: { agendamentoId?: string; tenantId?: string; motivo?: string };
-  try {
-    body = await req.json();
-  } catch {
-    return n8nError('Corpo JSON inválido', 'INVALID_BODY');
-  }
-
   if (!body.agendamentoId || !body.tenantId) {
-    return n8nError('agendamentoId e tenantId são obrigatórios', 'MISSING_PARAM');
+    return n8nError('agendamentoId(id) e tenantId são obrigatórios', 'MISSING_PARAM');
   }
 
   try {
