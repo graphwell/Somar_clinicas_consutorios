@@ -1,3 +1,5 @@
+import prisma from '@/lib/prisma';
+
 export const dynamic = 'force-dynamic';
 
 /**
@@ -46,6 +48,24 @@ export async function POST(request: Request) {
     return Response.json({ ok: true });
   }
 
+  // Buscar a qual clínica esta instância pertence
+  let tenantId = 'tenant_einstein_demo';
+  try {
+    // Ultramsg manda o nome da instancia via body.instanceId (ex: "instance168762" ou só "168762")
+    const waInstance = await prisma.whatsappInstance.findFirst({
+      where: {
+        OR: [
+          { sessionId: instanceId },
+          { sessionId: `instance${instanceId}` }
+        ]
+      },
+      select: { empresaId: true }
+    });
+    if (waInstance?.empresaId) tenantId = waInstance.empresaId;
+  } catch (err) {
+    console.error('[webhook/ultramsg] Erro ao buscar instância:', err);
+  }
+
   // Repassar ao n8n de forma não-bloqueante
   fetch(webhookUrl, {
     method: 'POST',
@@ -54,6 +74,7 @@ export async function POST(request: Request) {
       telefone,
       mensagem,
       instanceId,
+      tenantId,
       timestamp: msgData?.time ?? Math.floor(Date.now() / 1000),
     }),
   }).catch(err => console.error('[webhook/ultramsg] Erro ao repassar ao n8n:', err));
