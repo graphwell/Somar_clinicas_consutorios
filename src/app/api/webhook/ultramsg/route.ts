@@ -72,7 +72,10 @@ export async function POST(request: Request) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       telefone,
+      sender_number: telefone,
+      from: telefone,
       mensagem,
+      message: mensagem,
       instanceId,
       tenantId,
       timestamp: msgData?.time ?? Math.floor(Date.now() / 1000),
