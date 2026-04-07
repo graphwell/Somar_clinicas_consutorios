@@ -49,7 +49,7 @@ export async function POST(request: Request) {
   }
 
   // Buscar a qual clínica esta instância pertence
-  let tenantId = 'tenant_einstein_demo';
+  let tenantId = 'demo-synka-master';
   try {
     // Ultramsg manda o nome da instancia via body.instanceId (ex: "instance168762" ou só "168762")
     const waInstance = await prisma.whatsappInstance.findFirst({
