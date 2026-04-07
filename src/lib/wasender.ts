@@ -6,33 +6,47 @@ const WASENDER_BASE = process.env.WASENDER_BASE_URL || 'https://wasenderapi.com/
 
 export interface WasenderConfig {
   apiKey: string;
-  /** true quando está usando a instância demo compartilhada */
+  /** true quando está usando a instância central/demo compartilhada */
   isDemo: boolean;
+  /** Presente quando o fallback central é UltraMsg (substitui WASENDER_DEMO_API_KEY) */
+  ultraMsg?: { instanceId: string; token: string };
 }
 
 /**
- * Determina qual API Key WaSender usar.
+ * Determina qual provedor WhatsApp usar.
  *
  * Prioridade:
- * 1. MARKETING_DEMO_MODE=true → sempre usa instância demo
- * 2. clinicaApiKey fornecida  → usa a API Key própria da clínica
- * 3. Fallback                 → instância demo (homologação compartilhada)
+ * 1. MARKETING_DEMO_MODE=true → UltraMsg central se configurado, senão WaSender demo
+ * 2. clinicaApiKey fornecida  → WaSender com API Key própria da clínica
+ * 3. Fallback                 → UltraMsg central (ULTRAMSG_INSTANCE_ID + ULTRAMSG_TOKEN)
+ *                               ou WaSender demo (WASENDER_DEMO_API_KEY) se UltraMsg ausente
  */
 export function getWasenderConfig(clinicaApiKey?: string | null): WasenderConfig {
+  const ultraInstanceId = process.env.ULTRAMSG_INSTANCE_ID ?? '';
+  const ultraToken = process.env.ULTRAMSG_TOKEN ?? '';
   const demoKey = process.env.WASENDER_DEMO_API_KEY ?? '';
+
+  const ultraMsgDisponivel = !!(ultraInstanceId && ultraToken);
+  const centralUltraMsg = ultraMsgDisponivel
+    ? { instanceId: ultraInstanceId, token: ultraToken }
+    : undefined;
 
   // Modo demo forçado (env)
   if (process.env.MARKETING_DEMO_MODE === 'true') {
-    return { apiKey: demoKey, isDemo: true };
+    return ultraMsgDisponivel
+      ? { apiKey: '', isDemo: true, ultraMsg: centralUltraMsg }
+      : { apiKey: demoKey, isDemo: true };
   }
 
-  // Clínica tem API Key própria
+  // Clínica tem API Key própria WaSender
   if (clinicaApiKey) {
     return { apiKey: clinicaApiKey, isDemo: false };
   }
 
-  // Fallback: instância demo
-  return { apiKey: demoKey, isDemo: true };
+  // Fallback: UltraMsg central (preferido) ou WaSender demo
+  return ultraMsgDisponivel
+    ? { apiKey: '', isDemo: true, ultraMsg: centralUltraMsg }
+    : { apiKey: demoKey, isDemo: true };
 }
 
 /** Retorna true se a clínica tem API Key própria configurada (não demo) */

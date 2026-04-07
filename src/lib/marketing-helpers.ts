@@ -1,5 +1,5 @@
 import prisma from '@/lib/prisma';
-import { sendWhatsAppMessage, wasenderPost, getWasenderConfig } from '@/lib/wasender';
+import { sendWhatsAppMessage, wasenderPost, ultraMsgPost, getWasenderConfig } from '@/lib/wasender';
 import { formatarTelefone } from '@/lib/marketing-utils';
 import {
   checkRateLimits,
@@ -117,7 +117,7 @@ export async function sendAndLog(params: SendAndLogParams): Promise<{
 
   const wasenderCfg = !instance ? getWasenderConfig(mc?.wasenderApiKey) : null;
 
-  if (!instance && !wasenderCfg?.apiKey) {
+  if (!instance && !wasenderCfg?.apiKey && !wasenderCfg?.ultraMsg) {
     await prisma.marketingEnvio.create({
       data: {
         tenantId: params.tenantId,
@@ -144,6 +144,8 @@ export async function sendAndLog(params: SendAndLogParams): Promise<{
       to,
       params.mensagemEnviada
     );
+  } else if (wasenderCfg?.ultraMsg) {
+    result = await ultraMsgPost(wasenderCfg.ultraMsg.instanceId, wasenderCfg.ultraMsg.token, 'messages/chat', { to, body: params.mensagemEnviada });
   } else {
     result = await wasenderPost(wasenderCfg!.apiKey, '/messages/send', { to, message: params.mensagemEnviada });
   }

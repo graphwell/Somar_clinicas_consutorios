@@ -39,8 +39,8 @@ export async function GET() {
         : '❌ ausente',
     },
     whatsapp: {
-      wasender: process.env.WASENDER_DEMO_API_KEY
-        ? '✅ presente'
+      ultramsg: (process.env.ULTRAMSG_INSTANCE_ID && process.env.ULTRAMSG_TOKEN)
+        ? '✅ central configurada'
         : '❌ ausente',
     },
     gemini: {
