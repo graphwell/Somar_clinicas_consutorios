@@ -9,6 +9,7 @@ const API_PUBLICAS = [
   '/api/bot/',
   '/api/n8n/',
   '/api/public/',
+  '/api/health',
 ];
 
 export async function middleware(request: NextRequest) {
