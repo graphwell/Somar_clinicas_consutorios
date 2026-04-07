@@ -146,3 +146,10 @@ export const IconAjuda = () => (
     <circle cx="12" cy="17" r=".5" fill="currentColor" />
   </svg>
 );
+
+export const IconVitrine = () => (
+  <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3 9l1-5h16l1 5M3 9h18M3 9v11a1 1 0 001 1h16a1 1 0 001-1V9" />
+    <path strokeLinecap="round" d="M9 13h6M12 10v6" />
+  </svg>
+);

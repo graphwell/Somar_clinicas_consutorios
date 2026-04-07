@@ -10,7 +10,7 @@ import {
   IconAgenda, IconPacientes, IconEquipe, IconServicos,
   IconProntuario, IconOdontograma, IconConvenio, IconRelatorios,
   IconCampanhas, IconIntegracoes, IconFinanceiro, IconAssinaturas,
-  IconConfiguracoes, IconLogout, IconAjuda, IconStethoscope,
+  IconConfiguracoes, IconLogout, IconAjuda, IconStethoscope, IconVitrine,
 } from "@/components/icons/NavIcons";
 
 interface NavItemProps {
@@ -186,6 +186,13 @@ export default function Sidebar({
               {isAdmin && (
                 <NavItem href="/dashboard/marketing/campaigns" label="Avisos e Lembretes" Icon={IconCampanhas} active={is("/dashboard/marketing/campaigns")} />
               )}
+            </>
+          )}
+
+          {isAdmin && (
+            <>
+              <SectionLabel label="Vitrine" />
+              <NavItem href="/dashboard/vitrine" label="Vitrine de Produtos" Icon={IconVitrine} active={is("/dashboard/vitrine")} />
             </>
           )}
 

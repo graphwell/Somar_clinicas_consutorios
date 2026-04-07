@@ -29,7 +29,7 @@ interface Profissional {
   color?: string;
 }
 
-type Passo = 1 | 2 | 3 | 4 | 5 | 6;
+type Passo = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 /* ─── Helpers ──────────────────────────────────────────── */
 function iniciais(nome: string): string {
@@ -73,7 +73,7 @@ function gerarLinkCalendario(params: {
 
 /* ─── Indicador de passos ──────────────────────────────── */
 function IndicadorPassos({ passo, cor }: { passo: Passo; cor: string }) {
-  const total = 5;
+  const total = 6;
   const atual = Math.min(passo, total);
   return (
     <div className="flex items-center justify-center gap-1 mb-6">
@@ -126,10 +126,17 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
   const [horario, setHorario] = useState('');
   const calendarRef = useRef<HTMLDivElement>(null);
 
-  // Passo 5 — Pagamento
+  // Passo 5 — Produtos sugeridos
+  interface ProdutoSugestao { id: string; nome: string; preco: number; imageUrl?: string | null; estoque: number }
+  interface ItemReservado { id: string; nome: string; preco: number; imageUrl?: string | null; quantidade: number }
+  const [sugestoesProduto, setSugestoesProduto] = useState<ProdutoSugestao[]>([]);
+  const [produtosReservados, setProdutosReservados] = useState<ItemReservado[]>([]);
+  const [carregandoSugestoes, setCarregandoSugestoes] = useState(false);
+
+  // Passo 6 — Pagamento
   const [tipoPagamento, setTipoPagamento] = useState<'hora' | 'total' | 'sinal'>('hora');
 
-  // Passo 6 — Sucesso
+  // Passo 7 — Sucesso
   const [confirmando, setConfirmando] = useState(false);
   const [protocolo, setProtocolo] = useState('');
   const [erroConfirm, setErroConfirm] = useState('');
@@ -170,8 +177,30 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
     finally { setCarregandoSlots(false); }
   };
 
-  const avancar = () => setPasso(p => (p < 6 ? (p + 1) as Passo : p));
+  const avancar = () => setPasso(p => (p < 7 ? (p + 1) as Passo : p));
   const voltar = () => setPasso(p => (p > 1 ? (p - 1) as Passo : p));
+
+  // Carrega sugestões ao entrar no passo 5
+  const carregarSugestoes = async (servicoId: string) => {
+    if (!slug || !servicoId) return;
+    setCarregandoSugestoes(true);
+    try {
+      const res = await fetch(`/api/public/clinic/${slug}/vitrine?servicoId=${servicoId}`);
+      const data = await res.json();
+      setSugestoesProduto(Array.isArray(data.sugestoes) ? data.sugestoes : []);
+    } catch { setSugestoesProduto([]); }
+    finally { setCarregandoSugestoes(false); }
+  };
+
+  const toggleProdutoReservado = (p: ProdutoSugestao) => {
+    setProdutosReservados(prev => {
+      const ex = prev.find(r => r.id === p.id);
+      if (ex) return prev.filter(r => r.id !== p.id);
+      return [...prev, { id: p.id, nome: p.nome, preco: p.preco, imageUrl: p.imageUrl, quantidade: 1 }];
+    });
+  };
+
+  const totalProdutos = produtosReservados.reduce((s, r) => s + r.preco * r.quantidade, 0);
 
   const confirmar = async () => {
     if (!servico || !dataSelecionada || !horario) return;
@@ -195,7 +224,20 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
       const data = await res.json();
       if (!res.ok) { setErroConfirm(data.error || 'Erro ao confirmar.'); return; }
       setProtocolo(data.protocolo);
-      setPasso(6);
+      // Registrar produtos reservados se houver
+      if (produtosReservados.length > 0 && data.agendamentoId) {
+        try {
+          await fetch(`/api/public/clinic/${slug}/vitrine`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              agendamentoId: data.agendamentoId,
+              items: produtosReservados.map(r => ({ produtoId: r.id, quantidade: r.quantidade, precoUnitario: r.preco })),
+            }),
+          });
+        } catch { /* não bloquear sucesso do agendamento */ }
+      }
+      setPasso(7);
     } catch { setErroConfirm('Erro de conexão. Tente novamente.'); }
     finally { setConfirmando(false); }
   };
@@ -497,13 +539,124 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
 
               <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
                 <button onClick={voltar} style={{ flex: 1, height: 52, borderRadius: 12, border: '1.5px solid #EEE9DF', background: 'white', color: '#4A6480', fontSize: 15, fontWeight: 500, cursor: 'pointer' }}>← Voltar</button>
-                <button onClick={avancar} disabled={!dataSelecionada || !horario} style={{ flex: 2, height: 52, borderRadius: 12, border: 'none', color: 'white', fontSize: 15, fontWeight: 500, cursor: 'pointer', background: cor, opacity: !dataSelecionada || !horario ? 0.4 : 1, transition: 'opacity 150ms' }}>Continuar →</button>
+                <button
+                  onClick={() => { avancar(); if (servico) carregarSugestoes(servico.id); }}
+                  disabled={!dataSelecionada || !horario}
+                  style={{ flex: 2, height: 52, borderRadius: 12, border: 'none', color: 'white', fontSize: 15, fontWeight: 500, cursor: 'pointer', background: cor, opacity: !dataSelecionada || !horario ? 0.4 : 1, transition: 'opacity 150ms' }}
+                >Continuar →</button>
               </div>
             </div>
           )}
 
-          {/* ── PASSO 5: Confirmar + Pagamento ── */}
+          {/* ── PASSO 5: Produtos sugeridos ── */}
           {passo === 5 && servico && (
+            <div>
+              <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                <div style={{ fontSize: 28, marginBottom: 8 }}>🛍️</div>
+                <h2 style={{ fontSize: 18, fontWeight: 700, color: '#1B2B3A', marginBottom: 4 }}>Aproveite o atendimento!</h2>
+                <p style={{ fontSize: 13, color: '#8A9BB0' }}>Reserve produtos para levar ou usar durante o serviço</p>
+                <p style={{ fontSize: 11, color: '#B5C4D3', marginTop: 4 }}>💡 Reservar não cobra nada agora</p>
+              </div>
+
+              {carregandoSugestoes ? (
+                <div style={{ textAlign: 'center', padding: '32px 0' }}>
+                  <div style={{ width: 24, height: 24, borderRadius: '50%', border: `2px solid ${cor}30`, borderTopColor: cor, animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
+                </div>
+              ) : sugestoesProduto.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '16px 0 24px', color: '#8A9BB0', fontSize: 13 }}>
+                  <p>Nenhum produto sugerido para este serviço.</p>
+                  <a href={`/agendar/${slug}/vitrine`} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 10, fontSize: 13, color: cor, fontWeight: 500, textDecoration: 'none' }}>
+                    Ver vitrine completa →
+                  </a>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 12 }}>
+                  {sugestoesProduto.map(p => {
+                    const reservado = produtosReservados.some(r => r.id === p.id);
+                    const semEstoque = p.estoque === 0;
+                    return (
+                      <div
+                        key={p.id}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 12, padding: 14, borderRadius: 14,
+                          border: `2px solid ${reservado ? cor : '#EEE9DF'}`,
+                          background: reservado ? `${cor}0D` : 'white', transition: 'all 150ms',
+                          opacity: semEstoque ? 0.5 : 1,
+                        }}
+                      >
+                        {p.imageUrl ? (
+                          <img src={p.imageUrl} alt={p.nome} style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
+                        ) : (
+                          <div style={{ width: 44, height: 44, borderRadius: 8, background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M20 7H4a1 1 0 00-1 1v10a1 1 0 001 1h16a1 1 0 001-1V8a1 1 0 00-1-1z"/></svg>
+                          </div>
+                        )}
+                        <div style={{ flex: 1 }}>
+                          <p style={{ fontSize: 14, fontWeight: 500, color: '#1B2B3A' }}>{p.nome}</p>
+                          <p style={{ fontSize: 13, fontWeight: 600, color: cor, marginTop: 2 }}>R$ {p.preco.toFixed(2).replace('.', ',')}</p>
+                          {p.estoque <= 3 && p.estoque > 0 && <p style={{ fontSize: 10, color: '#D97706', fontWeight: 600 }}>Últimas unidades</p>}
+                          {semEstoque && <p style={{ fontSize: 10, color: '#9CA3AF' }}>Indisponível</p>}
+                        </div>
+                        {!semEstoque && (
+                          <button
+                            onClick={() => toggleProdutoReservado(p)}
+                            style={{
+                              width: 32, height: 32, borderRadius: '50%', border: `2px solid ${cor}`,
+                              background: reservado ? cor : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              cursor: 'pointer', transition: 'all 150ms', flexShrink: 0,
+                            }}
+                          >
+                            {reservado ? (
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            ) : (
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={cor} strokeWidth="2.5"><path strokeLinecap="round" d="M12 4v16M4 12h16"/></svg>
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Link para vitrine completa */}
+              <a
+                href={`/agendar/${slug}/vitrine`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, width: '100%', padding: '12px 0', borderRadius: 10, border: `1.5px solid ${cor}30`, background: `${cor}08`, color: cor, fontSize: 13, fontWeight: 500, textDecoration: 'none', marginBottom: 16, boxSizing: 'border-box' }}
+              >
+                🏪 Ver vitrine completa
+              </a>
+
+              {/* Mini resumo do carrinho */}
+              {produtosReservados.length > 0 && (
+                <div style={{ background: `${cor}0D`, border: `1.5px solid ${cor}30`, borderRadius: 12, padding: '10px 14px', marginBottom: 16 }}>
+                  <p style={{ fontSize: 12, color: cor, fontWeight: 600, marginBottom: 6 }}>Reservados ({produtosReservados.length})</p>
+                  {produtosReservados.map(r => (
+                    <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#1B2B3A', marginBottom: 2 }}>
+                      <span>{r.nome}</span>
+                      <span style={{ fontWeight: 500 }}>R$ {r.preco.toFixed(2).replace('.', ',')}</span>
+                    </div>
+                  ))}
+                  <div style={{ borderTop: `1px solid ${cor}20`, marginTop: 6, paddingTop: 6, display: 'flex', justifyContent: 'space-between', fontWeight: 600, fontSize: 13 }}>
+                    <span style={{ color: '#1B2B3A' }}>Total produtos</span>
+                    <span style={{ color: cor }}>R$ {totalProdutos.toFixed(2).replace('.', ',')}</span>
+                  </div>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={voltar} style={{ flex: 1, height: 52, borderRadius: 12, border: '1.5px solid #EEE9DF', background: 'white', color: '#4A6480', fontSize: 15, fontWeight: 500, cursor: 'pointer' }}>← Voltar</button>
+                <button onClick={avancar} style={{ flex: 2, height: 52, borderRadius: 12, border: 'none', color: 'white', fontSize: 15, fontWeight: 500, cursor: 'pointer', background: cor }}>
+                  {produtosReservados.length > 0 ? `Continuar com ${produtosReservados.length} produto(s) →` : 'Pular →'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── PASSO 6: Confirmar + Pagamento ── */}
+          {passo === 6 && servico && (
             <div>
               <h2 style={{ fontSize: 18, fontWeight: 700, color: '#1B2B3A', marginBottom: 4 }}>Confirmar agendamento</h2>
               <p style={{ fontSize: 13, color: '#8A9BB0', marginBottom: 20 }}>Revise os detalhes antes de confirmar</p>
@@ -521,10 +674,24 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
                     <span style={{ fontSize: 13, fontWeight: 500, color: '#1B2B3A', textAlign: 'right', maxWidth: '60%' }}>{item.value}</span>
                   </div>
                 ))}
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #EEE9DF' }}>
+                  <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#8A9BB0' }}>Serviço</span>
+                  <span style={{ fontSize: 13, fontWeight: 500, color: '#1B2B3A' }}>{servico.preco > 0 ? `R$ ${servico.preco.toFixed(2).replace('.', ',')}` : 'Grátis'}</span>
+                </div>
+                {produtosReservados.length > 0 && (
+                  <>
+                    {produtosReservados.map(r => (
+                      <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #EEE9DF' }}>
+                        <span style={{ fontSize: 11, color: '#8A9BB0' }}>🛍️ {r.nome}</span>
+                        <span style={{ fontSize: 12, fontWeight: 500, color: '#1B2B3A' }}>R$ {r.preco.toFixed(2).replace('.', ',')}</span>
+                      </div>
+                    ))}
+                  </>
+                )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0 0', borderTop: '1px solid #EEE9DF', marginTop: 4 }}>
-                  <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#8A9BB0' }}>Valor</span>
+                  <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#8A9BB0' }}>Total estimado</span>
                   <span style={{ fontSize: 16, fontWeight: 600, color: cor }}>
-                    {servico.preco > 0 ? `R$ ${servico.preco.toFixed(2).replace('.', ',')}` : 'Grátis'}
+                    R$ {(servico.preco + totalProdutos).toFixed(2).replace('.', ',')}
                   </span>
                 </div>
               </div>
@@ -591,8 +758,8 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
             </div>
           )}
 
-          {/* ── PASSO 6: Sucesso ── */}
-          {passo === 6 && servico && (
+          {/* ── PASSO 7: Sucesso ── */}
+          {passo === 7 && servico && (
             <div style={{ textAlign: 'center' }}>
               {/* Ícone de sucesso */}
               <div style={{ width: 80, height: 80, borderRadius: '50%', background: `${cor}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
@@ -649,6 +816,7 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
                   setPasso(1); setServico(null); setProfissional(null);
                   setDataSelecionada(''); setSlots([]); setHorario('');
                   setTipoPagamento('hora'); setProtocolo(''); setErroConfirm('');
+                  setProdutosReservados([]); setSugestoesProduto([]);
                 }}
                 style={{ fontSize: 14, color: cor, background: 'none', border: 'none', cursor: 'pointer', padding: '8px 0' }}
               >

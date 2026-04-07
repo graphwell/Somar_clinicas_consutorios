@@ -21,9 +21,26 @@ export async function POST(request: Request) {
   switch (event.type) {
     case 'checkout.session.completed': {
       const session = event.data.object as Stripe.Checkout.Session;
-      const { tenantId, plano } = getMetadata(session);
+      const meta = session.metadata as Record<string, string> | null ?? {};
+      const { tenantId, plano, pedidoItemIds } = meta as {
+        tenantId?: string; plano?: string; pedidoItemIds?: string;
+      };
+
+      // ── Vitrine: pagamento de produtos ──
+      if (pedidoItemIds && tenantId && session.mode === 'payment') {
+        const ids = pedidoItemIds.split(',').filter(Boolean);
+        if (ids.length > 0) {
+          await prisma.pedidoItem.updateMany({
+            where: { id: { in: ids }, tenantId },
+            data: { status: 'paid_online', paymentIntentId: session.payment_intent as string || null },
+          });
+        }
+        break;
+      }
+
+      // ── Assinatura Synka ──
       const subId = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id;
-      if (tenantId && subId) {
+      if (tenantId && subId && plano) {
         await prisma.assinatura.update({
           where: { tenantId },
           data: { stripeSubId: subId, plano, status: 'active' },

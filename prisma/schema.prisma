@@ -52,6 +52,11 @@ model Clinica {
   prontuarioTemplates  ProntuarioTemplate[]
   permissoes           PermissaoRole[]
   fichasCliente        FichaCliente[]
+  // Vitrine
+  categoriasProduto    CategoriaProduto[]
+  produtos             Produto[]
+  combosproduto        ComboProduto[]
+  pedidoItens          PedidoItem[]
 }
 
 enum NichoType {
@@ -266,6 +271,7 @@ model Agendamento {
   origemAgendamento String? @default("interno") // interno | link_publico | bot
   transacao       TransacaoFinanceira?
 
+  pedidoItens     PedidoItem[]
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
@@ -405,6 +411,7 @@ model Servico {
   ofertasUpsell    ComboUpsell[] @relation("OfertaUpsell")
   agendamentos     Agendamento[]
   tabelaPrecos     ConvenioTabelaPreco[]
+  sugestoesProduto ServicoSugestao[]
 
   @@map("servicos")
 }
@@ -958,4 +965,100 @@ model VisitaCliente {
   createdAt        DateTime     @default(now())
 
   @@map("visitas_cliente")
+}
+
+// ─── Módulo Vitrine ──────────────────────────────────────────────
+
+model CategoriaProduto {
+  id        String    @id @default(uuid())
+  tenantId  String
+  nome      String
+  clinica   Clinica   @relation(fields: [tenantId], references: [tenantId])
+  produtos  Produto[]
+  createdAt DateTime  @default(now())
+
+  @@map("categorias_produto")
+}
+
+model Produto {
+  id          String            @id @default(uuid())
+  tenantId    String
+  categoriaId String?
+  nome        String
+  descricao   String?
+  dicaDeUso   String?
+  preco       Float             @default(0.0)
+  imageUrl    String?           @db.Text
+  estoque     Int               @default(0)
+  status      String            @default("active") // active | inactive
+  tags        String[]
+  clinica     Clinica           @relation(fields: [tenantId], references: [tenantId])
+  categoria   CategoriaProduto? @relation(fields: [categoriaId], references: [id])
+  comboItens  ComboItemVitrine[]
+  sugestoes   ServicoSugestao[]
+  pedidoItens PedidoItem[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@map("produtos")
+}
+
+model ComboProduto {
+  id          String             @id @default(uuid())
+  tenantId    String
+  nome        String
+  preco       Float
+  desconto    Float              @default(0.0)
+  status      String             @default("active") // active | inactive
+  clinica     Clinica            @relation(fields: [tenantId], references: [tenantId])
+  itens       ComboItemVitrine[]
+  pedidoItens PedidoItem[]
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@map("combos_produto")
+}
+
+model ComboItemVitrine {
+  id        String       @id @default(uuid())
+  comboId   String
+  produtoId String
+  combo     ComboProduto @relation(fields: [comboId], references: [id], onDelete: Cascade)
+  produto   Produto      @relation(fields: [produtoId], references: [id])
+
+  @@unique([comboId, produtoId])
+  @@map("combo_itens_vitrine")
+}
+
+model ServicoSugestao {
+  id        String  @id @default(uuid())
+  tenantId  String
+  servicoId String
+  produtoId String
+  servico   Servico @relation(fields: [servicoId], references: [id], onDelete: Cascade)
+  produto   Produto @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+
+  @@unique([servicoId, produtoId])
+  @@map("servico_sugestoes")
+}
+
+model PedidoItem {
+  id              String        @id @default(uuid())
+  tenantId        String
+  agendamentoId   String?
+  pacienteId      String?
+  produtoId       String?
+  comboId         String?
+  quantidade      Int           @default(1)
+  precoUnitario   Float
+  status          String        @default("reserved") // reserved | paid_online | paid_presential | cancelled
+  paymentIntentId String?
+  clinica         Clinica       @relation(fields: [tenantId], references: [tenantId])
+  agendamento     Agendamento?  @relation(fields: [agendamentoId], references: [id])
+  produto         Produto?      @relation(fields: [produtoId], references: [id])
+  combo           ComboProduto? @relation(fields: [comboId], references: [id])
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@map("pedido_itens")
 }
