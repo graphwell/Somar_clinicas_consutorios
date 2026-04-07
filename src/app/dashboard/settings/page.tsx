@@ -2,6 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTheme } from '@/context/ThemeContext';
 import { fetchWithAuth } from '@/lib/api-utils';
+import AvatarEditor from '@/components/profile/AvatarEditor';
 
 const NICHES = ["Clínica Médica", "Clínica de Estética", "Fisioterapia", "Pilates", "Nutricionista", "Psicólogo", "Salão de Beleza / Barbearia", "Outros"];
 
@@ -14,7 +15,7 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const [botActive, setBotActive] = useState(true);
   const fileRef = useRef<HTMLInputElement>(null);
-  const avatarRef = useRef<HTMLInputElement>(null);
+
 
   // Perfil do usuário
   const [perfilNome, setPerfilNome] = useState('');
@@ -22,7 +23,6 @@ export default function SettingsPage() {
   const [perfilEmail, setPerfilEmail] = useState('');
   const [perfilRole, setPerfilRole] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [avatarUploading, setAvatarUploading] = useState(false);
   const [perfilSalvo, setPerfilSalvo] = useState(false);
 
   const [razaoSocial, setRazaoSocial] = useState('');
@@ -98,33 +98,16 @@ export default function SettingsPage() {
     } finally { setUploading(false); }
   };
 
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setAvatarUploading(true);
-    const formData = new FormData();
-    formData.append('avatar', file);
+  const handleAvatarUpdate = (newUrl: string) => {
+    setAvatarUrl(newUrl || null);
+    // Propagar atualização para a Sidebar em tempo real
     try {
-      const res = await fetchWithAuth('/api/upload/avatar', { method: 'POST', body: formData });
-      const data = await res.json();
-      if (res.ok) {
-        setAvatarUrl(data.avatarUrl);
-        // Atualiza localStorage e notifica Sidebar em tempo real
-        try {
-          const stored = localStorage.getItem('synka-user');
-          const user = stored ? JSON.parse(stored) : {};
-          user.avatarUrl = data.avatarUrl;
-          localStorage.setItem('synka-user', JSON.stringify(user));
-          window.dispatchEvent(new CustomEvent('synka-user-updated'));
-        } catch {}
-      } else {
-        alert(data.error || 'Erro ao subir foto.');
-      }
-    } catch {
-      alert('Erro de conexão.');
-    } finally {
-      setAvatarUploading(false);
-    }
+      const stored = localStorage.getItem('synka-user');
+      const user = stored ? JSON.parse(stored) : {};
+      user.avatarUrl = newUrl || null;
+      localStorage.setItem('synka-user', JSON.stringify(user));
+      window.dispatchEvent(new CustomEvent('synka-user-updated'));
+    } catch {}
   };
 
   const handleSavePerfil = async () => {
@@ -235,39 +218,17 @@ export default function SettingsPage() {
           <p className="text-[8px] font-black text-text-placeholder uppercase tracking-widest mt-0.5 opacity-60">Dados da sua conta</p>
         </div>
         <div className="flex items-center gap-5">
-          {/* Avatar */}
-          <div className="relative shrink-0">
-            <div
-              className="w-20 h-20 rounded-2xl overflow-hidden cursor-pointer ring-2 ring-card-border hover:ring-primary/40 transition-all"
-              onClick={() => avatarRef.current?.click()}
-              title="Alterar foto"
-            >
-              {avatarUrl ? (
-                <img src={avatarUrl} className="w-full h-full object-cover" />
-              ) : (
-                <div
-                  className="w-full h-full flex items-center justify-center text-white text-xl font-bold"
-                  style={{ background: 'linear-gradient(135deg,#40916C,#52B788)' }}
-                >
-                  {(perfilNome || perfilEmail || 'U').charAt(0).toUpperCase()}
-                </div>
-              )}
-              {avatarUploading && (
-                <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
-                  <svg className="w-5 h-5 animate-spin text-primary" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                  </svg>
-                </div>
-              )}
-            </div>
-            <button
-              onClick={() => avatarRef.current?.click()}
-              className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center shadow-md hover:bg-primary/90 transition-colors"
-            >
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M1.667 3.333c0-.46.373-.833.833-.833H3.5l.5-1h2l.5 1h1c.46 0 .833.373.833.833v4.334a.833.833 0 01-.833.833H2.5a.833.833 0 01-.833-.833V3.333z" stroke="currentColor" strokeWidth="1" strokeLinejoin="round"/><circle cx="5" cy="5.167" r="1.167" stroke="currentColor" strokeWidth="1"/></svg>
-            </button>
-            <input ref={avatarRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handleAvatarUpload} />
+          {/* Avatar — gerenciado pelo AvatarEditor */}
+          <div className="shrink-0">
+            <AvatarEditor
+              currentUrl={avatarUrl}
+              nome={perfilNome || perfilEmail || 'U'}
+              size={80}
+              shape="rounded"
+              outputSize={256}
+              uploadEndpoint="/api/upload/avatar"
+              onUpdate={handleAvatarUpdate}
+            />
           </div>
 
           {/* Campos */}

@@ -9,6 +9,7 @@ import {
   formatTime, formatDate, isSameDay 
 } from '@/lib/agenda-utils';
 import HourCell from '@/components/dashboard/HourCell';
+import AvatarEditor from '@/components/profile/AvatarEditor';
 
 export default function SpecialistPage() {
   const { id } = useParams();
@@ -93,14 +94,19 @@ export default function SpecialistPage() {
       {/* 🧑‍💼 Perfil Resumo */}
       <div className="bg-white border border-card-border p-10 rounded-[3.5rem] shadow-premium flex flex-col md:flex-row items-center gap-10 relative overflow-hidden">
         <div className="absolute top-0 inset-x-0 h-1.5 opacity-50" style={{ backgroundColor: professional.color || '#3B82F6' }} />
-        <div className="w-40 h-40 rounded-ultra p-1.5 bg-slate-50 border border-card-border shadow-2xl relative">
-          {professional.fotoUrl ? (
-            <img src={professional.fotoUrl} alt={professional.nome} className="w-full h-full object-cover rounded-ultra bg-white" />
-          ) : (
-            <div className="w-full h-full bg-white rounded-ultra flex items-center justify-center text-6xl font-black italic" style={{ color: professional.color || '#3B82F6' }}>
-              {professional.nome.charAt(0)}
-            </div>
-          )}
+        <div className="w-40 h-40 rounded-ultra p-1.5 bg-slate-50 border border-card-border shadow-2xl relative flex items-center justify-center">
+          <AvatarEditor
+            currentUrl={professional.fotoUrl}
+            nome={professional.nome}
+            size={144}
+            shape="rounded"
+            outputSize={320}
+            uploadEndpoint={`/api/team/${id}/avatar`}
+            responseField="fotoUrl"
+            onUpdate={(url) =>
+              setProfessional((prev) => prev ? { ...prev, fotoUrl: url || null } : prev)
+            }
+          />
         </div>
         <div className="flex-1 text-center md:text-left space-y-4">
           <h2 className="text-3xl font-black italic uppercase tracking-tighter text-text-main leading-none">{professional.nome}</h2>
