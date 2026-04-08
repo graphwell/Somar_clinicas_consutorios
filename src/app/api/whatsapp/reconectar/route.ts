@@ -9,7 +9,7 @@ export async function POST(request: Request) {
 
   const instancia = await prisma.whatsappInstance.findFirst({
     where: { empresaId: tenant.tenantId },
-    select: { id: true, bearerToken: true, sessionId: true },
+    select: { id: true, bearerToken: true, sessionId: true, plataforma: true },
   });
 
   if (!instancia) {
