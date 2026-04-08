@@ -160,8 +160,17 @@ export default function OpsCenterPage() {
 
   async function handleDesvincular(id: string) {
     if (!confirm('Desvincular instância desta empresa? Ela voltará ao pool como LIVRE.')) return;
-    await adminFetch(`/api/admin/whatsapp/${id}/desvincular`, { method: 'PUT' });
-    fetchWaInstancias(waFilterRef.current || undefined);
+    try {
+      const res = await adminFetch(`/api/admin/whatsapp/${id}/desvincular`, { method: 'PUT' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(`Falha ao desvincular: ${data.error || 'Erro desconhecido'}`);
+        return;
+      }
+      fetchWaInstancias(waFilterRef.current || undefined);
+    } catch (err: any) {
+      alert(`Erro de conexão ao desvincular: ${err.message}`);
+    }
   }
 
   async function handleExcluir(id: string) {
