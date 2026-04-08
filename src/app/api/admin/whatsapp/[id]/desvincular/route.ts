@@ -16,6 +16,14 @@ export async function PUT(
 
   if (!instancia) return NextResponse.json({ error: 'Instância não encontrada' }, { status: 404 });
 
+  // Tentar Logout Remoto antes de desvincular no DB (MODO FULL CLEAN)
+  try {
+    const { WhatsAppProvider } = await import('@/lib/whatsapp-provider');
+    await WhatsAppProvider.logout(instancia.plataforma, instancia.sessionId, instancia.bearerToken);
+  } catch (logoutErr) {
+    console.warn(`[Desvincular] Falha opcional no logout remoto para ${instancia.sessionId}`);
+  }
+
   // Remover webhook no WasenderAPI (apenas se for WaSender)
   if (instancia.plataforma === 'WASENDERAPI') {
     try {

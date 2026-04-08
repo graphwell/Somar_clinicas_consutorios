@@ -18,6 +18,14 @@ export async function DELETE(
 
   // MODO MASTER: Ignora travas de empresaId ou status técnico e deleta permanentemente.
   try {
+    // Tentar Logout Remoto (MODO FULL CLEAN)
+    try {
+      const { WhatsAppProvider } = await import('@/lib/whatsapp-provider');
+      await WhatsAppProvider.logout(instancia.plataforma, instancia.sessionId, instancia.bearerToken);
+    } catch (logoutErr) {
+      console.warn(`[Delete API] Falha opcional no logout remoto para ${instancia.sessionId}`);
+    }
+
     // Limpeza prévia de webhooks se for WaSender
     if (instancia.plataforma === 'WASENDERAPI') {
       try {

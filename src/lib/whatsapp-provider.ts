@@ -78,5 +78,24 @@ export const WhatsAppProvider = {
       console.error(`[WhatsAppProvider] Erro crítico ao buscar status (${plataforma}):`, err.message);
       return { conectado: false, numero: null, statusRaw: 'error' };
     }
+  },
+
+  /**
+   * Força o logout da conta no provedor.
+   */
+  async logout(plataforma: string, sessionId: string, token: string): Promise<boolean> {
+    try {
+      if (plataforma === 'ULTRAMSG') {
+        const { ok } = await ultraMsgPost(sessionId, token, 'instance/logout', {});
+        return ok;
+      }
+
+      // WaSender
+      const { ok } = await wasenderPost(token, '/session/logout', {});
+      return ok;
+    } catch (err) {
+      console.warn(`[WhatsAppProvider] Falha no logout remoto (${plataforma}):`, err);
+      return false;
+    }
   }
 };
