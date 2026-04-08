@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requireSynkaAdmin, INSTANCE_SELECT } from '@/lib/wasender';
+import { WhatsAppProvider } from '@/lib/whatsapp-provider';
 
 export async function DELETE(
   request: Request,
@@ -20,7 +21,6 @@ export async function DELETE(
   try {
     // Tentar Logout Remoto (MODO FULL CLEAN)
     try {
-      const { WhatsAppProvider } = await import('@/lib/whatsapp-provider');
       await WhatsAppProvider.logout(instancia.plataforma, instancia.sessionId, instancia.bearerToken);
     } catch (logoutErr) {
       console.warn(`[Delete API] Falha opcional no logout remoto para ${instancia.sessionId}`);

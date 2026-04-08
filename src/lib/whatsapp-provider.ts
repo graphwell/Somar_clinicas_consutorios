@@ -1,4 +1,4 @@
-import { wasenderGet, ultraMsgGet } from './wasender';
+import { wasenderGet, ultraMsgGet, wasenderPost, ultraMsgPost } from './whatsapp-api';
 
 /**
  * Interface padronizada para retorno de status de qualquer provedor
@@ -91,7 +91,7 @@ export const WhatsAppProvider = {
       }
 
       // WaSender
-      const { ok } = await wasenderPost(token, '/session/logout', {});
+      const { ok } = await wasenderPost(token, `/session/${sessionId}/logout`, {});
       return ok;
     } catch (err) {
       console.warn(`[WhatsAppProvider] Falha no logout remoto (${plataforma}):`, err);

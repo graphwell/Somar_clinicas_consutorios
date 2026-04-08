@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requireSynkaAdmin, wasenderDelete, INSTANCE_SELECT } from '@/lib/wasender';
+import { WhatsAppProvider } from '@/lib/whatsapp-provider';
 
 export async function PUT(
   request: Request,
@@ -18,7 +19,6 @@ export async function PUT(
 
   // Tentar Logout Remoto antes de desvincular no DB (MODO FULL CLEAN)
   try {
-    const { WhatsAppProvider } = await import('@/lib/whatsapp-provider');
     await WhatsAppProvider.logout(instancia.plataforma, instancia.sessionId, instancia.bearerToken);
   } catch (logoutErr) {
     console.warn(`[Desvincular] Falha opcional no logout remoto para ${instancia.sessionId}`);
