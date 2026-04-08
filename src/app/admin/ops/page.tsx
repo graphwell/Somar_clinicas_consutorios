@@ -29,6 +29,14 @@ export default function OpsCenterPage() {
   const [waLoading, setWaLoading] = useState(false);
   const [qrModal, setQrModal] = useState<{ id: string; sessionId: string; qrCode?: string } | null>(null);
   const [qrLoading, setQrLoading] = useState(false);
+  const [addModal, setAddModal] = useState(false);
+  const [newSessionId, setNewSessionId] = useState('');
+  const [newBearerToken, setNewBearerToken] = useState('');
+  const [newPlataforma, setNewPlataforma] = useState('WASENDERAPI');
+  const [newStatus, setNewStatus] = useState('LIVRE');
+  const [newObservacoes, setNewObservacoes] = useState('');
+  const [addLoading, setAddLoading] = useState(false);
+
   const waFilterRef = useRef<string>('');
   const waPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -106,6 +114,35 @@ export default function OpsCenterPage() {
     if (!confirm('Desvincular instância desta empresa? Ela voltará ao pool como LIVRE.')) return;
     await adminFetch(`/api/admin/whatsapp/${id}/desvincular`, { method: 'PUT' });
     fetchWaInstancias(waFilterRef.current || undefined);
+  }
+
+  async function handleCreateInstance(e: React.FormEvent) {
+    e.preventDefault();
+    setAddLoading(true);
+    try {
+      const res = await adminFetch('/api/admin/whatsapp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: newSessionId,
+          bearerToken: newBearerToken,
+          plataforma: newPlataforma,
+          status: newStatus,
+          observacoes: newObservacoes
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro ao criar instância');
+      setAddModal(false);
+      setNewSessionId('');
+      setNewBearerToken('');
+      setNewObservacoes('');
+      fetchWaInstancias(waFilterRef.current || undefined);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setAddLoading(false);
+    }
   }
 
   const statusColor = (s: string) => {
@@ -220,12 +257,20 @@ export default function OpsCenterPage() {
             </button>
           ))}
         </div>
-        <button
-          onClick={() => fetchWaInstancias(waFilterRef.current || undefined)}
-          className="ml-auto px-4 py-2 bg-white border border-card-border rounded-xl text-[9px] font-black uppercase hover:bg-slate-50 transition-all"
-        >
-          {waLoading ? 'Carregando...' : '↻ Atualizar'}
-        </button>
+        <div className="ml-auto flex items-center gap-3">
+          <button
+            onClick={() => setAddModal(true)}
+            className="px-4 py-2 bg-[#4a4ae2] text-white rounded-xl text-[9px] font-black uppercase shadow-lg shadow-[#4a4ae2]/20 hover:bg-[#3a3ab2] transition-all"
+          >
+            + Adicionar Instância
+          </button>
+          <button
+            onClick={() => fetchWaInstancias(waFilterRef.current || undefined)}
+            className="px-4 py-2 bg-white border border-card-border rounded-xl text-[9px] font-black uppercase hover:bg-slate-50 transition-all"
+          >
+            {waLoading ? 'Carregando...' : '↻ Atualizar'}
+          </button>
+        </div>
       </div>
 
       {/* Tabela */}
@@ -424,6 +469,56 @@ export default function OpsCenterPage() {
             <button onClick={() => setQrModal(null)} className="w-full py-4 bg-white border border-card-border rounded-2xl text-[10px] font-black uppercase hover:bg-slate-50 transition-all">
               Fechar
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Adicionar Instância */}
+      {addModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl border border-card-border shadow-2xl p-8 w-full max-w-md animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-sm font-black uppercase tracking-widest text-text-main">Adicionar Instância ao Pool</h3>
+              <button onClick={() => setAddModal(false)} className="text-text-placeholder hover:text-text-main"><svg width="14" height="14" viewBox="0 0 12 12" fill="none"><path d="M9 3L3 9M3 3l6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg></button>
+            </div>
+            <form onSubmit={handleCreateInstance} className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-black uppercase text-text-placeholder mb-1">ID da Sessão (Session ID)</label>
+                <input required value={newSessionId} onChange={e => setNewSessionId(e.target.value)} className="w-full bg-slate-50 border border-card-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary transition-colors font-mono" placeholder="Ex: master-zap-01" />
+              </div>
+              <div>
+                <label className="block text-[10px] font-black uppercase text-text-placeholder mb-1">Token de Acesso (Bearer / Instance Token)</label>
+                <input required value={newBearerToken} onChange={e => setNewBearerToken(e.target.value)} className="w-full bg-slate-50 border border-card-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary transition-colors font-mono" placeholder="Secret Token" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-text-placeholder mb-1">Plataforma</label>
+                  <select value={newPlataforma} onChange={e => setNewPlataforma(e.target.value)} className="w-full bg-slate-50 border border-card-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary transition-colors">
+                    <option value="WASENDERAPI">WaSender (Prod)</option>
+                    <option value="ULTRAMSG">UltraMsg (Demo)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-text-placeholder mb-1">Status Inicial</label>
+                  <select value={newStatus} onChange={e => setNewStatus(e.target.value)} className="w-full bg-slate-50 border border-card-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary transition-colors">
+                    <option value="LIVRE">Livre (Pronta pra Uso)</option>
+                    <option value="DEMO">Demo (Testes Internos)</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-[10px] font-black uppercase text-text-placeholder mb-1">Observações (Opcional)</label>
+                <input value={newObservacoes} onChange={e => setNewObservacoes(e.target.value)} className="w-full bg-slate-50 border border-card-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary transition-colors" placeholder="Ex: Chip T-Mobile" />
+              </div>
+              <div className="pt-4 flex gap-3">
+                <button type="button" onClick={() => setAddModal(false)} className="flex-1 py-3 bg-slate-50 rounded-xl text-xs font-bold hover:bg-slate-100 transition-all text-text-main">
+                  Cancelar
+                </button>
+                <button type="submit" disabled={addLoading} className="flex-1 py-3 bg-[#4a4ae2] text-white rounded-xl text-xs font-bold hover:bg-[#3a3ab2] transition-all disabled:opacity-50">
+                  {addLoading ? 'Injetando...' : 'Adicionar'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
