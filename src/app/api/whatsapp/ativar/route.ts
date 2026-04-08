@@ -9,106 +9,85 @@ export async function POST(request: Request) {
 
   const tenantId = tenant.tenantId;
 
-  // 1. Bloquear duplicação: Verificar se já tem instância vinculada
+  // 1. Bloqueio de Segurança: Verificar se já existe instância vinculada
   const existente = await prisma.whatsappInstance.findFirst({
     where: { empresaId: tenantId },
-    select: { ...INSTANCE_SELECT, status: true },
+    select: { id: true, sessionId: true, status: true, plataforma: true, numeroWa: true },
   });
 
   if (existente) {
-    if (existente.status === 'EM_USO') {
-      return NextResponse.json({ status: 'ja_configurado', instancia: existente });
-    }
-    if (existente.status === 'AGUARDANDO') {
-      return NextResponse.json({ status: 'aguardando_scan', instancia: existente });
-    }
-    // Caso esteja OFFLINE ou outro, permitimos reconectar (mas já tem instância)
-    return NextResponse.json({ status: 'aguardando_scan', instancia: existente });
+    return NextResponse.json({
+      status: existente.status === 'EM_USO' ? 'ja_configurado' : 'aguardando_scan',
+      instancia: existente
+    });
   }
 
-  // 2. Identificar plataforma correta baseada no plano
+  // 2. Determinar Plataforma via Assinatura Real
   const assinatura = await prisma.assinatura.findUnique({
     where: { tenantId },
     select: { plano: true },
   });
 
-  // Se plano for trial, obrigatoriamente ULTRAMSG. Se não, prefere WASENDERAPI.
-  const platformPreference = (assinatura?.plano === 'trial' || !assinatura) ? 'ULTRAMSG' : 'WASENDERAPI';
+  // Regra Não Negociável: TRIAL -> ULTRAMSG, PAGO -> WASENDERAPI
+  const isTrial = !assinatura || assinatura.plano === 'trial';
+  const plataformaAlvo = isTrial ? 'ULTRAMSG' : 'WASENDERAPI';
+
+  console.log(`[Ativar] Solicitando instância para ${tenantId} (Plano: ${assinatura?.plano || 'N/A'}, Plataforma: ${plataformaAlvo})`);
 
   try {
-    // 3. Tentar reservar uma instância LIVRE do pool
-    const instance = await WhatsAppPool.getAvailableInstance(platformPreference);
+    // 3. Seleção Exclusiva via Pool Real (SEM MOCKS)
+    const instance = await WhatsAppPool.getAvailableInstance(plataformaAlvo);
 
     if (!instance) {
-      // 4. Sem instâncias disponíveis → Notificar Admin e mostrar estado de espera
-      console.warn(`[Pool] Falha ao ativar ${tenantId}: Estoque esgotado para ${platformPreference}`);
+      console.warn(`[Pool] ESTOQUE ESGOTADO: ${plataformaAlvo} não disponível para ${tenantId}`);
       
-      await prisma.notificacao.create({
-        data: {
-          tenantId,
-          titulo: 'WhatsApp em configuração',
-          mensagem: 'Estamos preparando sua instância. Você receberá acesso em breve.',
-        },
-      });
-
       return NextResponse.json({
-        status: 'aguardando_instancia',
-        mensagem: 'WhatsApp em configuração. Em breve você receberá acesso. Nossa equipe foi notificada.',
+        status: 'WAITING_INSTANCE',
+        mensagem: 'Estamos preparando seu WhatsApp. Aguarde ou tente novamente em instantes.'
       });
     }
 
-    // 5. Claim Atômico
+    // 4. Claim Atômico: Reserva a instância para este tenant
     await WhatsAppPool.claimInstance(instance.id, tenantId);
 
-    // 6. Configurar webhook (específico WaSender se for o caso)
+    // 5. Configuração Técnica (Webhooks se for WaSender)
     if (instance.plataforma === 'WASENDERAPI') {
-      const webhookUrl = process.env.WASENDER_N8N_WEBHOOK_URL
-        || `${process.env.NEXT_PUBLIC_APP_URL}/webhook/whatsapp-agent-dynamic`;
-
-      await wasenderPost(instance.bearerToken, `/session/${instance.sessionId}/webhook`, {
-        url: webhookUrl,
-        events: ['message', 'connection', 'qrcode'],
-      });
-
-      await prisma.whatsappInstance.update({
-        where: { id: instance.id },
-        data: { webhookUrl },
-      });
+      const webhookUrl = process.env.WASENDER_N8N_WEBHOOK_URL || `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/whatsapp`;
+      
+      try {
+        await wasenderPost(instance.bearerToken, `/session/${instance.sessionId}/webhook`, {
+          url: webhookUrl,
+          events: ['message', 'connection', 'qrcode']
+        });
+        
+        await prisma.whatsappInstance.update({
+          where: { id: instance.id },
+          data: { webhookUrl }
+        });
+      } catch (webhookErr) {
+        console.error(`[Webhook] Falha ao configurar webhook WaSender para ${instance.sessionId}`);
+      }
     }
 
-    // 7. Gerar QR Code Inicial
+    // 6. Preparação para QR Code
     await prisma.whatsappInstance.update({
       where: { id: instance.id },
-      data: { status: 'AGUARDANDO' },
+      data: { status: 'AGUARDANDO' }
     });
 
-    // 7. Gerar QR Code Inicial via Provider centralizado
-    await prisma.whatsappInstance.update({
-      where: { id: instance.id },
-      data: { status: 'AGUARDANDO' },
+    // 7. Resposta de Sucesso Inicial
+    return NextResponse.json({
+      status: 'qr_gerado_inicial',
+      mensagem: 'Instância vinculada com sucesso! Preparando QR Code...',
+      instancia: {
+        id: instance.id,
+        sessionId: instance.sessionId,
+        plataforma: instance.plataforma
+      }
     });
-
-    try {
-      const qrCode = await WhatsAppProvider.getQrCode(
-        instance.plataforma, 
-        instance.sessionId, 
-        instance.bearerToken
-      );
-
-      return NextResponse.json({
-        status: 'qr_gerado',
-        qrCode: qrCode,
-        mensagem: 'Instância vinculada com sucesso! Escaneie o QR Code para ativar.',
-      });
-    } catch (err: any) {
-      return NextResponse.json({
-        status: 'qr_erro',
-        mensagem: 'Instância vinculada, mas o QR Code falhou. Use o botão Reconectar para tentar novamente.',
-      });
-    }
 
   } catch (err: any) {
-    console.error('[Ativar API] Erro crítico:', err.message);
-    return NextResponse.json({ error: 'Erro ao ativar instância. Tente novamente.' }, { status: 500 });
+    console.error(`[Ativar API] Erro crítico para ${tenantId}:`, err.message);
+    return NextResponse.json({ error: 'Erro ao processar ativação. Entre em contato com o suporte.' }, { status: 500 });
   }
 }

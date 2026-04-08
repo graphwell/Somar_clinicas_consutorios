@@ -3,29 +3,39 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function cleanup() {
-  console.log('Cleaning up Marta\'s connection to allow REAL test...');
+  console.log('--- Iniciando Limpeza de Dados Incoerentes ---');
 
-  // 1. Libera qualquer instância que a Marta (tenant_89135e90) esteja segurando
-  const result = await prisma.whatsappInstance.updateMany({
-    where: { empresaId: 'tenant_89135e90' },
-    data: {
-      empresaId: null,
-      status: 'LIVRE'
+  // Buscar todas as instâncias WaSender que estão vinculadas
+  const instances = await prisma.whatsappInstance.findMany({
+    where: {
+      plataforma: 'WASENDERAPI',
+      NOT: { empresaId: null }
     }
   });
 
-  // 2. Garante que a instância UltraMsg Real está LIVRE para ser pega
-  const ultraId = process.env.ULTRAMSG_INSTANCE_ID || 'instance168762';
-  await prisma.whatsappInstance.updateMany({
-    where: { sessionId: ultraId },
-    data: {
-      empresaId: null,
-      status: 'LIVRE',
-      plataforma: 'ULTRAMSG'
-    }
-  });
+  let count = 0;
+  for (const inst of instances) {
+    const assinatura = await prisma.assinatura.findUnique({
+      where: { tenantId: inst.empresaId! }
+    });
 
-  console.log(`✅ Conexões antigas limpas (${result.count}). Instância UltraMsg Real liberada para teste.`);
+    // Se não tem assinatura ou é TRIAL, desvincula
+    if (!assinatura || assinatura.plano === 'trial') {
+      console.log(`[!] Desvinculando WaSender (${inst.sessionId}) de tenant TRIAL: ${inst.empresaId}`);
+      await prisma.whatsappInstance.update({
+        where: { id: inst.id },
+        data: {
+          empresaId: null,
+          status: 'LIVRE',
+          webhookUrl: null,
+          numeroWa: null
+        }
+      });
+      count++;
+    }
+  }
+
+  console.log(`--- Limpeza Concluída: ${count} instâncias liberadas ---`);
 }
 
 cleanup()

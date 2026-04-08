@@ -7,7 +7,7 @@ type WaStatus =
   | 'idle'
   | 'loading'
   | 'sem_instancia'
-  | 'aguardando_instancia'
+  | 'WAITING_INSTANCE'
   | 'aguardando_scan'
   | 'conectado';
 
@@ -96,8 +96,12 @@ export function WhatsAppCard() {
       } else if (json.status === 'qr_gerado') {
         setWa({ status: 'aguardando_scan', qrCode: json.qrCode });
         startPolling();
-      } else if (json.status === 'aguardando_instancia') {
-        setWa({ status: 'aguardando_instancia', mensagem: json.mensagem });
+      } else if (json.status === 'WAITING_INSTANCE' || json.status === 'aguardando_instancia') {
+        setWa({ status: 'WAITING_INSTANCE', mensagem: json.mensagem });
+      } else if (json.status === 'qr_gerado_inicial') {
+        setWa({ status: 'loading', mensagem: 'Preparando QR Code...' });
+        // Pequeno delay para o provedor gerar o QR no servidor
+        setTimeout(reconectar, 2000);
       } else if (json.status === 'qr_erro') {
         setWa({ status: 'aguardando_scan', mensagem: json.mensagem });
         startPolling();
@@ -133,7 +137,7 @@ export function WhatsAppCard() {
           <IconSpinner size={10} /> Aguardando scan
         </span>
       );
-      case 'aguardando_instancia': return (
+      case 'WAITING_INSTANCE': return (
         <span className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase px-3 py-1.5 rounded-full border shadow-sm bg-blue-50 text-blue-500 border-blue-200">
           <IconSettings size={10} /> Em configuração
         </span>
@@ -186,10 +190,10 @@ export function WhatsAppCard() {
         </div>
       );
     }
-    if (wa.status === 'aguardando_instancia') {
+    if (wa.status === 'WAITING_INSTANCE') {
       return (
         <p className="text-xs text-text-muted font-medium leading-relaxed italic opacity-70 max-w-[80%]">
-          {wa.mensagem ?? 'WhatsApp em configuração. Em breve você receberá acesso. Nossa equipe foi notificada.'}
+          {wa.mensagem ?? 'Estamos preparando seu WhatsApp. Aguarde ou tente novamente em instantes.'}
         </p>
       );
     }
@@ -216,7 +220,7 @@ export function WhatsAppCard() {
         </button>
       );
     }
-    if (wa.status === 'aguardando_instancia') {
+    if (wa.status === 'WAITING_INSTANCE') {
       return (
         <button disabled className="btn-primary w-full py-5 text-[10px] opacity-50 cursor-not-allowed">
           Em configuração...

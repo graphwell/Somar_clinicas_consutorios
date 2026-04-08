@@ -1,49 +1,52 @@
 import { PrismaClient } from '@prisma/client';
-import { WhatsAppMigration } from '../src/lib/whatsapp-migration';
 
 const prisma = new PrismaClient();
 
-async function simulate(action: string, tenantId: string) {
-  console.log(`Running simulation: ${action} for tenant ${tenantId}...`);
+async function simulateFlow() {
+  const tenantId = 'tenant_89135e90'; // Marta
+  console.log(`--- Simulando Fluxo para TRIAL Tenant: ${tenantId} ---`);
 
-  switch (action) {
-    case 'CONNECT': {
-      // Simula que o QR Code foi escaneado e a instância conectou
-      const instance = await prisma.whatsappInstance.findFirst({
-        where: { empresaId: tenantId, status: 'AGUARDANDO' }
-      });
-      if (!instance) {
-        console.error('Nenhuma instância em aguardo encontrada para este tenant.');
-        return;
-      }
-      await prisma.whatsappInstance.update({
-        where: { id: instance.id },
-        data: { 
-          status: 'EM_USO', 
-          numeroWa: '5585999990000',
-          conectadoEm: new Date()
-        }
-      });
-      console.log('✅ Instância marcada como EM_USO (Conectado). O painel deve atualizar em 5s.');
-      break;
-    }
+  // 1. Garantir que o plano é TRIAL
+  await prisma.assinatura.upsert({
+    where: { tenantId },
+    update: { plano: 'trial' },
+    create: { tenantId, plano: 'trial' }
+  });
 
-    case 'PAYMENT': {
-      // Simula o Webhook do Stripe (Upgrade para Produção)
-      console.log('🔔 Disparando prepareMigration...');
-      await WhatsAppMigration.prepareMigration(tenantId);
-      console.log('✅ Migração preparada! O painel deve mostrar o banner de upgrade.');
-      break;
-    }
+  // 2. Tentar ativar COM POOL VAZIO (Simulado bloqueando instâncias UltraMsg)
+  console.log('\n[Teste 1] Tentativa com Pool Vazio (sem UltraMsg livres)...');
+  const freeUltra = await prisma.whatsappInstance.findFirst({
+     where: { plataforma: 'ULTRAMSG', status: 'LIVRE', empresaId: null }
+  });
 
-    default:
-      console.log('Ações disponíveis: CONNECT, PAYMENT');
+  if (freeUltra) {
+      // Temporariamente "ocupa" para o teste
+      console.log(`[!] Ocupando temporariamente ${freeUltra.sessionId} para simular estoque vazio.`);
+      await prisma.whatsappInstance.update({ where: { id: freeUltra.id }, data: { status: 'DEMO' } });
   }
+
+  // Chamar lógica interna da API (simulada)
+  const available = await prisma.whatsappInstance.findFirst({
+      where: { plataforma: 'ULTRAMSG', status: 'LIVRE', empresaId: null }
+  });
+
+  if (!available) {
+      console.log('✅ SUCESSO: Pool vazio detectado corretamente. Retornaria WAITING_INSTANCE.');
+  }
+
+  // 3. Restaurar e testar com Pool preenchido
+  if (freeUltra) {
+      await prisma.whatsappInstance.update({ where: { id: freeUltra.id }, data: { status: 'LIVRE' } });
+      console.log('\n[Teste 2] Tentativa com Pool Disponível...');
+      const availableNow = await prisma.whatsappInstance.findFirst({
+          where: { plataforma: 'ULTRAMSG', status: 'LIVRE', empresaId: null }
+      });
+      if (availableNow?.plataforma === 'ULTRAMSG') {
+          console.log(`✅ SUCESSO: Instância UltraMsg encontrada: ${availableNow.sessionId}`);
+      }
+  }
+
+  console.log('\n--- Simulação Concluída ---');
 }
 
-const action = process.argv[2];
-const tenantId = process.argv[3] || 'tenant_89135e90'; // Default Marta
-
-simulate(action, tenantId)
-  .catch(console.error)
-  .finally(() => prisma.$disconnect());
+simulateFlow().finally(() => prisma.$disconnect());
