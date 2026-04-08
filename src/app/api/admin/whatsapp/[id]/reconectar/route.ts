@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { requireSynkaAdmin, wasenderGet } from '@/lib/wasender';
+import { requireSynkaAdmin } from '@/lib/wasender';
+import { WhatsAppProvider } from '@/lib/whatsapp-provider';
 
 export async function POST(
   request: Request,
@@ -16,22 +17,23 @@ export async function POST(
 
   if (!instancia) return NextResponse.json({ error: 'Instância não encontrada' }, { status: 404 });
 
-  if (instancia.plataforma === 'ULTRAMSG') {
+  try {
+    const qrCode = await WhatsAppProvider.getQrCode(
+      instancia.plataforma, 
+      instancia.sessionId, 
+      instancia.bearerToken
+    );
+
+    await prisma.whatsappInstance.update({
+      where: { id: params.id },
+      data: { status: 'AGUARDANDO', conectadoEm: null },
+    });
+
+    return NextResponse.json({ success: true, qrCode });
+  } catch (err: any) {
     return NextResponse.json({ 
-      error: 'Plataforma UltraMsg detectada', 
-      detalhe: 'Para instâncias providas pelo UltraMsg, o WhatsApp deve ser escaneado diretamente no site deles (ultramsg.com).' 
-    }, { status: 400 });
+      error: 'Falha ao gerar QR Code no provedor', 
+      detalhe: err.message 
+    }, { status: 502 });
   }
-
-  const { ok, data } = await wasenderGet(instancia.bearerToken, '/qr-code');
-  if (!ok) {
-    return NextResponse.json({ error: 'Falha ao gerar novo QR no WasenderAPI', detalhe: data }, { status: 502 });
-  }
-
-  await prisma.whatsappInstance.update({
-    where: { id: params.id },
-    data: { status: 'AGUARDANDO', conectadoEm: null },
-  });
-
-  return NextResponse.json({ success: true, qrCode: data.qrCode ?? data.qr ?? data });
 }

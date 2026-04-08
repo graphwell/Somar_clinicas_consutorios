@@ -114,6 +114,11 @@ export default function OpsCenterPage() {
     }
   }
 
+  async function handleStatus(id: string) {
+    await adminFetch(`/api/admin/whatsapp/${id}/status`);
+    fetchWaInstancias(waFilterRef.current || undefined);
+  }
+
   async function handleDesvincular(id: string) {
     if (!confirm('Desvincular instância desta empresa? Ela voltará ao pool como LIVRE.')) return;
     await adminFetch(`/api/admin/whatsapp/${id}/desvincular`, { method: 'PUT' });
@@ -158,6 +163,11 @@ export default function OpsCenterPage() {
       case 'DEMO': return 'text-purple-600 bg-purple-50 border-purple-200';
       default: return 'text-text-muted bg-slate-50 border-card-border';
     }
+  };
+
+  const providerLogo = (p: string) => {
+    if (p === 'ULTRAMSG') return <span className="text-[7px] font-black bg-orange-500 text-white px-1.5 py-0.5 rounded-md mr-2">ULTRA</span>;
+    return <span className="text-[7px] font-black bg-blue-600 text-white px-1.5 py-0.5 rounded-md mr-2">WA</span>;
   };
 
   const pingAge = (ping: string | null) => {
@@ -305,10 +315,15 @@ export default function OpsCenterPage() {
             ) : waInstancias.map(inst => (
               <tr key={inst.id} className="hover:bg-slate-50/50 transition-all">
                 <td className="px-6 py-5">
-                  <p className="font-black text-xs text-text-main font-mono">{inst.sessionId}</p>
-                  <p className="text-[9px] text-text-placeholder mt-0.5">
-                    {inst.empresa ? inst.empresa.nome : <span className="italic opacity-60">Sem empresa</span>}
-                  </p>
+                  <div className="flex items-center">
+                    {providerLogo(inst.plataforma)}
+                    <div>
+                      <p className="font-black text-xs text-text-main font-mono">{inst.sessionId}</p>
+                      <p className="text-[9px] text-text-placeholder mt-0.5">
+                        {inst.empresa ? inst.empresa.nome : <span className="italic opacity-60">Pool de Instâncias</span>}
+                      </p>
+                    </div>
+                  </div>
                 </td>
                 <td className="px-6 py-5 text-xs text-text-muted font-mono">
                   {inst.numeroWa ?? '—'}
@@ -327,6 +342,13 @@ export default function OpsCenterPage() {
                 </td>
                 <td className="px-6 py-5 text-right">
                   <div className="flex justify-end gap-2">
+                    <button
+                      onClick={() => handleStatus(inst.id)}
+                      className="px-3 py-1.5 bg-white border border-card-border rounded-lg text-[8px] font-black uppercase hover:bg-slate-100 transition-all"
+                      title="Sincronizar Status Real"
+                    >
+                      ↻ Sync
+                    </button>
                     <button
                       onClick={() => handleReconectar(inst)}
                       className="px-3 py-1.5 bg-white border border-card-border rounded-lg text-[8px] font-black uppercase hover:bg-slate-100 transition-all"
