@@ -11,6 +11,7 @@ const API_PUBLICAS = [
   '/api/public/',
   '/api/health',
   '/api/webhook/',
+  '/api/admin/',
 ];
 
 export async function middleware(request: NextRequest) {

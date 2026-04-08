@@ -1,8 +1,8 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 
-const SECRET = '13201320';
-const API = (path: string) => `${path}?secret=${SECRET}`;
+// Removed hardcoded SECRET
+const API = (path: string, s: string) => `${path}?secret=${s}`;
 
 const PLANOS = ['starter', 'pro', 'enterprise'];
 const NICHOS = ['CLINICA_MEDICA', 'CLINICA_MULTI', 'CLINICA_ESTETICA', 'SALAO_BELEZA', 'BARBEARIA', 'ODONTOLOGIA', 'FISIOTERAPIA'];
@@ -57,12 +57,12 @@ export default function AdminSynkaPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await fetch(API('/api/admin/metrics'));
+      const res = await fetch(API('/api/admin/metrics', secret));
       if (res.ok) {
         const data = await res.json();
         setMetrics(data.metrics);
         setAuthenticated(true);
-        fetchClinicas();
+        fetchClinicas(secret);
       } else {
         alert('Senha incorreta');
       }
@@ -71,8 +71,8 @@ export default function AdminSynkaPage() {
     }
   };
 
-  const fetchClinicas = async () => {
-    const res = await fetch(API('/api/admin/tenants'));
+  const fetchClinicas = async (s = secret) => {
+    const res = await fetch(API('/api/admin/tenants', s));
     if (res.ok) {
       const data = await res.json();
       setClinicas(data.clinicas);
@@ -82,7 +82,7 @@ export default function AdminSynkaPage() {
   const apiPut = async (tenantId: string, body: object) => {
     setSaving(true);
     try {
-      const res = await fetch(API(`/api/admin/tenants/${tenantId}`), {
+      const res = await fetch(API(`/api/admin/tenants/${tenantId}`, secret), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -130,7 +130,7 @@ export default function AdminSynkaPage() {
     if (!modal || modal.type !== 'deletar') return;
     setSaving(true);
     try {
-      const res = await fetch(API(`/api/admin/tenants/${modal.clinica.tenantId}`), { method: 'DELETE' });
+      const res = await fetch(API(`/api/admin/tenants/${modal.clinica.tenantId}`, secret), { method: 'DELETE' });
       if (res.ok) { setModal(null); fetchClinicas(); }
       else { const d = await res.json(); alert(d.error ?? 'Erro ao deletar'); }
     } finally {
