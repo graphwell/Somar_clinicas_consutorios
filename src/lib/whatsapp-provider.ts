@@ -20,7 +20,7 @@ export const WhatsAppProvider = {
   async getQrCode(plataforma: string, sessionId: string, token: string): Promise<string> {
     if (plataforma === 'ULTRAMSG') {
       try {
-        const qrUrl = `https://api.ultramsg.com/${sessionId}/instance/qrCode?token=${token}`;
+        const qrUrl = `https://api.ultramsg.com/${sessionId}/instance/qr?token=${token}`;
         const res = await fetch(qrUrl);
         if (!res.ok) throw new Error(`UltraMsg Error: ${res.status}`);
         
