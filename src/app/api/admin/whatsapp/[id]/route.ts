@@ -11,13 +11,22 @@ export async function DELETE(
 
   const instancia = await prisma.whatsappInstance.findUnique({
     where: { id: params.id },
-    select: { id: true, status: true, empresaId: true },
+    select: { id: true, status: true, empresaId: true, plataforma: true, sessionId: true, bearerToken: true },
   });
 
   if (!instancia) return NextResponse.json({ error: 'Instância não encontrada' }, { status: 404 });
 
   // MODO MASTER: Ignora travas de empresaId ou status técnico e deleta permanentemente.
   try {
+    // Limpeza prévia de webhooks se for WaSender
+    if (instancia.plataforma === 'WASENDERAPI') {
+      try {
+        const { wasenderDelete } = await import('@/lib/wasender');
+        await wasenderDelete(instancia.bearerToken, `/session/${instancia.sessionId}/webhook`);
+      } catch (webhookErr) {
+        console.warn(`[Delete API] Falha opcional ao limpar webhook para ${instancia.sessionId}`);
+      }
+    }
     await prisma.whatsappInstance.delete({
       where: { id: params.id },
     });

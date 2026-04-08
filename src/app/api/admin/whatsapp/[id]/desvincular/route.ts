@@ -11,13 +11,19 @@ export async function PUT(
 
   const instancia = await prisma.whatsappInstance.findUnique({
     where: { id: params.id },
-    select: { id: true, status: true, sessionId: true, bearerToken: true },
+    select: { id: true, status: true, sessionId: true, bearerToken: true, plataforma: true },
   });
 
   if (!instancia) return NextResponse.json({ error: 'Instância não encontrada' }, { status: 404 });
 
-  // Remover webhook no WasenderAPI
-  await wasenderDelete(instancia.bearerToken, `/session/${instancia.sessionId}/webhook`);
+  // Remover webhook no WasenderAPI (apenas se for WaSender)
+  if (instancia.plataforma === 'WASENDERAPI') {
+    try {
+      await wasenderDelete(instancia.bearerToken, `/session/${instancia.sessionId}/webhook`);
+    } catch (err) {
+      console.warn(`[Desvincular] Falha ao limpar webhook WaSender para ${instancia.sessionId}:`, err);
+    }
+  }
 
   const atualizado = await prisma.whatsappInstance.update({
     where: { id: params.id },
