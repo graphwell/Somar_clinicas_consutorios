@@ -2,6 +2,52 @@ import { verifyToken } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { wasenderGet, wasenderPost, wasenderDelete, ultraMsgPost, ultraMsgGet } from './whatsapp-api';
 
+export { wasenderGet, wasenderPost, wasenderDelete, ultraMsgPost, ultraMsgGet };
+
+// ── Seleção de Instância ───────────────────────────────────────────────────────
+
+export interface WasenderConfig {
+  apiKey: string;
+  /** true quando está usando a instância central/demo compartilhada */
+  isDemo: boolean;
+  /** Presente quando o fallback central é UltraMsg (substitui WASENDER_DEMO_API_KEY) */
+  ultraMsg?: { instanceId: string; token: string };
+}
+
+/**
+ * Determina qual provedor WhatsApp usar.
+ */
+export function getWasenderConfig(clinicaApiKey?: string | null): WasenderConfig {
+  const ultraInstanceId = process.env.ULTRAMSG_INSTANCE_ID ?? '';
+  const ultraToken = process.env.ULTRAMSG_TOKEN ?? '';
+  const demoKey = process.env.WASENDER_DEMO_API_KEY ?? '';
+
+  const ultraMsgDisponivel = !!(ultraInstanceId && ultraToken);
+  const centralUltraMsg = ultraMsgDisponivel
+    ? { instanceId: ultraInstanceId, token: ultraToken }
+    : undefined;
+
+  if (process.env.MARKETING_DEMO_MODE === 'true') {
+    return ultraMsgDisponivel
+      ? { apiKey: '', isDemo: true, ultraMsg: centralUltraMsg }
+      : { apiKey: demoKey, isDemo: true };
+  }
+
+  if (clinicaApiKey) {
+    return { apiKey: clinicaApiKey, isDemo: false };
+  }
+
+  return ultraMsgDisponivel
+    ? { apiKey: '', isDemo: true, ultraMsg: centralUltraMsg }
+    : { apiKey: demoKey, isDemo: true };
+}
+
+/** Retorna true se a clínica tem API Key própria configurada (não demo) */
+export function clinicaTemInstanciaPropria(clinicaApiKey?: string | null): boolean {
+  if (process.env.MARKETING_DEMO_MODE === 'true') return false;
+  return !!clinicaApiKey;
+}
+
 /** Envia mensagem usando a plataforma correta (WasenderAPI ou UltraMsg). */
 export async function sendWhatsAppMessage(
   plataforma: string,
