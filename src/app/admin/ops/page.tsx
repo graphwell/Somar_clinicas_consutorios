@@ -18,11 +18,26 @@ interface WaInstancia {
   empresa: { nome: string; tenantId: string } | null;
 }
 
+interface MigrationLog {
+  id: string;
+  tenantId: string;
+  fromPlatform: string | null;
+  toPlatform: string | null;
+  fromSessionId: string | null;
+  toSessionId: string | null;
+  status: string;
+  createdAt: string;
+}
+
 export default function OpsCenterPage() {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(new Date());
+
+  // Migration logs state
+  const [migrationLogs, setMigrationLogs] = useState<MigrationLog[]>([]);
+  const [logsLoading, setLogsLoading] = useState(false);
 
   // WhatsApp tab state
   const [waInstancias, setWaInstancias] = useState<WaInstancia[]>([]);
@@ -68,6 +83,19 @@ export default function OpsCenterPage() {
     }
   };
 
+  const fetchMigrationLogs = async () => {
+    setLogsLoading(true);
+    try {
+      const res = await adminFetch('/api/admin/whatsapp/migration-logs');
+      const json = await res.json();
+      setMigrationLogs(json.logs ?? []);
+    } catch {
+      // silenciar
+    } finally {
+      setLogsLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchData();
     const interval = setInterval(fetchData, 60000);
@@ -86,6 +114,12 @@ export default function OpsCenterPage() {
       if (waPollRef.current) { clearInterval(waPollRef.current); waPollRef.current = null; }
     }
     return () => { if (waPollRef.current) { clearInterval(waPollRef.current); waPollRef.current = null; } };
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab === 'logs') {
+      fetchMigrationLogs();
+    }
   }, [activeTab]);
 
   const adminFetch = (path: string, options?: RequestInit) =>
@@ -127,6 +161,16 @@ export default function OpsCenterPage() {
   async function handleDesvincular(id: string) {
     if (!confirm('Desvincular instância desta empresa? Ela voltará ao pool como LIVRE.')) return;
     await adminFetch(`/api/admin/whatsapp/${id}/desvincular`, { method: 'PUT' });
+    fetchWaInstancias(waFilterRef.current || undefined);
+  }
+
+  async function handleExcluir(id: string) {
+    if (!confirm('EXCLUSÃO PERMANENTE: Deseja remover esta instância do banco de dados definitivamente?')) return;
+    const res = await adminFetch(`/api/admin/whatsapp/${id}`, { method: 'DELETE' });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      alert(data.error || 'Erro ao excluir instância');
+    }
     fetchWaInstancias(waFilterRef.current || undefined);
   }
 
@@ -368,6 +412,15 @@ export default function OpsCenterPage() {
                         Desvincular
                       </button>
                     )}
+                    {!inst.empresa && (
+                      <button
+                        onClick={() => handleExcluir(inst.id)}
+                        className="px-3 py-1.5 bg-status-error-bg text-status-error border border-status-error/10 rounded-lg text-[8px] font-black uppercase hover:bg-status-error/10 transition-all"
+                        title="Remover definitivamente do pool"
+                      >
+                        Excluir
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -471,8 +524,58 @@ export default function OpsCenterPage() {
       {activeTab === 'whatsapp' && renderWhatsApp()}
       {activeTab === 'n8n' && renderN8N()}
       {activeTab === 'logs' && (
-        <div className="bg-white p-20 rounded-3xl border border-card-border border-dashed text-center">
-          <p className="text-[10px] font-black text-text-placeholder uppercase tracking-[0.5em]">O Feed de Logs em tempo real requer WebSocket.</p>
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+          <div className="flex items-center justify-between">
+             <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-text-placeholder">Histórico de Migrações (Trial → Produção)</h2>
+             <button onClick={fetchMigrationLogs} className="px-4 py-2 bg-white border border-card-border rounded-xl text-[9px] font-black uppercase hover:bg-slate-50 transition-all font-mono">
+               {logsLoading ? 'Carregando...' : '↻ Atualizar Logs'}
+             </button>
+          </div>
+          <div className="bg-white rounded-3xl border border-card-border shadow-sm overflow-hidden">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b border-card-border">
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-text-muted">Tenant</th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-text-muted">Origem</th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-text-muted">Destino</th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-text-muted">Status</th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-text-muted">Data</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {migrationLogs.map(log => (
+                  <tr key={log.id} className="hover:bg-slate-50/50 transition-all">
+                    <td className="px-6 py-5 text-[10px] font-black text-primary font-mono">{log.tenantId}</td>
+                    <td className="px-6 py-5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[7px] font-black bg-orange-500 text-white px-1.5 py-0.5 rounded-md uppercase">{log.fromPlatform || 'ULTRA'}</span>
+                        <span className="text-[10px] text-text-muted font-mono">{log.fromSessionId || '—'}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[7px] font-black bg-blue-600 text-white px-1.5 py-0.5 rounded-md uppercase">{log.toPlatform || 'WA'}</span>
+                        <span className="text-[10px] text-text-muted font-mono">{log.toSessionId || '—'}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-5">
+                      <span className={`text-[8px] font-black uppercase px-2 py-1 rounded-md border ${log.status === 'COMPLETED' ? 'bg-status-success-bg text-status-success border-status-success/20' : 'bg-yellow-50 text-yellow-600 border-yellow-100'}`}>
+                        {log.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-5 text-[10px] text-text-placeholder font-mono">
+                      {new Date(log.createdAt).toLocaleString()}
+                    </td>
+                  </tr>
+                ))}
+                {migrationLogs.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-20 text-center text-[10px] font-black text-text-placeholder uppercase tracking-[0.5em]">Sem registros de migração recentes.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

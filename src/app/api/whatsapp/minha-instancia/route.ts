@@ -6,10 +6,22 @@ export async function GET(request: Request) {
   const tenant = await requireTenant(request);
   if (!tenant) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
 
-  const instancia = await prisma.whatsappInstance.findFirst({
-    where: { empresaId: tenant.tenantId },
-    select: INSTANCE_SELECT,
-  });
+  const tenantId = tenant.tenantId;
 
-  return NextResponse.json({ success: true, instancia: instancia ?? null });
+  const [instancia, clinica] = await Promise.all([
+    prisma.whatsappInstance.findFirst({
+      where: { empresaId: tenantId },
+      orderBy: { criadoEm: 'desc' },
+    }),
+    prisma.clinica.findUnique({
+      where: { tenantId },
+      select: { whatsappMigrationStatus: true },
+    })
+  ]);
+
+  return NextResponse.json({ 
+    success: true, 
+    instancia: instancia ?? null,
+    migrationStatus: clinica?.whatsappMigrationStatus || 'TRIAL'
+  });
 }

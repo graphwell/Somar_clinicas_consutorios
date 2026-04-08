@@ -11,25 +11,32 @@ export async function DELETE(
 
   const instancia = await prisma.whatsappInstance.findUnique({
     where: { id: params.id },
-    select: { id: true, status: true },
+    select: { id: true, status: true, empresaId: true },
   });
 
   if (!instancia) return NextResponse.json({ error: 'Instância não encontrada' }, { status: 404 });
 
-  if (instancia.status !== 'LIVRE') {
+  // Segurança: Só permite excluir se não estiver em uso por uma empresa
+  if (instancia.empresaId) {
     return NextResponse.json(
-      { error: 'Só é possível remover instâncias com status LIVRE. Desvincule antes de remover.' },
+      { error: 'Não é possível excluir uma instância vinculada a uma empresa. Desvincule-a primeiro.' },
       { status: 409 }
     );
   }
 
-  // Soft delete: marcar como OFFLINE e limpar sessionId seria destrutivo —
-  // mantemos o registro mas sinalizamos com OFFLINE como estado final.
-  // Para exclusão física, a equipe Synka acessa o banco diretamente.
-  await prisma.whatsappInstance.update({
+  // Só permite excluir se estiver LIVRE ou OFFLINE
+  const statusSeguros = ['LIVRE', 'OFFLINE', 'AGUARDANDO'];
+  if (!statusSeguros.includes(instancia.status)) {
+    return NextResponse.json(
+      { error: `Status ${instancia.status} não permite exclusão direta.` },
+      { status: 409 }
+    );
+  }
+
+  // Exclusão física real
+  await prisma.whatsappInstance.delete({
     where: { id: params.id },
-    data: { status: 'OFFLINE', observacoes: `Removido em ${new Date().toISOString()}` },
   });
 
-  return NextResponse.json({ success: true, mensagem: 'Instância marcada como removida' });
+  return NextResponse.json({ success: true, mensagem: 'Instância removida permanentemente do pool' });
 }

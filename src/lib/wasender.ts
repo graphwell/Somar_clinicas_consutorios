@@ -1,4 +1,5 @@
 import { verifyToken } from '@/lib/auth';
+import prisma from '@/lib/prisma';
 
 const WASENDER_BASE = process.env.WASENDER_BASE_URL || 'https://wasenderapi.com/api';
 
@@ -121,9 +122,24 @@ export async function sendWhatsAppMessage(
 export async function requireSynkaAdmin(request: Request) {
   const token = request.headers.get('authorization')?.split(' ')[1];
   if (!token) return null;
+  
   const payload = await verifyToken(token);
-  if (!payload || payload.role !== 'synka_admin') return null;
-  return payload;
+  if (!payload) return null;
+
+  // Role no token (cacheado)
+  if (payload.role === 'synka_admin') return payload;
+
+  // Fallback para o Banco (permite promoção em tempo real sem logout)
+  const user = await prisma.usuario.findUnique({
+    where: { id: payload.userId },
+    select: { role: true }
+  });
+
+  if (user?.role === 'synka_admin') {
+    return { ...payload, role: 'synka_admin' };
+  }
+
+  return null;
 }
 
 /** Verifica JWT de empresa autenticada. Retorna payload (com tenantId) ou null. */

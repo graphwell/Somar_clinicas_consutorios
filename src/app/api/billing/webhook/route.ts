@@ -45,6 +45,13 @@ export async function POST(request: Request) {
           where: { tenantId },
           data: { stripeSubId: subId, plano, status: 'active' },
         });
+
+        // Módulo 3: Disparar preparação da migração para produção
+        try {
+          await WhatsAppMigration.prepareMigration(tenantId);
+        } catch (migError) {
+          console.error('[STRIPE_WEBHOOK] Erro ao disparar migração:', migError);
+        }
       }
       break;
     }
@@ -53,6 +60,8 @@ export async function POST(request: Request) {
       const subId = typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription?.id;
       if (subId) {
         const sub = await stripe.subscriptions.retrieve(subId);
+        const tenantId = (sub as any).metadata?.tenantId;
+
         await prisma.assinatura.updateMany({
           where: { stripeSubId: sub.id },
           data: {
@@ -60,6 +69,15 @@ export async function POST(request: Request) {
             proximoVencimento: new Date((sub as any).current_period_end * 1000),
           },
         });
+
+        // Módulo 3: Garantir que se for o primeiro pagamento após trial, a migração ocorra
+        if (tenantId) {
+          try {
+            await WhatsAppMigration.prepareMigration(tenantId);
+          } catch (migError) {
+            console.error('[STRIPE_WEBHOOK] Erro ao disparar migração (invoice):', migError);
+          }
+        }
       }
       break;
     }

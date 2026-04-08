@@ -13,13 +13,14 @@ type WaStatus =
 
 interface WaState {
   status: WaStatus;
+  migrationStatus?: 'TRIAL' | 'MIGRATING' | 'PRODUCTION';
   qrCode?: string;
   numero?: string;
   mensagem?: string;
 }
 
 export function WhatsAppCard() {
-  const [wa, setWa] = useState<WaState>({ status: 'idle' });
+  const [wa, setWa] = useState<WaState>({ status: 'idle', migrationStatus: 'TRIAL' });
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const stopPolling = () => {
@@ -32,25 +33,32 @@ export function WhatsAppCard() {
   }, []);
 
   async function checkCurrentStatus() {
-    setWa({ status: 'loading' });
+    setWa(prev => ({ ...prev, status: 'loading' }));
     try {
       const res = await fetchWithAuth('/api/whatsapp/minha-instancia');
       const json = await res.json();
+      
+      const migrationStatus = json.migrationStatus || 'TRIAL';
+
       if (!json.instancia) {
-        setWa({ status: 'sem_instancia' });
+        setWa({ status: 'sem_instancia', migrationStatus });
         return;
       }
       const inst = json.instancia;
+      
       if (inst.status === 'EM_USO') {
-        setWa({ status: 'conectado', numero: inst.numeroWa ?? undefined });
+        setWa({ status: 'conectado', numero: inst.numeroWa ?? undefined, migrationStatus });
       } else if (inst.status === 'AGUARDANDO') {
-        setWa({ status: 'aguardando_scan' });
+        // Se está aguardando scan, precisamos buscar o QR Code se ele não veio
+        const qrRes = await fetchWithAuth('/api/whatsapp/qrcode');
+        const qrJson = await qrRes.json();
+        setWa({ status: 'aguardando_scan', qrCode: qrJson.qrCode, migrationStatus });
         startPolling();
       } else {
-        setWa({ status: 'sem_instancia' });
+        setWa({ status: 'sem_instancia', migrationStatus });
       }
     } catch {
-      setWa({ status: 'sem_instancia' });
+      setWa({ status: 'sem_instancia', migrationStatus: 'TRIAL' });
     }
   }
 
@@ -62,7 +70,12 @@ export function WhatsAppCard() {
         const json = await res.json();
         if (json.conectado || json.status === 'EM_USO') {
           stopPolling();
-          setWa({ status: 'conectado', numero: json.numero ?? undefined });
+          setWa(prev => ({ 
+            ...prev, 
+            status: 'conectado', 
+            numero: json.numero ?? undefined,
+            migrationStatus: json.migrationStatus || 'PRODUCTION'
+          }));
         }
       } catch { /* silenciar */ }
     }, 5000);
@@ -137,6 +150,23 @@ export function WhatsAppCard() {
     if (wa.status === 'loading') {
       return <p className="text-xs text-text-muted italic opacity-70">Verificando...</p>;
     }
+
+    if (wa.migrationStatus === 'MIGRATING' && wa.status !== 'conectado') {
+      return (
+        <div className="space-y-3">
+          <p className="text-xs text-primary font-bold animate-pulse">
+            🎉 Promoção para Produção detectada!
+          </p>
+          <p className="text-[11px] text-text-muted leading-relaxed">
+            Sua conta agora tem acesso aos recursos ilimitados. Por favor, escaneie o novo QR Code abaixo para migrar sua conexão.
+          </p>
+          {wa.qrCode && (
+            <img src={wa.qrCode} alt="Novo QR" className="w-32 h-32 rounded-xl border-2 border-primary/20 p-1 shadow-lg" />
+          )}
+        </div>
+      );
+    }
+
     if (wa.status === 'conectado') {
       return (
         <p className="text-xs text-text-muted font-medium leading-relaxed italic opacity-70 max-w-[80%]">
@@ -200,8 +230,15 @@ export function WhatsAppCard() {
     );
   };
 
+  const isMigrating = wa.migrationStatus === 'MIGRATING';
+
   return (
-    <div className="premium-card p-12 flex flex-col justify-between group h-96 relative overflow-hidden">
+    <div className={`premium-card p-12 flex flex-col justify-between group h-96 relative overflow-hidden ${isMigrating ? 'ring-2 ring-primary/30 ring-inset' : ''}`}>
+      {isMigrating && (
+        <div className="absolute top-0 right-0 bg-primary text-white text-[8px] font-black px-4 py-1 rounded-bl-xl shadow-sm z-20 animate-bounce">
+          UPGRADE DISPONÍVEL
+        </div>
+      )}
       <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:scale-150 transition-transform" />
       <div>
         <div className="flex justify-between items-start mb-10">

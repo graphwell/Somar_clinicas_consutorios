@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { requireTenant, wasenderGet } from '@/lib/wasender';
+import { requireTenant } from '@/lib/wasender';
+import { WhatsAppProvider } from '@/lib/whatsapp-provider';
 
 export async function POST(request: Request) {
   const tenant = await requireTenant(request);
@@ -18,15 +19,21 @@ export async function POST(request: Request) {
     );
   }
 
-  const { ok, data } = await wasenderGet(instancia.bearerToken, '/qr-code');
-  if (!ok) {
+  try {
+    const qrCode = await WhatsAppProvider.getQrCode(
+      instancia.plataforma, 
+      instancia.sessionId, 
+      instancia.bearerToken
+    );
+
+    await prisma.whatsappInstance.update({
+      where: { id: instancia.id },
+      data: { status: 'AGUARDANDO', conectadoEm: null },
+    });
+
+    return NextResponse.json({ success: true, qrCode });
+  } catch (err: any) {
+    console.error('[Reconectar API] Erro:', err.message);
     return NextResponse.json({ error: 'Não foi possível gerar novo QR Code. Tente novamente.' }, { status: 502 });
   }
-
-  await prisma.whatsappInstance.update({
-    where: { id: instancia.id },
-    data: { status: 'AGUARDANDO', conectadoEm: null },
-  });
-
-  return NextResponse.json({ success: true, qrCode: data.qrCode ?? data.qr ?? data });
 }

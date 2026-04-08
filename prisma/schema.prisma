@@ -41,6 +41,7 @@ model Clinica {
   repasses       RepasseProfissional[]
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
+  whatsappMigrationStatus WhatsappMigrationStatus @default(TRIAL)
 
   @@map("clinicas")
   planosAssinatura     PlanoAssinatura[]
@@ -543,6 +544,25 @@ enum WhatsappStatus {
 enum WhatsappPlataforma {
   WASENDERAPI
   ULTRAMSG
+}
+
+enum WhatsappMigrationStatus {
+  TRIAL
+  MIGRATING
+  PRODUCTION
+}
+
+model WhatsappMigrationLog {
+  id            String   @id @default(cuid())
+  tenantId      String
+  fromPlatform  WhatsappPlataforma?
+  toPlatform    WhatsappPlataforma?
+  fromSessionId String?
+  toSessionId   String?
+  status        String
+  createdAt     DateTime @default(now())
+
+  @@map("whatsapp_migration_logs")
 }
 
 model WhatsappInstance {
