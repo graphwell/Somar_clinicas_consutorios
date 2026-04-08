@@ -175,10 +175,29 @@ export async function POST(req: NextRequest) {
       month: 'long',
     });
 
+    const servico = await prisma.servico.findUnique({
+      where: { id: servicoId! },
+      select: { nome: true },
+    });
+    const profissional = await prisma.profissional.findUnique({
+      where: { id: profId! },
+      select: { nome: true },
+    });
+
+    const msgConfirmacao =
+      `✅ Agendamento confirmado!\n\n` +
+      `📋 Protocolo: #${protocolo}\n` +
+      `📅 ${dataFormatada} às ${horario}\n` +
+      (servico ? `💇 ${servico.nome}\n` : '') +
+      (profissional ? `👤 ${profissional.nome}\n` : '') +
+      `\nAté lá! 😊`;
+
     return n8nSuccess({
       agendamentoId: agendamento.id,
       protocolo,
       confirmacao: `Agendamento confirmado para ${dataFormatada} às ${horario}`,
+      msgConfirmacao,
+      msgBot: msgConfirmacao,
     });
   } catch (err) {
     console.error('[n8n/agenda/criar]', err);

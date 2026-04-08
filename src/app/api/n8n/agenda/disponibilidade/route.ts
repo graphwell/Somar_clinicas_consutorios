@@ -32,20 +32,27 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = req.nextUrl;
   const slug = searchParams.get('slug');
+  const tenantIdParam = searchParams.get('tenantId');
   const servicoId = searchParams.get('servicoId');
   const dataParam = searchParams.get('data');
   const profissionalIdParam = searchParams.get('profissionalId');
 
-  if (!slug || !servicoId || !dataParam) {
-    return n8nError('slug, servicoId e data são obrigatórios', 'MISSING_PARAM');
+  if (!slug && !tenantIdParam) {
+    return n8nError('slug ou tenantId é obrigatório', 'MISSING_PARAM');
+  }
+  if (!servicoId) {
+    return n8nError('servicoId é obrigatório', 'MISSING_PARAM');
+  }
+  if (!dataParam) {
+    return n8nError('data é obrigatório', 'MISSING_PARAM');
   }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dataParam)) {
     return n8nError('data deve estar no formato YYYY-MM-DD', 'INVALID_PARAM');
   }
 
   try {
-    const clinica = await prisma.clinica.findUnique({
-      where: { slug },
+    const clinica = await prisma.clinica.findFirst({
+      where: slug ? { slug } : { tenantId: tenantIdParam! },
       select: { tenantId: true, openingTime: true, closingTime: true },
     });
     if (!clinica) return n8nError('Clínica não encontrada', 'NOT_FOUND', 404);
@@ -66,7 +73,7 @@ export async function GET(req: NextRequest) {
     const clinicaEnd = toMin(clinica.closingTime ?? '18:00');
 
     let profIds = servico.profissionais.map(p => p.id);
-    if (profIds.length === 0) return n8nSuccess({ data: dataParam, profissionais: [] });
+    if (profIds.length === 0) return n8nSuccess({ data: dataParam, profissionais: [], resumoBot: 'Não há horários disponíveis neste dia.' });
 
     if (profissionalIdParam && profissionalIdParam !== 'qualquer') {
       if (!profIds.includes(profissionalIdParam)) {
@@ -131,7 +138,11 @@ export async function GET(req: NextRequest) {
       return [{ id: prof.id, nome: prof.nome, slots }];
     });
 
-    return n8nSuccess({ data: dataParam, profissionais: resultado });
+    const resumoBot = resultado.length === 0
+      ? 'Não há horários disponíveis neste dia.'
+      : resultado.map(p => `${p.nome}: ${p.slots.slice(0, 5).join(', ')}`).join('\n');
+
+    return n8nSuccess({ data: dataParam, profissionais: resultado, resumoBot });
   } catch (err) {
     console.error('[n8n/agenda/disponibilidade]', err);
     return n8nError('Erro interno', 'INTERNAL_ERROR', 500);

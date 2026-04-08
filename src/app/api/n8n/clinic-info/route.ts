@@ -53,6 +53,8 @@ export async function GET(req: NextRequest) {
       select: { bearerToken: true },
     });
 
+    const msgBoasVindas = `Olá! Bem-vindo à ${clinica.nome}. Para agendar acesse: ${linkAgendamento}`;
+
     return n8nSuccess({
       id: clinica.id,
       tenantId: clinica.tenantId,
@@ -61,7 +63,10 @@ export async function GET(req: NextRequest) {
       nicho: clinica.nicho,
       linkAgendamento,
       horarioFuncionamento: horarioTexto,
-      msgBoasVindas: `Olá! Bem-vindo à ${clinica.nome}. Para agendar acesse: ${linkAgendamento}`,
+      // Campos msgBot prontos para uso no n8n:
+      msgBoasVindas,
+      saudacaoBot: msgBoasVindas,
+      msgBot: msgBoasVindas,
       whatsappInstanceKey: waInstance?.bearerToken ?? null,
     });
   } catch (err) {

@@ -71,14 +71,20 @@ export async function POST(request: Request) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
+      // Telefone — múltiplos aliases para compatibilidade n8n:
       telefone,
       sender_number: telefone,
       from: telefone,
+      sessionId: telefone,
+      // Mensagem — múltiplos aliases:
       mensagem,
       message: mensagem,
+      text: mensagem,
+      // Metadados:
       instanceId,
       tenantId,
       timestamp: msgData?.time ?? Math.floor(Date.now() / 1000),
+      messageId: msgData?.id,
     }),
   }).catch(err => console.error('[webhook/ultramsg] Erro ao repassar ao n8n:', err));
 

@@ -63,7 +63,12 @@ export async function GET(req: NextRequest) {
     });
 
     if (!paciente) {
-      return n8nSuccess({ encontrado: false, cliente: null });
+      return n8nSuccess({
+        encontrado: false,
+        cliente: null,
+        saudacaoBot: 'Cliente não encontrado. Vou criar um novo cadastro.',
+        msgBot: 'Cliente não encontrado. Vou criar um novo cadastro.',
+      });
     }
 
     const now = new Date();
@@ -94,8 +99,15 @@ export async function GET(req: NextRequest) {
       ? anteriores[0].dataHora.toLocaleDateString('pt-BR', { timeZone: 'America/Fortaleza' })
       : null;
 
+    const primeiroNome = paciente.nome.split(' ')[0];
+    const saudacaoBot = proximoAgendamento
+      ? `Olá, ${primeiroNome}! Você tem um agendamento em ${proximoAgendamento.data} às ${proximoAgendamento.horario}.`
+      : `Olá, ${primeiroNome}! Como posso ajudar?`;
+
     return n8nSuccess({
       encontrado: true,
+      saudacaoBot,
+      msgBot: saudacaoBot,
       cliente: {
         id: paciente.id,
         nome: paciente.nome,

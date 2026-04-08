@@ -51,6 +51,14 @@ async function handleCancelation(req: NextRequest, body: { agendamentoId?: strin
       return n8nError('Agendamento já está cancelado', 'ALREADY_CANCELLED', 409);
     }
 
+    const agendamentoCompleto = await prisma.agendamento.findUnique({
+      where: { id: agendamento.id },
+      include: {
+        servico: { select: { nome: true } },
+        profissional: { select: { nome: true } },
+      },
+    });
+
     await prisma.agendamento.update({
       where: { id: agendamento.id },
       data: {
@@ -59,9 +67,16 @@ async function handleCancelation(req: NextRequest, body: { agendamentoId?: strin
       },
     });
 
+    const msgBot =
+      `❌ Agendamento cancelado.\n\n` +
+      (agendamentoCompleto?.servico ? `${agendamentoCompleto.servico.nome} ` : '') +
+      (agendamentoCompleto?.profissional ? `com ${agendamentoCompleto.profissional.nome} ` : '') +
+      `foi cancelado com sucesso.\n\nPara reagendar, é só me avisar! 😊`;
+
     return n8nSuccess({
       cancelado: true,
       mensagem: 'Agendamento cancelado com sucesso',
+      msgBot,
     });
   } catch (err) {
     console.error('[n8n/agenda/cancelar]', err);

@@ -38,10 +38,23 @@ export async function GET() {
         ? '✅ presente'
         : '❌ ausente',
     },
+    n8n: {
+      apiKey: process.env.N8N_API_KEY
+        ? '✅ presente'
+        : '❌ ausente — bot não vai autenticar',
+      webhookUrl: process.env.N8N_WEBHOOK_URL
+        ? process.env.N8N_WEBHOOK_URL.includes('n8n.somar.ia.br')
+          ? '✅ produção'
+          : `⚠️ ${process.env.N8N_WEBHOOK_URL}`
+        : '❌ ausente — mensagens não chegam ao n8n',
+    },
     whatsapp: {
       ultramsg: (process.env.ULTRAMSG_INSTANCE_ID && process.env.ULTRAMSG_TOKEN)
-        ? '✅ central configurada'
-        : '❌ ausente',
+        ? `✅ central configurada (${process.env.ULTRAMSG_INSTANCE_ID})`
+        : '❌ não configurada',
+      wasender: process.env.WASENDER_DEMO_API_KEY
+        ? '✅ presente'
+        : '⚠️ não configurada (Pro/Business sem WA próprio)',
     },
     gemini: {
       apiKey: process.env.GEMINI_API_KEY
