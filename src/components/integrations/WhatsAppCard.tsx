@@ -180,22 +180,9 @@ export function WhatsAppCard() {
     }
     if (wa.status === 'aguardando_scan') {
       return (
-        <div className="space-y-4">
-          {wa.qrCode ? (
-            <div className="bg-white p-3 rounded-xl border border-card-border shadow-sm inline-block">
-              <img 
-                src={wa.qrCode} 
-                alt="QR Code WhatsApp" 
-                className="w-56 h-56 block object-contain" 
-              />
-            </div>
-          ) : (
-            <p className="text-xs text-text-muted italic opacity-70">{wa.mensagem ?? 'QR Code em geração...'}</p>
-          )}
-          <p className="text-[10px] text-text-placeholder max-w-[200px] leading-relaxed">
-            Abra o WhatsApp → Dispositivos Conectados → Escanear QR Code
-          </p>
-        </div>
+        <p className="text-[10px] text-text-placeholder max-w-[160px] leading-relaxed italic">
+          Abra o WhatsApp no seu celular → Configurações → Dispositivos Conectados → Escanear QR Code.
+        </p>
       );
     }
     if (wa.status === 'WAITING_INSTANCE') {
@@ -259,10 +246,24 @@ export function WhatsAppCard() {
           </div>
           {statusBadge()}
         </div>
-        <h3 className="text-2xl font-black italic uppercase text-text-main tracking-tighter mb-4 underline decoration-primary/5 underline-offset-8 decoration-4">
-          WhatsApp Bot
-        </h3>
-        {body()}
+        <div className="flex justify-between gap-6">
+          <div className="flex-1">
+            <h3 className="text-2xl font-black italic uppercase text-text-main tracking-tighter mb-4 underline decoration-primary/5 underline-offset-8 decoration-4">
+              WhatsApp Bot
+            </h3>
+            {body()}
+          </div>
+
+          {wa.status === 'aguardando_scan' && wa.qrCode && (
+            <div className="bg-white p-2.5 rounded-xl border border-card-border shadow-sm self-start group-hover:scale-105 transition-transform origin-top-right">
+              <img 
+                src={wa.qrCode} 
+                alt="QR Code WhatsApp" 
+                className="w-48 h-48 block object-contain" 
+              />
+            </div>
+          )}
+        </div>
       </div>
       <div className="mt-12 flex gap-4 relative z-10">
         {actions()}
