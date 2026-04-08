@@ -175,7 +175,7 @@ export async function POST(req: NextRequest) {
       month: 'long',
     });
 
-    const servico = await prisma.servico.findUnique({
+    const servicoDetails = await prisma.servico.findUnique({
       where: { id: servicoId! },
       select: { nome: true },
     });
@@ -188,7 +188,7 @@ export async function POST(req: NextRequest) {
       `✅ Agendamento confirmado!\n\n` +
       `📋 Protocolo: #${protocolo}\n` +
       `📅 ${dataFormatada} às ${horario}\n` +
-      (servico ? `💇 ${servico.nome}\n` : '') +
+      (servicoDetails ? `💇 ${servicoDetails.nome}\n` : '') +
       (profissional ? `👤 ${profissional.nome}\n` : '') +
       `\nAté lá! 😊`;
 
