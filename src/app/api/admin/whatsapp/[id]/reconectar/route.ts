@@ -11,10 +11,17 @@ export async function POST(
 
   const instancia = await prisma.whatsappInstance.findUnique({
     where: { id: params.id },
-    select: { id: true, bearerToken: true, sessionId: true },
+    select: { id: true, bearerToken: true, sessionId: true, plataforma: true },
   });
 
   if (!instancia) return NextResponse.json({ error: 'Instância não encontrada' }, { status: 404 });
+
+  if (instancia.plataforma === 'ULTRAMSG') {
+    return NextResponse.json({ 
+      error: 'Plataforma UltraMsg detectada', 
+      detalhe: 'Para instâncias providas pelo UltraMsg, o WhatsApp deve ser escaneado diretamente no site deles (ultramsg.com).' 
+    }, { status: 400 });
+  }
 
   const { ok, data } = await wasenderGet(instancia.bearerToken, '/qr-code');
   if (!ok) {

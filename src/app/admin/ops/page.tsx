@@ -27,7 +27,7 @@ export default function OpsCenterPage() {
   // WhatsApp tab state
   const [waInstancias, setWaInstancias] = useState<WaInstancia[]>([]);
   const [waLoading, setWaLoading] = useState(false);
-  const [qrModal, setQrModal] = useState<{ id: string; sessionId: string; qrCode?: string } | null>(null);
+  const [qrModal, setQrModal] = useState<{ id: string; sessionId: string; qrCode?: string; error?: string } | null>(null);
   const [qrLoading, setQrLoading] = useState(false);
   const [addModal, setAddModal] = useState(false);
   const [newSessionId, setNewSessionId] = useState('');
@@ -104,6 +104,10 @@ export default function OpsCenterPage() {
     try {
       const res = await adminFetch(`/api/admin/whatsapp/${instancia.id}/reconectar`, { method: 'POST' });
       const json = await res.json();
+      if (!res.ok) {
+        setQrModal({ id: instancia.id, sessionId: instancia.sessionId, error: json.detalhe || json.error || 'Erro' });
+        return;
+      }
       setQrModal({ id: instancia.id, sessionId: instancia.sessionId, qrCode: json.qrCode ?? undefined });
     } finally {
       setQrLoading(false);
@@ -457,6 +461,11 @@ export default function OpsCenterPage() {
             {qrLoading ? (
               <div className="h-40 flex items-center justify-center">
                 <p className="text-[10px] font-black text-text-placeholder uppercase animate-pulse">Gerando QR Code...</p>
+              </div>
+            ) : qrModal.error ? (
+              <div className="p-4 bg-status-warning/10 border border-status-warning/20 rounded-2xl text-center">
+                <p className="text-[10px] font-black text-status-warning uppercase mb-1">Aviso do provedor</p>
+                <p className="text-[10px] text-text-muted">{qrModal.error}</p>
               </div>
             ) : qrModal.qrCode ? (
               <>
