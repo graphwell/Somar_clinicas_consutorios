@@ -165,13 +165,22 @@ export default function OpsCenterPage() {
   }
 
   async function handleExcluir(id: string) {
-    if (!confirm('EXCLUSÃO PERMANENTE: Deseja remover esta instância do banco de dados definitivamente?')) return;
-    const res = await adminFetch(`/api/admin/whatsapp/${id}`, { method: 'DELETE' });
-    if (!res.ok) {
+    if (!confirm('🚨 EXCLUSÃO PERMANENTE: Esta instância será apagada do banco de dados definitivamente. Confirmar?')) return;
+    
+    try {
+      const res = await adminFetch(`/api/admin/whatsapp/${id}`, { method: 'DELETE' });
       const data = await res.json().catch(() => ({}));
-      alert(data.error || 'Erro ao excluir instância');
+      
+      if (!res.ok) {
+        alert(`Falha na exclusão: ${data.error || 'Erro desconhecido'}`);
+        return;
+      }
+      
+      alert(data.mensagem || 'Instância removida com sucesso!');
+      fetchWaInstancias(waFilterRef.current || undefined);
+    } catch (err: any) {
+      alert(`Erro de conexão ao tentar excluir: ${err.message}`);
     }
-    fetchWaInstancias(waFilterRef.current || undefined);
   }
 
   async function handleCreateInstance(e: React.FormEvent) {
