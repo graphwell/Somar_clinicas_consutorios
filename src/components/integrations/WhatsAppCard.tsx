@@ -180,13 +180,21 @@ export function WhatsAppCard() {
     }
     if (wa.status === 'aguardando_scan') {
       return (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {wa.qrCode ? (
-            <img src={wa.qrCode} alt="QR Code WhatsApp" className="w-40 h-40 rounded-2xl border border-card-border shadow" />
+            <div className="bg-white p-3 rounded-xl border border-card-border shadow-sm inline-block">
+              <img 
+                src={wa.qrCode} 
+                alt="QR Code WhatsApp" 
+                className="w-56 h-56 block object-contain" 
+              />
+            </div>
           ) : (
             <p className="text-xs text-text-muted italic opacity-70">{wa.mensagem ?? 'QR Code em geração...'}</p>
           )}
-          <p className="text-[10px] text-text-placeholder">Abra o WhatsApp → Dispositivos Conectados → Adicionar dispositivo</p>
+          <p className="text-[10px] text-text-placeholder max-w-[200px] leading-relaxed">
+            Abra o WhatsApp → Dispositivos Conectados → Escanear QR Code
+          </p>
         </div>
       );
     }
