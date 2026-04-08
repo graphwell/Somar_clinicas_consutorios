@@ -29,7 +29,15 @@
             }
           ]
         },
-        "authentication": "headerAuth"
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "synka@2026"
+            }
+          ]
+        }
       },
       "id": "fetch-context",
       "name": "Carregar Contexto Clínica",
@@ -102,6 +110,15 @@
               "value": "={{ $fromAI('tipo') }}"
             }
           ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "synka@2026"
+            }
+          ]
         }
       },
       "id": "tool-list",
@@ -131,6 +148,15 @@
               "value": "={{ $fromAI('servicoId') }}"
             }
           ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "synka@2026"
+            }
+          ]
         }
       },
       "id": "tool-list-by-service",
@@ -158,6 +184,15 @@
             {
               "name": "whatsapp",
               "value": "={{ $fromAI('whatsapp') }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "synka@2026"
             }
           ]
         }
@@ -193,6 +228,15 @@
               "value": "={{ $json.tenantId }}"
             }
           ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "synka@2026"
+            }
+          ]
         }
       },
       "id": "tool-availability",
@@ -220,6 +264,15 @@
             {
               "name": "tenantId",
               "value": "={{ $json.tenantId }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "synka@2026"
             }
           ]
         }
@@ -259,6 +312,15 @@
               "value": "={{ $json.tenantId }}"
             }
           ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "synka@2026"
+            }
+          ]
         }
       },
       "id": "tool-book",
@@ -294,6 +356,15 @@
             {
               "name": "tenantId",
               "value": "={{ $json.tenantId }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "synka@2026"
             }
           ]
         }
@@ -353,7 +424,15 @@
             }
           ]
         },
-        "authentication": "headerAuth"
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "synka@2026"
+            }
+          ]
+        }
       },
       "id": "buscar-config-wa",
       "name": "Buscar Config WA",

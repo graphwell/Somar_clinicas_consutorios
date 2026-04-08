@@ -41,7 +41,14 @@
       "Bash(mkdir -p \"C:/SOMAR/projeto-somar-n8n/src/app/api/ficha-cliente/[pacienteId]/fotos\")",
       "Bash(mkdir -p \"C:/SOMAR/projeto-somar-n8n/src/app/api/ficha-cliente/[pacienteId]/fotos/[fotoId]\")",
       "Bash(mkdir -p \"C:/SOMAR/projeto-somar-n8n/src/app/api/ficha-cliente/[pacienteId]/visitas\")",
-      "Bash(mkdir -p \"C:/SOMAR/projeto-somar-n8n/src/app/dashboard/ficha/[pacienteId]\")"
+      "Bash(mkdir -p \"C:/SOMAR/projeto-somar-n8n/src/app/dashboard/ficha/[pacienteId]\")",
+      "Bash(cat:*)",
+      "Bash(xargs head:*)",
+      "Bash(curl:*)",
+      "Bash(head:*)",
+      "Bash(python -m json.tool)",
+      "Bash(python:*)",
+      "Bash(sort echo:*)"
     ]
   }
 }
