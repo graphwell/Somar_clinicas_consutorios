@@ -165,7 +165,12 @@ export default function OpsCenterPage() {
   }
 
   async function handleExcluir(id: string) {
-    if (!confirm('🚨 EXCLUSÃO PERMANENTE: Esta instância será apagada do banco de dados definitivamente. Confirmar?')) return;
+    const isEmUso = waInstancias.find(i => i.id === id)?.empresa;
+    const msg = isEmUso 
+      ? '🚨 ESTA INSTÂNCIA ESTÁ VINCULADA A UMA EMPRESA. Deseja desvincular e EXCLUIR permanentemente agora?'
+      : '🚨 EXCLUSÃO PERMANENTE: Esta instância será apagada do banco de dados definitivamente. Confirmar?';
+
+    if (!confirm(msg)) return;
     
     try {
       const res = await adminFetch(`/api/admin/whatsapp/${id}`, { method: 'DELETE' });
@@ -421,15 +426,13 @@ export default function OpsCenterPage() {
                         Desvincular
                       </button>
                     )}
-                    {!inst.empresa && (
-                      <button
-                        onClick={() => handleExcluir(inst.id)}
-                        className="px-3 py-1.5 bg-status-error-bg text-status-error border border-status-error/10 rounded-lg text-[8px] font-black uppercase hover:bg-status-error/10 transition-all"
-                        title="Remover definitivamente do pool"
-                      >
-                        Excluir
-                      </button>
-                    )}
+                    <button
+                      onClick={() => handleExcluir(inst.id)}
+                      className="px-3 py-1.5 bg-status-error-bg text-status-error border border-status-error/10 rounded-lg text-[8px] font-black uppercase hover:bg-status-error/10 transition-all"
+                      title="Remover definitivamente do pool"
+                    >
+                      Excluir
+                    </button>
                   </div>
                 </td>
               </tr>

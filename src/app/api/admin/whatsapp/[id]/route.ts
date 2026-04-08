@@ -16,24 +16,7 @@ export async function DELETE(
 
   if (!instancia) return NextResponse.json({ error: 'Instância não encontrada' }, { status: 404 });
 
-  // Segurança: Só permite excluir se não estiver em uso por uma empresa
-  if (instancia.empresaId) {
-    return NextResponse.json(
-      { error: 'Não é possível excluir uma instância vinculada a uma empresa. Desvincule-a primeiro.' },
-      { status: 409 }
-    );
-  }
-
-  // Só permite excluir se estiver LIVRE ou OFFLINE
-  const statusSeguros = ['LIVRE', 'OFFLINE', 'AGUARDANDO'];
-  if (!statusSeguros.includes(instancia.status)) {
-    return NextResponse.json(
-      { error: `Status ${instancia.status} não permite exclusão direta.` },
-      { status: 409 }
-    );
-  }
-
-  // Exclusão física real com log de erro detalhado
+  // MODO MASTER: Ignora travas de empresaId ou status técnico e deleta permanentemente.
   try {
     await prisma.whatsappInstance.delete({
       where: { id: params.id },
