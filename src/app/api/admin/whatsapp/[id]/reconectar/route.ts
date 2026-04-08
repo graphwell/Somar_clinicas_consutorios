@@ -5,13 +5,14 @@ import { WhatsAppProvider } from '@/lib/whatsapp-provider';
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const admin = await requireSynkaAdmin(request);
   if (!admin) return NextResponse.json({ error: 'Acesso restrito: apenas synka_admin' }, { status: 403 });
 
   const instancia = await prisma.whatsappInstance.findUnique({
-    where: { id: params.id },
+    where: { id },
     select: { id: true, bearerToken: true, sessionId: true, plataforma: true },
   });
 
@@ -25,7 +26,7 @@ export async function POST(
     );
 
     await prisma.whatsappInstance.update({
-      where: { id: params.id },
+      where: { id },
       data: { status: 'AGUARDANDO', conectadoEm: null },
     });
 

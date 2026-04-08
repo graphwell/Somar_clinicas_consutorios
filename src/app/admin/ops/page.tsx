@@ -103,11 +103,12 @@ export default function OpsCenterPage() {
     setQrModal({ id: instancia.id, sessionId: instancia.sessionId });
     try {
       const res = await adminFetch(`/api/admin/whatsapp/${instancia.id}/reconectar`, { method: 'POST' });
-      const json = await res.json();
       if (!res.ok) {
-        setQrModal({ id: instancia.id, sessionId: instancia.sessionId, error: json.detalhe || json.error || 'Erro' });
+        const json = await res.json().catch(() => ({}));
+        setQrModal({ id: instancia.id, sessionId: instancia.sessionId, error: json.detalhe || json.error || `Erro do servidor (${res.status})` });
         return;
       }
+      const json = await res.json();
       setQrModal({ id: instancia.id, sessionId: instancia.sessionId, qrCode: json.qrCode ?? undefined });
     } finally {
       setQrLoading(false);
@@ -115,7 +116,11 @@ export default function OpsCenterPage() {
   }
 
   async function handleStatus(id: string) {
-    await adminFetch(`/api/admin/whatsapp/${id}/status`);
+    const res = await adminFetch(`/api/admin/whatsapp/${id}/status`);
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}));
+      alert(json.error || 'Erro ao sincronizar status');
+    }
     fetchWaInstancias(waFilterRef.current || undefined);
   }
 
