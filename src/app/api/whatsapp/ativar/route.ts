@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { requireTenant } from '@/lib/wasender';
+import { requireTenant, wasenderPost } from '@/lib/wasender';
 import { WhatsAppProvider } from '@/lib/whatsapp-provider';
+import { WhatsAppPool } from '@/lib/whatsapp-pool';
 
 export async function POST(request: Request) {
   const tenant = await requireTenant(request);
