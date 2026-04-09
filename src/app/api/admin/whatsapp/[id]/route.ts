@@ -7,53 +7,29 @@ export async function DELETE(
   request: Request,
   { params }: { params: { id: string } }
 ) {
-  const admin = await requireSynkaAdmin(request);
-  if (!admin) return NextResponse.json({ error: 'Acesso restrito: apenas synka_admin' }, { status: 403 });
-
-  const instancia = await prisma.whatsappInstance.findUnique({
-    where: { id: params.id },
-    select: { id: true, status: true, empresaId: true, plataforma: true, sessionId: true, bearerToken: true },
-  });
-
-  if (!instancia) return NextResponse.json({ error: 'Instância não encontrada' }, { status: 404 });
-
-  // MODO MASTER: Ignora travas de empresaId ou status técnico e deleta permanentemente.
   try {
-    // Tentar Logout Remoto (MODO FULL CLEAN)
-    try {
-      await WhatsAppProvider.logout(instancia.plataforma, instancia.sessionId, instancia.bearerToken);
-    } catch (logoutErr) {
-      console.warn(`[Delete API] Falha opcional no logout remoto para ${instancia.sessionId}`);
-    }
+    const admin = await requireSynkaAdmin(request);
+    if (!admin) return NextResponse.json({ error: 'Acesso restrito' }, { status: 403 });
 
-    // Limpeza prévia de webhooks se for WaSender
-    if (instancia.plataforma === 'WASENDERAPI') {
-      try {
-        const { wasenderDelete } = await import('@/lib/wasender');
-        await wasenderDelete(instancia.bearerToken, `/session/${instancia.sessionId}/webhook`);
-      } catch (webhookErr) {
-        console.warn(`[Delete API] Falha opcional ao limpar webhook para ${instancia.sessionId}`);
-      }
-    }
-    await prisma.whatsappInstance.delete({
+    const instancia = await prisma.whatsappInstance.findUnique({
       where: { id: params.id },
     });
-    console.log(`[Admin API] Instância ${params.id} excluída com sucesso por admin.`);
-    return NextResponse.json({ success: true, mensagem: 'Instância removida permanentemente do pool' });
-  } catch (err: any) {
-    console.error(`[Admin API] ERRO AO EXCLUIR INSTÂNCIA ${params.id}:`, err.message);
-    
-    // Se for erro de restrição de chave estrangeira
-    if (err.code === 'P2003') {
-      return NextResponse.json(
-        { error: 'Não é possível excluir esta instância porque ela possui registros vinculados em outras tabelas (Logs, Marketing, etc). Limpe as referências antes de excluir.' },
-        { status: 409 }
-      );
+
+    if (!instancia) return NextResponse.json({ error: 'Instância não encontrada' }, { status: 404 });
+
+    // Tentativa de logout opcional
+    try {
+      await WhatsAppProvider.logout(instancia.plataforma, instancia.sessionId, instancia.bearerToken);
+    } catch (e) {
+      console.warn('Logout falhou na exclusão', e);
     }
 
-    return NextResponse.json(
-      { error: `Erro técnico ao excluir: ${err.message}` },
-      { status: 500 }
-    );
+    // Exclusão incondicional no DB
+    await prisma.whatsappInstance.delete({ where: { id: params.id } });
+
+    return NextResponse.json({ success: true, mensagem: 'Instância excluída com sucesso' });
+  } catch (err: any) {
+    console.error('[Admin] Erro ao excluir:', err);
+    return NextResponse.json({ error: `Erro técnico: ${err.message}` }, { status: 500 });
   }
 }

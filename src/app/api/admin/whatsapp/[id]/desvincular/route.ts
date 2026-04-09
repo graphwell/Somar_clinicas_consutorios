@@ -7,43 +7,39 @@ export async function PUT(
   request: Request,
   { params }: { params: { id: string } }
 ) {
-  const admin = await requireSynkaAdmin(request);
-  if (!admin) return NextResponse.json({ error: 'Acesso restrito: apenas synka_admin' }, { status: 403 });
-
-  const instancia = await prisma.whatsappInstance.findUnique({
-    where: { id: params.id },
-    select: { id: true, status: true, sessionId: true, bearerToken: true, plataforma: true },
-  });
-
-  if (!instancia) return NextResponse.json({ error: 'Instância não encontrada' }, { status: 404 });
-
-  // Tentar Logout Remoto antes de desvincular no DB (MODO FULL CLEAN)
   try {
-    await WhatsAppProvider.logout(instancia.plataforma, instancia.sessionId, instancia.bearerToken);
-  } catch (logoutErr) {
-    console.warn(`[Desvincular] Falha opcional no logout remoto para ${instancia.sessionId}`);
-  }
+    const admin = await requireSynkaAdmin(request);
+    if (!admin) return NextResponse.json({ error: 'Acesso restrito' }, { status: 403 });
 
-  // Remover webhook no WasenderAPI (apenas se for WaSender)
-  if (instancia.plataforma === 'WASENDERAPI') {
+    const instancia = await prisma.whatsappInstance.findUnique({
+      where: { id: params.id },
+      select: { id: true, sessionId: true, bearerToken: true, plataforma: true },
+    });
+
+    if (!instancia) return NextResponse.json({ error: 'Instância não encontrada' }, { status: 404 });
+
+    // Logout remoto opcional
     try {
-      await wasenderDelete(instancia.bearerToken, `/session/${instancia.sessionId}/webhook`);
-    } catch (err) {
-      console.warn(`[Desvincular] Falha ao limpar webhook WaSender para ${instancia.sessionId}:`, err);
+      await WhatsAppProvider.logout(instancia.plataforma, instancia.sessionId, instancia.bearerToken);
+    } catch (e) {
+      console.warn('Logout remoto falhou no desvio', e);
     }
+
+    const atualizado = await prisma.whatsappInstance.update({
+      where: { id: params.id },
+      data: {
+        empresaId: null,
+        status: 'LIVRE',
+        webhookUrl: null,
+        conectadoEm: null,
+        numeroWa: null,
+      },
+      select: INSTANCE_SELECT,
+    });
+
+    return NextResponse.json({ success: true, instancia: atualizado });
+  } catch (err: any) {
+    console.error('[Admin] Erro ao desvincular:', err);
+    return NextResponse.json({ error: `Erro no servidor: ${err.message}` }, { status: 500 });
   }
-
-  const atualizado = await prisma.whatsappInstance.update({
-    where: { id: params.id },
-    data: {
-      empresaId: null,
-      status: 'LIVRE',
-      webhookUrl: null,
-      conectadoEm: null,
-      numeroWa: null,
-    },
-    select: INSTANCE_SELECT,
-  });
-
-  return NextResponse.json({ success: true, instancia: atualizado });
 }
