@@ -1010,8 +1010,10 @@ model Produto {
   preco       Float             @default(0.0)
   imageUrl    String?           @db.Text
   estoque     Int               @default(0)
-  status      String            @default("active") // active | inactive
-  tags        String[]
+  status         String            @default("active") // active | inactive
+  tags           String[]
+  fabricante     String?
+  posicionamento String?
   clinica     Clinica           @relation(fields: [tenantId], references: [tenantId])
   categoria   CategoriaProduto? @relation(fields: [categoriaId], references: [id])
   comboItens  ComboItemVitrine[]
@@ -1081,4 +1083,21 @@ model PedidoItem {
   updatedAt       DateTime      @updatedAt
 
   @@map("pedido_itens")
+}
+
+model MasterProduct {
+  id             String   @id @default(uuid())
+  nicho          String?
+  fabricante     String?
+  categoria      String?
+  nome           String
+  descricao      String?  @db.Text
+  dicaUso        String?  @db.Text
+  tags           String[]
+  posicionamento String?
+  imageUrl       String?  @db.Text
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("master_products")
 }
