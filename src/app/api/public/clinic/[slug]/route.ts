@@ -36,7 +36,7 @@ export async function GET(
           select: {
             id: true,
             nome: true,
-            duracao: true,
+            duracaoMinutos: true,
             preco: true,
           },
         },
