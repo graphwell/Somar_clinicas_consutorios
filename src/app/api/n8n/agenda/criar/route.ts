@@ -54,12 +54,10 @@ export async function POST(req: NextRequest) {
     horario = fTime;
   }
 
-  if ((!slug && !tenantId) || !clienteNome || !clienteTelefone || !data || !horario) {
-    return n8nError(
-      'slug/tenantId, clienteNome, clienteTelefone, data(Hora) e horario são obrigatórios',
-      'MISSING_PARAM'
-    );
-  }
+  if (!slug && !tenantId) return n8nError('Parâmetro tenantId ou slug é obrigatório', 'MISSING_TENANT', 400);
+  if (!clienteNome) return n8nError('O nome do cliente é obrigatório para o agendamento', 'MISSING_NAME', 400);
+  if (!clienteTelefone) return n8nError('O telefone do cliente é obrigatório', 'MISSING_PHONE', 400);
+  if (!data || !horario) return n8nError('Data e horário são obrigatórios. Certifique-se de coletar o dia e a hora.', 'MISSING_DATETIME', 400);
 
   try {
     let clinica = null;

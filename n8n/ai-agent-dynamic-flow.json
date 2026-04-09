@@ -103,7 +103,7 @@
           "parameters": [
             {
               "name": "tenantId",
-              "value": "tenant_einstein_demo"
+              "value": "={{ $json.tenantId }}"
             },
             {
               "name": "tipo",
@@ -141,7 +141,7 @@
           "parameters": [
             {
               "name": "tenantId",
-              "value": "tenant_einstein_demo"
+              "value": "={{ $json.tenantId }}"
             },
             {
               "name": "servicoId",
@@ -179,7 +179,7 @@
           "parameters": [
             {
               "name": "tenantId",
-              "value": "tenant_einstein_demo"
+              "value": "={{ $json.tenantId }}"
             },
             {
               "name": "whatsapp",
@@ -306,6 +306,14 @@
             {
               "name": "pacienteTelefone",
               "value": "={{ $fromAI(\"pacienteTelefone\") || $json.sessionId }}"
+            },
+            {
+              "name": "servicoId",
+              "value": "={{ $fromAI(\"servicoId\") }}"
+            },
+            {
+              "name": "profissionalId",
+              "value": "={{ $fromAI(\"profissionalId\") }}"
             },
             {
               "name": "tenantId",
