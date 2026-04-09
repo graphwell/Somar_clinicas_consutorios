@@ -161,6 +161,9 @@ export default function Sidebar({
           {!isProfissional && (
             <NavItem href="/dashboard/team" label={labels.termoProfissionalPlural || "Equipe"} Icon={IconEquipe} active={is("/dashboard/team")} />
           )}
+          {!isProfissional && (
+            <NavItem href="/dashboard/services" label={labels.termoServicoPlural || "Serviços"} Icon={IconServicos} active={is("/dashboard/services")} />
+          )}
 
           <SectionLabel label="Operação" />
           {labels.temFichaCliente && (
