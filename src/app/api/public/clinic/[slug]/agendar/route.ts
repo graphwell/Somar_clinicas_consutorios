@@ -155,10 +155,11 @@ export async function POST(
         dataHora,
         fimDataHora,
         durationMinutes: servico.duracaoMinutos,
-        status: 'confirmado',
+        status: 'pendente',
         categoria: 'atendimento',
         tipoAtendimento: 'particular',
         tenantId: clinica.tenantId,
+        origemAgendamento: 'link_publico',
         observacoes: `Agendamento online — Protocolo #${protocolo}. Pagamento: ${tipoPagamento ?? 'hora'}`,
       },
     });

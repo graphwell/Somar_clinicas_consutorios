@@ -158,10 +158,11 @@ export async function POST(req: NextRequest) {
         dataHora,
         fimDataHora,
         durationMinutes: servico.duracaoMinutos,
-        status: 'confirmado',
+        status: 'pendente',
         categoria: 'atendimento',
         tipoAtendimento: 'particular',
         tenantId: clinica.tenantId,
+        origemAgendamento: 'bot',
         observacoes: `Bot WhatsApp${body.origem ? ` (${body.origem})` : ''} — Protocolo #${protocolo}`,
       },
     });

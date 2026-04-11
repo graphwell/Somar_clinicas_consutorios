@@ -57,7 +57,16 @@ interface Props {
   onNovoAgendamento: () => void;
 }
 
-/* ─── Status badge ──────────────────────────────────────── */
+/* ─── Cores por status ──────────────────────────────────── */
+const COR_STATUS: Record<string, { bg: string; border: string; text: string; label: string }> = {
+  pendente:       { bg: '#FEF3C7', border: '#F59E0B', text: '#92400E', label: 'Pendente' },
+  confirmado:     { bg: '#D1FAE5', border: '#10B981', text: '#065F46', label: 'Confirmado' },
+  em_atendimento: { bg: '#DBEAFE', border: '#3B82F6', text: '#1E40AF', label: 'Em atendimento' },
+  concluido:      { bg: '#F3F4F6', border: '#9CA3AF', text: '#374151', label: 'Concluído' },
+  done:           { bg: '#F3F4F6', border: '#9CA3AF', text: '#374151', label: 'Concluído' },
+  cancelado:      { bg: '#FEE2E2', border: '#EF4444', text: '#991B1B', label: 'Cancelado' },
+};
+// Mantido para retrocompatibilidade com Badge em outros locais
 const statusVariant: Record<string, "success" | "warning" | "danger" | "neutral"> = {
   confirmado: "success",
   pendente:   "warning",
@@ -66,11 +75,12 @@ const statusVariant: Record<string, "success" | "warning" | "danger" | "neutral"
   done:       "neutral",
 };
 const statusLabel: Record<string, string> = {
-  confirmado: "Confirmado",
-  pendente:   "Pendente",
-  cancelado:  "Cancelado",
-  concluido:  "Concluído",
-  done:       "Concluído",
+  confirmado:     "Confirmado",
+  pendente:       "Pendente",
+  cancelado:      "Cancelado",
+  concluido:      "Concluído",
+  done:           "Concluído",
+  em_atendimento: "Em atendimento",
 };
 
 /* ─── Helpers de tempo ──────────────────────────────────── */
@@ -127,13 +137,13 @@ function CardAgendamento({
   onClick: () => void;
 }) {
   const barColor = ag.servico?.color || prof.color;
-  const variant = statusVariant[ag.status] || "neutral";
+  const cor = COR_STATUS[ag.status] ?? COR_STATUS['concluido'];
 
   return (
     <button
       onClick={onClick}
-      className="w-full text-left bg-white border border-warm-200 rounded-lg shadow-card hover:shadow-card-hover transition-all duration-150 hover:-translate-y-px overflow-hidden relative"
-      style={{ minHeight: 56 }}
+      className="w-full text-left rounded-lg shadow-card hover:shadow-card-hover transition-all duration-150 hover:-translate-y-px overflow-hidden relative"
+      style={{ minHeight: 56, background: cor.bg, border: `1px solid ${cor.border}` }}
     >
       <div
         className="absolute left-0 top-0 bottom-0 w-1 rounded-l-lg"
@@ -144,9 +154,12 @@ function CardAgendamento({
           <p className="text-[12px] font-medium text-slate-700 truncate">
             {ag.pacienteNome}
           </p>
-          <Badge variant={variant} className="shrink-0 text-[10px]">
-            {statusLabel[ag.status] || ag.status}
-          </Badge>
+          <span
+            className="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded-full"
+            style={{ color: cor.text, background: `${cor.border}22` }}
+          >
+            {cor.label}
+          </span>
         </div>
         <div className="flex items-center gap-1 mt-0.5">
           <span className="text-[11px] text-slate-100">
@@ -223,7 +236,13 @@ function ColunaProfissional({
                 )}
                 {/* Buffer: invisível — ocupa espaço mas sem cor ou label */}
                 {slot.tipo === 'buffer' ? (
-                  <div className="h-8" />
+                  <div style={{
+                    height: 32,
+                    background: 'transparent',
+                    borderTop: '1px dashed #EEE9DF',
+                    cursor: 'default',
+                    pointerEvents: 'none',
+                  }} />
                 ) : (
                 <div className="flex items-center gap-1">
                   <span className="text-[10px] text-slate-100 w-9 shrink-0 text-right">

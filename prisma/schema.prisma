@@ -270,6 +270,9 @@ model Agendamento {
   observacoes     String?
   tipoPagamento   String?  @default("hora")     // hora | total | sinal
   origemAgendamento String? @default("interno") // interno | link_publico | bot
+  lembreteEnviado Boolean   @default(false)
+  confirmedAt     DateTime?
+  confirmedBy     String?   // whatsapp | recepcao | sistema
   transacao       TransacaoFinanceira?
 
   pedidoItens     PedidoItem[]
