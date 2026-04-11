@@ -48,7 +48,7 @@ export default function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6"
+      className="fixed inset-0 z-[9999] flex items-end sm:items-center sm:justify-center sm:p-6 overflow-y-auto"
       style={{ background: "rgba(27,43,58,0.5)", backdropFilter: "blur(4px)" }}
       onClick={onClose}
     >
@@ -56,9 +56,11 @@ export default function Modal({
       <div
         ref={panelRef}
         className={[
-          "relative m-auto bg-white w-full flex flex-col",
-          "rounded-2xl max-h-[92vh]",
-          "sm:max-h-[calc(100vh-48px)]",
+          "relative w-full flex flex-col bg-white",
+          // Mobile: bottom sheet
+          "rounded-t-2xl max-h-[92svh]",
+          // Desktop: centered dialog
+          "sm:rounded-2xl sm:m-auto sm:max-h-[calc(100vh-48px)]",
           "shadow-2xl overflow-hidden",
           maxWidth,
         ].join(" ")}
@@ -72,7 +74,7 @@ export default function Modal({
 
         {/* Header — fixo, não scrolla */}
         {title && (
-          <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-warm-200 flex-shrink-0 sticky top-0 bg-white z-10">
+          <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-warm-200 flex-shrink-0 bg-white z-10">
             <h2 className="font-display text-lg text-slate-700">{title}</h2>
             <button
               onClick={onClose}
@@ -95,7 +97,10 @@ export default function Modal({
 
         {/* Footer — fixo, não scrolla */}
         {footer && (
-          <div className="px-5 pb-5 pt-3 border-t border-warm-200 flex justify-end gap-2 flex-shrink-0 bg-white sticky bottom-0">
+          <div
+            className="px-5 pt-3 border-t border-warm-200 flex justify-end gap-2 flex-shrink-0 bg-white"
+            style={{ paddingBottom: "calc(20px + env(safe-area-inset-bottom, 0px))" }}
+          >
             {footer}
           </div>
         )}
