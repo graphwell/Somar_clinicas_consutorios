@@ -8,6 +8,7 @@ const API_PUBLICAS = [
   '/api/subscriptions/webhook',
   '/api/bot/',
   '/api/n8n/',
+  '/api/cron/',
   '/api/public/',
   '/api/health',
   '/api/webhook/',
