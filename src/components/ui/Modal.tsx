@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 interface ModalProps {
   open: boolean;
@@ -7,7 +7,7 @@ interface ModalProps {
   title?: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
-  maxWidth?: string;
+  maxWidth?: string; // ex: '560px', '480px' — valor CSS direto
 }
 
 export default function Modal({
@@ -16,9 +16,18 @@ export default function Modal({
   title,
   children,
   footer,
-  maxWidth = "max-w-lg",
+  maxWidth = "560px",
 }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detectar mobile no cliente
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   // Fechar com ESC
   useEffect(() => {
@@ -30,7 +39,7 @@ export default function Modal({
     return () => document.removeEventListener("keydown", handler);
   }, [open, onClose]);
 
-  // Bloquear scroll do body
+  // Bloquear scroll do body enquanto modal aberto
   useEffect(() => {
     if (open) document.body.style.overflow = "hidden";
     else document.body.style.overflow = "";
@@ -47,60 +56,89 @@ export default function Modal({
   if (!open) return null;
 
   return (
+    /* OVERLAY — scroll aqui, não no painel */
     <div
-      className="fixed inset-0 z-[9999] flex items-end sm:items-center sm:justify-center sm:p-6 overflow-y-auto"
-      style={{ background: "rgba(27,43,58,0.5)", backdropFilter: "blur(4px)" }}
-      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 9999,
+        display: "flex",
+        alignItems: isMobile ? "flex-end" : "flex-start",
+        justifyContent: "center",
+        padding: isMobile ? "0" : "32px 16px",
+        overflowY: "auto",
+        background: "rgba(27,43,58,0.55)",
+        backdropFilter: "blur(4px)",
+        WebkitBackdropFilter: "blur(4px)",
+      } as React.CSSProperties}
+      onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      {/* Painel */}
+      {/* PAINEL — altura natural, não fixo, sem max-h */}
       <div
         ref={panelRef}
-        className={[
-          "relative w-full flex flex-col bg-white",
-          // Mobile: bottom sheet
-          "rounded-t-2xl max-h-[92svh]",
-          // Desktop: centered dialog
-          "sm:rounded-2xl sm:m-auto sm:max-h-[calc(100vh-48px)]",
-          "shadow-2xl overflow-hidden",
-          maxWidth,
-        ].join(" ")}
-        style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}
+        style={{
+          background: "white",
+          borderRadius: isMobile ? "20px 20px 0 0" : "20px",
+          width: "100%",
+          maxWidth: isMobile ? "100%" : maxWidth,
+          marginTop: isMobile ? undefined : "auto",
+          marginBottom: isMobile ? undefined : "auto",
+          boxShadow: "0 25px 60px rgba(0,0,0,0.25)",
+          overflow: "hidden",
+        } as React.CSSProperties}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Handle mobile */}
-        <div className="flex justify-center pt-3 flex-shrink-0 sm:hidden">
-          <div className="w-10 h-1 bg-warm-300 rounded-full" />
-        </div>
+        {isMobile && (
+          <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 4px" }}>
+            <div style={{ width: 40, height: 4, background: "#D1C9BE", borderRadius: 9999 }} />
+          </div>
+        )}
 
-        {/* Header — fixo, não scrolla */}
+        {/* HEADER */}
         {title && (
-          <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-warm-200 flex-shrink-0 bg-white z-10">
-            <h2 className="font-display text-lg text-slate-700">{title}</h2>
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "16px 24px",
+            borderBottom: "1px solid #EEE9DF",
+          }}>
+            <h2 style={{ fontFamily: "var(--font-display, inherit)", fontSize: 16, fontWeight: 700, color: "#374151", margin: 0 }}>
+              {title}
+            </h2>
             <button
               onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-300 hover:bg-warm-200 hover:text-slate-700 transition-colors"
+              style={{
+                width: 32, height: 32,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                borderRadius: 8, border: "none", background: "transparent",
+                color: "#9CA3AF", cursor: "pointer",
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#F3F0EB"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width: 14, height: 14 }}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
         )}
 
-        {/* Body — scrolla quando necessário */}
-        <div
-          className="flex-1 overflow-y-auto min-h-0 px-5 py-4"
-          style={{ scrollbarWidth: "thin", scrollbarColor: "#EEE9DF transparent" } as React.CSSProperties}
-        >
+        {/* CONTEÚDO — altura natural, sem overflow */}
+        <div style={{ padding: "20px 24px" }}>
           {children}
         </div>
 
-        {/* Footer — fixo, não scrolla */}
+        {/* FOOTER — sempre visível pois o scroll é no overlay */}
         {footer && (
-          <div
-            className="px-5 pt-3 border-t border-warm-200 flex justify-end gap-2 flex-shrink-0 bg-white"
-            style={{ paddingBottom: "calc(20px + env(safe-area-inset-bottom, 0px))" }}
-          >
+          <div style={{
+            padding: `12px 24px ${isMobile ? `calc(20px + env(safe-area-inset-bottom, 0px))` : "20px"}`,
+            borderTop: "1px solid #EEE9DF",
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: 8,
+          }}>
             {footer}
           </div>
         )}
