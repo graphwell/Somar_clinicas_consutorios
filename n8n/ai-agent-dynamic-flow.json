@@ -59,7 +59,7 @@
       "parameters": {
         "text": "={{ $('Webhook WhatsApp').item.json.body.mensagem || $('Webhook WhatsApp').item.json.mensagem }}",
         "options": {
-          "systemMessage": "={{ `Você é a Assistente Virtual inteligente da ${$node[\"Carregar Contexto Clínica\"].json.data.nome}.\nSeu objetivo é ser extremamente amigável e garantir que o cliente agende um horário de forma simples.\n\n🏥 Horário: ${$node[\"Carregar Contexto Clínica\"].json.data.horarioFuncionamento}\n🔗 Link direto (Plano B): ${$node[\"Carregar Contexto Clínica\"].json.data.linkAgendamento}\n\nDIRETRIZES DE OURO:\n1. PRIORIDADE WHATSAPP: Se o cliente quiser agendar, você DEVE fazer por aqui usando suas Ferramentas (Ver Horários e Criar Agendamento).\n2. FLUXO DE COLETA: Para agendar aqui, você precisa de: Nome, Serviço, Profissional, Data e Hora. Pergunte um por um de forma natural. \n3. RESPOSTAS CURTAS: Como no WhatsApp real, responda em no máximo 1 ou 2 frases curtas.\n4. CONFIRMAÇÃO OBRIGATÓRIA: Antes de finalizar qualquer agendamento, resuma os dados e peça um \"SIM\" do cliente.\n5. LINK ALTERNATIVO: Só ofereça o link direto se o cliente pedir para agendar sozinho ou se você perceber que ele está com muita pressa.` }}"
+          "systemMessage": "={{ `Você é a Assistente Virtual inteligente da ${$node[\"Carregar Contexto Clínica\"].json.data.nome}.\nSeu objetivo é ser extremamente amigável e garantir que o cliente agende um horário de forma simples.\n\n🏥 Horário: ${$node[\"Carregar Contexto Clínica\"].json.data.horarioFuncionamento}\n🔗 Link direto (Plano B): ${$node[\"Carregar Contexto Clínica\"].json.data.linkAgendamento}\n\nDIRETRIZES DE OURO:\n1. PRIORIDADE WHATSAPP: Se o cliente quiser agendar, você DEVE fazer por aqui usando suas Ferramentas (Ver Horários e Criar Agendamento).\n2. FLUXO DE COLETA: Para agendar aqui, você precisa de: Nome, Serviço, Profissional, Data e Hora. Pergunte um por um de forma natural. \n3. RESPOSTAS CURTAS: Como no WhatsApp real, responda em no máximo 1 ou 2 frases curtas.\n4. CONFIRMAÇÃO OBRIGATÓRIA: Antes de finalizar qualquer agendamento, resuma os dados e peça um \"SIM\" do cliente.\n5. LINK ALTERNATIVO: Só ofereça o link direto se o cliente pedir para agendar sozinho ou se você perceber que ele está com muita pressa.\n\nINSTRUÇÕES CRÍTICAS:\n- Data atual: ${new Date().toLocaleDateString('pt-BR', {timeZone:'America/Fortaleza'})} (ano 2026)\n- Use SEMPRE o campo \"id\" retornado pelas ferramentas para servicoId e profissionalId. NUNCA invente IDs.\n- Para ver horários, chame PRIMEIRO Listar Opções para obter o servicoId real, depois Ver Horários.` }}"
         }
       },
       "id": "ai-agent-main",
@@ -114,7 +114,8 @@
             }
           ]
         },
-        "sendHeaders": false
+        "sendHeaders": false,
+        "toolDescription": "Lista serviços, profissionais ou especialidades da clínica. Parâmetro tipo: \"servicos\", \"profissionais\" ou \"especialidades\". Retorna lista com campo \"id\" que DEVE ser usado nas outras ferramentas."
       },
       "id": "tool-list",
       "name": "Ferramenta: Listar Opções",
@@ -136,7 +137,8 @@
             }
           ]
         },
-        "sendHeaders": false
+        "sendHeaders": false,
+        "toolDescription": "Lista os profissionais que atendem um serviço específico. Parâmetro servicoId: usar o campo \"id\" retornado pela ferramenta Listar Opções."
       },
       "id": "tool-list-by-service",
       "name": "Ferramenta: Profissionais por Serviço",
@@ -176,14 +178,18 @@
         "parametersQuery": {
           "values": [
             {
-              "name": "date"
+              "name": "data"
+            },
+            {
+              "name": "servicoId"
             },
             {
               "name": "profissionalId"
             }
           ]
         },
-        "sendHeaders": false
+        "sendHeaders": false,
+        "toolDescription": "Consulta horários disponíveis de um profissional em uma data específica. Parâmetros: data (YYYY-MM-DD, ano SEMPRE 2026 ou posterior), servicoId (ID do serviço — usar o campo \"id\" retornado pela ferramenta Listar Opções), profissionalId (ID do profissional — usar o campo \"id\" retornado pela ferramenta Listar Opções, NUNCA inventar)."
       },
       "id": "tool-availability",
       "name": "Ferramenta: Ver Horários",
@@ -243,7 +249,8 @@
               "name": "tenantId"
             }
           ]
-        }
+        },
+        "toolDescription": "Cria um agendamento. Usar apenas após confirmação explícita do cliente (SIM). IMPORTANTE: usar os IDs reais de servicoId e profissionalId retornados pelas ferramentas."
       },
       "id": "tool-book",
       "name": "Ferramenta: Criar Agendamento",

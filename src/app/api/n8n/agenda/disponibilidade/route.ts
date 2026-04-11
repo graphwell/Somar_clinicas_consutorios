@@ -34,7 +34,8 @@ export async function GET(req: NextRequest) {
   const slug = searchParams.get('slug');
   const tenantIdParam = searchParams.get('tenantId');
   const servicoId = searchParams.get('servicoId');
-  const dataParam = searchParams.get('data');
+  // aceita tanto ?data= (padrão) quanto ?date= (alias enviado por alguns agentes)
+  const dataParam = searchParams.get('data') ?? searchParams.get('date');
   const profissionalIdParam = searchParams.get('profissionalId');
 
   if (!slug && !tenantIdParam) {
