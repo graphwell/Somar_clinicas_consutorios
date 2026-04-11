@@ -220,7 +220,6 @@ async function criarSubfluxoLembretes() {
 
   const wfLembretes = {
     name: 'Synka — Lembretes Automáticos',
-    active: true,
     nodes: [
       // Cron 08h Fortaleza (11h UTC)
       {
