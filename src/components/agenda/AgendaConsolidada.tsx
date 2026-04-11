@@ -221,6 +221,10 @@ function ColunaProfissional({
                 {isNowSlot && (
                   <div className="absolute inset-x-0 top-0 h-0.5 bg-red-500 z-10 rounded-full" />
                 )}
+                {/* Buffer: invisível — ocupa espaço mas sem cor ou label */}
+                {slot.tipo === 'buffer' ? (
+                  <div className="h-8" />
+                ) : (
                 <div className="flex items-center gap-1">
                   <span className="text-[10px] text-slate-100 w-9 shrink-0 text-right">
                     {slot.horario}
@@ -238,8 +242,6 @@ function ColunaProfissional({
                         className="h-8 rounded-lg opacity-40"
                         style={{ background: prof.color }}
                       />
-                    ) : slot.tipo === 'buffer' ? (
-                      <div className="h-8" style={{ borderTop: '1px dashed #EEE9DF', cursor: 'default' }} />
                     ) : slot.tipo === 'almoco' ? (
                       <div className="h-8 rounded-lg bg-warm-200 flex items-center justify-center">
                         <span className="text-[10px] text-slate-100">Almoço</span>
@@ -259,6 +261,7 @@ function ColunaProfissional({
                     )}
                   </div>
                 </div>
+                )}
               </div>
             );
           })}

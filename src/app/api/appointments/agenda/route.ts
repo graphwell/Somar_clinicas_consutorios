@@ -38,7 +38,7 @@ function fromMin(total: number): string {
 
 /** Extrai HH:MM no fuso America/Fortaleza de um objeto Date UTC */
 function dateToSPMin(date: Date): number {
-  const parts = new Intl.DateTimeFormat('pt-BR', {
+  const parts = new Intl.DateTimeFormat('en-GB', {
     timeZone: 'America/Fortaleza',
     hour: '2-digit',
     minute: '2-digit',
@@ -109,10 +109,10 @@ function gerarSlots(opts: {
       continue;
     }
 
-    // REGRA 5: buffer após agendamento (arredonda p/ múltiplo do intervalo)
+    // REGRA 5: buffer após agendamento (arredonda p/ cima para múltiplo do intervalo)
     const bufferInfo = agInfos.find((info) => {
       if (info.buffer <= 0) return false;
-      const bufEnd = info.end + Math.floor(info.buffer / INTERVALO) * INTERVALO;
+      const bufEnd = info.end + Math.ceil(info.buffer / INTERVALO) * INTERVALO;
       return cur >= info.end && cur < bufEnd;
     });
     if (bufferInfo) {
