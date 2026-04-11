@@ -98,7 +98,7 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: 'id e status obrigatórios' }, { status: 400 });
     }
 
-    const VALIDOS = ['pendente', 'confirmado', 'done', 'cancelado', 'faltou'];
+    const VALIDOS = ['pendente', 'confirmado', 'em_atendimento', 'done', 'cancelado', 'faltou'];
     if (!VALIDOS.includes(status)) {
       return NextResponse.json({ error: 'Status inválido' }, { status: 400 });
     }

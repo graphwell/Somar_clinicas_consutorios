@@ -44,28 +44,34 @@ type Totais = Record<string, number>;
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string; border: string; dot: string }> = {
-  pendente:   { label: 'Aguardando',  bg: 'bg-amber-50',   text: 'text-amber-700',  border: 'border-amber-200', dot: 'bg-amber-400' },
-  confirmado: { label: 'Em Atend.',   bg: 'bg-blue-50',    text: 'text-blue-700',   border: 'border-blue-200',  dot: 'bg-blue-500'  },
-  done:       { label: 'Concluído',   bg: 'bg-green-50',   text: 'text-green-700',  border: 'border-green-200', dot: 'bg-green-500' },
-  cancelado:  { label: 'Cancelado',   bg: 'bg-red-50',     text: 'text-red-600',    border: 'border-red-200',   dot: 'bg-red-400'   },
-  faltou:     { label: 'Faltou',      bg: 'bg-orange-50',  text: 'text-orange-700', border: 'border-orange-200',dot: 'bg-orange-400' },
+  pendente:        { label: 'Aguardando',  bg: 'bg-amber-50',   text: 'text-amber-700',  border: 'border-amber-200', dot: 'bg-amber-400'  },
+  confirmado:      { label: 'Confirmado',  bg: 'bg-green-50',   text: 'text-green-700',  border: 'border-green-200', dot: 'bg-green-500'  },
+  em_atendimento:  { label: 'Em Atend.',   bg: 'bg-blue-50',    text: 'text-blue-700',   border: 'border-blue-200',  dot: 'bg-blue-500'   },
+  done:            { label: 'Concluído',   bg: 'bg-green-50',   text: 'text-green-700',  border: 'border-green-200', dot: 'bg-green-500'  },
+  cancelado:       { label: 'Cancelado',   bg: 'bg-red-50',     text: 'text-red-600',    border: 'border-red-200',   dot: 'bg-red-400'    },
+  faltou:          { label: 'Faltou',      bg: 'bg-orange-50',  text: 'text-orange-700', border: 'border-orange-200',dot: 'bg-orange-400' },
 };
 
 const FLUXO: Record<string, { label: string; nextStatus: string; style: string }[]> = {
-  pendente:   [
-    { label: 'Check-in',  nextStatus: 'confirmado', style: 'bg-blue-600 text-white hover:bg-blue-700' },
-    { label: 'Faltou',    nextStatus: 'faltou',     style: 'bg-orange-50 border border-orange-200 text-orange-700 hover:bg-orange-100' },
-    { label: 'Cancelar',  nextStatus: 'cancelado',  style: 'bg-white border border-red-200 text-red-600 hover:bg-red-50' },
+  pendente:       [
+    { label: 'Check-in',  nextStatus: 'em_atendimento', style: 'bg-blue-600 text-white hover:bg-blue-700' },
+    { label: 'Faltou',    nextStatus: 'faltou',          style: 'bg-orange-50 border border-orange-200 text-orange-700 hover:bg-orange-100' },
+    { label: 'Cancelar',  nextStatus: 'cancelado',       style: 'bg-white border border-red-200 text-red-600 hover:bg-red-50' },
   ],
-  confirmado: [
+  confirmado:     [
+    { label: 'Check-in',  nextStatus: 'em_atendimento', style: 'bg-blue-600 text-white hover:bg-blue-700' },
+    { label: 'Faltou',    nextStatus: 'faltou',          style: 'bg-orange-50 border border-orange-200 text-orange-700 hover:bg-orange-100' },
+    { label: 'Cancelar',  nextStatus: 'cancelado',       style: 'bg-white border border-red-200 text-red-600 hover:bg-red-50' },
+  ],
+  em_atendimento: [
     { label: 'Concluir', nextStatus: 'done',      style: 'bg-green-600 text-white hover:bg-green-700' },
     { label: 'Cancelar', nextStatus: 'cancelado', style: 'bg-white border border-red-200 text-red-600 hover:bg-red-50' },
   ],
-  done:       [],
-  cancelado:  [
+  done:           [],
+  cancelado:      [
     { label: 'Reativar', nextStatus: 'pendente', style: 'bg-white border border-card-border text-text-muted hover:bg-slate-50' },
   ],
-  faltou:     [
+  faltou:         [
     { label: 'Reativar', nextStatus: 'pendente', style: 'bg-white border border-card-border text-text-muted hover:bg-slate-50' },
   ],
 };
@@ -81,7 +87,7 @@ function fmtIdade(dataNascimento?: string) {
 }
 
 function isAtrasado(ag: Agendamento) {
-  if (ag.status !== 'pendente' && ag.status !== 'confirmado') return false;
+  if (!['pendente', 'confirmado', 'em_atendimento'].includes(ag.status)) return false;
   return new Date(ag.fimDataHora) < new Date();
 }
 
@@ -504,7 +510,8 @@ export default function AtendimentosHojePage() {
 
   // Filtrar lista
   const lista = agendamentos.filter(a => {
-    if (filtroStatus !== 'todos' && a.status !== filtroStatus) return false;
+    if (filtroStatus === 'aguardando' && !['pendente', 'confirmado'].includes(a.status)) return false;
+    if (filtroStatus !== 'todos' && filtroStatus !== 'aguardando' && a.status !== filtroStatus) return false;
     if (filtroProfId !== 'todos' && a.profissional?.id !== filtroProfId) return false;
     if (busca.trim()) {
       const q = busca.toLowerCase();
@@ -516,11 +523,12 @@ export default function AtendimentosHojePage() {
   });
 
   // Separar por status para exibição organizada
-  const pendentes   = lista.filter(a => a.status === 'pendente');
-  const confirmados = lista.filter(a => a.status === 'confirmado');
-  const concluidos  = lista.filter(a => a.status === 'done');
-  const faltaram    = lista.filter(a => a.status === 'faltou');
-  const cancelados  = lista.filter(a => a.status === 'cancelado');
+  const pendentes      = lista.filter(a => a.status === 'pendente');
+  const confirmados    = lista.filter(a => a.status === 'confirmado');
+  const emAtendimento  = lista.filter(a => a.status === 'em_atendimento');
+  const concluidos     = lista.filter(a => a.status === 'done');
+  const faltaram       = lista.filter(a => a.status === 'faltou');
+  const cancelados     = lista.filter(a => a.status === 'cancelado');
 
   const total = agendamentos.length;
   const totalDia = Object.values(totais).reduce((s, v) => s + v, 0);
@@ -560,9 +568,13 @@ export default function AtendimentosHojePage() {
                 ›
               </button>
             </div>
-            {!isHoje && (
+            {isHoje ? (
+              <span className="text-[9px] font-black uppercase px-3 py-2 bg-primary-soft text-primary border border-primary/10 rounded-xl">
+                Hoje
+              </span>
+            ) : (
               <button onClick={() => setData(hoje)}
-                className="text-[9px] font-black uppercase px-3 py-2 bg-primary-soft text-primary border border-primary/10 rounded-xl hover:bg-primary/10 transition-colors">
+                className="text-[9px] font-black uppercase px-3 py-2 bg-white text-text-muted border border-card-border rounded-xl hover:bg-slate-50 transition-colors">
                 Hoje
               </button>
             )}
@@ -582,11 +594,11 @@ export default function AtendimentosHojePage() {
         {/* ── KPIs ── */}
         <div className="mt-6 grid grid-cols-3 sm:grid-cols-5 gap-3">
           {[
-            { status: 'todos',     label: 'Total',      count: totalDia,                 bg: 'bg-slate-50',   text: 'text-text-main',   border: 'border-card-border'  },
-            { status: 'pendente',  label: 'Aguardando', count: totais.pendente || 0,     ...STATUS_CONFIG.pendente   },
-            { status: 'confirmado',label: 'Em Atend.',  count: totais.confirmado || 0,   ...STATUS_CONFIG.confirmado },
-            { status: 'done',      label: 'Concluídos', count: totais.done || 0,         ...STATUS_CONFIG.done       },
-            { status: 'cancelado', label: 'Cancelados', count: (totais.cancelado || 0) + (totais.faltou || 0), ...STATUS_CONFIG.cancelado },
+            { status: 'todos',          label: 'Total',      count: totalDia,                                                         bg: 'bg-slate-50',  text: 'text-text-main',  border: 'border-card-border'  },
+            { status: 'aguardando',     label: 'Aguardando', count: (totais.pendente || 0) + (totais.confirmado || 0),                 ...STATUS_CONFIG.pendente         },
+            { status: 'em_atendimento', label: 'Em Atend.',  count: totais.em_atendimento || 0,                                       ...STATUS_CONFIG.em_atendimento   },
+            { status: 'done',           label: 'Concluídos', count: totais.done || 0,                                                  ...STATUS_CONFIG.done             },
+            { status: 'cancelado',      label: 'Cancelados', count: (totais.cancelado || 0) + (totais.faltou || 0),                   ...STATUS_CONFIG.cancelado        },
           ].map(({ status, label, count, bg, text, border }) => (
             <button key={status}
               onClick={() => setFiltroStatus(filtroStatus === status ? 'todos' : status)}
@@ -603,14 +615,17 @@ export default function AtendimentosHojePage() {
         {/* ── Pills de filtro ── */}
         <div className="mt-4 flex flex-wrap gap-2">
           {[
-            { v: 'todos',     l: 'Todos' },
-            { v: 'pendente',  l: 'Aguardando' },
-            { v: 'confirmado',l: 'Em Atendimento' },
-            { v: 'done',      l: 'Concluído' },
-            { v: 'faltou',    l: 'Faltou' },
-            { v: 'cancelado', l: 'Cancelado' },
+            { v: 'todos',          l: 'Todos' },
+            { v: 'aguardando',     l: 'Aguardando' },
+            { v: 'confirmado',     l: 'Confirmado' },
+            { v: 'em_atendimento', l: 'Em Atendimento' },
+            { v: 'done',           l: 'Concluído' },
+            { v: 'faltou',         l: 'Faltou' },
+            { v: 'cancelado',      l: 'Cancelado' },
           ].map(({ v, l }) => {
-            const cnt = v === 'todos' ? totalDia : (totais[v] || 0);
+            const cnt = v === 'todos' ? totalDia :
+              v === 'aguardando' ? (totais.pendente || 0) + (totais.confirmado || 0) :
+              (totais[v] || 0);
             const ativo = filtroStatus === v;
             return (
               <button key={v} onClick={() => setFiltroStatus(v)}
@@ -683,12 +698,27 @@ export default function AtendimentosHojePage() {
         </div>
       ) : (
         <div className="space-y-6">
-          {/* Aguardando / Em atendimento */}
+          {/* Em Atendimento */}
+          {emAtendimento.length > 0 && filtroStatus === 'todos' && (
+            <section>
+              <h2 className="text-[9px] font-black uppercase tracking-[0.3em] text-text-placeholder mb-3 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-blue-500" />
+                Em Atendimento — {emAtendimento.length}
+              </h2>
+              <div className="space-y-2">
+                {emAtendimento.map(a => (
+                  <CardAtendimento key={a.id} ag={a} labels={labels} isBeleza={isBeleza} nicho={nicho} onStatusChange={mudarStatus} updating={updating} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Fila de espera — pendente + confirmado */}
           {(pendentes.length > 0 || confirmados.length > 0) && filtroStatus === 'todos' && (
             <section>
               <h2 className="text-[9px] font-black uppercase tracking-[0.3em] text-text-placeholder mb-3 flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-amber-400" />
-                Fila de Atendimento — {pendentes.length + confirmados.length} {labels.termoPacientePlural.toLowerCase()}
+                Aguardando — {pendentes.length + confirmados.length} {labels.termoPacientePlural.toLowerCase()}
               </h2>
               <div className="space-y-2">
                 {[...confirmados, ...pendentes].map(a => (
