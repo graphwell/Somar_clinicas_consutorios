@@ -59,7 +59,7 @@
       "parameters": {
         "text": "={{ $('Webhook WhatsApp').item.json.body.mensagem || $('Webhook WhatsApp').item.json.mensagem }}",
         "options": {
-          "systemMessage": "={{ `Você é a Assistente Virtual inteligente da ${$node[\"Carregar Contexto Clínica\"].json.data.nome}.\nSeu objetivo é ser extremamente amigável e garantir que o cliente agende um horário de forma simples.\n\n🏥 Horário: ${$node[\"Carregar Contexto Clínica\"].json.data.horarioFuncionamento}\n🔗 Link direto (Plano B): ${$node[\"Carregar Contexto Clínica\"].json.data.linkAgendamento}\n\nDIRETRIZES DE OURO:\n1. PRIORIDADE WHATSAPP: Se o cliente quiser agendar, você DEVE fazer por aqui usando suas Ferramentas (Ver Horários e Criar Agendamento).\n2. FLUXO DE COLETA: Para agendar aqui, você precisa de: Nome, Serviço, Profissional, Data e Hora. Pergunte um por um de forma natural. \n3. RESPOSTAS CURTAS: Como no WhatsApp real, responda em no máximo 1 ou 2 frases curtas.\n4. CONFIRMAÇÃO OBRIGATÓRIA: Antes de finalizar qualquer agendamento, resuma os dados e peça um \"SIM\" do cliente.\n5. LINK ALTERNATIVO: Só ofereça o link direto se o cliente pedir para agendar sozinho ou se você perceber que ele está com muita pressa.\n\nDADOS TÉCNICOS (use sempre ao chamar ferramentas):\n- tenantId: ${$node[\"Carregar Contexto Clínica\"].json.data.tenantId}\n- Nunca peça o tenantId ao usuário — já está definido acima.` }}"
+          "systemMessage": "={{ `Você é a Assistente Virtual inteligente da ${$node[\"Carregar Contexto Clínica\"].json.data.nome}.\nSeu objetivo é ser extremamente amigável e garantir que o cliente agende um horário de forma simples.\n\n🏥 Horário: ${$node[\"Carregar Contexto Clínica\"].json.data.horarioFuncionamento}\n🔗 Link direto (Plano B): ${$node[\"Carregar Contexto Clínica\"].json.data.linkAgendamento}\n\nDIRETRIZES DE OURO:\n1. PRIORIDADE WHATSAPP: Se o cliente quiser agendar, você DEVE fazer por aqui usando suas Ferramentas (Ver Horários e Criar Agendamento).\n2. FLUXO DE COLETA: Para agendar aqui, você precisa de: Nome, Serviço, Profissional, Data e Hora. Pergunte um por um de forma natural. \n3. RESPOSTAS CURTAS: Como no WhatsApp real, responda em no máximo 1 ou 2 frases curtas.\n4. CONFIRMAÇÃO OBRIGATÓRIA: Antes de finalizar qualquer agendamento, resuma os dados e peça um \"SIM\" do cliente.\n5. LINK ALTERNATIVO: Só ofereça o link direto se o cliente pedir para agendar sozinho ou se você perceber que ele está com muita pressa.` }}"
         }
       },
       "id": "ai-agent-main",
@@ -105,7 +105,7 @@
     },
     {
       "parameters": {
-        "url": "https://synka.somar.ia.br/api/n8n/list-metadata?_key=synka@2026",
+        "url": "={{ \"https://synka.somar.ia.br/api/n8n/list-metadata?_key=synka@2026&tenantId=\" + $('Carregar Contexto Clínica').item.json.data.tenantId }}",
         "sendQuery": true,
         "parametersQuery": {
           "values": [
@@ -127,7 +127,7 @@
     },
     {
       "parameters": {
-        "url": "https://synka.somar.ia.br/api/n8n/professionals-by-service?_key=synka@2026",
+        "url": "={{ \"https://synka.somar.ia.br/api/n8n/professionals-by-service?_key=synka@2026&tenantId=\" + $('Carregar Contexto Clínica').item.json.data.tenantId }}",
         "sendQuery": true,
         "parametersQuery": {
           "values": [
@@ -149,7 +149,7 @@
     },
     {
       "parameters": {
-        "url": "https://synka.somar.ia.br/api/n8n/client-info?_key=synka@2026",
+        "url": "={{ \"https://synka.somar.ia.br/api/n8n/client-info?_key=synka@2026&tenantId=\" + $('Carregar Contexto Clínica').item.json.data.tenantId }}",
         "sendQuery": true,
         "parametersQuery": {
           "values": [
@@ -171,7 +171,7 @@
     },
     {
       "parameters": {
-        "url": "https://synka.somar.ia.br/api/n8n/agenda/disponibilidade?_key=synka@2026",
+        "url": "={{ \"https://synka.somar.ia.br/api/n8n/agenda/disponibilidade?_key=synka@2026&tenantId=\" + $('Carregar Contexto Clínica').item.json.data.tenantId }}",
         "sendQuery": true,
         "parametersQuery": {
           "values": [
@@ -196,7 +196,7 @@
     },
     {
       "parameters": {
-        "url": "https://synka.somar.ia.br/api/n8n/cliente/buscar?_key=synka@2026",
+        "url": "={{ \"https://synka.somar.ia.br/api/n8n/cliente/buscar?_key=synka@2026&tenantId=\" + $('Carregar Contexto Clínica').item.json.data.tenantId }}",
         "sendQuery": true,
         "parametersQuery": {
           "values": [
@@ -219,7 +219,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://synka.somar.ia.br/api/n8n/agenda/criar?_key=synka@2026",
+        "url": "={{ \"https://synka.somar.ia.br/api/n8n/agenda/criar?_key=synka@2026&tenantId=\" + $('Carregar Contexto Clínica').item.json.data.tenantId }}",
         "sendHeaders": false,
         "sendBody": true,
         "parametersBody": {
@@ -257,7 +257,7 @@
     {
       "parameters": {
         "method": "PATCH",
-        "url": "https://synka.somar.ia.br/api/n8n/agenda/cancelar?_key=synka@2026",
+        "url": "={{ \"https://synka.somar.ia.br/api/n8n/agenda/cancelar?_key=synka@2026&tenantId=\" + $('Carregar Contexto Clínica').item.json.data.tenantId }}",
         "sendHeaders": false,
         "sendBody": true,
         "parametersBody": {
