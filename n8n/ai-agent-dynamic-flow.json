@@ -3,6 +3,7 @@
   "nodes": [
     {
       "parameters": {
+        "httpMethod": "POST",
         "path": "whatsapp-agent-dynamic",
         "responseMode": "lastNode",
         "options": {}
@@ -99,11 +100,12 @@
         "method": "GET",
         "url": "https://api.somar.ia.br/api/n8n/list-metadata",
         "sendQuery": true,
-        "queryParameters": {
-          "parameters": [
+        "sendHeaders": true,
+        "parametersQuery": {
+          "values": [
             {
               "name": "tenantId",
-              "value": "={{ $json.tenantId }}"
+              "value": "={{ $('Carregar Contexto Clínica').item.json.tenantId }}"
             },
             {
               "name": "tipo",
@@ -111,9 +113,8 @@
             }
           ]
         },
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
+        "parametersHeaders": {
+          "values": [
             {
               "name": "x-api-key",
               "value": "synka@2026"
@@ -137,11 +138,12 @@
         "method": "GET",
         "url": "https://api.somar.ia.br/api/n8n/professionals-by-service",
         "sendQuery": true,
-        "queryParameters": {
-          "parameters": [
+        "sendHeaders": true,
+        "parametersQuery": {
+          "values": [
             {
               "name": "tenantId",
-              "value": "={{ $json.tenantId }}"
+              "value": "={{ $('Carregar Contexto Clínica').item.json.tenantId }}"
             },
             {
               "name": "servicoId",
@@ -149,9 +151,8 @@
             }
           ]
         },
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
+        "parametersHeaders": {
+          "values": [
             {
               "name": "x-api-key",
               "value": "synka@2026"
@@ -175,11 +176,12 @@
         "method": "GET",
         "url": "https://api.somar.ia.br/api/n8n/client-info",
         "sendQuery": true,
-        "queryParameters": {
-          "parameters": [
+        "sendHeaders": true,
+        "parametersQuery": {
+          "values": [
             {
               "name": "tenantId",
-              "value": "={{ $json.tenantId }}"
+              "value": "={{ $('Carregar Contexto Clínica').item.json.tenantId }}"
             },
             {
               "name": "whatsapp",
@@ -187,9 +189,8 @@
             }
           ]
         },
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
+        "parametersHeaders": {
+          "values": [
             {
               "name": "x-api-key",
               "value": "synka@2026"
@@ -213,8 +214,9 @@
         "method": "GET",
         "url": "https://synka.somar.ia.br/api/n8n/agenda/disponibilidade",
         "sendQuery": true,
-        "queryParameters": {
-          "parameters": [
+        "sendHeaders": true,
+        "parametersQuery": {
+          "values": [
             {
               "name": "date",
               "value": "={{ $fromAI('date') }}"
@@ -225,13 +227,12 @@
             },
             {
               "name": "tenantId",
-              "value": "={{ $json.tenantId }}"
+              "value": "={{ $('Carregar Contexto Clínica').item.json.tenantId }}"
             }
           ]
         },
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
+        "parametersHeaders": {
+          "values": [
             {
               "name": "x-api-key",
               "value": "synka@2026"
@@ -255,21 +256,21 @@
         "method": "GET",
         "url": "https://synka.somar.ia.br/api/n8n/cliente/buscar",
         "sendQuery": true,
-        "queryParameters": {
-          "parameters": [
+        "sendHeaders": true,
+        "parametersQuery": {
+          "values": [
             {
               "name": "telefone",
               "value": "={{ $json.sessionId || $fromAI(\"phone\") }}"
             },
             {
               "name": "tenantId",
-              "value": "={{ $json.tenantId }}"
+              "value": "={{ $('Carregar Contexto Clínica').item.json.tenantId }}"
             }
           ]
         },
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
+        "parametersHeaders": {
+          "values": [
             {
               "name": "x-api-key",
               "value": "synka@2026"
@@ -293,8 +294,17 @@
         "method": "POST",
         "url": "https://synka.somar.ia.br/api/n8n/agenda/criar",
         "sendBody": true,
-        "bodyParameters": {
-          "parameters": [
+        "sendHeaders": true,
+        "parametersHeaders": {
+          "values": [
+            {
+              "name": "x-api-key",
+              "value": "synka@2026"
+            }
+          ]
+        },
+        "parametersBody": {
+          "values": [
             {
               "name": "nome",
               "value": "={{ $fromAI(\"pacienteNome\") }}"
@@ -317,16 +327,7 @@
             },
             {
               "name": "tenantId",
-              "value": "={{ $json.tenantId }}"
-            }
-          ]
-        },
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "x-api-key",
-              "value": "synka@2026"
+              "value": "={{ $('Carregar Contexto Clínica').item.json.tenantId }}"
             }
           ]
         }
@@ -347,8 +348,17 @@
         "method": "PATCH",
         "url": "https://synka.somar.ia.br/api/n8n/agenda/cancelar",
         "sendBody": true,
-        "bodyParameters": {
-          "parameters": [
+        "sendHeaders": true,
+        "parametersHeaders": {
+          "values": [
+            {
+              "name": "x-api-key",
+              "value": "synka@2026"
+            }
+          ]
+        },
+        "parametersBody": {
+          "values": [
             {
               "name": "id",
               "value": "={{ $fromAI(\"id\") }}"
@@ -366,15 +376,6 @@
               "value": "={{ $json.tenantId }}"
             }
           ]
-        },
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "x-api-key",
-              "value": "synka@2026"
-            }
-          ]
         }
       },
       "id": "tool-update",
@@ -389,14 +390,14 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.ultramsg.com/instance156799/messages/chat",
+        "url": "https://api.ultramsg.com/instance168762/messages/chat",
         "sendBody": true,
         "contentType": "www-form-urlencoded",
         "bodyParameters": {
           "parameters": [
             {
               "name": "token",
-              "value": "nbk60ugo4t1craq9"
+              "value": "xp3fx1lj7lsnozzg"
             },
             {
               "name": "to",
@@ -474,22 +475,33 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://www.wasenderapi.com/api/send-message",
+        "url": "https://wasenderapi.com/api/messages/send",
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
             {
               "name": "to",
-              "value": "={{ ($('Webhook WhatsApp').item.json.body.telefone || $('Webhook WhatsApp').item.json.telefone) || ($('Webhook WhatsApp').item.json.body.telefone || $('Webhook WhatsApp').item.json.telefone) }}"
+              "value": "={{ ($('Webhook WhatsApp').item.json.body.telefone || $('Webhook WhatsApp').item.json.telefone) }}"
             },
             {
-              "name": "text",
+              "name": "message",
               "value": "={{ $('Agente Autônomo Especializado').item.json.output }}"
             }
           ]
         },
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth"
+        "sendHeaders": true,
+        "parametersHeaders": {
+          "values": [
+            {
+              "name": "Authorization",
+              "value": "={{ `Bearer ${$('Carregar Contexto Clínica').item.json.whatsappToken}` }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
       },
       "id": "send-wasender",
       "name": "Disparar Resposta WaSender",

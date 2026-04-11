@@ -48,7 +48,7 @@ export default function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-6"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6"
       style={{ background: "rgba(27,43,58,0.5)", backdropFilter: "blur(4px)" }}
       onClick={onClose}
     >
@@ -56,12 +56,10 @@ export default function Modal({
       <div
         ref={panelRef}
         className={[
-          "relative bg-white w-full flex flex-col",
-          // Mobile: bottom sheet, quase tela toda
-          "rounded-t-2xl max-h-[92vh]",
-          // Desktop: centralizado, arredondado, altura máxima segura
-          "sm:rounded-2xl sm:max-h-[calc(100vh-48px)]",
-          "sm:shadow-2xl overflow-hidden",
+          "relative m-auto bg-white w-full flex flex-col",
+          "rounded-2xl max-h-[92vh]",
+          "sm:max-h-[calc(100vh-48px)]",
+          "shadow-2xl overflow-hidden",
           maxWidth,
         ].join(" ")}
         style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}
