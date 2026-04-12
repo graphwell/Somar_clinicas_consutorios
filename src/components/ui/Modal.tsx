@@ -7,7 +7,7 @@ interface ModalProps {
   title?: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
-  maxWidth?: string; // ex: '560px', '480px' — valor CSS direto
+  maxWidth?: string;
 }
 
 export default function Modal({
@@ -18,10 +18,8 @@ export default function Modal({
   footer,
   maxWidth = "560px",
 }: ModalProps) {
-  const panelRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Detectar mobile no cliente
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 640);
     check();
@@ -29,60 +27,56 @@ export default function Modal({
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  // Fechar com ESC
+  // ESC
   useEffect(() => {
     if (!open) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
+    const fn = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", fn);
+    return () => document.removeEventListener("keydown", fn);
   }, [open, onClose]);
 
-  // Bloquear scroll do body enquanto modal aberto
+  // Body scroll lock
   useEffect(() => {
     if (open) document.body.style.overflow = "hidden";
     else document.body.style.overflow = "";
     return () => { document.body.style.overflow = ""; };
   }, [open]);
 
-  // Scroll para o topo ao abrir
-  useEffect(() => {
-    if (open && panelRef.current) {
-      panelRef.current.scrollTop = 0;
-    }
-  }, [open]);
-
   if (!open) return null;
 
+  /* ─────────────────────────────────────────────────────────────
+   *  OVERLAY — centraliza o painel
+   * ───────────────────────────────────────────────────────────── */
   return (
-    /* OVERLAY — scroll aqui, não no painel */
     <div
       style={{
         position: "fixed",
         inset: 0,
         zIndex: 9999,
         display: "flex",
-        alignItems: isMobile ? "flex-end" : "flex-start",
+        alignItems: isMobile ? "flex-end" : "center",
         justifyContent: "center",
-        padding: isMobile ? "0" : "32px 16px",
-        overflowY: "auto",
+        padding: isMobile ? 0 : "16px",
         background: "rgba(27,43,58,0.55)",
         backdropFilter: "blur(4px)",
         WebkitBackdropFilter: "blur(4px)",
       } as React.CSSProperties}
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      {/* PAINEL — altura natural, não fixo, sem max-h */}
+      {/* ─────────────────────────────────────────────────────────
+       *  PAINEL — flex-col + max-height garante que footer aparece
+       *  A chave é: content tem flex:1 + overflow-y:auto + min-height:0
+       * ───────────────────────────────────────────────────────── */}
       <div
-        ref={panelRef}
         style={{
+          display: "flex",
+          flexDirection: "column",
           background: "white",
           borderRadius: isMobile ? "20px 20px 0 0" : "20px",
           width: "100%",
           maxWidth: isMobile ? "100%" : maxWidth,
-          marginTop: isMobile ? undefined : "auto",
-          marginBottom: isMobile ? undefined : "auto",
+          /* max-height limita o painel; conteúdo scrolla internamente */
+          maxHeight: isMobile ? "92svh" : "calc(100vh - 32px)",
           boxShadow: "0 25px 60px rgba(0,0,0,0.25)",
           overflow: "hidden",
         } as React.CSSProperties}
@@ -90,33 +84,35 @@ export default function Modal({
       >
         {/* Handle mobile */}
         {isMobile && (
-          <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 4px" }}>
+          <div style={{ flexShrink: 0, display: "flex", justifyContent: "center", padding: "12px 0 6px" }}>
             <div style={{ width: 40, height: 4, background: "#D1C9BE", borderRadius: 9999 }} />
           </div>
         )}
 
-        {/* HEADER */}
+        {/* HEADER — não scrolla */}
         {title && (
-          <div style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "16px 24px",
-            borderBottom: "1px solid #EEE9DF",
-          }}>
-            <h2 style={{ fontFamily: "var(--font-display, inherit)", fontSize: 16, fontWeight: 700, color: "#374151", margin: 0 }}>
+          <div
+            style={{
+              flexShrink: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "16px 24px",
+              borderBottom: "1px solid #EEE9DF",
+              background: "white",
+            }}
+          >
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: "#374151", margin: 0 }}>
               {title}
             </h2>
             <button
               onClick={onClose}
               style={{
-                width: 32, height: 32,
+                width: 32, height: 32, flexShrink: 0,
                 display: "flex", alignItems: "center", justifyContent: "center",
                 borderRadius: 8, border: "none", background: "transparent",
                 color: "#9CA3AF", cursor: "pointer",
               }}
-              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#F3F0EB"; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width: 14, height: 14 }}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -125,20 +121,37 @@ export default function Modal({
           </div>
         )}
 
-        {/* CONTEÚDO — altura natural, sem overflow */}
-        <div style={{ padding: "20px 24px" }}>
+        {/* CONTEÚDO — scrolla quando necessário
+         *  flex:1          → ocupa espaço restante
+         *  overflow-y:auto → scrolla quando necessário
+         *  min-height:0    → OBRIGATÓRIO: sem isso flex não comprime o div
+         */}
+        <div
+          style={{
+            flex: 1,
+            overflowY: "auto",
+            minHeight: 0,           // ← essa linha é a que resolve o bug
+            padding: "20px 24px",
+            WebkitOverflowScrolling: "touch",
+          } as React.CSSProperties}
+        >
           {children}
         </div>
 
-        {/* FOOTER — sempre visível pois o scroll é no overlay */}
+        {/* FOOTER — não scrolla, sempre visível */}
         {footer && (
-          <div style={{
-            padding: `12px 24px ${isMobile ? `calc(20px + env(safe-area-inset-bottom, 0px))` : "20px"}`,
-            borderTop: "1px solid #EEE9DF",
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: 8,
-          }}>
+          <div
+            style={{
+              flexShrink: 0,
+              display: "flex",
+              justifyContent: "flex-end",
+              gap: 8,
+              padding: `12px 24px`,
+              paddingBottom: `calc(20px + env(safe-area-inset-bottom, 0px))`,
+              borderTop: "1px solid #EEE9DF",
+              background: "white",
+            } as React.CSSProperties}
+          >
             {footer}
           </div>
         )}
