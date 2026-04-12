@@ -19,9 +19,24 @@ export async function GET(request: Request) {
     })
   ]);
 
-  return NextResponse.json({ 
-    success: true, 
+  // Se não tem instância própria, verificar instância central Synka (env vars)
+  const temCentral = !!(
+    process.env.ULTRAMSG_INSTANCE_ID &&
+    process.env.ULTRAMSG_TOKEN
+  );
+
+  return NextResponse.json({
+    success: true,
     instancia: instancia ?? null,
-    migrationStatus: clinica?.whatsappMigrationStatus || 'TRIAL'
+    central: !instancia && temCentral
+      ? {
+          tipo: 'ULTRAMSG_CENTRAL',
+          instanceId: process.env.ULTRAMSG_INSTANCE_ID,
+          status: 'EM_USO',
+          label: 'WhatsApp via Synka',
+          info: 'Instancia compartilhada Synka — inclusa no seu plano',
+        }
+      : null,
+    migrationStatus: clinica?.whatsappMigrationStatus || 'TRIAL',
   });
 }

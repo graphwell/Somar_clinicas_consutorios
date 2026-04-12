@@ -9,7 +9,8 @@ type WaStatus =
   | 'sem_instancia'
   | 'WAITING_INSTANCE'
   | 'aguardando_scan'
-  | 'conectado';
+  | 'conectado'
+  | 'central';  // instância compartilhada Synka (UltraMsg central)
 
 interface WaState {
   status: WaStatus;
@@ -17,6 +18,7 @@ interface WaState {
   qrCode?: string;
   numero?: string;
   mensagem?: string;
+  centralInfo?: string;
 }
 
 export function WhatsAppCard() {
@@ -40,12 +42,22 @@ export function WhatsAppCard() {
       
       const migrationStatus = json.migrationStatus || 'TRIAL';
 
+      // Instância central Synka (sem instância própria no banco)
+      if (!json.instancia && json.central) {
+        setWa({
+          status: 'central',
+          migrationStatus,
+          centralInfo: json.central.info,
+        });
+        return;
+      }
+
       if (!json.instancia) {
         setWa({ status: 'sem_instancia', migrationStatus });
         return;
       }
       const inst = json.instancia;
-      
+
       if (inst.status === 'EM_USO') {
         setWa({ status: 'conectado', numero: inst.numeroWa ?? undefined, migrationStatus });
       } else if (inst.status === 'AGUARDANDO') {
@@ -127,6 +139,11 @@ export function WhatsAppCard() {
 
   const statusBadge = () => {
     switch (wa.status) {
+      case 'central': return (
+        <span className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase px-3 py-1.5 rounded-full border shadow-sm" style={{ background: '#F0FAF4', color: '#2D6A4F', borderColor: '#B7E4C7' }}>
+          <span className="w-1.5 h-1.5 rounded-full bg-[#40916C] animate-pulse" /> Ativo via Synka
+        </span>
+      );
       case 'conectado': return (
         <span className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase px-3 py-1.5 rounded-full border shadow-sm bg-status-success-bg text-status-success border-status-success/20">
           <IconCheck size={10} /> Conectado
@@ -171,6 +188,19 @@ export function WhatsAppCard() {
       );
     }
 
+    if (wa.status === 'central') {
+      return (
+        <div style={{ background: '#F0FAF4', border: '1px solid #D8F3DC', borderRadius: 12, padding: '12px 14px' }}>
+          <p style={{ fontSize: 12, fontWeight: 700, color: '#2D6A4F', margin: 0 }}>
+            Instancia compartilhada Synka ativa
+          </p>
+          <p style={{ fontSize: 11, color: '#52B788', marginTop: 4 }}>
+            {wa.centralInfo ?? 'Lembretes e confirmacoes sendo enviados automaticamente.'}
+            {' '}Para conectar seu proprio numero, faca upgrade para o plano Pro.
+          </p>
+        </div>
+      );
+    }
     if (wa.status === 'conectado') {
       return (
         <p className="text-xs text-text-muted font-medium leading-relaxed italic opacity-70 max-w-[80%]">
@@ -201,6 +231,16 @@ export function WhatsAppCard() {
 
   const actions = () => {
     if (wa.status === 'loading') return null;
+    if (wa.status === 'central') {
+      return (
+        <button
+          onClick={ativar}
+          className="flex-1 py-4 bg-white border border-card-border text-text-muted rounded-2xl text-[10px] font-black uppercase hover:border-primary/40 transition-all shadow-sm"
+        >
+          Conectar numero proprio
+        </button>
+      );
+    }
     if (wa.status === 'conectado') {
       return (
         <button onClick={reconectar} className="flex-1 py-4 bg-white border border-card-border text-text-main rounded-2xl text-[10px] font-black uppercase hover:border-primary/40 transition-all shadow-sm">

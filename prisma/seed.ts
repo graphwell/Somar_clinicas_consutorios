@@ -75,6 +75,24 @@ async function main() {
     })
   }
 
+  // ─── MARKETINGCONFIG DEMO: garante config WA para os tenants demo ───
+  for (const tid of DEMO_TENANTS) {
+    await prisma.marketingConfig.upsert({
+      where:  { tenantId: tid },
+      update: { confirmacaoAtivo: true, cancelamentoAtivo: true, remarcacaoAtivo: true },
+      create: {
+        tenantId:          tid,
+        lembreteAtivo:     true,
+        lembreteAntecedenciaHoras: 24,
+        lembreteHorario:   '09:00',
+        aniversarioAtivo:  false,
+        confirmacaoAtivo:  true,
+        cancelamentoAtivo: true,
+        remarcacaoAtivo:   true,
+      },
+    })
+  }
+
   const admin = await prisma.usuario.upsert({
     where: { email: 'demo@synka.com.br' },
     update: { acessoExpiraEm: null, emailVerificado: true, primeiroAcesso: false },
