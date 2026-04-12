@@ -150,8 +150,14 @@ export async function sendAndLog(params: SendAndLogParams): Promise<{
     result = await wasenderPost(wasenderCfg!.apiKey, '/messages/send', { to, message: params.mensagemEnviada });
   }
 
-  const msgId = result.ok ? String((result.data as any)?.data?.msgId ?? '') : undefined;
+  // UltraMsg retorna HTTP 200 mesmo em falha — verificar body.sent
+  const ultraMsgOk = wasenderCfg?.ultraMsg
+    ? result.ok && (String((result.data as any)?.sent) === 'true' || (result.data as any)?.sent === true)
+    : result.ok;
+
+  const msgId = ultraMsgOk ? String((result.data as any)?.id ?? (result.data as any)?.data?.msgId ?? '') : undefined;
   const usandoDemo = !instance && (wasenderCfg?.isDemo ?? false);
+  const okFinal = instance ? result.ok : ultraMsgOk;
 
   await prisma.marketingEnvio.create({
     data: {
@@ -161,15 +167,15 @@ export async function sendAndLog(params: SendAndLogParams): Promise<{
       clienteTelefone: params.clienteTelefone,
       mensagemEnviada: params.mensagemEnviada,
       wasenderMsgId: msgId,
-      status: result.ok ? 'enviado' : 'erro',
-      erroDetalhe: result.ok
+      status: okFinal ? 'enviado' : 'erro',
+      erroDetalhe: okFinal
         ? (usandoDemo ? '[via instância demo]' : undefined)
         : JSON.stringify(result.data),
       comboId: params.comboId,
     },
   });
 
-  return result.ok
+  return okFinal
     ? { success: true, msgId }
     : { success: false, error: JSON.stringify(result.data) };
 }

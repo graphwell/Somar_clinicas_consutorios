@@ -44,7 +44,17 @@ export async function POST(req: Request) {
       clienteNome: agendamento.paciente.nome,
       clienteTelefone: agendamento.paciente.telefone,
       mensagemEnviada: mensagem,
+      forcarHorario: true,
+      ignorarRisco: true,
     });
+
+    // Marcar no banco apenas após confirmação real do envio
+    if (result.success) {
+      await prisma.agendamento.update({
+        where: { id: agendamentoId },
+        data: { lembreteEnviado: true },
+      });
+    }
 
     return NextResponse.json(result);
   } catch (error: any) {
