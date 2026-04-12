@@ -67,6 +67,9 @@ export async function PATCH(req: Request) {
       'wasenderApiKey', 'wasenderSessionId',
       'lembreteAtivo', 'lembreteAntecedenciaHoras', 'lembreteHorario', 'lembreteTemplate',
       'aniversarioAtivo', 'aniversarioHorario', 'aniversarioDescontoPct', 'aniversarioTemplate',
+      'confirmacaoAtivo', 'confirmacaoTemplate',
+      'cancelamentoAtivo', 'cancelamentoTemplate',
+      'remarcacaoAtivo', 'remarcacaoTemplate',
       'linkConfirmacao', 'nomeClinica',
     ];
     for (const key of allowed) {

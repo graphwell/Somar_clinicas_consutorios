@@ -123,6 +123,11 @@ export async function POST(request: Request) {
       }
     });
 
+    // Notificação WA em background — não bloqueia resposta
+    import('@/lib/whatsapp-service')
+      .then(({ notificarNovoAgendamento }) => notificarNovoAgendamento(agendamento.id))
+      .catch(e => console.error('[WA]', e));
+
     return NextResponse.json(agendamento);
   } catch (error: any) {
     console.error('Erro ao criar agendamento:', error);

@@ -808,6 +808,12 @@ model MarketingConfig {
   aniversarioHorario        String   @default("08:00")
   aniversarioDescontoPct    Int      @default(15)
   aniversarioTemplate       String?
+  confirmacaoAtivo          Boolean  @default(true)
+  confirmacaoTemplate       String?
+  cancelamentoAtivo         Boolean  @default(true)
+  cancelamentoTemplate      String?
+  remarcacaoAtivo           Boolean  @default(true)
+  remarcacaoTemplate        String?
   linkConfirmacao           String?
   nomeClinica               String?
   createdAt                 DateTime @default(now())

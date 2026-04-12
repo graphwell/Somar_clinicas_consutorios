@@ -77,6 +77,11 @@ export async function PATCH(req: NextRequest) {
       },
     });
 
+    // Notificação WA em background
+    import('@/lib/whatsapp-service')
+      .then(({ notificarCancelamento }) => notificarCancelamento(ag.id))
+      .catch(e => console.error('[WA]', e));
+
     return n8nSuccess({
       cancelado:     true,
       agendamentoId: ag.id,

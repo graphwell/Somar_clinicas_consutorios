@@ -164,29 +164,10 @@ export async function POST(
       },
     });
 
-    // 8. Tentar enviar WhatsApp (não bloquear se falhar)
-    try {
-      const { sendWhatsAppMessage } = await import('@/lib/wasender');
-      const dataFormatada = new Intl.DateTimeFormat('pt-BR', {
-        weekday: 'long', day: '2-digit', month: 'long',
-        timeZone: 'America/Fortaleza',
-      }).format(dataHora);
-
-      await sendWhatsAppMessage({
-        tenantId: clinica.tenantId,
-        to: telefoneClean,
-        message:
-          `✅ *Agendamento confirmado!*\n\n` +
-          `Olá, *${clienteNome.split(' ')[0]}*!\n\n` +
-          `📅 *${dataFormatada}* às *${horario}*\n` +
-          `💈 *${servico.nome}*\n` +
-          `🏠 *${clinica.nome}*\n\n` +
-          `Protocolo: *#${protocolo}*\n\n` +
-          `_Para cancelar ou remarcar, entre em contato conosco._`,
-      });
-    } catch (waErr) {
-      console.warn('[agendar/public] WhatsApp não enviado:', waErr);
-    }
+    // 8. Notificação WA em background — não bloqueia resposta
+    import('@/lib/whatsapp-service')
+      .then(({ notificarNovoAgendamento }) => notificarNovoAgendamento(agendamento.id))
+      .catch(e => console.warn('[agendar/public] WhatsApp:', e));
 
     return NextResponse.json({ success: true, protocolo, agendamentoId: agendamento.id });
   } catch (err) {

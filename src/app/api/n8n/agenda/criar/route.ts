@@ -191,6 +191,11 @@ export async function POST(req: NextRequest) {
       (profissional ? `👤 ${profissional.nome}\n` : '') +
       `\nAté lá! 😊`;
 
+    // Notificação WA em background
+    import('@/lib/whatsapp-service')
+      .then(({ notificarNovoAgendamento }) => notificarNovoAgendamento(agendamento.id))
+      .catch(e => console.error('[WA]', e));
+
     return n8nSuccess({
       agendamentoId: agendamento.id,
       protocolo,

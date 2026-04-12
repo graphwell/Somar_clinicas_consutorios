@@ -25,6 +25,9 @@ type Campanha = {
 type Config = {
   lembreteAtivo: boolean; lembreteAntecedenciaHoras: number; lembreteHorario: string; lembreteTemplate: string | null;
   aniversarioAtivo: boolean; aniversarioHorario: string; aniversarioDescontoPct: number; aniversarioTemplate: string | null;
+  confirmacaoAtivo: boolean; confirmacaoTemplate: string | null;
+  cancelamentoAtivo: boolean; cancelamentoTemplate: string | null;
+  remarcacaoAtivo: boolean; remarcacaoTemplate: string | null;
   linkConfirmacao: string | null; nomeClinica: string | null;
   wasenderApiKey: string | null; _temApiKey: boolean;
   _instanciaStatus?: 'instancia' | 'propria' | 'demo' | 'nenhuma';
@@ -605,6 +608,95 @@ export default function MarketingPage() {
               <button onClick={handleSaveConfig} disabled={savingConfig}
                 className="w-full py-4 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-emerald-500/20 disabled:opacity-60 transition-all">
                 {savingConfig ? 'Salvando...' : 'Salvar configurações de aniversário'}
+              </button>
+            </div>
+          )}
+
+          {/* ══ Aba: Notificações Transacionais ═════════════════════ */}
+          {tab === 'aniversarios' && (
+            <div className="space-y-4 mt-4">
+              {/* Confirmação imediata */}
+              <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-[2rem] p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-black text-sm text-[var(--foreground)] tracking-tight">Confirmacao imediata</h3>
+                    <p className="text-[11px] text-[var(--text-muted)] font-medium mt-0.5">Enviado ao paciente assim que o agendamento e criado</p>
+                  </div>
+                  <Toggle
+                    value={!!localConfig.confirmacaoAtivo}
+                    onChange={v => setLocalConfig(p => ({ ...p, confirmacaoAtivo: v }))}
+                    color="bg-blue-500"
+                  />
+                </div>
+                {localConfig.confirmacaoAtivo && (
+                  <div>
+                    <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Template (opcional)</label>
+                    <textarea
+                      rows={5}
+                      value={localConfig.confirmacaoTemplate ?? ''}
+                      onChange={e => setLocalConfig(p => ({ ...p, confirmacaoTemplate: e.target.value || null }))}
+                      placeholder={'Ola {nome}!\n\nAgendamento recebido:\nServico: {servico}\nData: {data} as {hora}\n\nPara CONFIRMAR responda: SIM\nPara CANCELAR responda: NAO'}
+                      className="w-full mt-1 p-3 text-xs font-medium bg-[var(--input-bg)] border border-[var(--border)] rounded-xl resize-none focus:outline-none focus:border-[var(--accent)]"
+                    />
+                    <p className="text-[9px] text-[var(--text-muted)] mt-1 opacity-60">Deixe vazio para usar o template padrao do sistema</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Cancelamento */}
+              <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-[2rem] p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-black text-sm text-[var(--foreground)] tracking-tight">Aviso de cancelamento</h3>
+                    <p className="text-[11px] text-[var(--text-muted)] font-medium mt-0.5">Enviado ao paciente quando o agendamento e cancelado</p>
+                  </div>
+                  <Toggle
+                    value={!!localConfig.cancelamentoAtivo}
+                    onChange={v => setLocalConfig(p => ({ ...p, cancelamentoAtivo: v }))}
+                    color="bg-red-500"
+                  />
+                </div>
+                {localConfig.cancelamentoAtivo && (
+                  <div>
+                    <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Template (opcional)</label>
+                    <textarea
+                      rows={5}
+                      value={localConfig.cancelamentoTemplate ?? ''}
+                      onChange={e => setLocalConfig(p => ({ ...p, cancelamentoTemplate: e.target.value || null }))}
+                      placeholder={'Ola {nome},\n\nAgendamento cancelado:\n{servico}\n{data} as {hora}\n\nPara reagendar entre em contato.'}
+                      className="w-full mt-1 p-3 text-xs font-medium bg-[var(--input-bg)] border border-[var(--border)] rounded-xl resize-none focus:outline-none focus:border-[var(--accent)]"
+                    />
+                    <p className="text-[9px] text-[var(--text-muted)] mt-1 opacity-60">Deixe vazio para usar o template padrao do sistema</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Remarcação */}
+              <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-[2rem] p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-black text-sm text-[var(--foreground)] tracking-tight">Aviso de remarcacao</h3>
+                    <p className="text-[11px] text-[var(--text-muted)] font-medium mt-0.5">Enviado ao paciente quando o horario e alterado</p>
+                  </div>
+                  <Toggle
+                    value={!!localConfig.remarcacaoAtivo}
+                    onChange={v => setLocalConfig(p => ({ ...p, remarcacaoAtivo: v }))}
+                    color="bg-amber-500"
+                  />
+                </div>
+              </div>
+
+              <button
+                onClick={() => salvarConfig({
+                  confirmacaoAtivo: localConfig.confirmacaoAtivo,
+                  confirmacaoTemplate: localConfig.confirmacaoTemplate,
+                  cancelamentoAtivo: localConfig.cancelamentoAtivo,
+                  cancelamentoTemplate: localConfig.cancelamentoTemplate,
+                  remarcacaoAtivo: localConfig.remarcacaoAtivo,
+                })}
+                disabled={savingConfig}
+                className="w-full py-4 bg-[var(--accent)] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-[var(--accent)]/20 disabled:opacity-60 transition-all">
+                {savingConfig ? 'Salvando...' : 'Salvar configuracoes de notificacoes'}
               </button>
             </div>
           )}

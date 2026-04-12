@@ -67,6 +67,11 @@ async function handleCancelation(req: NextRequest, body: { agendamentoId?: strin
       },
     });
 
+    // Notificação WA em background
+    import('@/lib/whatsapp-service')
+      .then(({ notificarCancelamento }) => notificarCancelamento(agendamento.id))
+      .catch(e => console.error('[WA]', e));
+
     const msgBot =
       `❌ Agendamento cancelado.\n\n` +
       (agendamentoCompleto?.servico ? `${agendamentoCompleto.servico.nome} ` : '') +
