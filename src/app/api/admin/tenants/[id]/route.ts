@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
-const SECRET = '13201320';
-
 function auth(request: Request) {
-  const { searchParams } = new URL(request.url);
-  return searchParams.get('secret') === SECRET;
+  const ADMIN_SECRET = process.env.ADMIN_SECRET;
+  if (!ADMIN_SECRET) return false;
+  return request.headers.get('x-admin-secret') === ADMIN_SECRET;
 }
 
 export async function PUT(request: Request, props: { params: Promise<{ id: string }> }) {
@@ -135,8 +134,10 @@ export async function DELETE(request: Request, props: { params: Promise<{ id: st
       prisma.assinatura.deleteMany({ where: { tenantId: id } }),
       prisma.assinaturaCliente.deleteMany({ where: { tenantId: id } }),
       prisma.planoAssinatura.deleteMany({ where: { tenantId: id } }),
-      prisma.permissoes.deleteMany({ where: { tenantId: id } }),
+      prisma.permissaoRole.deleteMany({ where: { tenantId: id } }),
       prisma.notificacao.deleteMany({ where: { tenantId: id } }),
+      prisma.comboUpsell.deleteMany({ where: { tenantId: id } }),
+      prisma.campanhaAviso.deleteMany({ where: { tenantId: id } }),
 
       // 9. Entidades Principais (Nível 2)
       prisma.paciente.deleteMany({ where: { tenantId: id } }),

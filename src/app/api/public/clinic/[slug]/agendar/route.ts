@@ -77,6 +77,25 @@ export async function POST(
       return NextResponse.json({ error: 'Clínica não encontrada' }, { status: 404 });
     }
 
+    // Rate limiting: máx 3 agendamentos por telefone por dia nesta clínica
+    const telefoneDigits = clienteTelefone.replace(/\D/g, '');
+    const hoje = new Date();
+    hoje.setUTCHours(0, 0, 0, 0);
+    const totalHoje = await prisma.agendamento.count({
+      where: {
+        tenantId: clinica.tenantId,
+        origemAgendamento: 'link_publico',
+        dataHora: { gte: hoje },
+        paciente: { telefone: { endsWith: telefoneDigits.slice(-8) } },
+      },
+    });
+    if (totalHoje >= 3) {
+      return NextResponse.json(
+        { error: 'Limite de agendamentos atingido. Entre em contato com a clinica.' },
+        { status: 429 }
+      );
+    }
+
     // 2. Buscar serviço
     const servico = await prisma.servico.findFirst({
       where: { id: servicoId, tenantId: clinica.tenantId, ativo: true },

@@ -255,7 +255,7 @@ model Agendamento {
   dataHora        DateTime      // Início
   fimDataHora     DateTime      // Fim (Início + duration)
   durationMinutes Int           @default(30)
-  status          String        @default("pendente") // confirmado, pendente, cancelado, done
+  status          StatusAgendamento @default(pendente)
   eventoId        String        @unique 
   categoria       String?       @default("consulta") // primeira, consulta, retorno
   convenio        String?
@@ -542,6 +542,15 @@ enum WhatsappStatus {
   DEMO
   OFFLINE
   AGUARDANDO
+}
+
+enum StatusAgendamento {
+  pendente
+  confirmado
+  em_atendimento
+  done
+  faltou
+  cancelado
 }
 
 enum WhatsappPlataforma {

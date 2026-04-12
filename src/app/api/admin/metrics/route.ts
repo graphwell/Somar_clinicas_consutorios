@@ -2,10 +2,11 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
 export async function GET(request: Request) {
-  // Simples Auth via Header ou Parâmetro (em produção usar NextAuth role=ADMIN)
-  const { searchParams } = new URL(request.url);
-  const secret = searchParams.get('secret');
-  if (secret !== '13201320') return NextResponse.json({ error: 'Unauthorized '}, { status: 401 });
+  const ADMIN_SECRET = process.env.ADMIN_SECRET;
+  if (!ADMIN_SECRET) return NextResponse.json({ error: 'ADMIN_SECRET nao configurado' }, { status: 500 });
+  if (request.headers.get('x-admin-secret') !== ADMIN_SECRET) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
   try {
     const totalClinicas = await prisma.clinica.count();

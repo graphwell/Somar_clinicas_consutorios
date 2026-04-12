@@ -7,10 +7,27 @@ export const dynamic = 'force-dynamic';
  * GET /api/cron/lembretes/pendentes
  * Chamado pelo subfluxo n8n para buscar agendamentos a lembrar.
  * Retorna lista flat — cada item vira uma execução no SplitInBatches.
+ *
+ * Auth: aceita N8N_API_KEY (n8n) OU CRON_SECRET (cron interno).
+ * Isolamento: se vier ?tenantId=X, retorna apenas dados daquele tenant.
+ *             Sem tenantId, exige CRON_SECRET (cron interno que processa todos).
  */
 export async function GET(request: Request) {
-  if (!autenticarApiKey(request)) {
+  const CRON_SECRET = process.env.CRON_SECRET;
+  const authHeader = request.headers.get('authorization');
+  const isCron = CRON_SECRET && authHeader === `Bearer ${CRON_SECRET}`;
+  const isN8n = autenticarApiKey(request);
+
+  if (!isCron && !isN8n) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const { searchParams } = new URL(request.url);
+  const tenantId = searchParams.get('tenantId');
+
+  // N8N só pode consultar um tenant por vez (obrigatório passar tenantId)
+  if (isN8n && !isCron && !tenantId) {
+    return Response.json({ error: 'tenantId obrigatorio para chamadas n8n' }, { status: 400 });
   }
 
   // Amanhã 00:00–23:59 Fortaleza (UTC-3)
@@ -18,11 +35,12 @@ export async function GET(request: Request) {
   amanha.setDate(amanha.getDate() + 1);
   amanha.setUTCHours(3, 0, 0, 0);
   const amanhaFim = new Date(amanha);
-  amanhaFim.setUTCHours(26, 59, 59, 999);
+  amanhaFim.setUTCHours(27, 0, 0, 0); // = amanhã 00:00 UTC+3 → next day 03:00 UTC
 
   try {
     const agendamentos = await prisma.agendamento.findMany({
       where: {
+        ...(tenantId ? { tenantId } : {}),
         dataHora:        { gte: amanha, lte: amanhaFim },
         status:          'pendente',
         lembreteEnviado: false,

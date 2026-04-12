@@ -2,10 +2,13 @@ import { NextResponse } from 'next/server';
 import { getSessionInfo } from '@/lib/auth-helpers';
 import prisma from '@/lib/prisma';
 
-// Rota temporária de diagnóstico — /api/debug/agenda
+// Rota de diagnóstico — restrita a synka_admin
 export async function GET(req: Request) {
   try {
     const { tenantId, role } = await getSessionInfo();
+    if (role !== 'synka_admin') {
+      return NextResponse.json({ error: 'Acesso restrito' }, { status: 403 });
+    }
     const { searchParams } = new URL(req.url);
     const dataParam = searchParams.get('data') || new Date().toISOString().split('T')[0];
     const data = new Date(dataParam + 'T00:00:00');

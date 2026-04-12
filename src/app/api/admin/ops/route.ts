@@ -3,7 +3,13 @@ import os from 'os';
 import { getMasterPrisma } from '@/lib/prisma';
 import prisma from '@/lib/prisma';
 
-export async function GET() {
+export async function GET(request: Request) {
+  const ADMIN_SECRET = process.env.ADMIN_SECRET;
+  if (!ADMIN_SECRET) return NextResponse.json({ error: 'ADMIN_SECRET nao configurado' }, { status: 500 });
+  if (request.headers.get('x-admin-secret') !== ADMIN_SECRET) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const masterPrisma = getMasterPrisma();
     

@@ -15,8 +15,33 @@ export async function POST(request: Request) {
     return Response.json({ ok: true }); // retornar 200 sempre para não retentar
   }
 
+  // Validação básica de estrutura — UltraMsg sempre envia event_type e instanceId
+  if (!body?.event_type || !body?.instanceId) {
+    return Response.json({ ok: true });
+  }
+
+  // Verificar se instanceId é reconhecido (central ou instância de cliente)
+  const instanceId: string = body.instanceId ?? '';
+  const instanceCentral = process.env.ULTRAMSG_INSTANCE_ID;
+  if (instanceCentral && instanceId !== instanceCentral) {
+    const instanciaConhecida = await prisma.whatsappInstance.findFirst({
+      where: {
+        OR: [
+          { sessionId: instanceId },
+          { sessionId: `instance${instanceId}` },
+        ],
+      },
+      select: { id: true },
+    }).catch(() => null);
+
+    if (!instanciaConhecida) {
+      console.warn('[webhook/ultramsg] instanceId desconhecido rejeitado:', instanceId);
+      return Response.json({ ok: true }); // 200 silencioso — não revelar rejeição
+    }
+  }
+
   // Aceitar apenas mensagens recebidas
-  if (body?.event_type !== 'message_received') {
+  if (body.event_type !== 'message_received') {
     return Response.json({ ok: true });
   }
 
@@ -36,7 +61,6 @@ export async function POST(request: Request) {
   // Extrair número limpo: "5585999990000@c.us" → "5585999990000"
   const telefone = from.replace(/@c\.us$/, '').replace(/\D/g, '');
   const mensagem: string = msgData?.body ?? '';
-  const instanceId: string = body?.instanceId ?? '';
 
   if (!telefone || !mensagem) {
     return Response.json({ ok: true });

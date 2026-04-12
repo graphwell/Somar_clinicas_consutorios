@@ -13,9 +13,13 @@ const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
  * Cron: a cada hora (vercel.json) — a lógica filtra a janela correta.
  */
 export async function GET(req: Request) {
-  const secret = process.env.CRON_SECRET;
-  const auth = req.headers.get('authorization')?.replace('Bearer ', '');
-  if (secret && auth !== secret) {
+  const CRON_SECRET = process.env.CRON_SECRET;
+  if (!CRON_SECRET) {
+    console.error('[cron/lembretes] CRON_SECRET nao configurado!');
+    return NextResponse.json({ error: 'Configuracao invalida' }, { status: 500 });
+  }
+  const auth = req.headers.get('authorization');
+  if (auth !== `Bearer ${CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

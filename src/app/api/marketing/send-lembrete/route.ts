@@ -29,8 +29,8 @@ export async function POST(req: Request) {
 
     const mensagem = processarTemplate(template, {
       nome: agendamento.paciente.nome.split(' ')[0],
-      data: dataHora.toLocaleDateString('pt-BR'),
-      hora: dataHora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+      data: dataHora.toLocaleDateString('pt-BR', { timeZone: 'America/Fortaleza' }),
+      hora: dataHora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Fortaleza' }),
       servico: agendamento.servico?.nome ?? 'Consulta',
       profissional: profNome ?? '',
       profissional_linha: profNome ? ` com ${profNome}` : '',

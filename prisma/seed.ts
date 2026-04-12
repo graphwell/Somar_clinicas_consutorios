@@ -43,7 +43,8 @@ async function main() {
   // 2. USUÁRIO ADMIN MASTER
   // ============================================
 
-  const senhaHash = await bcrypt.hash('Demo@2026', 10)
+  const DEMO_PASSWORD = process.env.DEMO_PASSWORD ?? 'Demo@2026'
+  const senhaHash = await bcrypt.hash(DEMO_PASSWORD, 10)
 
   // ─── LIBERAR ACESSO: limpa expiração e garante email verificado para todos os demos ───
   const DEMO_EMAILS = [
