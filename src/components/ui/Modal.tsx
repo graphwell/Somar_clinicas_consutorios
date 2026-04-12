@@ -1,5 +1,6 @@
 "use client";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 interface ModalProps {
   open: boolean;
@@ -18,9 +19,11 @@ export default function Modal({
   footer,
   maxWidth = "560px",
 }: ModalProps) {
+  const [mounted, setMounted] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const check = () => setIsMobile(window.innerWidth < 640);
     check();
     window.addEventListener("resize", check);
@@ -42,12 +45,11 @@ export default function Modal({
     return () => { document.body.style.overflow = ""; };
   }, [open]);
 
-  if (!open) return null;
+  // Não renderiza no servidor nem antes de montar
+  if (!mounted || !open) return null;
 
-  /* ─────────────────────────────────────────────────────────────
-   *  OVERLAY — centraliza o painel
-   * ───────────────────────────────────────────────────────────── */
-  return (
+  const modal = (
+    /* OVERLAY — position:fixed relativo ao viewport real (via Portal) */
     <div
       style={{
         position: "fixed",
@@ -63,10 +65,7 @@ export default function Modal({
       } as React.CSSProperties}
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      {/* ─────────────────────────────────────────────────────────
-       *  PAINEL — flex-col + max-height garante que footer aparece
-       *  A chave é: content tem flex:1 + overflow-y:auto + min-height:0
-       * ───────────────────────────────────────────────────────── */}
+      {/* PAINEL */}
       <div
         style={{
           display: "flex",
@@ -75,8 +74,7 @@ export default function Modal({
           borderRadius: isMobile ? "20px 20px 0 0" : "20px",
           width: "100%",
           maxWidth: isMobile ? "100%" : maxWidth,
-          /* max-height limita o painel; conteúdo scrolla internamente */
-          maxHeight: isMobile ? "92svh" : "calc(100vh - 32px)",
+          maxHeight: isMobile ? "92vh" : "calc(100vh - 32px)",
           boxShadow: "0 25px 60px rgba(0,0,0,0.25)",
           overflow: "hidden",
         } as React.CSSProperties}
@@ -89,19 +87,17 @@ export default function Modal({
           </div>
         )}
 
-        {/* HEADER — não scrolla */}
+        {/* HEADER — flex-shrink:0, não comprime */}
         {title && (
-          <div
-            style={{
-              flexShrink: 0,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "16px 24px",
-              borderBottom: "1px solid #EEE9DF",
-              background: "white",
-            }}
-          >
+          <div style={{
+            flexShrink: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "16px 24px",
+            borderBottom: "1px solid #EEE9DF",
+            background: "white",
+          }}>
             <h2 style={{ fontSize: 16, fontWeight: 700, color: "#374151", margin: 0 }}>
               {title}
             </h2>
@@ -121,41 +117,36 @@ export default function Modal({
           </div>
         )}
 
-        {/* CONTEÚDO — scrolla quando necessário
-         *  flex:1          → ocupa espaço restante
-         *  overflow-y:auto → scrolla quando necessário
-         *  min-height:0    → OBRIGATÓRIO: sem isso flex não comprime o div
-         */}
-        <div
-          style={{
-            flex: 1,
-            overflowY: "auto",
-            minHeight: 0,           // ← essa linha é a que resolve o bug
-            padding: "20px 24px",
-            WebkitOverflowScrolling: "touch",
-          } as React.CSSProperties}
-        >
+        {/* CONTEÚDO — flex:1 + overflow-y:auto + min-height:0 (tríade obrigatória) */}
+        <div style={{
+          flex: 1,
+          overflowY: "auto",
+          minHeight: 0,
+          padding: "20px 24px",
+          WebkitOverflowScrolling: "touch",
+        } as React.CSSProperties}>
           {children}
         </div>
 
-        {/* FOOTER — não scrolla, sempre visível */}
+        {/* FOOTER — flex-shrink:0, sempre visível */}
         {footer && (
-          <div
-            style={{
-              flexShrink: 0,
-              display: "flex",
-              justifyContent: "flex-end",
-              gap: 8,
-              padding: `12px 24px`,
-              paddingBottom: `calc(20px + env(safe-area-inset-bottom, 0px))`,
-              borderTop: "1px solid #EEE9DF",
-              background: "white",
-            } as React.CSSProperties}
-          >
+          <div style={{
+            flexShrink: 0,
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: 8,
+            padding: "12px 24px",
+            paddingBottom: `calc(20px + env(safe-area-inset-bottom, 0px))`,
+            borderTop: "1px solid #EEE9DF",
+            background: "white",
+          } as React.CSSProperties}>
             {footer}
           </div>
         )}
       </div>
     </div>
   );
+
+  // Portal: renderiza direto no document.body, fora de qualquer transform/overflow pai
+  return createPortal(modal, document.body);
 }
