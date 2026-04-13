@@ -4,7 +4,12 @@ import prisma from '@/lib/prisma';
 export async function GET(request: Request) {
   const ADMIN_SECRET = process.env.ADMIN_SECRET;
   if (!ADMIN_SECRET) return NextResponse.json({ error: 'ADMIN_SECRET nao configurado' }, { status: 500 });
-  if (request.headers.get('x-admin-secret') !== ADMIN_SECRET) {
+  
+  const { searchParams } = new URL(request.url);
+  const secretFromQuery = searchParams.get('secret');
+  const secretFromHeader = request.headers.get('x-admin-secret');
+
+  if (secretFromHeader !== ADMIN_SECRET && secretFromQuery !== ADMIN_SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

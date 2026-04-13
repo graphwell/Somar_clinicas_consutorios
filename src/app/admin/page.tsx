@@ -57,7 +57,9 @@ export default function AdminSynkaPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await fetch(API('/api/admin/metrics', secret));
+      const res = await fetch(API('/api/admin/metrics', secret), {
+        headers: { 'x-admin-secret': secret }
+      });
       if (res.ok) {
         const data = await res.json();
         setMetrics(data.metrics);
@@ -72,7 +74,9 @@ export default function AdminSynkaPage() {
   };
 
   const fetchClinicas = async (s = secret) => {
-    const res = await fetch(API('/api/admin/tenants', s));
+    const res = await fetch(API('/api/admin/tenants', s), {
+      headers: { 'x-admin-secret': s }
+    });
     if (res.ok) {
       const data = await res.json();
       setClinicas(data.clinicas);
@@ -84,7 +88,10 @@ export default function AdminSynkaPage() {
     try {
       const res = await fetch(API(`/api/admin/tenants/${tenantId}`, secret), {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-admin-secret': secret
+        },
         body: JSON.stringify(body),
       });
       if (!res.ok) { const d = await res.json(); alert(d.error ?? 'Erro'); return false; }
@@ -130,7 +137,10 @@ export default function AdminSynkaPage() {
     if (!modal || modal.type !== 'deletar') return;
     setSaving(true);
     try {
-      const res = await fetch(API(`/api/admin/tenants/${modal.clinica.tenantId}`, secret), { method: 'DELETE' });
+      const res = await fetch(API(`/api/admin/tenants/${modal.clinica.tenantId}`, secret), { 
+        method: 'DELETE',
+        headers: { 'x-admin-secret': secret }
+      });
       if (res.ok) { setModal(null); fetchClinicas(); }
       else { const d = await res.json(); alert(d.error ?? 'Erro ao deletar'); }
     } finally {

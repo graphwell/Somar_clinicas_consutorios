@@ -4,7 +4,12 @@ import prisma from '@/lib/prisma';
 function verificarAdminSecret(request: Request): boolean {
   const ADMIN_SECRET = process.env.ADMIN_SECRET;
   if (!ADMIN_SECRET) return false;
-  return request.headers.get('x-admin-secret') === ADMIN_SECRET;
+  
+  const { searchParams } = new URL(request.url);
+  const secretFromQuery = searchParams.get('secret');
+  const secretFromHeader = request.headers.get('x-admin-secret');
+  
+  return (secretFromHeader === ADMIN_SECRET) || (secretFromQuery === ADMIN_SECRET);
 }
 
 export async function GET(request: Request) {

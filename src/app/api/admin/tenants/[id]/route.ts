@@ -1,15 +1,20 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
-function auth(request: Request) {
+function verificarAdminSecret(request: Request): boolean {
   const ADMIN_SECRET = process.env.ADMIN_SECRET;
   if (!ADMIN_SECRET) return false;
-  return request.headers.get('x-admin-secret') === ADMIN_SECRET;
+
+  const { searchParams } = new URL(request.url);
+  const secretFromQuery = searchParams.get('secret');
+  const secretFromHeader = request.headers.get('x-admin-secret');
+
+  return (secretFromHeader === ADMIN_SECRET) || (secretFromQuery === ADMIN_SECRET);
 }
 
 export async function PUT(request: Request, props: { params: Promise<{ id: string }> }) {
   const { id } = await props.params;
-  if (!auth(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!verificarAdminSecret(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = await request.json();
   const { acao, nicho, nome, adminPhone, motivoSuspensao, plano, statusAssinatura, diasTrial } = body;
@@ -80,7 +85,7 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
 
 export async function DELETE(request: Request, props: { params: Promise<{ id: string }> }) {
   const { id } = await props.params;
-  if (!auth(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!verificarAdminSecret(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
     // ── Limpeza Profunda (Transaction) ───────────────────────────────────────
