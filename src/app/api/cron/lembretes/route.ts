@@ -9,8 +9,10 @@ const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
 
 /**
  * GET /api/cron/lembretes
- * Envia lembretes por tenant respeitando lembreteAntecedenciaHoras.
- * Cron: a cada hora (vercel.json) — a lógica filtra a janela correta.
+ * Envia lembretes para TODOS os agendamentos de amanhã (dia completo, fuso Fortaleza).
+ * Roda uma vez por dia via Vercel Cron (vercel.json: 0 11 * * * = 08:00 BRT).
+ *
+ * Auth: Authorization: Bearer <CRON_SECRET>
  */
 export async function GET(req: Request) {
   const CRON_SECRET = process.env.CRON_SECRET;
@@ -23,7 +25,16 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Buscar todos os tenants com lembrete ativo
+  // Janela: amanhã 00:00–23:59 no fuso Fortaleza (UTC-3)
+  const agora = new Date();
+  const inicioBRT = new Date(agora);
+  inicioBRT.setDate(inicioBRT.getDate() + 1);
+  inicioBRT.setUTCHours(3, 0, 0, 0);   // 00:00 Fortaleza = 03:00 UTC
+
+  const fimBRT = new Date(inicioBRT);
+  fimBRT.setUTCHours(27, 0, 0, 0);     // 23:59 Fortaleza = 03:00 UTC do dia seguinte
+
+  // Buscar tenants com lembrete ativo
   const configs = await prisma.marketingConfig.findMany({
     where: { lembreteAtivo: true },
     include: { clinica: { select: { nome: true } } },
@@ -33,30 +44,24 @@ export async function GET(req: Request) {
   const erros: string[] = [];
 
   for (const mc of configs) {
-    const horas = mc.lembreteAntecedenciaHoras ?? 24;
-
-    // Janela: agendamentos que ocorrem exatamente em `horas` horas (±15 min)
-    const agora = new Date();
-    const alvo  = new Date(agora.getTime() + horas * 60 * 60 * 1000);
-    const inicio = new Date(alvo.getTime() - 15 * 60 * 1000);
-    const fim    = new Date(alvo.getTime() + 15 * 60 * 1000);
-
     const agendamentos = await prisma.agendamento.findMany({
       where: {
         tenantId:        mc.tenantId,
-        dataHora:        { gte: inicio, lte: fim },
+        dataHora:        { gte: inicioBRT, lte: fimBRT },
         status:          { in: ['pendente', 'confirmado'] },
         lembreteEnviado: false,
       },
       include: {
-        paciente: { select: { nome: true, telefone: true } },
-        servico:  { select: { nome: true } },
+        paciente:     { select: { nome: true, telefone: true } },
+        servico:      { select: { nome: true } },
+        profissional: { select: { nome: true } },
       },
     });
 
     for (const ag of agendamentos) {
       if (!ag.paciente.telefone) continue;
 
+      const horas = mc.lembreteAntecedenciaHoras ?? 24;
       const mensagem = mc.lembreteTemplate ?? TPL.lembrete({
         nome:    ag.paciente.nome.split(' ')[0],
         servico: ag.servico?.nome ?? 'Consulta',
@@ -82,6 +87,10 @@ export async function GET(req: Request) {
             data:  { lembreteEnviado: true },
           });
           totalEnviados++;
+          console.log(`[cron/lembretes] Enviado: ${ag.id} → ${ag.paciente.telefone}`);
+        } else {
+          console.warn(`[cron/lembretes] Falha no envio: ${ag.id}`, r);
+          erros.push(ag.id);
         }
       } catch (err) {
         console.error('[cron/lembretes]', ag.id, err);
@@ -94,6 +103,10 @@ export async function GET(req: Request) {
 
   return NextResponse.json({
     ok: true,
+    janela: {
+      inicio: inicioBRT.toISOString(),
+      fim:    fimBRT.toISOString(),
+    },
     totalEnviados,
     erros,
     timestamp: new Date().toISOString(),
