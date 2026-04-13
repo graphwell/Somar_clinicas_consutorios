@@ -430,6 +430,61 @@ export default function PageBarbearia() {
       </section>
 
       {/* ══════════════════════════════
+          VEJA O SISTEMA POR DENTRO
+      ══════════════════════════════ */}
+      <section className="synka-prints-section py-24 px-6 bg-[#f9fafb]">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4 tracking-tight">
+              Veja o sistema por dentro
+            </h2>
+            <p className="text-gray-600 text-lg max-w-2xl mx-auto leading-relaxed">
+              Interface simples. Feita para quem trabalha, não para quem entende de tecnologia.
+            </p>
+          </div>
+
+          <div className="flex overflow-x-auto lg:grid lg:grid-cols-3 gap-8 pb-8 lg:pb-0 snap-x snap-mandatory scroll-smooth no-scrollbar">
+            {[
+              { src: "/print1.jpg", legend: "Agenda do dia em tempo real" },
+              { src: "/print2.jpg", legend: "Convênios integrados ao sistema" },
+              { src: "/print3.jpg", legend: "Prontuário digital do paciente" },
+              { src: "/print4.jpg", legend: "Agendamento em 3 passos simples" },
+              { src: "/print5.jpg", legend: "Serviço, profissional e horário numa tela" },
+              { src: "/print6.jpg", legend: "Confirmação com lembrete automático no WhatsApp" },
+            ].map((print, i) => (
+              <div 
+                key={i} 
+                className="snap-center shrink-0 w-[80vw] sm:w-[45vw] lg:w-auto hover:scale-[1.02] transition-transform duration-200"
+              >
+                <div className="bg-white p-2 rounded-2xl shadow-sm border border-gray-100 h-full">
+                  <div className="aspect-video overflow-hidden rounded-xl bg-gray-100 mb-4 shadow-inner">
+                    <img 
+                      src={print.src} 
+                      alt={print.legend} 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <p className="text-center text-xs text-gray-500 font-medium px-4 pb-2">
+                    {print.legend}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <style jsx>{`
+          .no-scrollbar::-webkit-scrollbar {
+            display: none;
+          }
+          .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+          }
+        `}</style>
+      </section>
+
+
+      {/* ══════════════════════════════
           🔥 VITRINE DE SERVIÇOS
       ══════════════════════════════ */}
       <section className="py-24 px-6 bg-gradient-to-b from-[#08081a] to-[#050510]">
