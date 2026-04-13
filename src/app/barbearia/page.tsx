@@ -79,29 +79,69 @@ const SERVICOS = [
 /* ─── DEPOIMENTOS ─── */
 const DEPOIMENTOS = [
   {
-    nome: "Marcos Vinicius",
-    negocio: "Barbearia do Marcos – Fortaleza/CE",
-    avatar: "MV",
-    texto:
-      "Eu perdia em média 8 clientes por semana por falta de lembrete. No primeiro mês com o Synka, minhas faltas caíram a quase zero. Foi direto no bolso.",
+    nome: "Thiago Henrique",
+    negocio: "Barbearia TH Cortes – Belém/PA",
+    avatar: "TH",
+    texto: "Eu tinha vergonha da minha agenda. Caderninho rasgado, cliente ligando pra confirmar horário, barbeiro sem saber o que tinha no dia. Hoje tudo tá no painel. Parece outra barbearia.",
     estrelas: 5,
+    color: "#b45309"
   },
   {
-    nome: "Rafael Sena",
-    negocio: "BarberShop RS – São Paulo/SP",
-    avatar: "RS",
-    texto:
-      "Meu WhatsApp parou de lotar de 'tem horário?' O Synka responde sozinho e ainda oferece o combo. Ticket médio subiu uns R$ 20 por cliente.",
+    nome: "Anderson Paiva",
+    negocio: "Corte & Estilo Barbearia – Goiânia/GO",
+    avatar: "AP",
+    texto: "No primeiro mês reduzi 11 faltas. Cada falta era R$ 45. Você faz a conta. O Synka se pagou na primeira semana.",
     estrelas: 5,
+    color: "#0f766e"
   },
   {
-    nome: "Diego Almeida",
-    negocio: "Barbearia Almeida – Recife/PE",
-    avatar: "DA",
-    texto:
-      "Coloquei a vitrine de serviços com os preços e fotos. Os clientes chegam já sabendo o que querem. Sem aquele papo de negociar preço na hora.",
+    nome: "Bruno Castilho",
+    negocio: "Barbearia Castilho – Curitiba/PR",
+    avatar: "BC",
+    texto: "Meu cliente chegou na cadeira já sabendo que ia fazer combo corte + barba. Eu não precisei oferecer. A vitrine fez isso por mim.",
     estrelas: 5,
+    color: "#7c3aed"
   },
+  {
+    nome: "Felipe Nogueira",
+    negocio: "Barbearia do Nogueira – Fortaleza/CE",
+    avatar: "FN",
+    texto: "Trabalho sozinho. Não dá pra ficar no celular enquanto estou com tesoura na mão. O Synka responde o cliente, agenda e manda lembrete. Eu só corto.",
+    estrelas: 5,
+    color: "#be123c"
+  },
+  {
+    nome: "Rodrigo Menezes",
+    negocio: "RM Barbearia – Salvador/BA",
+    avatar: "RM",
+    texto: "Abri minha segunda unidade e achei que ia virar um caos. Com o Synka as duas agendas ficam num lugar só. Não me arrependo.",
+    estrelas: 5,
+    color: "#0369a1"
+  },
+  {
+    nome: "Lucas Drummond",
+    negocio: "Drummond Barber – Belo Horizonte/MG",
+    avatar: "LD",
+    texto: "Coloquei o link na bio do Instagram. Cliente clica, escolhe o horário e confirma. Sem me chamar no direct, sem confusão. Profissionalizou demais.",
+    estrelas: 5,
+    color: "#15803d"
+  },
+  {
+    nome: "Caio Ferreira",
+    negocio: "Barbearia Ferreira – Recife/PE",
+    avatar: "CF",
+    texto: "Tentei três aplicativos antes. Todos complicados demais. O Synka foi o único que configurei no mesmo dia e já saiu funcionando.",
+    estrelas: 5,
+    color: "#92400e"
+  },
+  {
+    nome: "Mateus Oliveira",
+    negocio: "Black Barber Shop – Porto Alegre/RS",
+    avatar: "MO",
+    texto: "Minha recepcionista ficou doente uma semana. A barbearia não parou. O sistema agendou tudo sozinho. Esse dia me convenceu de vez.",
+    estrelas: 5,
+    color: "#1d4ed8"
+  }
 ];
 
 /* ─── COMPONENTE PRINCIPAL ─── */
@@ -614,11 +654,11 @@ export default function PageBarbearia() {
             <p className="text-xs uppercase tracking-widest text-[#52B788] font-bold mb-3">Donos de barbearia falam</p>
             <h2 className="text-3xl sm:text-4xl font-bold">Resultado real, no bolso de quem usou</h2>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div className="flex flex-wrap justify-center gap-6">
             {DEPOIMENTOS.map((d) => (
               <div
                 key={d.nome}
-                className="bg-[#0a1a14]/70 border border-white/8 rounded-2xl p-7 hover:border-[#40916C]/25 transition-all hover:-translate-y-0.5"
+                className="w-full md:w-[calc(50%-1.5rem)] lg:w-[calc(33.333%-1.5rem)] bg-[#0a1a14]/70 border border-white/8 rounded-2xl p-7 hover:border-[#40916C]/25 transition-all hover:-translate-y-0.5"
               >
                 {/* estrelas */}
                 <div className="flex gap-0.5 mb-4">
@@ -630,7 +670,10 @@ export default function PageBarbearia() {
                 </div>
                 <p className="text-gray-300 text-sm leading-relaxed mb-5 italic">"{d.texto}"</p>
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-[#40916C]/30 border border-[#52B788]/30 flex items-center justify-center text-[#52B788] text-xs font-bold shrink-0">
+                  <div 
+                    className="w-9 h-9 rounded-full border flex items-center justify-center text-xs font-bold shrink-0"
+                    style={{ backgroundColor: d.color + '20', borderColor: d.color + '40', color: d.color }}
+                  >
                     {d.avatar}
                   </div>
                   <div>
