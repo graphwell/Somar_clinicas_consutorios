@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useNicho } from '@/context/NichoContext';
 import { fetchWithAuth } from '@/lib/api-utils';
+import AvatarEditor from '@/components/profile/AvatarEditor';
 
 interface ProfessionalSchedule {
   diaSemana: number;
@@ -139,12 +140,8 @@ export default function TeamPage() {
     } catch { } finally { setSaving(false); }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => setFotoUrl(reader.result as string);
-    reader.readAsDataURL(file);
+  const handleAvatarUpdate = (newUrl: string) => {
+    setFotoUrl(newUrl);
   };
 
   return (
@@ -240,23 +237,17 @@ export default function TeamPage() {
                <div className="space-y-6">
                   <div className="space-y-2">
                     <label className="text-[9px] font-black text-text-placeholder uppercase tracking-[0.2em] ml-2">Fotografia Profissional</label>
-                    <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                    <div className="relative group">
                        <div className="w-full aspect-square rounded-[2rem] bg-slate-50 border-2 border-dashed border-card-border group-hover:border-primary/30 transition-all flex items-center justify-center overflow-hidden relative">
-                          {fotoUrl ? (
-                             <>
-                               <img src={fotoUrl} alt="Preview" className="w-full h-full object-cover" />
-                               <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                  <span className="text-[9px] font-black text-white uppercase tracking-widest">Alterar Foto</span>
-                               </div>
-                             </>
-                          ) : (
-                             <div className="text-center">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="mx-auto mb-1 text-text-placeholder opacity-40"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                                <span className="text-[9px] font-black uppercase text-text-placeholder">Upload Imagem</span>
-                             </div>
-                          )}
+                          <AvatarEditor
+                            currentUrl={fotoUrl}
+                            nome={nome || 'P'}
+                            size={200}
+                            shape="rounded"
+                            uploadEndpoint="/api/upload/professional"
+                            onUpdate={handleAvatarUpdate}
+                          />
                        </div>
-                       <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
                     </div>
                   </div>
                   <div className="space-y-2">
