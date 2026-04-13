@@ -25,10 +25,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const tenantId = searchParams.get('tenantId');
 
-  // N8N só pode consultar um tenant por vez (obrigatório passar tenantId)
-  if (isN8n && !isCron && !tenantId) {
-    return Response.json({ error: 'tenantId obrigatorio para chamadas n8n' }, { status: 400 });
-  }
+  // Se vier tenantId, filtra; sem tenantId, retorna todos (N8N processa multi-tenant)
 
   // Amanhã 00:00–23:59 Fortaleza (UTC-3)
   const amanha = new Date();
