@@ -52,10 +52,10 @@ export async function DELETE(
     });
 
     const msgBot =
-      `❌ Agendamento cancelado com sucesso.\n\n` +
-      (agendamento.servico     ? `${agendamento.servico.nome} ` : '') +
+      `Agendamento cancelado com sucesso.\n\n` +
+      (agendamento.servico      ? `${agendamento.servico.nome} ` : '') +
       (agendamento.profissional ? `com ${agendamento.profissional.nome} ` : '') +
-      `foi cancelado.\n\nPara remarcar, é só me avisar! 😊`;
+      `foi cancelado.\n\nPara remarcar, e so me avisar!`;
 
     return n8nSuccess({
       cancelado:  true,

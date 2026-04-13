@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
         especialidade: p.especialidade ?? null,
         diasAtendimento: diasAtendimento(p.escalas),
         // Texto pronto para o agente apresentar:
-        descricaoBot: `👤 ${p.nome}${p.especialidade ? ` — ${p.especialidade}` : ''}`,
+        descricaoBot: `${p.nome}${p.especialidade ? ` - ${p.especialidade}` : ''}`,
       })),
       listaBot: profissionais
         .map((p, i) => `${i + 1}. ${p.nome}${p.especialidade ? ` (${p.especialidade})` : ''}`)

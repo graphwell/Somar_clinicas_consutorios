@@ -62,7 +62,7 @@ export async function PATCH(req: NextRequest) {
     if (!agendamento) {
       return n8nSuccess({
         confirmado: false,
-        msgBot: 'Não encontrei agendamento pendente para confirmar. Se precisar agendar, é só me avisar! 😊',
+        msgBot: 'Nao encontrei agendamento pendente para confirmar. Se precisar agendar, e so me avisar!',
       });
     }
 
@@ -86,11 +86,11 @@ export async function PATCH(req: NextRequest) {
       confirmado:    true,
       agendamentoId: agendamento.id,
       msgBot:
-        `✅ Confirmado! Te esperamos:\n\n` +
-        `📋 ${agendamento.servico?.nome ?? 'Consulta'}\n` +
-        `📅 ${data} às ${hora}\n` +
-        (agendamento.profissional ? `👤 ${agendamento.profissional.nome}\n` : '') +
-        `\nAté lá! 😊`,
+        `Confirmado! Te esperamos:\n\n` +
+        `Servico: ${agendamento.servico?.nome ?? 'Consulta'}\n` +
+        `Data: ${data} as ${hora}\n` +
+        (agendamento.profissional ? `Profissional: ${agendamento.profissional.nome}\n` : '') +
+        `\nAte la!`,
     });
   } catch (err) {
     console.error('[n8n/agenda/confirmar]', err);

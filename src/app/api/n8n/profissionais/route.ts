@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
         nome: p.nome,
         especialidade: p.especialidade ?? null,
         diasAtendimento: formatDias(p.escalas),
-        descricaoBot: `👤 ${p.nome}${p.especialidade ? ` — ${p.especialidade}` : ''}`,
+        descricaoBot: `${p.nome}${p.especialidade ? ` - ${p.especialidade}` : ''}`,
       })),
     });
   } catch (err) {

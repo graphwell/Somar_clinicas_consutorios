@@ -86,10 +86,10 @@ export async function PATCH(req: NextRequest) {
       cancelado:     true,
       agendamentoId: ag.id,
       msgBot:
-        `❌ Agendamento cancelado.\n\n` +
+        `Agendamento cancelado.\n\n` +
         (ag.servico ? `${ag.servico.nome} ` : '') +
         (ag.profissional ? `com ${ag.profissional.nome} ` : '') +
-        `foi cancelado.\n\nPara reagendar é só me avisar! 😊`,
+        `foi cancelado.\n\nPara reagendar e so me avisar!`,
     });
   } catch (err) {
     console.error('[n8n/agenda/cancelar-por-telefone]', err);

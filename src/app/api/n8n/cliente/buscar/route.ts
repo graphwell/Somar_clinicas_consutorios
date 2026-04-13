@@ -66,8 +66,12 @@ export async function GET(req: NextRequest) {
       return n8nSuccess({
         encontrado: false,
         cliente: null,
-        saudacaoBot: 'Cliente não encontrado. Vou criar um novo cadastro.',
-        msgBot: 'Cliente não encontrado. Vou criar um novo cadastro.',
+        nomeParaUsar: null,
+        telefoneParaUsar: clean,
+        instrucao: 'CLIENTE_NOVO',
+        saudacao: null,
+        saudacaoBot: null,
+        msgBot: null,
       });
     }
 
@@ -100,14 +104,18 @@ export async function GET(req: NextRequest) {
       : null;
 
     const primeiroNome = paciente.nome.split(' ')[0];
-    const saudacaoBot = proximoAgendamento
-      ? `Olá, ${primeiroNome}! Você tem um agendamento em ${proximoAgendamento.data} às ${proximoAgendamento.horario}.`
-      : `Olá, ${primeiroNome}! Como posso ajudar?`;
+    const saudacao = proximoAgendamento
+      ? `Ola, ${primeiroNome}! Voce tem um agendamento em ${proximoAgendamento.data} as ${proximoAgendamento.horario}. Como posso ajudar?`
+      : `Ola, ${primeiroNome}! Ja te conheco. Como posso ajudar?`;
 
     return n8nSuccess({
       encontrado: true,
-      saudacaoBot,
-      msgBot: saudacaoBot,
+      instrucao: 'CLIENTE_CONHECIDO',
+      nomeParaUsar: paciente.nome,
+      telefoneParaUsar: paciente.telefone,
+      saudacao,
+      saudacaoBot: saudacao,
+      msgBot: saudacao,
       cliente: {
         id: paciente.id,
         nome: paciente.nome,

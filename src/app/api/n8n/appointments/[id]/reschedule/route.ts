@@ -56,7 +56,10 @@ export async function PATCH(
     const duracao = agendamento.servico?.duracaoMinutos ?? agendamento.durationMinutes;
     const buffer  = agendamento.servico?.bufferTimeMinutes ?? 0;
 
-    const novaDataHora    = new Date(`${date}T${time}:00-03:00`);
+    // Fortaleza (UTC-3): somar 3h para obter UTC
+    const [_ano, _mes, _dia] = date.split('-').map(Number);
+    const [_hora, _min] = time.split(':').map(Number);
+    const novaDataHora    = new Date(Date.UTC(_ano, _mes - 1, _dia, _hora + 3, _min, 0, 0));
     const novaFimDataHora = new Date(novaDataHora.getTime() + (duracao + buffer) * 60_000);
 
     // Verificar conflito (excluindo o próprio agendamento)
@@ -93,11 +96,11 @@ export async function PATCH(
     });
 
     const msgBot =
-      `✅ Agendamento remarcado!\n\n` +
-      `📅 ${dataFormatada} às ${time}\n` +
-      (agendamento.servico     ? `💇 ${agendamento.servico.nome}\n`              : '') +
-      (agendamento.profissional ? `👤 ${agendamento.profissional.nome}\n` : '') +
-      `\nAté lá! 😊`;
+      `Agendamento remarcado!\n\n` +
+      `Data: ${dataFormatada} as ${time}\n` +
+      (agendamento.servico      ? `Servico: ${agendamento.servico.nome}\n`      : '') +
+      (agendamento.profissional ? `Profissional: ${agendamento.profissional.nome}\n` : '') +
+      `\nAte la!`;
 
     return n8nSuccess({
       remarcado:     true,

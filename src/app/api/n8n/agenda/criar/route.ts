@@ -107,8 +107,10 @@ export async function POST(req: NextRequest) {
       profId = profValido.id;
     }
 
-    // Calcular datas no fuso Fortaleza
-    const dataHora = new Date(`${data}T${horario}:00-03:00`);
+    // Calcular datas no fuso Fortaleza (UTC-3): somar 3h para obter UTC
+    const [_ano, _mes, _dia] = data.split('-').map(Number);
+    const [_hora, _min] = horario.split(':').map(Number);
+    const dataHora = new Date(Date.UTC(_ano, _mes - 1, _dia, _hora + 3, _min, 0, 0));
     const fimDataHora = new Date(
       dataHora.getTime() + (servico.duracaoMinutos + (servico.bufferTimeMinutes ?? 0)) * 60000
     );
@@ -184,12 +186,12 @@ export async function POST(req: NextRequest) {
     });
 
     const msgConfirmacao =
-      `✅ Agendamento confirmado!\n\n` +
-      `📋 Protocolo: #${protocolo}\n` +
-      `📅 ${dataFormatada} às ${horario}\n` +
-      (servicoDetails ? `💇 ${servicoDetails.nome}\n` : '') +
-      (profissional ? `👤 ${profissional.nome}\n` : '') +
-      `\nAté lá! 😊`;
+      `Agendamento confirmado!\n\n` +
+      `Protocolo: #${protocolo}\n` +
+      `Data: ${dataFormatada} as ${horario}\n` +
+      (servicoDetails ? `Servico: ${servicoDetails.nome}\n` : '') +
+      (profissional ? `Profissional: ${profissional.nome}\n` : '') +
+      `\nAte la!`;
 
     // Notificação WA em background
     import('@/lib/whatsapp-service')

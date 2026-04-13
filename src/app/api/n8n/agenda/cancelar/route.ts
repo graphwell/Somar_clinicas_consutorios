@@ -73,10 +73,10 @@ async function handleCancelation(req: NextRequest, body: { agendamentoId?: strin
       .catch(e => console.error('[WA]', e));
 
     const msgBot =
-      `❌ Agendamento cancelado.\n\n` +
+      `Agendamento cancelado.\n\n` +
       (agendamentoCompleto?.servico ? `${agendamentoCompleto.servico.nome} ` : '') +
       (agendamentoCompleto?.profissional ? `com ${agendamentoCompleto.profissional.nome} ` : '') +
-      `foi cancelado com sucesso.\n\nPara reagendar, é só me avisar! 😊`;
+      `foi cancelado com sucesso.\n\nPara reagendar, e so me avisar!`;
 
     return n8nSuccess({
       cancelado: true,

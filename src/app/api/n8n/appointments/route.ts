@@ -74,8 +74,10 @@ export async function POST(req: NextRequest) {
       return n8nError('Este profissional não atende o serviço selecionado', 'INVALID_PROFESSIONAL', 400);
     }
 
-    // Calcular horários no fuso Fortaleza (UTC-3)
-    const dataHora    = new Date(`${date}T${time}:00-03:00`);
+    // Calcular horários no fuso Fortaleza (UTC-3): somar 3h para obter UTC
+    const [_ano, _mes, _dia] = date.split('-').map(Number);
+    const [_hora, _min] = time.split(':').map(Number);
+    const dataHora    = new Date(Date.UTC(_ano, _mes - 1, _dia, _hora + 3, _min, 0, 0));
     const fimDataHora = new Date(
       dataHora.getTime() + (servico.duracaoMinutos + (servico.bufferTimeMinutes ?? 0)) * 60_000
     );
@@ -142,12 +144,12 @@ export async function POST(req: NextRequest) {
     });
 
     const msgConfirmacao =
-      `✅ Agendamento confirmado!\n\n` +
-      `📋 Protocolo: #${protocolo}\n` +
-      `📅 ${dataFormatada} às ${time}\n` +
-      `💇 ${servico.nome}\n` +
-      `👤 ${agendamento.profissional?.nome ?? 'Profissional'}\n\n` +
-      `Até lá! 😊`;
+      `Agendamento confirmado!\n\n` +
+      `Protocolo: #${protocolo}\n` +
+      `Data: ${dataFormatada} as ${time}\n` +
+      `Servico: ${servico.nome}\n` +
+      `Profissional: ${agendamento.profissional?.nome ?? 'Profissional'}\n\n` +
+      `Ate la!`;
 
     return n8nSuccess({
       agendamentoId:   agendamento.id,
