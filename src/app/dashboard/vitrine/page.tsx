@@ -575,14 +575,16 @@ function TabCategorias({ onRefresh }: { onRefresh: () => void }) {
 
   return (
     <div className="max-w-2xl">
-      <div className="bg-white rounded-[3rem] border border-slate-100 p-10 mb-8 shadow-sm">
+      <div className="bg-white rounded-[2rem] md:rounded-[3rem] border border-slate-100 p-6 md:p-10 mb-8 shadow-sm">
         <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 italic">{editId ? 'Refinar Descritor' : 'Configurar Agrupamento de Produtos'}</h4>
-        <div className="flex gap-4">
-          <input value={nome} onChange={e => setNome(e.target.value)} onKeyDown={e => e.key === 'Enter' && salvar()} placeholder="Ex: Higienização, Manutenção..." className="flex-1 h-14 px-5 rounded-[1.5rem] border-2 border-slate-50 bg-slate-50 text-sm font-black outline-none focus:border-primary/20 transition-all shadow-inner" />
-          <button onClick={salvar} disabled={saving || !nome.trim()} className="h-14 px-10 rounded-[1.5rem] text-[11px] font-black uppercase tracking-widest text-white disabled:opacity-50 transition-all shadow-xl shadow-primary/20" style={{ background: '#40916C' }}>
-            {saving ? '…' : editId ? 'Atualizar' : 'Criar Seção'}
-          </button>
-          {editId && <button onClick={() => { setEditId(''); setNome(''); }} className="h-14 px-5 rounded-[1.5rem] bg-slate-100 text-slate-400 hover:bg-slate-200 transition-colors">✕</button>}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <input value={nome} onChange={e => setNome(e.target.value)} onKeyDown={e => e.key === 'Enter' && salvar()} placeholder="Ex: Higienização, Manutenção..." className="flex-1 h-14 px-5 rounded-[1.5rem] border-2 border-slate-50 bg-slate-50 text-sm font-black outline-none focus:border-primary/20 transition-all shadow-inner" style={{ fontSize: '16px' }} />
+          <div className="flex gap-3">
+            <button onClick={salvar} disabled={saving || !nome.trim()} className="flex-1 sm:flex-none h-14 px-8 rounded-[1.5rem] text-[11px] font-black uppercase tracking-widest text-white disabled:opacity-50 transition-all shadow-xl shadow-primary/20" style={{ background: '#40916C' }}>
+              {saving ? '…' : editId ? 'Atualizar' : 'Criar Seção'}
+            </button>
+            {editId && <button onClick={() => { setEditId(''); setNome(''); }} className="h-14 px-5 rounded-[1.5rem] bg-slate-100 text-slate-400 hover:bg-slate-200 transition-colors">✕</button>}
+          </div>
         </div>
       </div>
 
@@ -659,7 +661,7 @@ function TabCombos({ produtos }: { produtos: Produto[] }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.4fr] gap-10">
       {/* Formulário */}
-      <div className="bg-white rounded-[3rem] border border-slate-100 p-10 space-y-8 shadow-sm h-fit">
+      <div className="bg-white rounded-[2rem] md:rounded-[3rem] border border-slate-100 p-6 md:p-10 space-y-8 shadow-sm h-fit">
         <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">{editId ? 'Refinar Engenharia de Preço' : 'Novo Combo de Alto Valor'}</h4>
         <div className="space-y-6">
           <div className="space-y-2">
@@ -818,7 +820,7 @@ function TabSugestoes({ produtos }: { produtos: Produto[] }) {
       </div>
 
       {/* Produtos para vincular */}
-      <div className="bg-white rounded-[3rem] border border-slate-100 p-10 shadow-sm relative">
+      <div className="bg-white rounded-[2rem] md:rounded-[3rem] border border-slate-100 p-5 md:p-10 shadow-sm relative">
         {!servicoSelecionado ? (
           <div className="flex flex-col items-center justify-center h-[520px] text-center px-16">
             <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center text-slate-200 mb-8 italic font-black text-4xl border border-slate-100 shadow-inner opacity-40">?</div>
@@ -887,12 +889,12 @@ export default function VitrinePage() {
   return (
     <div className="max-w-7xl mx-auto py-8 px-4">
       {/* Header Premium V4.0 */}
-      <div className="bg-white border border-card-border p-10 rounded-[3rem] shadow-sm flex flex-col md:flex-row justify-between items-center gap-8 mb-12">
-        <div className="flex items-center gap-6 text-center md:text-left">
-           <div className="w-16 h-16 rounded-[1.8rem] bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-800 text-white flex items-center justify-center shadow-2xl shadow-emerald-500/30 font-black italic text-4xl">V</div>
+      <div className="bg-white border border-card-border p-5 md:p-10 rounded-[2rem] md:rounded-[3rem] shadow-sm flex flex-col md:flex-row justify-between items-center gap-6 mb-8 md:mb-12">
+        <div className="flex items-center gap-4 md:gap-6 w-full md:text-left">
+           <div className="w-12 h-12 md:w-16 md:h-16 rounded-[1.4rem] md:rounded-[1.8rem] bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-800 text-white flex items-center justify-center shadow-2xl shadow-emerald-500/30 font-black italic text-2xl md:text-4xl shrink-0">V</div>
            <div>
-              <h1 className="text-3xl font-black italic uppercase tracking-tighter text-text-main leading-tight underline decoration-primary/10 underline-offset-8">Inteligência de <span className="text-primary">Vitrine</span></h1>
-              <p className="text-[11px] font-black text-text-placeholder uppercase tracking-[0.25em] mt-2 opacity-70">Sincronize seu estoque com o catálogo Somar e automatize suas vendas.</p>
+              <h1 className="text-xl md:text-3xl font-black italic uppercase tracking-tighter text-text-main leading-tight underline decoration-primary/10 underline-offset-8">Inteligência de <span className="text-primary">Vitrine</span></h1>
+              <p className="text-[10px] md:text-[11px] font-black text-text-placeholder uppercase tracking-[0.2em] mt-1 opacity-70">Sincronize estoque com o catálogo Somar.</p>
            </div>
         </div>
       </div>

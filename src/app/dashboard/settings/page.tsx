@@ -164,7 +164,7 @@ export default function SettingsPage() {
   ];
 
   return (
-    <div className="max-w-7xl mx-auto space-y-12 pb-40 animate-premium">
+    <div className="max-w-7xl mx-auto space-y-12 pb-40 px-4 animate-premium">
 
       {/* Widget: Link de Agendamento */}
       {slug && (
@@ -232,7 +232,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Campos */}
-          <div className="flex-1 space-y-3">
+          <div className="flex-1 min-w-0 space-y-3">
             <div className="space-y-1">
               <label className="text-[8px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-1">Nome</label>
               <input
@@ -240,6 +240,7 @@ export default function SettingsPage() {
                 onChange={e => setPerfilNome(e.target.value)}
                 placeholder="Seu nome"
                 className="input-premium w-full py-2.5 text-sm"
+                style={{ fontSize: '16px' }}
               />
             </div>
             <div className="space-y-1">
@@ -249,9 +250,10 @@ export default function SettingsPage() {
                 onChange={e => setPerfilTelefone(e.target.value)}
                 placeholder="(XX) XXXXX-XXXX"
                 className="input-premium w-full py-2.5 text-sm"
+                style={{ fontSize: '16px' }}
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
                 <label className="text-[8px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-1">E-mail</label>
                 <input value={perfilEmail} disabled className="input-premium w-full py-2.5 text-sm opacity-50 cursor-not-allowed" />
@@ -378,14 +380,14 @@ export default function SettingsPage() {
                     <label className="text-[8px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-2">Razão / Fantasia</label>
                     <input value={razaoSocial} onChange={e => setRazaoSocial(e.target.value)} className="input-premium w-full py-3 text-sm" />
                  </div>
-                 <div className="grid grid-cols-2 gap-4">
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1">
                        <label className="text-[8px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-2">CNPJ / CPF</label>
-                       <input value={cnpj} onChange={e => setCnpj(e.target.value)} className="input-premium w-full py-3" />
+                       <input value={cnpj} onChange={e => setCnpj(e.target.value)} className="input-premium w-full py-3" style={{ fontSize: '16px' }} />
                     </div>
                     <div className="space-y-1">
                        <label className="text-[8px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-2">Telefone</label>
-                       <input value={adminPhone} onChange={e => setAdminPhone(e.target.value)} className="input-premium w-full py-3" />
+                       <input value={adminPhone} onChange={e => setAdminPhone(e.target.value)} className="input-premium w-full py-3" style={{ fontSize: '16px' }} />
                     </div>
                  </div>
                  <div className="space-y-2">
@@ -432,7 +434,7 @@ export default function SettingsPage() {
 
            <div className="premium-card p-6 bg-white space-y-6 shadow-sm">
               <h3 className="text-base font-black text-text-main italic uppercase tracking-tighter border-b border-slate-50 pb-4">3. Segmento</h3>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                  {[
                    "Clínica Médica", "Clínica de Estética", "Fisioterapia", "Pilates",
                    "Nutricionista", "Psicólogo", "Beleza / Barbearia", "Outros"
@@ -454,9 +456,9 @@ export default function SettingsPage() {
         {/* IA e Segurança */}
         <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-10">
            
-           <div className="premium-card p-12 bg-white space-y-8 shadow-lg">
+           <div className="premium-card p-6 md:p-12 bg-white space-y-8 shadow-lg">
               <div className="flex items-center justify-between border-b border-slate-50 pb-6">
-                 <h3 className="text-xl font-black text-text-main italic uppercase tracking-tighter">4. Synka IA (Concierge WhatsApp)</h3>
+                 <h3 className="text-base md:text-xl font-black text-text-main italic uppercase tracking-tighter">4. Synka IA (Concierge WhatsApp)</h3>
                  <span className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border ${botActive ? 'bg-status-success-bg text-status-success border-status-success/20' : 'bg-status-error-bg text-status-error border-status-error/20'}`}>
                     {botActive ? 'ACTIVE' : 'IDLE'}
                  </span>
@@ -470,9 +472,9 @@ export default function SettingsPage() {
               </div>
            </div>
 
-           <div className="premium-card p-12 bg-white space-y-8 flex flex-col justify-between shadow-lg">
+           <div className="premium-card p-6 md:p-12 bg-white space-y-8 flex flex-col justify-between shadow-lg">
               <div>
-                 <h3 className="text-xl font-black text-text-main italic uppercase tracking-tighter border-b border-slate-50 pb-6">5. Compliance & Backup</h3>
+                 <h3 className="text-base md:text-xl font-black text-text-main italic uppercase tracking-tighter border-b border-slate-50 pb-6">5. Compliance & Backup</h3>
                  <p className="text-[11px] text-text-muted font-medium mt-4 leading-relaxed opacity-70 italic">Gerencia o banco de dados e exporta prontuários e transações em formato estruturado auditável.</p>
               </div>
               <a href={`/api/export/backup`} download className="btn-secondary w-full py-5 flex items-center justify-center gap-3 text-[10px] shadow-sm hover:border-primary/40 transition-all font-black">
