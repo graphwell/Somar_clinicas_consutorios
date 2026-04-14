@@ -30,7 +30,7 @@ type Config = {
   remarcacaoAtivo: boolean; remarcacaoTemplate: string | null;
   linkConfirmacao: string | null; nomeClinica: string | null;
   wasenderApiKey: string | null; _temApiKey: boolean;
-  _instanciaStatus?: 'instancia' | 'propria' | 'demo' | 'nenhuma';
+  _instanciaStatus?: 'instancia' | 'propria' | 'demo' | 'central' | 'nenhuma';
   _forceDemo?: boolean;
   _temDemo?: boolean;
   _demoPhone?: string | null;
@@ -90,6 +90,7 @@ export default function MarketingPage() {
 
   // UI state
   const [savingConfig, setSavingConfig] = useState(false);
+  const [savedOk, setSavedOk] = useState(false);
   const [testandoConexao, setTestandoConexao] = useState(false);
   const [statusConexao, setStatusConexao] = useState<'idle' | 'conectado' | 'erro' | 'nao_configurado'>('idle');
   const [testandoDemo, setTestandoDemo] = useState(false);
@@ -145,6 +146,9 @@ export default function MarketingPage() {
       if (Array.isArray(cbs)) setCombos(cbs);
       if (Array.isArray(camps)) setCampanhas(camps);
     }).finally(() => setLoading(false));
+
+    // Carregar métricas do sidebar no mount
+    fetchWithAuth('/api/marketing/metrics?page=1').then(r => r.json()).then(d => setMetrics(d));
   }, []);
 
   // ── Load log ────────────────────────────────────────────────────
@@ -166,8 +170,13 @@ export default function MarketingPage() {
     setSavingConfig(true);
     try {
       const res = await fetchWithAuth('/api/marketing/config', { method: 'PATCH', body: JSON.stringify(localConfig) });
-      if (res.ok) showToast('Configurações salvas!');
-      else showToast('Erro ao salvar', false);
+      if (res.ok) {
+        const d = await res.json();
+        if (d.config) { setConfig(d.config); setLocalConfig(d.config); }
+        showToast('Configurações salvas!');
+        setSavedOk(true);
+        setTimeout(() => setSavedOk(false), 3000);
+      } else showToast('Erro ao salvar', false);
     } finally { setSavingConfig(false); }
   };
 
@@ -374,7 +383,15 @@ export default function MarketingPage() {
 
   const waStatus = waInstance
     ? (waInstance.status === 'EM_USO' || waInstance.status === 'AGUARDANDO' ? 'conectado' : 'erro')
-    : (config?._temApiKey ? 'idle' : 'nao_configurado');
+    : config?._instanciaStatus && config._instanciaStatus !== 'nenhuma'
+      ? 'conectado'
+      : (config?._temApiKey ? 'idle' : 'nao_configurado');
+
+  const waLabel = config?._instanciaStatus === 'central'
+    ? 'Via Synka (WhatsApp central)'
+    : config?._instanciaStatus === 'demo'
+      ? 'Instância demo'
+      : conexaoInfo[waStatus].label;
 
   const TABS = [
     { id: 'lembretes', label: 'Lembretes' },
@@ -419,7 +436,7 @@ export default function MarketingPage() {
         </div>
         <div className={`flex items-center gap-3 px-5 py-3 rounded-2xl border ${waStatus === 'conectado' ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-yellow-500/30 bg-yellow-500/5'}`}>
           <span className={`w-2.5 h-2.5 rounded-full animate-pulse ${conexaoInfo[waStatus].dot}`} />
-          <span className={`text-xs font-black uppercase tracking-widest ${conexaoInfo[waStatus].cls.split(' ')[0]}`}>WhatsApp {conexaoInfo[waStatus].label}</span>
+          <span className={`text-xs font-black uppercase tracking-widest ${conexaoInfo[waStatus].cls.split(' ')[0]}`}>WhatsApp {waLabel}</span>
           {waInstance?.numeroWa && <span className="text-[10px] text-[var(--text-muted)]">{waInstance.numeroWa}</span>}
         </div>
       </div>
@@ -456,7 +473,7 @@ export default function MarketingPage() {
                         <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest pl-1">Antecedência</label>
                         <select value={localConfig.lembreteAntecedenciaHoras ?? 24} onChange={e => setLocalConfig(p => ({ ...p, lembreteAntecedenciaHoras: Number(e.target.value) }))}
                           className="w-full bg-[var(--foreground)]/5 border border-[var(--border)] rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[var(--accent)] font-medium">
-                          {[1, 2, 4, 6, 12, 24, 48].map(h => <option key={h} value={h}>{h === 1 ? '1 hora antes' : `${h}h antes`}</option>)}
+                          {[1, 2, 3, 6, 12, 24, 48, 72].map(h => <option key={h} value={h}>{h === 1 ? '1 hora antes' : `${h}h antes`}</option>)}
                         </select>
                       </div>
                       <div className="space-y-2">
@@ -522,8 +539,9 @@ export default function MarketingPage() {
               </div>
 
               <button onClick={handleSaveConfig} disabled={savingConfig}
-                className="w-full py-4 bg-[var(--accent)] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-[var(--accent)]/20 disabled:opacity-60 transition-all">
-                {savingConfig ? 'Salvando...' : 'Salvar configurações de lembrete'}
+                className="w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl disabled:opacity-60 transition-all"
+                style={{ background: savedOk ? '#D1FAE5' : 'var(--accent)', color: savedOk ? '#065F46' : 'white' }}>
+                {savingConfig ? 'Salvando...' : savedOk ? 'Salvo!' : 'Salvar configurações de lembrete'}
               </button>
             </div>
           )}
@@ -606,8 +624,9 @@ export default function MarketingPage() {
               </div>
 
               <button onClick={handleSaveConfig} disabled={savingConfig}
-                className="w-full py-4 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-emerald-500/20 disabled:opacity-60 transition-all">
-                {savingConfig ? 'Salvando...' : 'Salvar configurações de aniversário'}
+                className="w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl disabled:opacity-60 transition-all"
+                style={{ background: savedOk ? '#D1FAE5' : '#10B981', color: savedOk ? '#065F46' : 'white' }}>
+                {savingConfig ? 'Salvando...' : savedOk ? 'Salvo!' : 'Salvar configurações de aniversário'}
               </button>
             </div>
           )}
@@ -695,8 +714,9 @@ export default function MarketingPage() {
                   remarcacaoAtivo: localConfig.remarcacaoAtivo,
                 })}
                 disabled={savingConfig}
-                className="w-full py-4 bg-[var(--accent)] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-[var(--accent)]/20 disabled:opacity-60 transition-all">
-                {savingConfig ? 'Salvando...' : 'Salvar configuracoes de notificacoes'}
+                className="w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl disabled:opacity-60 transition-all"
+                style={{ background: savedOk ? '#D1FAE5' : 'var(--accent)', color: savedOk ? '#065F46' : 'white' }}>
+                {savingConfig ? 'Salvando...' : savedOk ? 'Salvo!' : 'Salvar configurações de notificações'}
               </button>
             </div>
           )}
@@ -826,6 +846,7 @@ export default function MarketingPage() {
                       instancia: { icon: '●', label: 'Instância vinculada', cls: 'bg-emerald-500/10 text-emerald-600 border-emerald-200' },
                       propria:   { icon: '●', label: 'API Key própria', cls: 'bg-emerald-500/10 text-emerald-600 border-emerald-200' },
                       demo:      { icon: '●', label: 'Instância demo', cls: 'bg-amber-500/10 text-amber-600 border-amber-200' },
+                      central:   { icon: '●', label: 'WhatsApp via Synka (central)', cls: 'bg-blue-500/10 text-blue-600 border-blue-200' },
                       nenhuma:   { icon: '●', label: 'Não configurada', cls: 'bg-red-500/10 text-red-600 border-red-200' },
                     };
                     const b = badges[s ?? 'nenhuma'];
@@ -911,8 +932,9 @@ export default function MarketingPage() {
                 </div>
 
                 <button onClick={handleSaveConfig} disabled={savingConfig}
-                  className="w-full py-5 bg-[var(--accent)] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-[var(--accent)]/20 disabled:opacity-60 transition-all">
-                  {savingConfig ? 'Salvando...' : 'Salvar configurações'}
+                  className="w-full py-5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl disabled:opacity-60 transition-all"
+                  style={{ background: savedOk ? '#D1FAE5' : 'var(--accent)', color: savedOk ? '#065F46' : 'white' }}>
+                  {savingConfig ? 'Salvando...' : savedOk ? 'Salvo!' : 'Salvar configurações'}
                 </button>
               </div>
             </div>

@@ -74,6 +74,8 @@ export async function POST(request: Request) {
           primeiroAcesso: true,
         },
       });
+      await tx.marketingConfig.create({ data: { tenantId: clinica.tenantId } });
+
       return { usuario, clinica };
     });
 
