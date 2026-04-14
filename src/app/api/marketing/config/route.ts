@@ -23,12 +23,14 @@ export async function GET() {
     const temApiKeyPropria = !!config.wasenderApiKey;
     const forceDemo = process.env.MARKETING_DEMO_MODE === 'true';
     const temDemo = !!process.env.WASENDER_DEMO_API_KEY;
+    const temUltraMsg = !!(process.env.ULTRAMSG_INSTANCE_ID && process.env.ULTRAMSG_TOKEN);
 
     // Determina qual instância está ativa
-    let instanciaStatus: 'instancia' | 'propria' | 'demo' | 'nenhuma' = 'nenhuma';
+    let instanciaStatus: 'instancia' | 'propria' | 'demo' | 'central' | 'nenhuma' = 'nenhuma';
     if (instance && instance.status !== 'OFFLINE') instanciaStatus = 'instancia';
     else if (!forceDemo && temApiKeyPropria) instanciaStatus = 'propria';
     else if (temDemo) instanciaStatus = 'demo';
+    else if (temUltraMsg) instanciaStatus = 'central';
 
     // Nunca expor a API key completa — retorna mascarada
     const configPublico = {
@@ -60,6 +62,13 @@ export async function PATCH(req: Request) {
       const res = await wasenderPost(body.wasenderApiKey, '/sessions', undefined);
       // WaSender retorna 200 ou 401 — aceitamos qualquer resposta que não seja erro de rede
       // O teste real é feito pelo endpoint /testar-conexao
+    }
+
+    // Strip emojis dos templates antes de salvar
+    const stripEmojis = (s: string) =>
+      s.replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{FE00}-\u{FEFF}]/gu, '').trim();
+    for (const tplKey of ['lembreteTemplate', 'aniversarioTemplate', 'confirmacaoTemplate', 'cancelamentoTemplate', 'remarcacaoTemplate']) {
+      if (typeof body[tplKey] === 'string') body[tplKey] = stripEmojis(body[tplKey]);
     }
 
     const data: Record<string, any> = {};

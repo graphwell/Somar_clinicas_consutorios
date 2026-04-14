@@ -11,6 +11,7 @@ import {
   IconProntuario, IconOdontograma, IconConvenio, IconRelatorios,
   IconCampanhas, IconIntegracoes, IconFinanceiro, IconAssinaturas,
   IconConfiguracoes, IconLogout, IconAjuda, IconStethoscope, IconVitrine,
+  IconAntesDepois,
 } from "@/components/icons/NavIcons";
 
 interface NavItemProps {
@@ -67,7 +68,9 @@ export default function Sidebar({
   clientName,
 }: SidebarProps) {
   const pathname = usePathname();
-  const { labels } = useNicho();
+  const { labels, nicho } = useNicho();
+  const NICHOS_ANTES_DEPOIS = ['CLINICA_ESTETICA', 'SALAO_BELEZA', 'BARBEARIA'];
+  const temAntesDepois = NICHOS_ANTES_DEPOIS.includes(nicho);
   const [planoAtual, setPlanoAtual] = useState<string>('trial');
   const [diasRestantes, setDiasRestantes] = useState<number>(30);
 
@@ -188,6 +191,9 @@ export default function Sidebar({
               <NavItem href="/dashboard/help" label="Central de Ajuda" Icon={IconAjuda} active={is("/dashboard/help")} />
               {isAdmin && (
                 <NavItem href="/dashboard/marketing/campaigns" label="Avisos e Lembretes" Icon={IconCampanhas} active={is("/dashboard/marketing/campaigns")} />
+              )}
+              {isAdmin && temAntesDepois && (
+                <NavItem href="/dashboard/antes-depois" label="Antes e Depois" Icon={IconAntesDepois} active={is("/dashboard/antes-depois")} />
               )}
             </>
           )}

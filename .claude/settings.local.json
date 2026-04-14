@@ -48,7 +48,14 @@
       "Bash(head:*)",
       "Bash(python -m json.tool)",
       "Bash(python:*)",
-      "Bash(sort echo:*)"
+      "Bash(sort echo:*)",
+      "Bash(grep -v \"^$\")",
+      "Bash(npx tsx:*)",
+      "Bash(grep -n \"N8N_INTERNAL_TOKEN\\\\|x-n8n-token\\\\|n8n-token\" /c/SOMAR/projeto-somar-n8n/src/app/api/n8n/*/route.ts /c/SOMAR/projeto-somar-n8n/src/lib/n8n-auth.ts)",
+      "Bash(grep -n \"secret\\\\|SECRET\\\\|requireSynkaAdmin\\\\|synka_admin\" src/app/api/admin/tenants/route.ts src/app/api/admin/tenants/[id]/route.ts)",
+      "Bash(grep -n \"rate\\\\|limit\\\\|throttle\" src/app/api/public/clinic/*/agendar/route.ts)",
+      "Bash(NODE_TLS_REJECT_UNAUTHORIZED=0 npx tsx scripts/n8n-update-apikey.ts)",
+      "Bash(NODE_TLS_REJECT_UNAUTHORIZED=0 node scratch/update-n8n-flow.js)"
     ]
   }
 }

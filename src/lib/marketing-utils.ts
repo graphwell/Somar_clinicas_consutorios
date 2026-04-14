@@ -22,39 +22,39 @@ export function formatarTelefone(tel: string): string {
 
 // ─── Templates padrão ────────────────────────────────────────────
 
-export const TEMPLATE_LEMBRETE_PADRAO = `Olá, {nome}! 👋
+export const TEMPLATE_LEMBRETE_PADRAO = `Ola, {nome}!
 
-Passando para lembrar do seu agendamento:
-📅 *{data}* às *{hora}*
-💆 {servico}{{profissional_linha}}
+Lembrete do seu agendamento:
+*{data}* as *{hora}*
+{servico}{profissional_linha}
 
 Para confirmar, responda *SIM*.
-Para cancelar, responda *NÃO*.
+Para cancelar, responda *NAO*.
 
-_Equipe {clinica}_`;
+Equipe {clinica}`;
 
-export const TEMPLATE_ANIVERSARIO_PADRAO = `🎂 *Feliz Aniversário, {nome}!*
+export const TEMPLATE_ANIVERSARIO_PADRAO = `Feliz Aniversario, {nome}!
 
-A equipe {clinica} deseja a você um dia muito especial! 🎉
+A equipe {clinica} deseja a voce um dia muito especial!
 
-Como presente, preparamos um desconto exclusivo:
-🎁 *{desconto}% OFF* na sua próxima visita!
+Como presente, um desconto exclusivo:
+*{desconto}% OFF* na sua proxima visita!
 
-Válido por 30 dias. 💖
+Valido por 30 dias.
 
 Com carinho,
-_Equipe {clinica}_ 🌟`;
+Equipe {clinica}`;
 
-export const TEMPLATE_COMBO_PADRAO = `Olá, {nome}! ✨
+export const TEMPLATE_COMBO_PADRAO = `Ola, {nome}!
 
-Temos uma oferta especial para você:
+Temos uma oferta especial para voce:
 
 *{combo_nome}*
 {combo_descricao}
 
-💰 ~~R$ {preco_original}~~ por apenas *R$ {preco_combo}*
-🎯 Economize {desconto}%!
+De R$ {preco_original} por apenas *R$ {preco_combo}*
+Economize {desconto}%!
 
-Válido por {validade} dias. Aproveite! 📱
+Valido por {validade} dias.
 
-_Equipe {clinica}_`;
+Equipe {clinica}`;

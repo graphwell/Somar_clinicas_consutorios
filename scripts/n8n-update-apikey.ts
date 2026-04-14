@@ -9,14 +9,12 @@
  */
 
 const N8N_URL = process.env.N8N_HOST ?? 'https://n8n.somar.ia.br';
-const N8N_API_KEY = process.env.N8N_API_KEY_N8N;
+// Aceita N8N_API_KEY_N8N (chave do painel n8n) ou N8N_API_KEY como fallback
+const N8N_API_KEY = process.env.N8N_API_KEY_N8N ?? process.env.N8N_API_KEY;
 const SYNKA_NEW_KEY = process.env.N8N_API_KEY;
 
 if (!N8N_API_KEY) {
-  console.error(
-    'Defina N8N_API_KEY_N8N no .env\n' +
-    '(chave gerada pelo próprio N8N em Settings → API)'
-  );
+  console.error('N8N_API_KEY não encontrada no .env');
   process.exit(1);
 }
 

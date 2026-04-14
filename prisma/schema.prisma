@@ -58,6 +58,9 @@ model Clinica {
   produtos             Produto[]
   combosproduto        ComboProduto[]
   pedidoItens          PedidoItem[]
+  // Antes e Depois
+  consentimentos       ConsentimentoImagem[]
+  resultadosAntesDepois ResultadoAntesDepois[]
 }
 
 enum NichoType {
@@ -136,6 +139,9 @@ model Paciente {
   alergias        PacienteAlergia[]
   medicamentos    PacienteMedicamento[]
   fichaCliente    FichaCliente?
+  // Antes e Depois
+  consentimentos  ConsentimentoImagem[]
+  resultadosAntesDepois ResultadoAntesDepois[]
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
@@ -166,6 +172,9 @@ model Profissional {
   convenios    ProfissionalConvenio[]
   repasses     RepasseProfissional[]
   transacoes   TransacaoFinanceira[]
+  // Antes e Depois
+  consentimentos ConsentimentoImagem[]
+  resultadosAntesDepois ResultadoAntesDepois[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
@@ -1118,4 +1127,67 @@ model MasterProduct {
   updatedAt      DateTime @updatedAt
 
   @@map("master_products")
+}
+
+// ─── Módulo Antes e Depois ──────────────────────────────────────
+
+model ConsentimentoImagem {
+  id              String   @id @default(cuid())
+  tenantId        String
+  pacienteId      String
+  profissionalId  String
+  nomeCliente     String
+  cpfCliente      String?
+  termoVersao     String   @default("v1.0")
+  termoHash       String
+  ipDispositivo   String?
+  userAgent       String?
+  tipoAssinatura  String
+  assinaturaImg   String?
+  aceito          Boolean  @default(false)
+  aceitoEm        DateTime @default(now())
+  revogado        Boolean  @default(false)
+  revogadoEm      DateTime?
+
+  paciente     Paciente     @relation(fields: [pacienteId], references: [id])
+  profissional Profissional @relation(fields: [profissionalId], references: [id])
+  clinica      Clinica      @relation(fields: [tenantId], references: [tenantId])
+  resultados   ResultadoAntesDepois[]
+
+  @@map("consentimentos_imagem")
+}
+
+model ResultadoAntesDepois {
+  id               String   @id @default(cuid())
+  tenantId         String
+  pacienteId       String
+  profissionalId   String
+  consentimentoId  String
+  fotoAntesUrl     String
+  fotoDepoisUrl    String
+  procedimento     String
+  periodoTratamento String
+  dataAntes        DateTime
+  dataDepois       DateTime @default(now())
+  laudoIA          String
+  laudoEditado     String?
+  laudoValidado    Boolean  @default(false)
+  laudoValidadoEm  DateTime?
+  assinaturaProfissional String?
+  assinadoEm       DateTime?
+  slugPublico      String   @unique
+  publicado        Boolean  @default(false)
+  publicadoEm      DateTime?
+  expirarEm        DateTime?
+  totalVisualizacoes Int    @default(0)
+  totalCompartilhamentos Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  consentimento ConsentimentoImagem  @relation(fields: [consentimentoId], references: [id])
+  paciente      Paciente     @relation(fields: [pacienteId], references: [id])
+  profissional  Profissional @relation(fields: [profissionalId], references: [id])
+  clinica       Clinica      @relation(fields: [tenantId], references: [tenantId])
+
+  @@map("resultados_antes_depois")
 }
