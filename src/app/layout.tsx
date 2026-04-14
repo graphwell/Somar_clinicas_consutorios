@@ -19,6 +19,11 @@ const playfair = Playfair_Display({
   display: "swap",
 });
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+};
+
 export const metadata: Metadata = {
   title: "Synka — Agendamento Inteligente para Clínicas",
   description:
