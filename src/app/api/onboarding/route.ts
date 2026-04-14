@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { planoTrialPorNicho } from '@/lib/planos-synka';
 
 function gerarSlugBase(nome: string): string {
   return nome
@@ -60,6 +61,22 @@ export async function POST(request: Request) {
     const updated = await prisma.clinica.update({
       where: { tenantId },
       data: updateData,
+    });
+
+    // Ajustar plano trial pelo nicho (beleza→pro, saúde→business)
+    const planoTrial = planoTrialPorNicho(nicho);
+    await prisma.assinatura.upsert({
+      where: { tenantId },
+      create: {
+        tenantId,
+        status: 'trial',
+        plano: planoTrial,
+        trialInicio: new Date(),
+        trialFim: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      },
+      update: {
+        plano: planoTrial,
+      },
     });
 
     return NextResponse.json({ success: true, onboardingCompleted: updated.onboardingCompleted });

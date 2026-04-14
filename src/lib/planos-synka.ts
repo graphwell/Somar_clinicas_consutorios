@@ -120,6 +120,12 @@ export function getPlanoInfo(planoId: string): PlanoInfo {
   return PLANOS[planoId.toLowerCase()] || PLANOS['trial'];
 }
 
+const NICHOS_BELEZA = ['SALAO_BELEZA', 'BARBEARIA', 'CLINICA_ESTETICA'];
+
+export function planoTrialPorNicho(nicho: string): string {
+  return NICHOS_BELEZA.includes(nicho) ? 'pro' : 'business';
+}
+
 export function getUpsells(upsellIds: string[]): UpsellInfo[] {
   if (!upsellIds || !Array.isArray(upsellIds)) return [];
   return upsellIds.map(id => UPSELLS[id]).filter(Boolean);
