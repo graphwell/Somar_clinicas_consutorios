@@ -15,22 +15,28 @@ async function getResultado(slug: string) {
   })
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  const r = await getResultado(params.slug)
-  if (!r) return { title: 'Resultado nao encontrado' }
-  return {
-    title: `${r.procedimento} — ${r.clinica.nome}`,
-    description: `Resultado verificado de ${r.procedimento} em ${r.clinica.nome}`,
-    openGraph: {
-      images: [r.fotoDepoisUrl],
-      title: `Resultado: ${r.procedimento}`,
-      description: `Veja a transformacao realizada em ${r.clinica.nome}`,
-    },
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  try {
+    const { slug } = await params
+    const r = await getResultado(slug)
+    if (!r) return { title: 'Resultado nao encontrado' }
+    return {
+      title: `${r.procedimento} — ${r.clinica.nome}`,
+      description: `Resultado verificado de ${r.procedimento} em ${r.clinica.nome}`,
+      openGraph: {
+        images: [r.fotoDepoisUrl],
+        title: `Resultado: ${r.procedimento}`,
+        description: `Veja a transformacao realizada em ${r.clinica.nome}`,
+      },
+    }
+  } catch {
+    return { title: 'Resultado' }
   }
 }
 
-export default async function ResultadoPublico({ params }: { params: { slug: string } }) {
-  const resultado = await getResultado(params.slug)
+export default async function ResultadoPublico({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
+  const resultado = await getResultado(slug)
 
   if (!resultado || !resultado.publicado || resultado.consentimento?.revogado) {
     return (
@@ -48,7 +54,7 @@ export default async function ResultadoPublico({ params }: { params: { slug: str
 
   const laudo = resultado.laudoEditado ?? resultado.laudoIA
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://synka.somar.ia.br'
-  const urlCompleta = `${baseUrl}/r/${params.slug}`
+  const urlCompleta = `${baseUrl}/r/${slug}`
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans">
@@ -118,7 +124,7 @@ export default async function ResultadoPublico({ params }: { params: { slug: str
             Enviar por WhatsApp
           </a>
           <div className="flex items-center justify-center py-3 border border-slate-100 rounded-xl bg-white text-sm text-slate-400">
-            {params.slug}
+            {slug}
           </div>
         </div>
 
