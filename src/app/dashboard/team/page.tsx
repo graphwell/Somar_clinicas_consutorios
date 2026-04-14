@@ -31,12 +31,27 @@ const PRESET_COLORS = ['#3B82F6', '#F472B6', '#A78BFA', '#34D399', '#FB7185', '#
 const DAYS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
 export default function TeamPage() {
-  const { labels } = useNicho();
+  const { labels, nicho } = useNicho();
+
+  const NICHOS_SAUDE = ['CLINICA_MEDICA', 'CLINICA_MULTI', 'ODONTOLOGIA', 'PSICOLOGIA', 'NUTRICAO', 'FISIOTERAPIA'];
+  const NICHOS_BELEZA = ['SALAO_BELEZA', 'BARBEARIA', 'CLINICA_ESTETICA'];
+  const isSaude = NICHOS_SAUDE.includes(nicho);
+  const isBeleza = NICHOS_BELEZA.includes(nicho);
+
+  const placeholderEspecialidade = nicho === 'BARBEARIA'
+    ? 'Ex: Barbeiro, Barbeiro Senior...'
+    : nicho === 'SALAO_BELEZA'
+      ? 'Ex: Cabeleireiro, Colorista...'
+      : nicho === 'CLINICA_ESTETICA'
+        ? 'Ex: Esteticista, Dermato...'
+        : 'Ex: Clinico Geral, Ortopedista...';
   const [profissionais, setProfissionais] = useState<Profissional[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Profissional | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const inputGaleriaRef = useRef<HTMLInputElement>(null);
+  const inputCameraRef = useRef<HTMLInputElement>(null);
 
   const [nome, setNome] = useState('');
   const [especialidade, setEspecialidade] = useState('');
@@ -144,6 +159,19 @@ export default function TeamPage() {
     setFotoUrl(newUrl);
   };
 
+  const handleFotoFile = async (file: File) => {
+    const form = new FormData();
+    form.append('avatar', file);
+    try {
+      const res = await fetchWithAuth('/api/upload/professional', { method: 'POST', body: form });
+      const data = await res.json();
+      if (res.ok && data.avatarUrl) setFotoUrl(data.avatarUrl);
+      else alert(data.error || 'Erro ao fazer upload.');
+    } catch {
+      alert('Erro ao fazer upload. Tente novamente.');
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto space-y-12 pb-40 animate-premium">
       
@@ -216,15 +244,17 @@ export default function TeamPage() {
                     <label className="text-[9px] font-black text-text-placeholder uppercase tracking-[0.2em] ml-2">Nome Completo</label>
                     <input required value={nome} onChange={e => setNome(e.target.value)} className="input-premium w-full py-4" />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className={isSaude ? "grid grid-cols-2 gap-4" : ""}>
                     <div className="space-y-2">
-                      <label className="text-[9px] font-black text-text-placeholder uppercase tracking-[0.2em] ml-2">Título/Especialidade</label>
-                      <input type="text" value={especialidade} onChange={e => setEspecialidade(e.target.value)} className="input-premium w-full" placeholder="Ex: Médico" />
+                      <label className="text-[9px] font-black text-text-placeholder uppercase tracking-[0.2em] ml-2">{isBeleza ? 'Especialidade' : 'Título/Especialidade'}</label>
+                      <input type="text" value={especialidade} onChange={e => setEspecialidade(e.target.value)} className="input-premium w-full" placeholder={placeholderEspecialidade} />
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-[9px] font-black text-text-placeholder uppercase tracking-[0.2em] ml-2">Registro (CRM/CRP)</label>
-                      <input type="text" value={registroProfissional} onChange={e => setRegistroProfissional(e.target.value)} className="input-premium w-full" placeholder="000.000" />
-                    </div>
+                    {isSaude && (
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-black text-text-placeholder uppercase tracking-[0.2em] ml-2">Registro (CRM/CRP)</label>
+                        <input type="text" value={registroProfissional} onChange={e => setRegistroProfissional(e.target.value)} className="input-premium w-full" placeholder="000.000" />
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <label className="text-[9px] font-black text-text-placeholder uppercase tracking-[0.2em] ml-2">Cor de Identificação Lateral</label>
@@ -237,18 +267,33 @@ export default function TeamPage() {
                <div className="space-y-6">
                   <div className="space-y-2">
                     <label className="text-[9px] font-black text-text-placeholder uppercase tracking-[0.2em] ml-2">Fotografia Profissional</label>
-                    <div className="relative group">
-                       <div className="w-full aspect-square rounded-[2rem] bg-slate-50 border-2 border-dashed border-card-border group-hover:border-primary/30 transition-all flex items-center justify-center overflow-hidden relative">
-                          <AvatarEditor
-                            currentUrl={fotoUrl}
-                            nome={nome || 'P'}
-                            size={200}
-                            shape="rounded"
-                            uploadEndpoint="/api/upload/professional"
-                            onUpdate={handleAvatarUpdate}
-                          />
-                       </div>
+                    <div className="w-full aspect-square rounded-[2rem] bg-slate-50 border-2 border-dashed border-card-border flex items-center justify-center overflow-hidden relative">
+                      <AvatarEditor
+                        currentUrl={fotoUrl}
+                        nome={nome || 'P'}
+                        size={200}
+                        shape="rounded"
+                        uploadEndpoint="/api/upload/professional"
+                        onUpdate={handleAvatarUpdate}
+                        readOnly
+                      />
                     </div>
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      <button type="button" onClick={() => inputGaleriaRef.current?.click()}
+                        className="flex items-center justify-center gap-2 py-3 border border-card-border rounded-2xl text-[10px] font-black uppercase tracking-widest text-text-placeholder hover:border-primary/30 hover:text-primary transition-all bg-slate-50">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                        Galeria
+                      </button>
+                      <button type="button" onClick={() => inputCameraRef.current?.click()}
+                        className="flex items-center justify-center gap-2 py-3 border border-card-border rounded-2xl text-[10px] font-black uppercase tracking-widest text-text-placeholder hover:border-primary/30 hover:text-primary transition-all bg-slate-50">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                        Camera
+                      </button>
+                    </div>
+                    <input ref={inputGaleriaRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
+                      onChange={e => { const f = e.target.files?.[0]; if (f) handleFotoFile(f); e.target.value = ''; }} />
+                    <input ref={inputCameraRef} type="file" accept="image/*" capture="environment" className="hidden"
+                      onChange={e => { const f = e.target.files?.[0]; if (f) handleFotoFile(f); e.target.value = ''; }} />
                   </div>
                   <div className="space-y-2">
                     <label className="text-[9px] font-black text-text-placeholder uppercase tracking-[0.2em] ml-2">Status do Profissional</label>
@@ -323,7 +368,8 @@ export default function TeamPage() {
                   </div>
                </div>
 
-               {/* Seção de Convênios V5.0 */}
+               {/* Seção de Convênios — apenas para nichos de saúde */}
+               {isSaude && (
                <div className="col-span-full space-y-6 pt-6 border-t border-slate-50">
                   <div>
                     <h4 className="text-xs font-black text-text-main uppercase tracking-widest italic">Comercial e Convênios</h4>
@@ -368,6 +414,7 @@ export default function TeamPage() {
                     </div>
                   )}
                </div>
+               )}
 
                <div className="col-span-full pt-10 border-t border-slate-50">
                   <div className="flex gap-4">
