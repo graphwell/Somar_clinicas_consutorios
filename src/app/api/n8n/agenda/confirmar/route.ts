@@ -24,11 +24,13 @@ export async function PATCH(req: NextRequest) {
   }
 
   const { telefone, tenantId } = body;
+  console.log('[confirmar] telefone recebido:', telefone, '| tenantId:', tenantId);
   if (!telefone)  return n8nError('telefone é obrigatório', 'MISSING_PARAM');
 
   try {
     const telefoneClean = telefone.replace(/\D/g, '');
     const last8 = telefoneClean.slice(-8);
+    console.log('[confirmar] telefoneClean:', telefoneClean, '| last8:', last8);
 
     // Busca paciente pelo telefone — primeiro no tenant informado,
     // depois em qualquer tenant (instância UltraMsg compartilhada).
