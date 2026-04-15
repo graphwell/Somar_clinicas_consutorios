@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { autenticarApiKey, UNAUTHORIZED } from '@/lib/n8n-auth';
 import { n8nSuccess, n8nError } from '@/lib/n8n-response';
 
@@ -27,24 +28,47 @@ export async function PATCH(req: NextRequest) {
 
   try {
     const telefoneClean = telefone.replace(/\D/g, '');
+    const last8 = telefoneClean.slice(-8);
 
     // Busca paciente pelo telefone — primeiro no tenant informado,
     // depois em qualquer tenant (instância UltraMsg compartilhada).
+    // endsWith só funciona para telefones sem formatação. Para cobrir
+    // pacientes cadastrados com formatação (ex: "(11) 98765-4321"),
+    // usamos raw SQL como fallback que normaliza o campo no banco.
     const wherePhone = {
       OR: [
         { telefone },
         { telefone: telefoneClean },
-        { telefone: { endsWith: telefoneClean.slice(-8) } },
+        { telefone: { endsWith: last8 } },
       ],
     };
 
-    const paciente = await prisma.paciente.findFirst({
+    let paciente = await prisma.paciente.findFirst({
       where: tenantId ? { tenantId, ...wherePhone } : wherePhone,
       select: { id: true, nome: true, tenantId: true },
     }) ?? await prisma.paciente.findFirst({
       where: wherePhone,
       select: { id: true, nome: true, tenantId: true },
     });
+
+    // Fallback: busca normalizando o telefone armazenado (remove não-dígitos)
+    // Cobre pacientes cadastrados com formatação, ex: "(11) 98765-4321"
+    if (!paciente) {
+      type PacienteRow = { id: string; nome: string; tenantId: string };
+      const rows = tenantId
+        ? await prisma.$queryRaw<PacienteRow[]>(
+            Prisma.sql`SELECT id, nome, "tenantId" FROM paciente
+                       WHERE regexp_replace(telefone, '[^0-9]', '', 'g') LIKE ${'%' + last8}
+                         AND "tenantId" = ${tenantId}
+                       LIMIT 1`
+          )
+        : await prisma.$queryRaw<PacienteRow[]>(
+            Prisma.sql`SELECT id, nome, "tenantId" FROM paciente
+                       WHERE regexp_replace(telefone, '[^0-9]', '', 'g') LIKE ${'%' + last8}
+                       LIMIT 1`
+          );
+      paciente = rows[0] ?? null;
+    }
 
     if (!paciente) {
       return n8nError('Cliente não encontrado', 'NOT_FOUND', 404);
