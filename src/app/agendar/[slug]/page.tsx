@@ -565,9 +565,6 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
               ) : sugestoesProduto.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '16px 0 24px', color: '#8A9BB0', fontSize: 13 }}>
                   <p>Nenhum produto sugerido para este serviço.</p>
-                  <a href={`/agendar/${slug}/vitrine`} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 10, fontSize: 13, color: cor, fontWeight: 500, textDecoration: 'none' }}>
-                    Ver vitrine completa →
-                  </a>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 12 }}>
