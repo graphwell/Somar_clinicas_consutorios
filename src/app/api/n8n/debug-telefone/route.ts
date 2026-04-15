@@ -1,17 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
-import { autenticarApiKey, UNAUTHORIZED } from '@/lib/n8n-auth';
 
 export const dynamic = 'force-dynamic';
 
 /**
- * GET /api/debug/telefone?tel=5511999999999&tenantId=xxx
- * Diagnóstico: mostra como o telefone é buscado no banco.
- * Protegido pela mesma API key do n8n (x-api-key).
+ * GET /api/n8n/debug-telefone?tel=5511999999999&tenantId=xxx
+ * Diagnóstico temporário — sem autenticação para facilitar testes.
  */
 export async function GET(req: NextRequest) {
-  if (!autenticarApiKey(req)) return UNAUTHORIZED();
 
   const { searchParams } = new URL(req.url);
   const telefone = searchParams.get('tel') ?? '';
