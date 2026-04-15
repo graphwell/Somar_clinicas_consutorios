@@ -23,22 +23,26 @@ export async function PATCH(req: NextRequest) {
   }
 
   const { telefone, tenantId, motivo } = body;
-  if (!telefone || !tenantId)
-    return n8nError('telefone e tenantId são obrigatórios', 'MISSING_PARAM', 400);
+  if (!telefone)
+    return n8nError('telefone é obrigatório', 'MISSING_PARAM', 400);
 
   try {
     const telefoneClean = telefone.replace(/\D/g, '');
 
+    const wherePhone = {
+      OR: [
+        { telefone },
+        { telefone: telefoneClean },
+        { telefone: { endsWith: telefoneClean.slice(-8) } },
+      ],
+    };
+
     const paciente = await prisma.paciente.findFirst({
-      where: {
-        tenantId,
-        OR: [
-          { telefone },
-          { telefone: telefoneClean },
-          { telefone: { endsWith: telefoneClean.slice(-8) } },
-        ],
-      },
-      select: { id: true, nome: true },
+      where: tenantId ? { tenantId, ...wherePhone } : wherePhone,
+      select: { id: true, nome: true, tenantId: true },
+    }) ?? await prisma.paciente.findFirst({
+      where: wherePhone,
+      select: { id: true, nome: true, tenantId: true },
     });
 
     if (!paciente) {
@@ -48,10 +52,12 @@ export async function PATCH(req: NextRequest) {
       });
     }
 
+    const tenantReal = paciente.tenantId;
+
     const ag = await prisma.agendamento.findFirst({
       where: {
         pacienteId: paciente.id,
-        tenantId,
+        tenantId: tenantReal,
         status:   'pendente',
         dataHora: { gte: new Date() },
       },

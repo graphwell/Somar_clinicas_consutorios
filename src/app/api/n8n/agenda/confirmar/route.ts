@@ -24,31 +24,39 @@ export async function PATCH(req: NextRequest) {
 
   const { telefone, tenantId } = body;
   if (!telefone)  return n8nError('telefone é obrigatório', 'MISSING_PARAM');
-  if (!tenantId)  return n8nError('tenantId é obrigatório', 'MISSING_PARAM');
 
   try {
     const telefoneClean = telefone.replace(/\D/g, '');
 
+    // Busca paciente pelo telefone — primeiro no tenant informado,
+    // depois em qualquer tenant (instância UltraMsg compartilhada).
+    const wherePhone = {
+      OR: [
+        { telefone },
+        { telefone: telefoneClean },
+        { telefone: { endsWith: telefoneClean.slice(-8) } },
+      ],
+    };
+
     const paciente = await prisma.paciente.findFirst({
-      where: {
-        tenantId,
-        OR: [
-          { telefone },
-          { telefone: telefoneClean },
-          { telefone: { endsWith: telefoneClean.slice(-8) } },
-        ],
-      },
-      select: { id: true, nome: true },
+      where: tenantId ? { tenantId, ...wherePhone } : wherePhone,
+      select: { id: true, nome: true, tenantId: true },
+    }) ?? await prisma.paciente.findFirst({
+      where: wherePhone,
+      select: { id: true, nome: true, tenantId: true },
     });
 
     if (!paciente) {
       return n8nError('Cliente não encontrado', 'NOT_FOUND', 404);
     }
 
+    // Usar o tenant real do paciente para buscar o agendamento
+    const tenantReal = paciente.tenantId;
+
     const agendamento = await prisma.agendamento.findFirst({
       where: {
         pacienteId: paciente.id,
-        tenantId,
+        tenantId: tenantReal,
         status:  'pendente',
         dataHora: { gte: new Date() },
       },
