@@ -41,7 +41,7 @@ async function handleCancelation(req: NextRequest, body: { agendamentoId?: strin
   try {
     const agendamento = await prisma.agendamento.findFirst({
       where: { id: body.agendamentoId, tenantId: body.tenantId },
-      select: { id: true, status: true },
+      select: { id: true, status: true, profissionalId: true, servicoId: true, dataHora: true },
     });
 
     if (!agendamento) {
@@ -71,6 +71,20 @@ async function handleCancelation(req: NextRequest, body: { agendamentoId?: strin
     import('@/lib/whatsapp-service')
       .then(({ notificarCancelamento }) => notificarCancelamento(agendamento.id))
       .catch(e => console.error('[WA]', e));
+
+    // Acionar fila de espera em background
+    if (agendamentoCompleto) {
+      fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/fila-espera/verificar-e-notificar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenantId: body.tenantId,
+          profissionalId: agendamentoCompleto.profissionalId,
+          servicoId: agendamentoCompleto.servicoId,
+          dataHora: agendamentoCompleto.dataHora?.toISOString(),
+        }),
+      }).catch(e => console.error('[fila]', e));
+    }
 
     const msgBot =
       `Agendamento cancelado.\n\n` +

@@ -51,6 +51,18 @@ export async function DELETE(
       data:  { status: 'cancelado', observacoes: 'Cancelado via WhatsApp Bot' },
     });
 
+    // Acionar fila de espera em background
+    fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/fila-espera/verificar-e-notificar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tenantId,
+        profissionalId: agendamento.profissionalId,
+        servicoId: agendamento.servicoId,
+        dataHora: agendamento.dataHora?.toISOString(),
+      }),
+    }).catch(e => console.error('[fila]', e));
+
     const msgBot =
       `Agendamento cancelado com sucesso.\n\n` +
       (agendamento.servico      ? `${agendamento.servico.nome} ` : '') +

@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/lembretes",
       "schedule": "0 10 * * *"
+    },
+    {
+      "path": "/api/cron/fila-expirar",
+      "schedule": "*/5 * * * *"
     }
   ]
 }

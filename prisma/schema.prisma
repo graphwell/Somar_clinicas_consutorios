@@ -61,6 +61,7 @@ model Clinica {
   // Antes e Depois
   consentimentos       ConsentimentoImagem[]
   resultadosAntesDepois ResultadoAntesDepois[]
+  filaEspera           FilaEspera[]
 }
 
 enum NichoType {
@@ -142,6 +143,7 @@ model Paciente {
   // Antes e Depois
   consentimentos  ConsentimentoImagem[]
   resultadosAntesDepois ResultadoAntesDepois[]
+  filaEspera      FilaEspera[]
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
@@ -175,6 +177,7 @@ model Profissional {
   // Antes e Depois
   consentimentos ConsentimentoImagem[]
   resultadosAntesDepois ResultadoAntesDepois[]
+  filaEspera    FilaEspera[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
@@ -425,6 +428,7 @@ model Servico {
   agendamentos     Agendamento[]
   tabelaPrecos     ConvenioTabelaPreco[]
   sugestoesProduto ServicoSugestao[]
+  filaEspera       FilaEspera[]
 
   @@map("servicos")
 }
@@ -1190,4 +1194,32 @@ model ResultadoAntesDepois {
   clinica       Clinica      @relation(fields: [tenantId], references: [tenantId])
 
   @@map("resultados_antes_depois")
+}
+
+model FilaEspera {
+  id              String    @id @default(cuid())
+  tenantId        String
+  pacienteId      String
+  profissionalId  String?
+  servicoId       String
+  dataDesejada    DateTime
+  horarioDesejado String?
+  preferencia     String    @default("qualquer") // manha|tarde|qualquer
+  prioridade      Int       @default(0)           // assinante=1, normal=0
+  posicao         Int
+  status          String    @default("aguardando") // aguardando|notificado|expirado|convertido|cancelado
+  notificadoEm    DateTime?
+  expirarNotifEm  DateTime?
+
+  paciente     Paciente      @relation(fields: [pacienteId], references: [id])
+  profissional Profissional? @relation(fields: [profissionalId], references: [id])
+  servico      Servico       @relation(fields: [servicoId], references: [id])
+  clinica      Clinica       @relation(fields: [tenantId], references: [tenantId])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId, status])
+  @@index([profissionalId, dataDesejada, status])
+  @@map("fila_espera")
 }

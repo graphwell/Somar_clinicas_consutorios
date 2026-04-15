@@ -126,6 +126,57 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
   const [horario, setHorario] = useState('');
   const calendarRef = useRef<HTMLDivElement>(null);
 
+  // Passo 4b — Fila de espera e alternativas
+  interface Alternativa { tipo: string; profissionalId: string; profissional: string; horario: string; data: string }
+  const [alternativas, setAlternativas] = useState<Alternativa[]>([]);
+  const [carregandoAlternativas, setCarregandoAlternativas] = useState(false);
+  const [filaStatus, setFilaStatus] = useState<'idle' | 'entrando' | 'na_fila'>('idle');
+  const [filaPosicao, setFilaPosicao] = useState(0);
+
+  const buscarAlternativas = async (data: string, horarioOcupado: string) => {
+    if (!servico || !slug) return;
+    setCarregandoAlternativas(true);
+    setAlternativas([]);
+    try {
+      const params = new URLSearchParams({ servicoId: servico.id, data });
+      if (profissional?.id) params.set('profissionalId', profissional.id);
+      if (horarioOcupado) params.set('horario', horarioOcupado);
+      const res = await fetch(`/api/public/clinic/${slug}/alternativas?${params}`);
+      const d = await res.json();
+      setAlternativas(Array.isArray(d.alternativas) ? d.alternativas : []);
+    } catch { setAlternativas([]); }
+    finally { setCarregandoAlternativas(false); }
+  };
+
+  const entrarNaFila = async () => {
+    if (!servico || !dataSelecionada || !clienteNome || !clienteTelefone) return;
+    setFilaStatus('entrando');
+    try {
+      const res = await fetch(`/api/public/clinic/${clinica!.tenantId}/fila-espera/entrar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenantId: clinica!.tenantId,
+          clienteNome: clienteNome.trim(),
+          clienteTelefone: clienteTelefone.replace(/\D/g, ''),
+          servicoId: servico.id,
+          profissionalId: profissional?.id ?? null,
+          dataDesejada: dataSelecionada,
+          horarioDesejado: horario || null,
+        }),
+      });
+      const d = await res.json();
+      if (d.data?.entrou) {
+        setFilaStatus('na_fila');
+        setFilaPosicao(d.data.posicao ?? 1);
+      } else {
+        setFilaStatus('idle');
+      }
+    } catch {
+      setFilaStatus('idle');
+    }
+  };
+
   // Passo 5 — Produtos sugeridos
   interface ProdutoSugestao { id: string; nome: string; preco: number; imageUrl?: string | null; estoque: number }
   interface ItemReservado { id: string; nome: string; preco: number; imageUrl?: string | null; quantidade: number }
@@ -160,19 +211,26 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
 
   const cor = (clinica?.branding as any)?.primaryColor || '#40916C';
 
-  const buscarSlots = async (data: string) => {
+  const buscarSlots = async (data: string, horarioRef?: string) => {
     if (!servico) return;
     setCarregandoSlots(true);
     setSlots([]);
     setHorario('');
+    setAlternativas([]);
+    setFilaStatus('idle');
     const profId = profissional?.id || 'qualquer';
     try {
       const res = await fetch(
         `/api/public/clinic/${slug}/slots?data=${data}&servicoId=${servico.id}&profissionalId=${profId}`
       );
       const d = await res.json();
-      setSlots(d.slots ?? []);
+      const fetchedSlots: string[] = d.slots ?? [];
+      setSlots(fetchedSlots);
       setProfEscolhido(d.profissionalEscolhidoId ?? null);
+      // Quando não há slots, buscar alternativas automaticamente
+      if (fetchedSlots.length === 0) {
+        buscarAlternativas(data, horarioRef ?? '');
+      }
     } catch { setSlots([]); }
     finally { setCarregandoSlots(false); }
   };
@@ -510,9 +568,65 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
                       <div style={{ width: 24, height: 24, borderRadius: '50%', border: `2px solid ${cor}30`, borderTopColor: cor, animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
                     </div>
                   ) : slots.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '24px 0' }}>
-                      <p style={{ fontSize: 13, color: '#8A9BB0' }}>Nenhum horário disponível neste dia</p>
-                      <p style={{ fontSize: 12, color: '#8A9BB0', marginTop: 4 }}>Tente outro dia</p>
+                    <div>
+                      {filaStatus === 'na_fila' ? (
+                        <div style={{ background: `${cor}10`, border: `1.5px solid ${cor}30`, borderRadius: 14, padding: 16, textAlign: 'center' }}>
+                          <div style={{ fontSize: 28, marginBottom: 8 }}>🎉</div>
+                          <p style={{ fontSize: 14, fontWeight: 600, color: '#1B2B3A', marginBottom: 4 }}>Você está na fila!</p>
+                          <p style={{ fontSize: 12, color: '#8A9BB0' }}>Posição <strong>{filaPosicao}</strong> — te avisaremos pelo WhatsApp assim que abrir um horário.</p>
+                        </div>
+                      ) : (
+                        <div style={{ background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 12, padding: 16 }}>
+                          <p style={{ fontSize: 13, fontWeight: 600, color: '#92400E', marginBottom: 12 }}>
+                            Nenhum horário disponível neste dia.
+                          </p>
+                          {carregandoAlternativas && (
+                            <div style={{ textAlign: 'center', padding: '8px 0' }}>
+                              <div style={{ width: 20, height: 20, borderRadius: '50%', border: `2px solid ${cor}30`, borderTopColor: cor, animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
+                            </div>
+                          )}
+                          {!carregandoAlternativas && alternativas.length > 0 && (
+                            <div style={{ marginBottom: 12 }}>
+                              <p style={{ fontSize: 11, fontWeight: 600, color: '#92400E', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Horários alternativos:</p>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                {alternativas.map((alt, i) => (
+                                  <button
+                                    key={i}
+                                    onClick={() => {
+                                      if (alt.data !== dataSelecionada) setDataSelecionada(alt.data);
+                                      setHorario(alt.horario);
+                                      buscarSlots(alt.data, alt.horario);
+                                    }}
+                                    style={{ width: '100%', padding: '10px 14px', background: 'white', border: '1px solid #EEE9DF', borderRadius: 8, textAlign: 'left', cursor: 'pointer', fontSize: 13, color: '#1B2B3A', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                                  >
+                                    <span>
+                                      {alt.tipo === 'outro_profissional'
+                                        ? `${alt.profissional} disponível às ${alt.horario}`
+                                        : `${alt.profissional} às ${alt.horario}${alt.data !== dataSelecionada ? ` (${alt.data.split('-').reverse().slice(0, 2).join('/')})` : ''}`
+                                      }
+                                    </span>
+                                    <span style={{ color: cor, fontWeight: 600 }}>→</span>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {!carregandoAlternativas && clienteNome && clienteTelefone && (
+                            <button
+                              onClick={entrarNaFila}
+                              disabled={filaStatus === 'entrando'}
+                              style={{ width: '100%', padding: '11px 14px', background: 'transparent', border: `1.5px solid ${cor}`, borderRadius: 10, color: cor, fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: filaStatus === 'entrando' ? 0.6 : 1 }}
+                            >
+                              {filaStatus === 'entrando' ? 'Entrando na fila...' : '⏳ Entrar na fila de espera'}
+                            </button>
+                          )}
+                          {!clienteNome && (
+                            <p style={{ fontSize: 11, color: '#92400E', marginTop: 8, textAlign: 'center' }}>
+                              Volte ao início e informe seu nome para entrar na fila.
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>

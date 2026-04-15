@@ -356,6 +356,53 @@ export default function AtendimentosHojePage() {
   const [ultimaAtualizacao, setUltimaAtualizacao] = useState<Date>(new Date());
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Aba ativa: atendimentos | fila
+  const [abaAtiva, setAbaAtiva] = useState<'atendimentos' | 'fila'>('atendimentos');
+
+  // Fila de espera
+  type FilaItem = {
+    id: string; posicao: number; prioridade: number; status: string;
+    dataDesejada: string; horarioDesejado?: string | null; preferencia: string;
+    paciente: { nome: string; telefone: string };
+    profissional?: { nome: string } | null;
+    servico: { nome: string };
+    expirarNotifEm?: string | null;
+  };
+  const [filaEspera, setFilaEspera] = useState<FilaItem[]>([]);
+  const [loadingFila, setLoadingFila] = useState(false);
+  const [notificandoFila, setNotificandoFila] = useState<string | null>(null);
+
+  const carregarFila = useCallback(async () => {
+    setLoadingFila(true);
+    try {
+      const res = await fetchWithAuth('/api/fila-espera');
+      const d = await res.json();
+      setFilaEspera(Array.isArray(d) ? d : []);
+    } catch {}
+    finally { setLoadingFila(false); }
+  }, []);
+
+  useEffect(() => {
+    if (abaAtiva === 'fila') carregarFila();
+  }, [abaAtiva, carregarFila]);
+
+  const acionarFilaManual = async (item: FilaItem) => {
+    setNotificandoFila(item.id);
+    try {
+      await fetchWithAuth('/api/fila-espera/verificar-e-notificar', {
+        method: 'POST',
+        body: JSON.stringify({
+          tenantId: '',
+          profissionalId: item.profissional ? undefined : null,
+          servicoId: item.servico.nome,
+          dataHora: item.dataDesejada,
+        }),
+      });
+      carregarFila();
+    } catch {}
+    finally { setNotificandoFila(null); }
+  };
+
   // Encaixe rápido
   const [showEncaixe, setShowEncaixe] = useState(false);
   const [encaixes, setEncaixes] = useState<{ pacientes: any[]; servicos: any[]; profissionais: any[] }>({ pacientes: [], servicos: [], profissionais: [] });
@@ -591,6 +638,28 @@ export default function AtendimentosHojePage() {
           </div>
         </div>
 
+        {/* ── Abas: Atendimentos | Fila de Espera ── */}
+        <div className="mt-5 flex gap-2">
+          <button
+            onClick={() => setAbaAtiva('atendimentos')}
+            className={`text-[9px] font-black uppercase px-4 py-2 rounded-xl border transition-all ${abaAtiva === 'atendimentos' ? 'bg-primary text-white border-primary shadow-md' : 'bg-white text-text-muted border-card-border hover:border-primary/30 hover:text-primary'}`}
+          >
+            Atendimentos
+          </button>
+          <button
+            onClick={() => setAbaAtiva('fila')}
+            className={`text-[9px] font-black uppercase px-4 py-2 rounded-xl border transition-all flex items-center gap-1.5 ${abaAtiva === 'fila' ? 'bg-primary text-white border-primary shadow-md' : 'bg-white text-text-muted border-card-border hover:border-primary/30 hover:text-primary'}`}
+          >
+            Fila de Espera
+            {filaEspera.length > 0 && (
+              <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full ${abaAtiva === 'fila' ? 'bg-white/20' : 'bg-amber-100 text-amber-700'}`}>
+                {filaEspera.length}
+              </span>
+            )}
+          </button>
+        </div>
+      </div>
+
         {/* ── KPIs ── */}
         <div className="mt-6 grid grid-cols-3 sm:grid-cols-5 gap-3">
           {[
@@ -635,7 +704,6 @@ export default function AtendimentosHojePage() {
             );
           })}
         </div>
-      </div>
 
       {/* ── Legenda indicadores ficha (beleza) ── */}
       {isBeleza && (
@@ -655,7 +723,87 @@ export default function AtendimentosHojePage() {
         </div>
       )}
 
-      {/* ── Filtros ── */}
+      {/* ── Painel Fila de Espera ── */}
+      {abaAtiva === 'fila' && (
+        <div className="bg-white border border-card-border rounded-[2.5rem] overflow-hidden shadow-sm">
+          <div className="px-6 py-4 border-b border-slate-50 flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-black italic uppercase tracking-tighter text-text-main">Fila de Espera</h2>
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-text-placeholder opacity-60 mt-0.5">
+                Clientes aguardando horário — notificados têm 30 min para confirmar
+              </p>
+            </div>
+            <button onClick={carregarFila} className="text-[9px] font-black uppercase px-3 py-1.5 rounded-xl border border-card-border bg-slate-50 text-text-muted hover:bg-slate-100 transition-colors">
+              Atualizar
+            </button>
+          </div>
+
+          {loadingFila ? (
+            <div className="flex justify-center py-16">
+              <div className="w-6 h-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+            </div>
+          ) : filaEspera.length === 0 ? (
+            <div className="py-20 text-center">
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-text-placeholder opacity-40">Fila vazia</p>
+            </div>
+          ) : (
+            <div>
+              {filaEspera.map((item, i) => {
+                const expirou = item.expirarNotifEm ? new Date(item.expirarNotifEm) < new Date() : false;
+                return (
+                  <div key={item.id} className={`flex items-center gap-3 px-6 py-4 border-b border-slate-50 last:border-0 ${item.status === 'notificado' ? 'bg-amber-50' : 'bg-white'}`}>
+                    {/* Posição */}
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black shrink-0 ${item.prioridade === 1 ? 'bg-primary text-white' : 'bg-slate-100 text-text-muted'}`}>
+                      {i + 1}
+                    </div>
+
+                    {/* Dados */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-text-main truncate">{item.paciente.nome}</p>
+                      <p className="text-[10px] text-text-placeholder mt-0.5 truncate">
+                        {item.servico.nome}
+                        {item.profissional ? ` · ${item.profissional.nome}` : ' · Qualquer profissional'}
+                        {item.horarioDesejado ? ` · ${item.horarioDesejado}` : item.preferencia !== 'qualquer' ? ` · ${item.preferencia}` : ''}
+                      </p>
+                      <p className="text-[10px] text-text-placeholder">
+                        {new Date(item.dataDesejada).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' })}
+                      </p>
+                    </div>
+
+                    {/* Badges */}
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      {item.status === 'notificado' && !expirou && (
+                        <span className="text-[9px] font-black bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full uppercase tracking-wide">
+                          Aguardando resposta
+                        </span>
+                      )}
+                      {item.prioridade === 1 && (
+                        <span className="text-[9px] font-black bg-green-50 text-green-700 px-2 py-0.5 rounded-full uppercase tracking-wide">
+                          Assinante
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Ação manual */}
+                    {item.status === 'aguardando' && (
+                      <button
+                        onClick={() => acionarFilaManual(item)}
+                        disabled={notificandoFila === item.id}
+                        className="text-[9px] font-black uppercase px-3 py-1.5 border border-card-border rounded-lg bg-white text-text-muted hover:border-primary/30 hover:text-primary transition-colors shrink-0 disabled:opacity-40"
+                      >
+                        {notificandoFila === item.id ? '…' : 'Notificar'}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Filtros + Lista (apenas aba Atendimentos) ── */}
+      {abaAtiva === 'atendimentos' && <>
       <div className="flex flex-wrap items-center gap-3">
         {/* Busca */}
         <div className="relative flex-1 min-w-[180px]">
@@ -682,7 +830,6 @@ export default function AtendimentosHojePage() {
         </p>
       </div>
 
-      {/* ── Lista ── */}
       {loading ? (
         <div className="space-y-3">
           {[1,2,3,4].map(i => (
@@ -783,6 +930,7 @@ export default function AtendimentosHojePage() {
           )}
         </div>
       )}
+      </> } {/* fim abaAtiva === 'atendimentos' */}
 
       {/* ── Modal Encaixe Rápido ── */}
       {showEncaixe && (
