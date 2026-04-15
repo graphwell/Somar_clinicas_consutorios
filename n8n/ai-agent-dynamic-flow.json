@@ -295,6 +295,134 @@
     },
     {
       "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $('Webhook WhatsApp').item.json.body.mensagem.trim().toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '') }}",
+              "operation": "regex",
+              "value2": "^(sim|s|confirmo|confirmar)[!?.]*$"
+            }
+          ]
+        }
+      },
+      "id": "if-sim",
+      "name": "É SIM?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [ 304, 160 ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $('Webhook WhatsApp').item.json.body.mensagem.trim().toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '') }}",
+              "operation": "regex",
+              "value2": "^(nao|n|cancelar|cancela|nao)[!?.]*$"
+            }
+          ]
+        }
+      },
+      "id": "if-nao",
+      "name": "É NAO?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [ 304, 480 ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://synka.somar.ia.br/api/n8n/agenda/confirmar",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-api-key", "value": "={{ $env.N8N_API_KEY }}" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "telefone", "value": "={{ $('Webhook WhatsApp').item.json.body.telefone }}" },
+            { "name": "tenantId", "value": "={{ $('Carregar Contexto Clínica').item.json.data.tenantId }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "http-confirmar",
+      "name": "Confirmar Agendamento",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [ 512, 160 ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://synka.somar.ia.br/api/n8n/agenda/cancelar-por-telefone",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-api-key", "value": "={{ $env.N8N_API_KEY }}" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "telefone", "value": "={{ $('Webhook WhatsApp').item.json.body.telefone }}" },
+            { "name": "tenantId", "value": "={{ $('Carregar Contexto Clínica').item.json.data.tenantId }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "http-cancelar-tel",
+      "name": "Cancelar por Telefone",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [ 512, 480 ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.ultramsg.com/instance168762/messages/chat?token=xp3fx1lj7lsnozzg",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "to", "value": "={{ $('Webhook WhatsApp').item.json.body.telefone }}" },
+            { "name": "body", "value": "={{ $json.data?.msgBot ?? 'Agendamento confirmado!' }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "send-wa-confirmar",
+      "name": "Enviar Confirmação WA",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [ 720, 160 ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.ultramsg.com/instance168762/messages/chat?token=xp3fx1lj7lsnozzg",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "to", "value": "={{ $('Webhook WhatsApp').item.json.body.telefone }}" },
+            { "name": "body", "value": "={{ $json.data?.msgBot ?? 'Agendamento cancelado.' }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "send-wa-cancelar",
+      "name": "Enviar Cancelamento WA",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [ 720, 480 ]
+    },
+    {
+      "parameters": {
         "method": "POST",
         "url": "https://api.ultramsg.com/instance168762/messages/chat?token=xp3fx1lj7lsnozzg",
         "sendBody": true,
@@ -425,7 +553,65 @@
       "main": [
         [
           {
+            "node": "É SIM?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "É SIM?": {
+      "main": [
+        [
+          {
+            "node": "Confirmar Agendamento",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "É NAO?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "É NAO?": {
+      "main": [
+        [
+          {
+            "node": "Cancelar por Telefone",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
             "node": "Agente Autônomo Especializado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirmar Agendamento": {
+      "main": [
+        [
+          {
+            "node": "Enviar Confirmação WA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cancelar por Telefone": {
+      "main": [
+        [
+          {
+            "node": "Enviar Cancelamento WA",
             "type": "main",
             "index": 0
           }
