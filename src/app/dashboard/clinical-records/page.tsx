@@ -1259,6 +1259,14 @@ export default function ClinicalRecordsPage() {
                   <div className="flex items-center gap-2">
                     <span className="text-[9px] text-text-placeholder font-black uppercase tracking-wider">Consulta salva em {new Date(selectedEvolucao?.createdAt || '').toLocaleDateString('pt-BR')}</span>
                     <div className="flex-1" />
+                    <button onClick={() => setModalReceita(true)}
+                      className="px-4 py-2.5 bg-slate-50 border border-card-border rounded-xl text-[9px] font-black uppercase hover:bg-slate-100 transition-colors">
+                      📋 Ver/Emitir Receita
+                    </button>
+                    <button onClick={() => setModalAtestado(true)}
+                      className="px-4 py-2.5 bg-slate-50 border border-card-border rounded-xl text-[9px] font-black uppercase hover:bg-slate-100 transition-colors">
+                      📄 Atestado
+                    </button>
                     <button onClick={() => { setMode('new'); resetForm(); }}
                       className="btn-primary px-8 py-3 text-[10px]">+ Nova Consulta</button>
                   </div>
