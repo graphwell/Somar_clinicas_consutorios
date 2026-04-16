@@ -225,3 +225,30 @@
 /* Ocultar scrollbar mas manter funcionalidade */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* -------------------------------------------
+   PRINT STYLES 
+------------------------------------------- */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #printable-receita, #printable-receita * {
+    visibility: visible;
+  }
+  #printable-receita {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100vw;
+    margin: 0;
+    padding: 2cm;
+    box-shadow: none !important;
+    border: none !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  @page { margin: 0; size: A4 portrait; }
+}
+
