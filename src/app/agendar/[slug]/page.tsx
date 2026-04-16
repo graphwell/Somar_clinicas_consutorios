@@ -325,7 +325,9 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
       {/* Header fixo */}
       <div className="sticky top-0 z-10 px-4 py-3 flex items-center gap-3" style={{ background: cor }}>
         {logoUrl ? (
-          <img src={logoUrl} alt={clinica.nome} style={{ height: 32, width: 'auto', objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
+          <div style={{ background: 'white', borderRadius: 8, padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+             <img src={logoUrl} alt={clinica.nome} style={{ height: 28, width: 'auto', objectFit: 'contain' }} />
+          </div>
         ) : (
           <div style={{
             width: 32, height: 32, borderRadius: 8,

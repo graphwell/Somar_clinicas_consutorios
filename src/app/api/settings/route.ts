@@ -27,6 +27,7 @@ export async function PUT(request: Request) {
     const clinica = await prisma.clinica.update({
       where: { tenantId },
       data: {
+        nome: razaoSocial || undefined,
         razaoSocial,
         cnpj,
         endereco,
