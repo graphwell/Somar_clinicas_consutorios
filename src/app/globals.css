@@ -230,25 +230,43 @@
    PRINT STYLES 
 ------------------------------------------- */
 @media print {
+  @page { margin: 0; size: A4 portrait; }
+  
+  html, body {
+    width: 100vw !important;
+    height: 100vh !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+  }
+  
   body * {
     visibility: hidden;
   }
+  
   #printable-receita, #printable-receita * {
     visibility: visible;
   }
+  
   #printable-receita {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100vw;
-    margin: 0;
-    padding: 2cm;
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    padding: 2cm !important;
     box-shadow: none !important;
     border: none !important;
+    background: white !important;
+    z-index: 999999 !important;
+    max-height: none !important;
+    transform: none !important;
   }
+  
   .no-print {
     display: none !important;
   }
-  @page { margin: 0; size: A4 portrait; }
 }
 

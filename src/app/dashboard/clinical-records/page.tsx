@@ -355,11 +355,29 @@ function ModalReceita({ pacienteNome, onClose, onSalvar }: { pacienteNome: strin
   
   const addLinha = () => setLinhas(p => [...p, { medicamento: '', dosagem: '', posologia: '', qtd: '' }]);
   const updateLinha = (i: number, k: string, v: string) => setLinhas(p => p.map((l, idx) => idx === i ? { ...l, [k]: v } : l));
-  const remLinha = (i: number) => setLinhas(p => p.filter((_, idx) => idx !== i));
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [clinicaNome, setClinicaNome] = useState('Clínica Somar');
+  const [clinicaDesc, setClinicaDesc] = useState('Saúde e Bem-Estar');
+
+  useEffect(() => {
+    fetchWithAuth('/api/settings')
+      .then(r => r.json())
+      .then(data => {
+         if(data?.clinica) {
+            setClinicaNome(data.clinica.nome || 'Clínica Somar');
+            if(data.clinica.configBranding?.logoUrl) {
+                setLogoUrl(data.clinica.configBranding.logoUrl);
+            }
+         }
+      })
+      .catch(() => {});
+  }, []);
 
   // Puxa o nome do profissional logado da sessão
-  const medicoLogadoStr = typeof window !== 'undefined' ? localStorage.getItem('synka_user') : null;
-  const medicoLogado = medicoLogadoStr ? JSON.parse(medicoLogadoStr) : { nome: 'Profissional de Saúde', crm: '12345' };
+  const medicoLogadoStr = typeof window !== 'undefined' ? localStorage.getItem('synka-user') : null;
+  const medicoLogado = medicoLogadoStr ? JSON.parse(medicoLogadoStr) : { nome: 'Profissional de Saúde', role: 'Médico' };
+  const medicoNome = medicoLogado.nome || 'Profissional de Saúde';
+  const roleDisplay = medicoLogado.role === 'admin' ? 'Administrador' : (medicoLogado.role || 'Profissional de Saúde');
 
   const handlePrint = () => {
     window.print();
@@ -367,7 +385,7 @@ function ModalReceita({ pacienteNome, onClose, onSalvar }: { pacienteNome: strin
 
   const handleWhatsApp = () => {
     const medsText = linhas.filter(l => l.medicamento.trim() !== '').map(l => `- *${l.medicamento}* ${l.dosagem}\n  Uso: ${l.posologia} (${l.qtd})`).join('\n\n');
-    const msg = `Olá, ${pacienteNome.split(' ')[0]}!\nSegue a gravação da sua prescrição médica digital:\n\n${medsText}\n\n${obs ? `Observações:\n${obs}\n\n` : ''}Atenciosamente,\n${medicoLogado.nome}`;
+    const msg = `Olá, ${pacienteNome.split(' ')[0]}!\nSegue a gravação da sua prescrição médica digital:\n\n${medsText}\n\n${obs ? `Observações:\n${obs}\n\n` : ''}Atenciosamente,\n${medicoNome}`;
     const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
     window.open(url, '_blank');
   };
@@ -420,17 +438,24 @@ function ModalReceita({ pacienteNome, onClose, onSalvar }: { pacienteNome: strin
             {/* Header Clinic / Doctor */}
             <div className="flex justify-between items-end border-b-2 border-primary/20 pb-6 mb-10">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-primary-soft rounded-lg flex items-center justify-center text-primary border border-primary/20">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                </div>
-                <div>
-                  <h1 className="text-2xl font-black text-primary tracking-tight font-display leading-none">Clínica Somar</h1>
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Soluções Médicas</p>
-                </div>
+                {logoUrl ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img src={logoUrl} alt="Logo Clínica" className="max-h-[60px] max-w-[200px] object-contain" />
+                ) : (
+                  <>
+                    <div className="w-12 h-12 bg-primary-soft rounded-lg flex items-center justify-center text-primary border border-primary/20">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                    </div>
+                    <div>
+                      <h1 className="text-2xl font-black text-primary tracking-tight font-display leading-none">{clinicaNome}</h1>
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">{clinicaDesc}</p>
+                    </div>
+                  </>
+                )}
               </div>
               <div className="text-right">
-                <p className="text-base font-black text-slate-700">{medicoLogado.nome}</p>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Profissional de Saúde</p>
+                <p className="text-base font-black text-slate-700">{medicoNome}</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{roleDisplay}</p>
               </div>
             </div>
 
@@ -476,7 +501,7 @@ function ModalReceita({ pacienteNome, onClose, onSalvar }: { pacienteNome: strin
                 <p className="text-sm font-bold text-slate-700">{new Date().toLocaleDateString('pt-BR')}</p>
               </div>
               <div className="w-72 border-t border-slate-400 text-center pt-3">
-                <p className="text-xs font-black text-slate-800">{medicoLogado.nome}</p>
+                <p className="text-xs font-black text-slate-800">{medicoNome}</p>
                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Assinatura Digitalizada</p>
               </div>
             </div>
