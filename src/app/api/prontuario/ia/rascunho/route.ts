@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getSessionInfo } from '@/lib/auth-helpers';
-import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || '' });
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 export async function POST(req: Request) {
   try {
@@ -41,20 +41,13 @@ Responda SOMENTE com um JSON válido no seguinte formato:
   ]
 }`;
 
-    const message = await anthropic.messages.create({
-      model: 'claude-opus-4-6',
-      max_tokens: 1500,
-      messages: [{ role: 'user', content: prompt }],
-    });
+    const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || 'gemini-1.5-flash' });
+    const result = await model.generateContent([{ text: prompt }]);
+    const textContent = result.response.text();
 
-    const content = message.content[0];
-    if (content.type !== 'text') {
-      throw new Error('Resposta inválida da IA');
-    }
-
-    // Extract JSON from response
-    const jsonMatch = content.text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('Formato de resposta inválido');
+    // Extrai o JSON da resposta textual limpa
+    const jsonMatch = textContent.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('Formato de resposta inválido retornado pela IA');
 
     const soap = JSON.parse(jsonMatch[0]);
     return NextResponse.json(soap);
