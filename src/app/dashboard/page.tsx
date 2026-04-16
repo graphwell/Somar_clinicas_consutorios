@@ -10,6 +10,7 @@ import AgendaConsolidada, {
 import ModalAgendamento from "@/components/agenda/ModalAgendamento";
 import SynkaPanel from "@/components/synka/SynkaPanel";
 import Card from "@/components/ui/Card";
+import GetStartedChecklist from "@/components/dashboard/GetStartedChecklist";
 
 export default function DashboardPage() {
   const { labels } = useNicho();
@@ -75,6 +76,9 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      {/* ── Checklist de Primeiros Passos (Auto-ocultável) ── */}
+      <GetStartedChecklist />
+
       {/* ── KPIs ── */}
       <KpiSection selectedDate={data} />
 
