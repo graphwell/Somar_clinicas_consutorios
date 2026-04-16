@@ -55,7 +55,11 @@
       "Bash(grep -n \"secret\\\\|SECRET\\\\|requireSynkaAdmin\\\\|synka_admin\" src/app/api/admin/tenants/route.ts src/app/api/admin/tenants/[id]/route.ts)",
       "Bash(grep -n \"rate\\\\|limit\\\\|throttle\" src/app/api/public/clinic/*/agendar/route.ts)",
       "Bash(NODE_TLS_REJECT_UNAUTHORIZED=0 npx tsx scripts/n8n-update-apikey.ts)",
-      "Bash(NODE_TLS_REJECT_UNAUTHORIZED=0 node scratch/update-n8n-flow.js)"
+      "Bash(NODE_TLS_REJECT_UNAUTHORIZED=0 node scratch/update-n8n-flow.js)",
+      "Bash(grep:*)",
+      "Bash(python3 *)",
+      "Bash(npx next *2)",
+      "Bash(npx next)"
     ]
   }
 }
