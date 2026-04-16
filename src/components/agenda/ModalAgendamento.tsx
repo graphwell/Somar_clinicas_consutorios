@@ -84,6 +84,7 @@ export default function ModalAgendamento({
   const [slots, setSlots] = useState<string[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [slotsFetched, setSlotsFetched] = useState(false);
+  const [sugeridoProfId, setSugeridoProfId] = useState<string | null>(null);
 
   const next30Days = React.useMemo(() => {
     const days = [];
@@ -194,18 +195,21 @@ export default function ModalAgendamento({
         if (!active) return;
         if (d.slots) {
           setSlots(d.slots);
+          setSugeridoProfId(d.profissionalEscolhidoId || null);
           if (selectedHora && !d.slots.includes(selectedHora)) {
             setSelectedHora("");
           }
         } else {
           setSlots([]);
           setSelectedHora("");
+          setSugeridoProfId(null);
         }
       })
       .catch(() => {
         if (!active) return;
         setSlots([]);
         setSelectedHora("");
+        setSugeridoProfId(null);
       })
       .finally(() => {
         if (active) {
@@ -349,7 +353,7 @@ export default function ModalAgendamento({
         method: "POST",
         body: JSON.stringify({
           pacienteId,
-          profissionalId: selectedProfId || undefined,
+          profissionalId: selectedProfId || sugeridoProfId || undefined,
           servicoId: selectedServico?.id || undefined,
           dataHora,
           durationMinutes: duration,
