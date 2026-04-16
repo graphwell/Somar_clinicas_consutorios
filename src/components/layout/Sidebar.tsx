@@ -71,6 +71,7 @@ export default function Sidebar({
   const { labels, nicho } = useNicho();
   const NICHOS_ANTES_DEPOIS = ['CLINICA_ESTETICA', 'SALAO_BELEZA', 'BARBEARIA'];
   const temAntesDepois = NICHOS_ANTES_DEPOIS.includes(nicho);
+  const temVitrine = NICHOS_ANTES_DEPOIS.includes(nicho);
   const [planoAtual, setPlanoAtual] = useState<string>('trial');
   const [diasRestantes, setDiasRestantes] = useState<number>(30);
 
@@ -198,7 +199,7 @@ export default function Sidebar({
             </>
           )}
 
-          {isAdmin && (
+          {isAdmin && temVitrine && (
             <>
               <SectionLabel label="Vitrine" />
               <NavItem href="/dashboard/vitrine" label="Vitrine de Produtos" Icon={IconVitrine} active={is("/dashboard/vitrine")} />
