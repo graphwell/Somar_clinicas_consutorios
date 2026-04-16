@@ -1285,7 +1285,14 @@ export default function ClinicalRecordsPage() {
         <ModalReceita
           pacienteNome={contexto.paciente.nome}
           onClose={() => setModalReceita(false)}
-          onSalvar={() => setModalReceita(false)}
+          onSalvar={(dados) => {
+            const text = `==== RECEITUÁRIO ====
+${dados.linhas.filter((l: any) => l.medicamento.trim() !== '').map((l: any) => `- ${l.medicamento} ${l.dosagem} (${l.qtd})\n  Uso: ${l.posologia}`).join('\n')}
+${dados.obs ? `Obs: ${dados.obs}` : ''}`;
+            
+            setConduta((prev) => prev ? prev + '\n\n' + text : text);
+            setModalReceita(false);
+          }}
         />
       )}
       {modalAtestado && contexto && (
