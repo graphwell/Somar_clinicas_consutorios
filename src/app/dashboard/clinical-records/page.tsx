@@ -348,7 +348,7 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
 }
 
 // ─── Modal Receita ────────────────────────────────────────────────────────────
-function ModalReceita({ pacienteNome, onClose, onSalvar }: { pacienteNome: string; onClose: () => void; onSalvar: (dados: any) => void }) {
+function ModalReceita({ pacienteNome, profissionalNome, profissionalRole, onClose, onSalvar }: { pacienteNome: string; profissionalNome?: string; profissionalRole?: string; onClose: () => void; onSalvar: (dados: any) => void }) {
   const [step, setStep] = useState<'form' | 'preview'>('form');
   const [linhas, setLinhas] = useState([{ medicamento: '', dosagem: '', posologia: '', qtd: '' }]);
   const [obs, setObs] = useState('');
@@ -373,11 +373,12 @@ function ModalReceita({ pacienteNome, onClose, onSalvar }: { pacienteNome: strin
       .catch(() => {});
   }, []);
 
-  // Puxa o nome do profissional logado da sessão
+  // Prioriza o nome passado pela evolução; senão usa o logado
   const medicoLogadoStr = typeof window !== 'undefined' ? localStorage.getItem('synka-user') : null;
   const medicoLogado = medicoLogadoStr ? JSON.parse(medicoLogadoStr) : { nome: 'Profissional de Saúde', role: 'Médico' };
-  const medicoNome = medicoLogado.nome || 'Profissional de Saúde';
-  const roleDisplay = medicoLogado.role === 'admin' ? 'Administrador' : (medicoLogado.role || 'Profissional de Saúde');
+  
+  const medicoNome = profissionalNome || medicoLogado.nome || 'Profissional de Saúde';
+  const roleDisplay = profissionalRole || (medicoLogado.role === 'admin' ? 'Administrador' : (medicoLogado.role || 'Profissional de Saúde'));
 
   const handlePrint = () => {
     window.print();
@@ -1317,6 +1318,8 @@ export default function ClinicalRecordsPage() {
       {modalReceita && contexto && (
         <ModalReceita
           pacienteNome={contexto.paciente.nome}
+          profissionalNome={selectedEvolucao?.profissional?.nome}
+          profissionalRole={selectedEvolucao?.profissional ? 'MÉDICO ASSOCIADO' : undefined}
           onClose={() => setModalReceita(false)}
           onSalvar={(dados) => {
             const text = `==== RECEITUÁRIO ====
