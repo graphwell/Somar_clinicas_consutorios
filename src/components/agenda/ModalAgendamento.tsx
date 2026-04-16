@@ -77,8 +77,29 @@ export default function ModalAgendamento({
   const [selectedDate, setSelectedDate] = useState(
     `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`
   );
-  const [selectedHora, setSelectedHora] = useState(horario || "09:00");
+  const [selectedHora, setSelectedHora] = useState(horario || "");
   const [comboSugestao, setComboSugestao] = useState<any>(null);
+
+  // Slots
+  const [slots, setSlots] = useState<string[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [slotsFetched, setSlotsFetched] = useState(false);
+
+  const next30Days = React.useMemo(() => {
+    const days = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    for (let i = 0; i < 30; i++) {
+      const d = new Date(today);
+      d.setDate(d.getDate() + i);
+      days.push({
+        dateStr: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
+        label: d.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', ''),
+        day: d.getDate(),
+      });
+    }
+    return days;
+  }, []);
   const [adicionarCombo, setAdicionarCombo] = useState(false);
 
   // Convênio (saúde)
@@ -116,7 +137,9 @@ export default function ModalAgendamento({
       setSelectedServico(null);
       setSelectedProfId(profissionalId || "");
       setSelectedDate(`${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`);
-      setSelectedHora(horario || "09:00");
+      setSelectedHora(horario || "");
+      setSlots([]);
+      setSlotsFetched(false);
       setComboSugestao(null);
       setAdicionarCombo(false);
       setEnviarLembrete(true);
@@ -143,6 +166,56 @@ export default function ModalAgendamento({
       }
     }
   }, [open, ehBeleza]);
+
+  // Buscar horários disponíveis
+  useEffect(() => {
+    if (step !== 2) return;
+    if (!selectedServico?.id || !selectedDate) {
+      setSlots([]);
+      setSlotsFetched(false);
+      return;
+    }
+
+    let active = true;
+    setLoadingSlots(true);
+    setSlotsFetched(false);
+    
+    const qs = new URLSearchParams({
+      data: selectedDate,
+      servicoId: selectedServico.id,
+    });
+    if (selectedProfId) {
+      qs.set('profissionalId', selectedProfId);
+    }
+
+    fetchWithAuth(`/api/agenda/slots-internos?${qs.toString()}`)
+      .then(r => r.json())
+      .then(d => {
+        if (!active) return;
+        if (d.slots) {
+          setSlots(d.slots);
+          if (selectedHora && !d.slots.includes(selectedHora)) {
+            setSelectedHora("");
+          }
+        } else {
+          setSlots([]);
+          setSelectedHora("");
+        }
+      })
+      .catch(() => {
+        if (!active) return;
+        setSlots([]);
+        setSelectedHora("");
+      })
+      .finally(() => {
+        if (active) {
+          setLoadingSlots(false);
+          setSlotsFetched(true);
+        }
+      });
+
+    return () => { active = false; };
+  }, [step, selectedDate, selectedServico?.id, selectedProfId]);
 
   // Verificar primeira visita ao selecionar paciente (beleza)
   useEffect(() => {
@@ -350,9 +423,14 @@ export default function ModalAgendamento({
                   setError("Selecione um paciente");
                   return;
                 }
+                if (step === 2 && (!selectedServico || !selectedDate || !selectedHora)) {
+                  setError("Selecione um serviço e um horário disponível.");
+                  return;
+                }
                 setError("");
                 setStep((s) => (s + 1) as Step);
               }}
+              disabled={step === 2 && (!selectedServico || !selectedDate || !selectedHora)}
             >
               Continuar
             </Button>
@@ -526,25 +604,70 @@ export default function ModalAgendamento({
             </select>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Data</label>
-              <input
-                type="date"
-                className="w-full h-10 px-3 bg-white border border-warm-300 rounded-lg text-sm text-slate-700 focus:outline-none focus:border-sage-500"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-              />
+          {/* Calendário Horizontal */}
+          <div>
+            <label className="block text-xs font-medium text-slate-300 mb-2">Data</label>
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
+              {next30Days.map((d) => {
+                const isActive = selectedDate === d.dateStr;
+                return (
+                  <button
+                    key={d.dateStr}
+                    type="button"
+                    onClick={() => { setSelectedDate(d.dateStr); setSelectedHora(""); }}
+                    className={`flex flex-col items-center justify-center min-w-[50px] h-14 rounded-xl border transition-all shrink-0 ${
+                      isActive
+                        ? "bg-[#40916C] border-[#40916C] text-white shadow-sm"
+                        : "bg-white border-warm-200 text-slate-500 hover:border-[#52B788] hover:bg-[#52B788]/10"
+                    }`}
+                  >
+                    <span className={`text-[10px] uppercase font-bold ${isActive ? "text-white/80" : "text-slate-400"}`}>
+                      {d.label}
+                    </span>
+                    <span className={`text-sm font-black ${isActive ? "text-white" : "text-slate-700"}`}>
+                      {d.day}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Horário</label>
-              <input
-                type="time"
-                className="w-full h-10 px-3 bg-white border border-warm-300 rounded-lg text-sm text-slate-700 focus:outline-none focus:border-sage-500"
-                value={selectedHora}
-                onChange={(e) => setSelectedHora(e.target.value)}
-              />
-            </div>
+          </div>
+
+          {/* Grid de Horários */}
+          <div>
+            <label className="block text-xs font-medium text-slate-300 mb-2">Horário disponível</label>
+            {!selectedServico ? (
+              <div className="p-4 border border-dashed border-warm-300 rounded-xl bg-warm-50 text-center text-xs text-slate-400">
+                Selecione um serviço primeiro para ver os horários.
+              </div>
+            ) : loadingSlots ? (
+              <div className="p-6 border border-warm-200 rounded-xl bg-white flex flex-col items-center justify-center">
+                <div className="w-5 h-5 border-2 border-[#40916C]/20 border-t-[#40916C] rounded-full animate-spin mb-2" />
+                <p className="text-[11px] text-slate-400">Buscando horários disponíveis...</p>
+              </div>
+            ) : slotsFetched && slots.length === 0 ? (
+              <div className="p-4 border border-warm-200 rounded-xl bg-red-50 text-center">
+                <p className="text-xs font-medium text-red-600">Nenhum horário disponível para este profissional neste dia.</p>
+                <p className="text-[11px] text-red-400 mt-1">Tente outra data ou remova o filtro.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-2 max-h-[160px] overflow-y-auto pr-1 scrollbar-thin">
+                {slots.map((h) => (
+                  <button
+                    key={h}
+                    type="button"
+                    onClick={() => setSelectedHora(h)}
+                    className={`py-2.5 rounded-xl text-sm font-black border transition-all ${
+                      selectedHora === h
+                        ? "bg-[#40916C] border-[#40916C] text-white shadow-md shadow-[#40916C]/30"
+                        : "bg-white border-warm-200 text-slate-600 hover:border-[#52B788] hover:text-[#40916C]"
+                    }`}
+                  >
+                    {h}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* ── BELEZA: verificação de plano ── */}

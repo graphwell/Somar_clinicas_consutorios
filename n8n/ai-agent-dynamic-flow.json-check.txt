@@ -1,0 +1,1440 @@
+﻿{
+  "updatedAt": "2026-04-10T04:03:38.735Z",
+  "createdAt": "2026-04-07T20:52:37.183Z",
+  "id": "qEkpfit2dcWHbYol",
+  "name": "Somar.IA SaaS - Agente AutÃ´nomo WhatsApp (DinÃ¢mico)",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-agent-webhook",
+        "options": {}
+      },
+      "id": "webhook-evolution",
+      "name": "Webhook WhatsApp",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        96,
+        336
+      ],
+      "webhookId": "6f352cac-a2ea-4cb2-ad14-fca0077fdc11"
+    },
+    {
+      "parameters": {
+        "url": "https://synka.somar.ia.br/api/n8n/clinic-info",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "tenantId",
+              "value": "={{ $('Webhook WhatsApp').item.json.body.tenantId || $('Webhook WhatsApp').item.json.tenantId || 'demo-synka-master' }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "synka132504fE@"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fetch-context",
+      "name": "Carregar Contexto ClÃ­nica",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        304,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "text": "={{ $('Webhook WhatsApp').item.json.body.mensagem || $('Webhook WhatsApp').item.json.mensagem }}",
+        "options": {
+          "systemMessage": "={{ `VocÃª Ã© a Assistente Virtual inteligente da ${$node[\"Carregar Contexto ClÃ­nica\"].json.data.nome}.\nSeu objetivo Ã© ser extremamente amigÃ¡vel e garantir que o cliente agende um horÃ¡rio de forma simples.\n\nðŸ¥ HorÃ¡rio: ${$node[\"Carregar Contexto ClÃ­nica\"].json.data.horarioFuncionamento}\nðŸ”— Link direto (Plano B): ${$node[\"Carregar Contexto ClÃ­nica\"].json.data.linkAgendamento}\n\nDIRETRIZES DE OURO:\n1. PRIORIDADE WHATSAPP: Se o cliente quiser agendar, vocÃª DEVE fazer por aqui usando suas Ferramentas (Ver HorÃ¡rios e Criar Agendamento).\n2. FLUXO DE COLETA: Para agendar aqui, vocÃª precisa de: Nome, ServiÃ§o, Profissional, Data e Hora. Pergunte um por um de forma natural. \n3. RESPOSTAS CURTAS: Como no WhatsApp real, responda em no mÃ¡ximo 1 ou 2 frases curtas.\n4. CONFIRMAÃ‡ÃƒO OBRIGATÃ“RIA: Antes de finalizar qualquer agendamento, resuma os dados e peÃ§a um \"SIM\" do cliente.\n5. LINK ALTERNATIVO: SÃ³ ofereÃ§a o link direto se o cliente pedir para agendar sozinho ou se vocÃª perceber que ele estÃ¡ com muita pressa.\n\nINSTRUÃ‡Ã•ES CRÃTICAS:\n- Data atual: ${new Date().toLocaleDateString('pt-BR', {timeZone:'America/Fortaleza'})} (ano 2026)\n- Use SEMPRE o campo \"id\" retornado pelas ferramentas para servicoId e profissionalId. NUNCA invente IDs.\n- Para ver horÃ¡rios, chame PRIMEIRO Listar OpÃ§Ãµes para obter o servicoId real, depois Ver HorÃ¡rios.` }}"
+        }
+      },
+      "id": "ai-agent-main",
+      "name": "Agente AutÃ´nomo Especializado",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1,
+      "position": [
+        512,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "gemini-model",
+      "name": "Google Gemini",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        464,
+        512
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "c5yCGVFQzwGrd3SF",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 10
+      },
+      "id": "buffer-memory",
+      "name": "MemÃ³ria da Conversa",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1,
+      "position": [
+        608,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ \"https://synka.somar.ia.br/api/n8n/list-metadata?_key=\" + synka132504fE@ + \"&tenantId=\" + $('Carregar Contexto ClÃ­nica').item.json.data.tenantId }}",
+        "sendQuery": true,
+        "parametersQuery": {
+          "values": [
+            {
+              "name": "tipo"
+            }
+          ]
+        },
+        "sendHeaders": false,
+        "toolDescription": "Lista serviÃ§os, profissionais ou especialidades da clÃ­nica. ParÃ¢metro tipo: \"servicos\", \"profissionais\" ou \"especialidades\". Retorna lista com campo \"id\" que DEVE ser usado nas outras ferramentas."
+      },
+      "id": "tool-list",
+      "name": "Ferramenta: Listar OpÃ§Ãµes",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1,
+      "position": [
+        752,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ \"https://synka.somar.ia.br/api/n8n/professionals-by-service?_key=\" + synka132504fE@ + \"&tenantId=\" + $('Carregar Contexto ClÃ­nica').item.json.data.tenantId }}",
+        "sendQuery": true,
+        "parametersQuery": {
+          "values": [
+            {
+              "name": "servicoId"
+            }
+          ]
+        },
+        "sendHeaders": false,
+        "toolDescription": "Lista os profissionais que atendem um serviÃ§o especÃ­fico. ParÃ¢metro servicoId: usar o campo \"id\" retornado pela ferramenta Listar OpÃ§Ãµes."
+      },
+      "id": "tool-list-by-service",
+      "name": "Ferramenta: Profissionais por ServiÃ§o",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1,
+      "position": [
+        912,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ \"https://synka.somar.ia.br/api/n8n/client-info?_key=\" + synka132504fE@ + \"&tenantId=\" + $('Carregar Contexto ClÃ­nica').item.json.data.tenantId }}",
+        "sendQuery": true,
+        "parametersQuery": {
+          "values": [
+            {
+              "name": "whatsapp"
+            }
+          ]
+        },
+        "sendHeaders": false
+      },
+      "id": "tool-client-info",
+      "name": "Ferramenta: Info do Cliente",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1,
+      "position": [
+        1056,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ \"https://synka.somar.ia.br/api/n8n/agenda/disponibilidade?_key=\" + synka132504fE@ + \"&tenantId=\" + $('Carregar Contexto ClÃ­nica').item.json.data.tenantId }}",
+        "sendQuery": true,
+        "parametersQuery": {
+          "values": [
+            {
+              "name": "data"
+            },
+            {
+              "name": "servicoId"
+            },
+            {
+              "name": "profissionalId"
+            }
+          ]
+        },
+        "sendHeaders": false,
+        "toolDescription": "Consulta horÃ¡rios disponÃ­veis de um profissional em uma data especÃ­fica. ParÃ¢metros: data (YYYY-MM-DD, ano SEMPRE 2026 ou posterior), servicoId (ID do serviÃ§o â€” usar o campo \"id\" retornado pela ferramenta Listar OpÃ§Ãµes), profissionalId (ID do profissional â€” usar o campo \"id\" retornado pela ferramenta Listar OpÃ§Ãµes, NUNCA inventar)."
+      },
+      "id": "tool-availability",
+      "name": "Ferramenta: Ver HorÃ¡rios",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ \"https://synka.somar.ia.br/api/n8n/cliente/buscar?_key=\" + synka132504fE@ + \"&tenantId=\" + $('Carregar Contexto ClÃ­nica').item.json.data.tenantId }}",
+        "sendQuery": true,
+        "parametersQuery": {
+          "values": [
+            {
+              "name": "telefone"
+            }
+          ]
+        },
+        "sendHeaders": false
+      },
+      "id": "tool-get-appointments",
+      "name": "Ferramenta: Consultar Agendamentos",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1,
+      "position": [
+        1056,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ \"https://synka.somar.ia.br/api/n8n/agenda/criar?_key=\" + synka132504fE@ + \"&tenantId=\" + $('Carregar Contexto ClÃ­nica').item.json.data.tenantId }}",
+        "sendHeaders": false,
+        "sendBody": true,
+        "parametersBody": {
+          "values": [
+            {
+              "name": "nome"
+            },
+            {
+              "name": "dataHora"
+            },
+            {
+              "name": "pacienteTelefone"
+            },
+            {
+              "name": "servicoId"
+            },
+            {
+              "name": "profissionalId"
+            },
+            {
+              "name": "tenantId"
+            }
+          ]
+        },
+        "toolDescription": "Cria um agendamento. Usar apenas apÃ³s confirmaÃ§Ã£o explÃ­cita do cliente (SIM). IMPORTANTE: usar os IDs reais de servicoId e profissionalId retornados pelas ferramentas."
+      },
+      "id": "tool-book",
+      "name": "Ferramenta: Criar Agendamento",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1,
+      "position": [
+        1360,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ \"https://synka.somar.ia.br/api/n8n/agenda/cancelar?_key=\" + synka132504fE@ + \"&tenantId=\" + $('Carregar Contexto ClÃ­nica').item.json.data.tenantId }}",
+        "sendHeaders": false,
+        "sendBody": true,
+        "parametersBody": {
+          "values": [
+            {
+              "name": "id"
+            },
+            {
+              "name": "status"
+            },
+            {
+              "name": "dataHora"
+            },
+            {
+              "name": "tenantId"
+            }
+          ]
+        }
+      },
+      "id": "tool-update",
+      "name": "Ferramenta: Remarcar ou Cancelar",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1,
+      "position": [
+        1360,
+        608
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $('Webhook WhatsApp').item.json.body.mensagem.trim().toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '') }}",
+              "operation": "regex",
+              "value2": "^(sim|s|confirmo|confirmar)[!?.]*$"
+            }
+          ]
+        }
+      },
+      "id": "if-sim",
+      "name": "Ã‰ SIM?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [ 304, 160 ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $('Webhook WhatsApp').item.json.body.mensagem.trim().toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '') }}",
+              "operation": "regex",
+              "value2": "^(nao|n|cancelar|cancela|nao)[!?.]*$"
+            }
+          ]
+        }
+      },
+      "id": "if-nao",
+      "name": "Ã‰ NAO?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [ 304, 480 ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://synka.somar.ia.br/api/n8n/agenda/confirmar",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-api-key", "value": "synka132504fE@" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "telefone", "value": "={{ $('Webhook WhatsApp').item.json.body.telefone }}" },
+            { "name": "tenantId", "value": "={{ $('Carregar Contexto ClÃ­nica').item.json.data.tenantId }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "http-confirmar",
+      "name": "Confirmar Agendamento",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [ 512, 160 ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://synka.somar.ia.br/api/n8n/agenda/cancelar-por-telefone",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-api-key", "value": "synka132504fE@" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "telefone", "value": "={{ $('Webhook WhatsApp').item.json.body.telefone }}" },
+            { "name": "tenantId", "value": "={{ $('Carregar Contexto ClÃ­nica').item.json.data.tenantId }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "http-cancelar-tel",
+      "name": "Cancelar por Telefone",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [ 512, 480 ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.ultramsg.com/instance168762/messages/chat?token=xp3fx1lj7lsnozzg",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "to", "value": "={{ $('Webhook WhatsApp').item.json.body.telefone }}" },
+            { "name": "body", "value": "={{ $json.data?.msgBot ?? 'Agendamento confirmado!' }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "send-wa-confirmar",
+      "name": "Enviar ConfirmaÃ§Ã£o WA",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [ 720, 160 ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.ultramsg.com/instance168762/messages/chat?token=xp3fx1lj7lsnozzg",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "to", "value": "={{ $('Webhook WhatsApp').item.json.body.telefone }}" },
+            { "name": "body", "value": "={{ $json.data?.msgBot ?? 'Agendamento cancelado.' }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "send-wa-cancelar",
+      "name": "Enviar Cancelamento WA",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [ 720, 480 ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.ultramsg.com/instance168762/messages/chat?token=xp3fx1lj7lsnozzg",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "to",
+              "value": "={{ $('Webhook WhatsApp').item.json.body.telefone }}"
+            },
+            {
+              "name": "body",
+              "value": "={{ $('Agente AutÃ´nomo Especializado').item.json.output }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "send-wa",
+      "name": "Disparar Resposta WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1360,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://synka.somar.ia.br/api/n8n/clinic-info",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "tenantId",
+              "value": "={{ $('Webhook WhatsApp').item.json.body.tenantId }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "synka132504fE@"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "buscar-config-wa",
+      "name": "Buscar Config WA",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        864,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.whatsappInstanceKey }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "if-wa-config",
+      "name": "Tem instÃ¢ncia prÃ³pria?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1072,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://wasenderapi.com/api/messages/send",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "to",
+              "value": "={{ ($('Webhook WhatsApp').item.json.body.telefone || $('Webhook WhatsApp').item.json.telefone) }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ $('Agente AutÃ´nomo Especializado').item.json.output }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "send-wasender",
+      "name": "Disparar Resposta WaSender",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1312,
+        64
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Carregar Contexto ClÃ­nica",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Carregar Contexto ClÃ­nica": {
+      "main": [
+        [
+          {
+            "node": "Ã‰ SIM?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ã‰ SIM?": {
+      "main": [
+        [
+          {
+            "node": "Confirmar Agendamento",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ã‰ NAO?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ã‰ NAO?": {
+      "main": [
+        [
+          {
+            "node": "Cancelar por Telefone",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Agente AutÃ´nomo Especializado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirmar Agendamento": {
+      "main": [
+        [
+          {
+            "node": "Enviar ConfirmaÃ§Ã£o WA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cancelar por Telefone": {
+      "main": [
+        [
+          {
+            "node": "Enviar Cancelamento WA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agente AutÃ´nomo Especializado": {
+      "main": [
+        [
+          {
+            "node": "Buscar Config WA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agente AutÃ´nomo Especializado",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MemÃ³ria da Conversa": {
+      "ai_memory": [
+        [
+          {
+            "node": "Agente AutÃ´nomo Especializado",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ferramenta: Listar OpÃ§Ãµes": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente AutÃ´nomo Especializado",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ferramenta: Profissionais por ServiÃ§o": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente AutÃ´nomo Especializado",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ferramenta: Info do Cliente": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente AutÃ´nomo Especializado",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ferramenta: Ver HorÃ¡rios": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente AutÃ´nomo Especializado",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ferramenta: Consultar Agendamentos": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente AutÃ´nomo Especializado",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ferramenta: Criar Agendamento": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente AutÃ´nomo Especializado",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ferramenta: Remarcar ou Cancelar": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente AutÃ´nomo Especializado",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Config WA": {
+      "main": [
+        [
+          {
+            "node": "Tem instÃ¢ncia prÃ³pria?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tem instÃ¢ncia prÃ³pria?": {
+      "main": [
+        [
+          {
+            "node": "Disparar Resposta WaSender",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Disparar Resposta WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "a1cba22f-cd23-4a96-8ab3-42e9d0367275",
+  "activeVersionId": "a1cba22f-cd23-4a96-8ab3-42e9d0367275",
+  "versionCounter": 453,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-04-07T20:52:37.183Z",
+      "createdAt": "2026-04-07T20:52:37.183Z",
+      "role": "workflow:owner",
+      "workflowId": "qEkpfit2dcWHbYol",
+      "projectId": "U0Cc0yzoZfSkcbLi",
+      "project": {
+        "updatedAt": "2026-03-22T18:57:21.062Z",
+        "createdAt": "2026-03-22T18:56:23.795Z",
+        "id": "U0Cc0yzoZfSkcbLi",
+        "name": "Barbosa somar.solucoes.suporte@gmail.com <somar.solucoes.suporte@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "a3a6fdbe-6d03-45f0-8c11-118eb7666e9a"
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-04-10T04:03:43.998Z",
+    "createdAt": "2026-04-10T04:03:38.736Z",
+    "versionId": "a1cba22f-cd23-4a96-8ab3-42e9d0367275",
+    "workflowId": "qEkpfit2dcWHbYol",
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "whatsapp-agent-webhook",
+          "options": {}
+        },
+        "id": "webhook-evolution",
+        "name": "Webhook WhatsApp",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 1,
+        "position": [
+          96,
+          336
+        ],
+        "webhookId": "6f352cac-a2ea-4cb2-ad14-fca0077fdc11"
+      },
+      {
+        "parameters": {
+          "url": "https://synka.somar.ia.br/api/n8n/clinic-info",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "tenantId",
+                "value": "={{ $('Webhook WhatsApp').item.json.body.tenantId || $('Webhook WhatsApp').item.json.tenantId || 'demo-synka-master' }}"
+              }
+            ]
+          },
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "x-api-key",
+                "value": "synka132504fE@"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "fetch-context",
+        "name": "Carregar Contexto ClÃ­nica",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          304,
+          304
+        ]
+      },
+      {
+        "parameters": {
+          "text": "={{ $('Webhook WhatsApp').item.json.body.mensagem || $('Webhook WhatsApp').item.json.mensagem }}",
+          "options": {
+            "systemMessage": "={{ `VocÃª Ã© a Assistente Virtual inteligente da ${$node[\"Carregar Contexto ClÃ­nica\"].json.nome}.\nSeu objetivo Ã© ser extremamente amigÃ¡vel e garantir que o cliente agende um horÃ¡rio de forma simples.\n\nðŸ¥ HorÃ¡rio: ${$node[\"Carregar Contexto ClÃ­nica\"].json.horarioFuncionamento}\nðŸ”— Link direto (Plano B): ${$node[\"Carregar Contexto ClÃ­nica\"].json.linkAgendamento}\n\nDIRETRIZES DE OURO:\n1. PRIORIDADE WHATSAPP: Se o cliente quiser agendar, vocÃª DEVE fazer por aqui usando suas Ferramentas (Ver HorÃ¡rios e Criar Agendamento).\n2. FLUXO DE COLETA: Para agendar aqui, vocÃª precisa de: Nome, ServiÃ§o, Profissional, Data e Hora. Pergunte um por um de forma natural. \n3. RESPOSTAS CURTAS: Como no WhatsApp real, responda em no mÃ¡ximo 1 ou 2 frases curtas.\n4. CONFIRMAÃ‡ÃƒO OBRIGATÃ“RIA: Antes de finalizar qualquer agendamento, resuma os dados e peÃ§a um \"SIM\" do cliente.\n5. LINK ALTERNATIVO: SÃ³ ofereÃ§a o link direto se o cliente pedir para agendar sozinho ou se vocÃª perceber que ele estÃ¡ com muita pressa.` }}"
+          }
+        },
+        "id": "ai-agent-main",
+        "name": "Agente AutÃ´nomo Especializado",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "typeVersion": 1,
+        "position": [
+          512,
+          304
+        ]
+      },
+      {
+        "parameters": {
+          "options": {}
+        },
+        "id": "gemini-model",
+        "name": "Google Gemini",
+        "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+        "typeVersion": 1,
+        "position": [
+          464,
+          512
+        ],
+        "credentials": {
+          "googlePalmApi": {
+            "id": "c5yCGVFQzwGrd3SF",
+            "name": "Google Gemini(PaLM) Api account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "contextWindowLength": 10
+        },
+        "id": "buffer-memory",
+        "name": "MemÃ³ria da Conversa",
+        "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+        "typeVersion": 1,
+        "position": [
+          608,
+          512
+        ]
+      },
+      {
+        "parameters": {
+          "url": "https://api.somar.ia.br/api/n8n/list-metadata",
+          "sendQuery": true,
+          "parametersQuery": {
+            "values": [
+              {
+                "name": "tenantId"
+              },
+              {
+                "name": "tipo"
+              }
+            ]
+          },
+          "sendHeaders": true,
+          "parametersHeaders": {
+            "values": [
+              {
+                "name": "x-api-key"
+              }
+            ]
+          }
+        },
+        "id": "tool-list",
+        "name": "Ferramenta: Listar OpÃ§Ãµes",
+        "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+        "typeVersion": 1,
+        "position": [
+          752,
+          432
+        ]
+      },
+      {
+        "parameters": {
+          "url": "https://api.somar.ia.br/api/n8n/professionals-by-service",
+          "sendQuery": true,
+          "parametersQuery": {
+            "values": [
+              {
+                "name": "tenantId"
+              },
+              {
+                "name": "servicoId"
+              }
+            ]
+          },
+          "sendHeaders": true,
+          "parametersHeaders": {
+            "values": [
+              {
+                "name": "x-api-key"
+              }
+            ]
+          }
+        },
+        "id": "tool-list-by-service",
+        "name": "Ferramenta: Profissionais por ServiÃ§o",
+        "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+        "typeVersion": 1,
+        "position": [
+          912,
+          480
+        ]
+      },
+      {
+        "parameters": {
+          "url": "https://api.somar.ia.br/api/n8n/client-info",
+          "sendQuery": true,
+          "parametersQuery": {
+            "values": [
+              {
+                "name": "tenantId"
+              },
+              {
+                "name": "whatsapp"
+              }
+            ]
+          },
+          "sendHeaders": true,
+          "parametersHeaders": {
+            "values": [
+              {
+                "name": "x-api-key"
+              }
+            ]
+          }
+        },
+        "id": "tool-client-info",
+        "name": "Ferramenta: Info do Cliente",
+        "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+        "typeVersion": 1,
+        "position": [
+          1056,
+          544
+        ]
+      },
+      {
+        "parameters": {
+          "url": "https://synka.somar.ia.br/api/n8n/agenda/disponibilidade",
+          "sendQuery": true,
+          "parametersQuery": {
+            "values": [
+              {
+                "name": "date"
+              },
+              {
+                "name": "profissionalId"
+              },
+              {
+                "name": "tenantId"
+              }
+            ]
+          },
+          "sendHeaders": true,
+          "parametersHeaders": {
+            "values": [
+              {
+                "name": "x-api-key"
+              }
+            ]
+          }
+        },
+        "id": "tool-availability",
+        "name": "Ferramenta: Ver HorÃ¡rios",
+        "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+        "typeVersion": 1,
+        "position": [
+          1200,
+          432
+        ]
+      },
+      {
+        "parameters": {
+          "url": "https://synka.somar.ia.br/api/n8n/cliente/buscar",
+          "sendQuery": true,
+          "parametersQuery": {
+            "values": [
+              {
+                "name": "telefone"
+              },
+              {
+                "name": "tenantId"
+              }
+            ]
+          },
+          "sendHeaders": true,
+          "parametersHeaders": {
+            "values": [
+              {
+                "name": "x-api-key"
+              }
+            ]
+          }
+        },
+        "id": "tool-get-appointments",
+        "name": "Ferramenta: Consultar Agendamentos",
+        "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+        "typeVersion": 1,
+        "position": [
+          1056,
+          624
+        ]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://synka.somar.ia.br/api/n8n/agenda/criar",
+          "sendHeaders": true,
+          "parametersHeaders": {
+            "values": [
+              {
+                "name": "x-api-key"
+              }
+            ]
+          },
+          "sendBody": true,
+          "parametersBody": {
+            "values": [
+              {
+                "name": "nome"
+              },
+              {
+                "name": "dataHora"
+              },
+              {
+                "name": "pacienteTelefone"
+              },
+              {
+                "name": "servicoId"
+              },
+              {
+                "name": "profissionalId"
+              },
+              {
+                "name": "tenantId"
+              }
+            ]
+          }
+        },
+        "id": "tool-book",
+        "name": "Ferramenta: Criar Agendamento",
+        "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+        "typeVersion": 1,
+        "position": [
+          1360,
+          480
+        ]
+      },
+      {
+        "parameters": {
+          "method": "PATCH",
+          "url": "https://synka.somar.ia.br/api/n8n/agenda/cancelar",
+          "sendHeaders": true,
+          "parametersHeaders": {
+            "values": [
+              {
+                "name": "x-api-key"
+              }
+            ]
+          },
+          "sendBody": true,
+          "parametersBody": {
+            "values": [
+              {
+                "name": "id"
+              },
+              {
+                "name": "status"
+              },
+              {
+                "name": "dataHora"
+              },
+              {
+                "name": "tenantId"
+              }
+            ]
+          }
+        },
+        "id": "tool-update",
+        "name": "Ferramenta: Remarcar ou Cancelar",
+        "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+        "typeVersion": 1,
+        "position": [
+          1360,
+          608
+        ]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://api.ultramsg.com/instance168762/messages/chat?token=xp3fx1lj7lsnozzg",
+          "sendBody": true,
+          "contentType": "form-urlencoded",
+          "bodyParameters": {
+            "parameters": [
+              {
+                "name": "to",
+                "value": "={{ $('Webhook WhatsApp').item.json.body.telefone }}"
+              },
+              {
+                "name": "body",
+                "value": "={{ $('Agente AutÃ´nomo Especializado').item.json.output }}"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "send-wa",
+        "name": "Disparar Resposta WhatsApp",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          1360,
+          256
+        ]
+      },
+      {
+        "parameters": {
+          "url": "https://synka.somar.ia.br/api/n8n/clinic-info",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "tenantId",
+                "value": "={{ $('Webhook WhatsApp').item.json.body.tenantId }}"
+              }
+            ]
+          },
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "x-api-key",
+                "value": "synka132504fE@"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "buscar-config-wa",
+        "name": "Buscar Config WA",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          864,
+          160
+        ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "string": [
+              {
+                "value1": "={{ $json.whatsappInstanceKey }}",
+                "operation": "isNotEmpty"
+              }
+            ]
+          }
+        },
+        "id": "if-wa-config",
+        "name": "Tem instÃ¢ncia prÃ³pria?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 1,
+        "position": [
+          1072,
+          160
+        ]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://wasenderapi.com/api/messages/send",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {}
+            ]
+          },
+          "sendBody": true,
+          "bodyParameters": {
+            "parameters": [
+              {
+                "name": "to",
+                "value": "={{ ($('Webhook WhatsApp').item.json.body.telefone || $('Webhook WhatsApp').item.json.telefone) }}"
+              },
+              {
+                "name": "message",
+                "value": "={{ $('Agente AutÃ´nomo Especializado').item.json.output }}"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "send-wasender",
+        "name": "Disparar Resposta WaSender",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          1312,
+          64
+        ]
+      }
+    ],
+    "connections": {
+      "Webhook WhatsApp": {
+        "main": [
+          [
+            {
+              "node": "Carregar Contexto ClÃ­nica",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Carregar Contexto ClÃ­nica": {
+        "main": [
+          [
+            {
+              "node": "Agente AutÃ´nomo Especializado",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Agente AutÃ´nomo Especializado": {
+        "main": [
+          [
+            {
+              "node": "Buscar Config WA",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Gemini": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Agente AutÃ´nomo Especializado",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "MemÃ³ria da Conversa": {
+        "ai_memory": [
+          [
+            {
+              "node": "Agente AutÃ´nomo Especializado",
+              "type": "ai_memory",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Ferramenta: Listar OpÃ§Ãµes": {
+        "ai_tool": [
+          [
+            {
+              "node": "Agente AutÃ´nomo Especializado",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Ferramenta: Profissionais por ServiÃ§o": {
+        "ai_tool": [
+          [
+            {
+              "node": "Agente AutÃ´nomo Especializado",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Ferramenta: Info do Cliente": {
+        "ai_tool": [
+          [
+            {
+              "node": "Agente AutÃ´nomo Especializado",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Ferramenta: Ver HorÃ¡rios": {
+        "ai_tool": [
+          [
+            {
+              "node": "Agente AutÃ´nomo Especializado",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Ferramenta: Consultar Agendamentos": {
+        "ai_tool": [
+          [
+            {
+              "node": "Agente AutÃ´nomo Especializado",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Ferramenta: Criar Agendamento": {
+        "ai_tool": [
+          [
+            {
+              "node": "Agente AutÃ´nomo Especializado",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Ferramenta: Remarcar ou Cancelar": {
+        "ai_tool": [
+          [
+            {
+              "node": "Agente AutÃ´nomo Especializado",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Buscar Config WA": {
+        "main": [
+          [
+            {
+              "node": "Tem instÃ¢ncia prÃ³pria?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Tem instÃ¢ncia prÃ³pria?": {
+        "main": [
+          [
+            {
+              "node": "Disparar Resposta WaSender",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Disparar Resposta WhatsApp",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Barbosa somar.solucoes.suporte@gmail.com",
+    "name": "Version a1cba22f",
+    "description": "",
+    "autosaved": true,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-04-10T04:03:43.997Z",
+        "id": 391,
+        "workflowId": "qEkpfit2dcWHbYol",
+        "versionId": "a1cba22f-cd23-4a96-8ab3-42e9d0367275",
+        "event": "activated",
+        "userId": "a3a6fdbe-6d03-45f0-8c11-118eb7666e9a"
+      }
+    ]
+  }
+}
