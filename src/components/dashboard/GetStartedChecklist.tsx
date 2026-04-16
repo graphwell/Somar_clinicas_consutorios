@@ -33,10 +33,8 @@ export default function GetStartedChecklist() {
             hasServices: data.hasServices,
             hasBot: data.hasBot
           });
-          // Só mostra se não completou tudo
-          if (!(data.hasTeam && data.hasServices && data.hasBot)) {
-             setVisible(true);
-          }
+          // Mostra sempre que carregar (a menos que já tenha fechado no X antes)
+          setVisible(true);
         }
       })
       .catch((e) => console.error("Erro no checklist", e))
