@@ -2,12 +2,16 @@
 import React, { useState, useEffect, useRef } from "react";
 import { IconMenu, IconBell } from "@/components/icons/NavIcons";
 import Avatar from "@/components/ui/Avatar";
+import Link from "next/link";
 import { fetchWithAuth, clearAuthSession } from "@/lib/api-utils";
+import { useToast } from "@/components/ui/Toast";
 
 interface TopbarProps {
   onMenuClick: () => void;
   currentUser: { nome?: string; email?: string; role?: string } | null;
+  currentUser: { nome?: string; email?: string; role?: string } | null;
   clientName?: string | null;
+  clientSlug?: string | null;
 }
 
 function getGreeting(): string {
@@ -26,7 +30,8 @@ function formatDate(): string {
   }).format(new Date());
 }
 
-export default function Topbar({ onMenuClick, currentUser, clientName }: TopbarProps) {
+export default function Topbar({ onMenuClick, currentUser, clientName, clientSlug }: TopbarProps) {
+  const { toast } = useToast();
   const [notifCount, setNotifCount] = useState(0);
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifs, setNotifs] = useState<any[]>([]);
@@ -59,6 +64,15 @@ export default function Topbar({ onMenuClick, currentUser, clientName }: TopbarP
 
   const nome = currentUser?.nome || currentUser?.email?.split("@")[0] || "Usuário";
   const dateStr = formatDate();
+
+  const handleCopyLink = () => {
+    if (!clientSlug) return;
+    const url = `${window.location.origin}/agendar/${clientSlug}`;
+    navigator.clipboard.writeText(url)
+      .then(() => toast.success("Link copiado para a área de transferência!"))
+      .catch(() => toast.error("Não foi possível copiar o link."));
+    setUserOpen(false);
+  };
 
   return (
     <header
@@ -162,12 +176,37 @@ export default function Topbar({ onMenuClick, currentUser, clientName }: TopbarP
                 <p className="text-xs font-medium text-slate-700">{nome}</p>
                 <p className="text-[11px] text-slate-100">{currentUser?.email}</p>
               </div>
-              <button
-                onClick={() => clearAuthSession()}
-                className="w-full text-left px-4 py-3 text-xs text-red-600 hover:bg-red-50 transition-colors"
-              >
-                Sair da conta
-              </button>
+
+              <div className="py-1 flex flex-col border-b border-warm-100">
+                <Link
+                  href="/dashboard/settings"
+                  onClick={() => setUserOpen(false)}
+                  className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-2"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                  Configurações
+                </Link>
+                
+                {clientSlug && (
+                  <button
+                    onClick={handleCopyLink}
+                    className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-2"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+                    Copiar Meu Link Público
+                  </button>
+                )}
+              </div>
+
+              <div className="py-1">
+                <button
+                  onClick={() => clearAuthSession()}
+                  className="w-full text-left px-4 py-2 text-xs text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                  Sair da conta
+                </button>
+              </div>
             </div>
           )}
         </div>

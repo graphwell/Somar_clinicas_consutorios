@@ -15,6 +15,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [clientLogo, setClientLogo]   = useState<string | null>(null);
   const [clientName, setClientName]   = useState<string | null>(null);
+  const [clientSlug, setClientSlug]   = useState<string | null>(null);
   const [loading, setLoading]         = useState(true);
   const [hasMounted, setHasMounted]   = useState(false);
   const [currentUser, setCurrentUser] = useState<{
@@ -70,6 +71,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
           if (branding?.logoUrl) setClientLogo(branding.logoUrl);
           if (clinica.nome || clinica.razaoSocial)
             setClientName(clinica.nome || clinica.razaoSocial);
+          if (clinica.slug) setClientSlug(clinica.slug);
         }
       })
       .catch(() => {})
@@ -117,6 +119,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             onMenuClick={() => setSidebarOpen(true)}
             currentUser={currentUser}
             clientName={clientName}
+            clientSlug={clientSlug}
           />
 
           {meStatus?.planStatus === 'trial' && meStatus?.diasRestantesTrial !== undefined && meStatus.diasRestantesTrial <= 7 && (
