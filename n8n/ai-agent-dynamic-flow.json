@@ -105,7 +105,7 @@
     },
     {
       "parameters": {
-        "url": "={{ \"https://synka.somar.ia.br/api/n8n/list-metadata?_key=\" + synka132504fE@ + \"&tenantId=\" + $('Carregar Contexto Clínica').item.json.data.tenantId }}",
+        "url": "={{ \"https://synka.somar.ia.br/api/n8n/list-metadata?_key=\" + 'synka132504fE@' + \"&tenantId=\" + $('Carregar Contexto Clínica').item.json.data.tenantId }}",
         "sendQuery": true,
         "parametersQuery": {
           "values": [
@@ -128,7 +128,7 @@
     },
     {
       "parameters": {
-        "url": "={{ \"https://synka.somar.ia.br/api/n8n/professionals-by-service?_key=\" + synka132504fE@ + \"&tenantId=\" + $('Carregar Contexto Clínica').item.json.data.tenantId }}",
+        "url": "={{ \"https://synka.somar.ia.br/api/n8n/professionals-by-service?_key=\" + 'synka132504fE@' + \"&tenantId=\" + $('Carregar Contexto Clínica').item.json.data.tenantId }}",
         "sendQuery": true,
         "parametersQuery": {
           "values": [
@@ -151,7 +151,7 @@
     },
     {
       "parameters": {
-        "url": "={{ \"https://synka.somar.ia.br/api/n8n/client-info?_key=\" + synka132504fE@ + \"&tenantId=\" + $('Carregar Contexto Clínica').item.json.data.tenantId }}",
+        "url": "={{ \"https://synka.somar.ia.br/api/n8n/client-info?_key=\" + 'synka132504fE@' + \"&tenantId=\" + $('Carregar Contexto Clínica').item.json.data.tenantId }}",
         "sendQuery": true,
         "parametersQuery": {
           "values": [
@@ -173,7 +173,7 @@
     },
     {
       "parameters": {
-        "url": "={{ \"https://synka.somar.ia.br/api/n8n/agenda/disponibilidade?_key=\" + synka132504fE@ + \"&tenantId=\" + $('Carregar Contexto Clínica').item.json.data.tenantId }}",
+        "url": "={{ \"https://synka.somar.ia.br/api/n8n/agenda/disponibilidade?_key=\" + 'synka132504fE@' + \"&tenantId=\" + $('Carregar Contexto Clínica').item.json.data.tenantId }}",
         "sendQuery": true,
         "parametersQuery": {
           "values": [
@@ -202,7 +202,7 @@
     },
     {
       "parameters": {
-        "url": "={{ \"https://synka.somar.ia.br/api/n8n/cliente/buscar?_key=\" + synka132504fE@ + \"&tenantId=\" + $('Carregar Contexto Clínica').item.json.data.tenantId }}",
+        "url": "={{ \"https://synka.somar.ia.br/api/n8n/cliente/buscar?_key=\" + 'synka132504fE@' + \"&tenantId=\" + $('Carregar Contexto Clínica').item.json.data.tenantId }}",
         "sendQuery": true,
         "parametersQuery": {
           "values": [
@@ -225,7 +225,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ \"https://synka.somar.ia.br/api/n8n/agenda/criar?_key=\" + synka132504fE@ + \"&tenantId=\" + $('Carregar Contexto Clínica').item.json.data.tenantId }}",
+        "url": "={{ \"https://synka.somar.ia.br/api/n8n/agenda/criar?_key=\" + 'synka132504fE@' + \"&tenantId=\" + $('Carregar Contexto Clínica').item.json.data.tenantId }}",
         "sendHeaders": false,
         "sendBody": true,
         "parametersBody": {
@@ -264,7 +264,7 @@
     {
       "parameters": {
         "method": "PATCH",
-        "url": "={{ \"https://synka.somar.ia.br/api/n8n/agenda/cancelar?_key=\" + synka132504fE@ + \"&tenantId=\" + $('Carregar Contexto Clínica').item.json.data.tenantId }}",
+        "url": "={{ \"https://synka.somar.ia.br/api/n8n/agenda/cancelar?_key=\" + 'synka132504fE@' + \"&tenantId=\" + $('Carregar Contexto Clínica').item.json.data.tenantId }}",
         "sendHeaders": false,
         "sendBody": true,
         "parametersBody": {
