@@ -20,7 +20,7 @@
     },
     {
       "parameters": {
-        "url": "https://api.somar.ia.br/api/bot/appointments/reminders",
+        "url": "https://synka.somar.ia.br/api/bot/appointments/reminders",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -81,10 +81,10 @@
     },
     "Para cada Agendamento": {
       "main": [
-        [ { "node": "Disparar WhatsApp Lembrete", "type": "main", "index": 0 } ]
+        [ { "node": "Disparar UltraMsg Lembrete", "type": "main", "index": 0 } ]
       ]
     },
-    "Disparar WhatsApp Lembrete": {
+    "Disparar UltraMsg Lembrete": {
       "main": [
         [ { "node": "Para cada Agendamento", "type": "main", "index": 0 } ]
       ]
