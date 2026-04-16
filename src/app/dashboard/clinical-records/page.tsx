@@ -959,7 +959,7 @@ export default function ClinicalRecordsPage() {
                 <GravadorVoz
                   onTranscricao={(texto) => {
                     setTranscricaoOriginal(texto);
-                    if (!evolucaoText) setEvolucaoText(texto);
+                    setEvolucaoText(prev => prev ? prev + '\n\n' + texto : texto);
                   }}
                 />
               )}
