@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-
+import Script from "next/script";
 /* ─── DORES ROTATIVAS ─── */
 const DORES = [
   {
@@ -154,6 +154,15 @@ export default function PageEstetica() {
 
   return (
     <div className="min-h-[100svh] bg-[#050510] text-white font-sans overflow-x-hidden">
+      <Script id="clarity-script" strategy="afterInteractive">
+        {`
+          (function(c,l,a,r,i,t,y){
+              c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+              t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+              y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+          })(window, document, "clarity", "script", "wcsspu8dwd");
+        `}
+      </Script>
 
       {/* ══════════════════════════════
           NAV
