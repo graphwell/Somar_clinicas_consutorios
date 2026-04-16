@@ -433,22 +433,20 @@ export default function SettingsPage() {
            </div>
 
            <div className="premium-card p-6 bg-white space-y-6 shadow-sm">
-              <h3 className="text-base font-black text-text-main italic uppercase tracking-tighter border-b border-slate-50 pb-4">3. Segmento</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                 {[
-                   "Clínica Médica", "Clínica de Estética", "Fisioterapia", "Pilates",
-                   "Nutricionista", "Psicólogo", "Beleza / Barbearia", "Outros"
-                 ].map((id) => (
-                   <button key={id} onClick={() => setNiche(id)} className={`flex flex-col items-center justify-center p-2 rounded-xl border transition-all text-center h-16 ${niche === id ? 'border-primary bg-primary-soft shadow-sm' : 'border-slate-50 opacity-40 hover:opacity-100'}`}>
-                     <span className="text-[6px] font-black uppercase text-text-main leading-tight italic">{id.split(' ')[0]}</span>
-                   </button>
-                 ))}
-              </div>
-              <div className="p-6 bg-primary-soft/50 border border-primary/20 rounded-[2rem] flex items-center gap-4">
-                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="shrink-0 text-primary"><rect x="3" y="6" width="12" height="9" rx="2" stroke="currentColor" strokeWidth="1.5"/><path d="M6 6V5a3 3 0 016 0v1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><circle cx="6.5" cy="10.5" r="1" fill="currentColor"/><circle cx="11.5" cy="10.5" r="1" fill="currentColor"/><path d="M7 13h4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
-                 <p className="text-[9px] text-primary font-black uppercase leading-relaxed tracking-wider">
-                    O sistema adapta automaticamente labels e fluxos para {niche.toUpperCase()}.
-                 </p>
+              <h3 className="text-base font-black text-text-main italic uppercase tracking-tighter border-b border-slate-50 pb-4">3. Segmento da Operação</h3>
+              <div className="space-y-4">
+                <p className="text-[11px] font-medium text-text-muted leading-relaxed">
+                  O seu segmento foi definido durante a sua configuração inicial. A Synka adapta automaticamente os módulos, calendários e terminologias de uso com base nesta escolha para não desconfigurar o sistema.
+                </p>
+                <div className="p-5 bg-slate-50 border border-card-border rounded-2xl flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-white shadow flex items-center justify-center shrink-0">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-black uppercase tracking-[0.1em] text-text-placeholder">Categoria Atual em Operação</p>
+                    <p className="text-base font-black text-text-main mt-0.5">{niche.replace('_', ' ')}</p>
+                  </div>
+                </div>
               </div>
            </div>
         </div>
