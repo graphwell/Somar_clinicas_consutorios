@@ -6,7 +6,7 @@
     },
     {
       "path": "/api/cron/fila-expirar",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 0 * * *"
     }
   ]
 }
