@@ -161,12 +161,12 @@ function CardAgendamento({
             {cor.label}
           </span>
         </div>
-        <div className="flex items-center gap-1 mt-0.5">
-          <span className="text-[11px] text-slate-100">
-            {formatTime(ag.dataHora)} – {formatTime(ag.fimDataHora)}
+        <div className="flex items-center gap-1 mt-0.5 min-w-0">
+          <span className="text-[11px] text-slate-100 shrink-0">
+            {formatTime(ag.dataHora)}
           </span>
           {ag.servico && (
-            <span className="text-[11px] text-slate-100">
+            <span className="text-[11px] text-slate-100 truncate">
               · {ag.servico.nome}
             </span>
           )}
@@ -245,10 +245,10 @@ function ColunaProfissional({
                   }} />
                 ) : (
                 <div className="flex items-center gap-1">
-                  <span className="text-[10px] text-slate-100 w-9 shrink-0 text-right">
+                  <span className="text-[10px] text-slate-100 w-9 shrink-0 text-right truncate">
                     {slot.horario}
                   </span>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     {slot.tipo === 'ocupado' && slot.agendamento ? (
                       <CardAgendamento
                         ag={slot.agendamento}
@@ -258,22 +258,22 @@ function ColunaProfissional({
                     ) : slot.tipo === 'ocupado' ? (
                       /* Continuação de agendamento — bloco colorido */
                       <div
-                        className="h-8 rounded-lg opacity-40"
+                        className="h-8 rounded-lg opacity-40 w-full"
                         style={{ background: prof.color }}
                       />
                     ) : slot.tipo === 'almoco' ? (
-                      <div className="h-8 rounded-lg bg-warm-200 flex items-center justify-center">
-                        <span className="text-[10px] text-slate-100">Almoço</span>
+                      <div className="h-8 rounded-lg bg-warm-200 flex items-center justify-center w-full">
+                        <span className="text-[10px] text-slate-100 truncate">Almoço</span>
                       </div>
                     ) : slot.tipo === 'fechado' ? (
-                      <div className="h-8 rounded-lg bg-warm-100 opacity-50" />
+                      <div className="h-8 rounded-lg bg-warm-100 opacity-50 w-full" />
                     ) : slot.tipo === 'folga' ? (
-                      <div className="h-8 rounded-lg bg-warm-200 opacity-60" />
+                      <div className="h-8 rounded-lg bg-warm-200 opacity-60 w-full" />
                     ) : (
                       /* livre */
                       <button
                         onClick={() => onSlotClick(slot.horario)}
-                        className="w-full h-8 rounded-lg border border-dashed border-warm-300 text-slate-100 text-[11px] hover:border-sage-400 hover:bg-sage-50 hover:text-sage-600 transition-all"
+                        className="w-full h-8 rounded-lg border border-dashed border-warm-300 text-slate-100 text-[11px] hover:border-sage-400 hover:bg-sage-50 hover:text-sage-600 transition-all truncate"
                       >
                         +
                       </button>
