@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import prisma from '@/lib/prisma';
 import { getSessionInfo } from '@/lib/auth-helpers';
 import { baixarInsumosDoAtendimento } from '@/lib/insumos-baixa';
 
@@ -19,29 +19,21 @@ export async function PATCH(
       return NextResponse.json({ error: 'status é obrigatório' }, { status: 400 });
     }
 
-    // Buscar agendamento atual
     const agendamento = await prisma.agendamento.findFirst({
       where: { id: params.id, tenantId },
-      select: {
-        id: true,
-        status: true,
-        servicoId: true,
-        profissionalId: true,
-        tenantId: true,
-      },
+      select: { id: true, status: true, servicoId: true, profissionalId: true, tenantId: true },
     });
 
     if (!agendamento) {
       return NextResponse.json({ error: 'Agendamento não encontrado' }, { status: 404 });
     }
 
-    // Atualiza o status
     const updated = await prisma.agendamento.update({
       where: { id: params.id },
       data: { status },
     });
 
-    // ── Baixa automática de insumos ao concluir ────────────────────────
+    // Baixa automática de insumos ao concluir
     let insumosBaixados = 0;
     if (status === 'done' && agendamento.status !== 'done' && agendamento.servicoId) {
       const resultado = await baixarInsumosDoAtendimento({
@@ -51,12 +43,10 @@ export async function PATCH(
         tenantId,
       });
       insumosBaixados = resultado.baixadas;
-
       if (resultado.erros.length > 0) {
         console.warn('[insumos-baixa] Erros:', resultado.erros);
       }
     }
-    // ──────────────────────────────────────────────────────────────────
 
     return NextResponse.json({ ...updated, insumosBaixados });
   } catch (error: any) {

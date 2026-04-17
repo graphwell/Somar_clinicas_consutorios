@@ -1,10 +1,8 @@
 /**
  * Utilitário de baixa automática de insumos.
- * 
- * Chamado ao concluir um agendamento — busca a ficha técnica do serviço
- * e dá baixa no estoque de cada insumo vinculado.
+ * Chamado ao concluir um agendamento.
  */
-import { prisma } from '@/lib/prisma';
+import prisma from '@/lib/prisma';
 
 export async function baixarInsumosDoAtendimento(params: {
   agendamentoId: string;
@@ -36,15 +34,13 @@ export async function baixarInsumosDoAtendimento(params: {
       }
 
       const qtdBaixa = ficha.quantidadeEst;
-      const novoSaldo = Math.max(0, produto.estoque - qtdBaixa); // não vai negativo
+      const novoSaldo = Math.max(0, produto.estoque - qtdBaixa);
 
-      // Atualiza estoque
       await prisma.produto.update({
         where: { id: produto.id },
         data: { estoque: novoSaldo },
       });
 
-      // Registra movimentação
       await prisma.movimentacaoEstoque.create({
         data: {
           tenantId,
@@ -55,7 +51,7 @@ export async function baixarInsumosDoAtendimento(params: {
           saldoDepois: novoSaldo,
           agendamentoId,
           profissionalId: profissionalId || null,
-          observacao: `Baixa automática — atendimento concluído`,
+          observacao: 'Baixa automática — atendimento concluído',
         },
       });
 

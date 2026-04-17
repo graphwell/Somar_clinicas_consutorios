@@ -42,7 +42,7 @@ const TIPOS = [
   { value: "ambos", label: "Insumo + Venda" },
 ];
 
-function fmt(v: number) { return `R$ ${v.toFixed(2).replace(".", ",")}; }
+function fmt(v: number) { return "R$ " + v.toFixed(2).replace(".", ","); }
 function fmtQtd(v: number, u: string) { return `${v % 1 === 0 ? v : v.toFixed(1)} ${u}`; }
 
 function BadgeAlerta({ severidade }: { severidade: string }) {
