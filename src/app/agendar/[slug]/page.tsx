@@ -1046,7 +1046,7 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
 
       </div>
 
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <style dangerouslySetInnerHTML={{ __html: '@keyframes spin { to { transform: rotate(360deg); } }' }} />
     </div>
   );
 }
