@@ -62,6 +62,9 @@ model Clinica {
   consentimentos       ConsentimentoImagem[]
   resultadosAntesDepois ResultadoAntesDepois[]
   filaEspera           FilaEspera[]
+  // Insumos
+  fichasTecnicas       InsumoFichaTecnica[]
+  movimentacoesEstoque MovimentacaoEstoque[]
 }
 
 enum NichoType {
@@ -178,6 +181,7 @@ model Profissional {
   consentimentos ConsentimentoImagem[]
   resultadosAntesDepois ResultadoAntesDepois[]
   filaEspera    FilaEspera[]
+  movimentacoesEstoque MovimentacaoEstoque[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
@@ -288,6 +292,7 @@ model Agendamento {
   transacao       TransacaoFinanceira?
 
   pedidoItens     PedidoItem[]
+  movimentacoes   MovimentacaoEstoque[]
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
@@ -429,6 +434,7 @@ model Servico {
   tabelaPrecos     ConvenioTabelaPreco[]
   sugestoesProduto ServicoSugestao[]
   filaEspera       FilaEspera[]
+  fichasTecnicas   InsumoFichaTecnica[]
 
   @@map("servicos")
 }
@@ -1032,26 +1038,34 @@ model CategoriaProduto {
 }
 
 model Produto {
-  id          String            @id @default(uuid())
-  tenantId    String
-  categoriaId String?
-  nome        String
-  descricao   String?
-  dicaDeUso   String?
-  preco       Float             @default(0.0)
-  imageUrl    String?           @db.Text
-  estoque     Int               @default(0)
-  status         String            @default("active") // active | inactive
+  id             String            @id @default(uuid())
+  tenantId       String
+  categoriaId    String?
+  nome           String
+  descricao      String?
+  dicaDeUso      String?
+  preco          Float             @default(0.0)
+  imageUrl       String?           @db.Text
+  estoque        Float             @default(0)    // Float para suportar ml/g
+  estoqueMinimo  Float             @default(0)    // alerta de ruptura 
+  status         String            @default("active")  // active | inactive
+  tipo           String            @default("venda")   // venda | insumo | ambos
+  unidade        String            @default("un")      // un | ml | g | l | kg
+  custoUnitario  Float             @default(0.0)
+  dataEntrada    DateTime?
+  dataValidade   DateTime?
   tags           String[]
   fabricante     String?
   posicionamento String?
-  clinica     Clinica           @relation(fields: [tenantId], references: [tenantId])
-  categoria   CategoriaProduto? @relation(fields: [categoriaId], references: [id])
-  comboItens  ComboItemVitrine[]
-  sugestoes   ServicoSugestao[]
-  pedidoItens PedidoItem[]
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+  clinica        Clinica           @relation(fields: [tenantId], references: [tenantId])
+  categoria      CategoriaProduto? @relation(fields: [categoriaId], references: [id])
+  comboItens     ComboItemVitrine[]
+  sugestoes      ServicoSugestao[]
+  pedidoItens    PedidoItem[]
+  fichasTecnicas InsumoFichaTecnica[]
+  movimentacoes  MovimentacaoEstoque[]
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
 
   @@map("produtos")
 }
@@ -1222,4 +1236,53 @@ model FilaEspera {
   @@index([tenantId, status])
   @@index([profissionalId, dataDesejada, status])
   @@map("fila_espera")
+}
+
+// ─── Módulo de Insumos ───────────────────────────────────────────────────────
+
+// Ficha técnica: quanto de cada insumo um serviço consome por atendimento
+model InsumoFichaTecnica {
+  id              String      @id @default(uuid())
+  tenantId        String
+  servicoId       String
+  produtoId       String
+  quantidadeEst   Float       // consumo estimado por atendimento
+  quantidadeReal  Float?      // média calculada automaticamente
+  unidade         String      @default("un") // referência à unidade do produto
+
+  clinica         Clinica     @relation(fields: [tenantId], references: [tenantId])
+  servico         Servico     @relation(fields: [servicoId], references: [id], onDelete: Cascade)
+  produto         Produto     @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@unique([servicoId, produtoId])
+  @@index([tenantId])
+  @@map("insumo_ficha_tecnica")
+}
+
+// Histórico completo de movimentações de estoque (entradas, baixas, ajustes)
+model MovimentacaoEstoque {
+  id              String        @id @default(uuid())
+  tenantId        String
+  produtoId       String
+  tipo            String        // entrada | baixa_auto | baixa_manual | ajuste | vencimento
+  quantidade      Float         // negativo para baixa, positivo para entrada
+  saldoAntes      Float
+  saldoDepois     Float
+  agendamentoId   String?
+  profissionalId  String?
+  observacao      String?
+
+  clinica         Clinica       @relation(fields: [tenantId], references: [tenantId])
+  produto         Produto       @relation(fields: [produtoId], references: [id])
+  agendamento     Agendamento?  @relation(fields: [agendamentoId], references: [id])
+  profissional    Profissional? @relation(fields: [profissionalId], references: [id])
+
+  createdAt       DateTime      @default(now())
+
+  @@index([tenantId, produtoId])
+  @@index([tenantId, createdAt])
+  @@map("movimentacoes_estoque")
 }

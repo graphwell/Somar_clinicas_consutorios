@@ -11,7 +11,7 @@ import {
   IconProntuario, IconOdontograma, IconConvenio, IconRelatorios,
   IconCampanhas, IconIntegracoes, IconFinanceiro, IconAssinaturas,
   IconConfiguracoes, IconLogout, IconAjuda, IconStethoscope, IconVitrine,
-  IconAntesDepois,
+  IconAntesDepois, IconInsumos,
 } from "@/components/icons/NavIcons";
 
 interface NavItemProps {
@@ -184,6 +184,9 @@ export default function Sidebar({
           )}
           {isAdmin && (
             <NavItem href="/dashboard/reports" label="Relatórios" Icon={IconRelatorios} active={is("/dashboard/reports")} />
+          )}
+          {isAdmin && (
+            <NavItem href="/dashboard/insumos" label="Insumos" Icon={IconInsumos} active={is("/dashboard/insumos")} />
           )}
 
           {(isAdmin || isRecepcao) && (
