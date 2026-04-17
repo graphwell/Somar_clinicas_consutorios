@@ -173,6 +173,7 @@ export default function TeamPage() {
   };
 
   return (
+    <>
     <div className="max-w-7xl mx-auto space-y-12 pb-40 animate-premium">
       
       {/* Header Premium V2.2 */}
@@ -226,25 +227,27 @@ export default function TeamPage() {
         ))}
       </div>
 
+      </div>
+
       {showModal && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" onClick={() => setShowModal(false)}>
-          <div className="absolute inset-0 bg-slate-900/10 backdrop-blur-md" />
-          <div className="relative w-full max-w-2xl max-h-[90vh] bg-white border border-card-border rounded-[3rem] shadow-2xl scale-in overflow-y-auto custom-scrollbar" onClick={e => e.stopPropagation()}>
-            <div className="p-10 border-b border-slate-50 flex items-center justify-between">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6" onClick={() => setShowModal(false)}>
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md" />
+          <div className="relative w-full max-w-2xl max-h-[95vh] bg-white border border-card-border rounded-[3rem] shadow-2xl scale-in overflow-y-auto custom-scrollbar" onClick={e => e.stopPropagation()}>
+            <div className="p-8 sm:p-10 border-b border-slate-50 flex items-start sm:items-center justify-between gap-4">
               <div>
-                <h3 className="text-xl font-black text-text-main tracking-tighter uppercase italic">{editing ? `Refinar` : `Cadastrar`} Profissional</h3>
+                <h3 className="text-lg sm:text-xl font-black text-text-main tracking-tighter uppercase italic">{editing ? `Refinar` : `Cadastrar`} Profissional</h3>
                 <p className="text-[9px] text-text-placeholder font-black uppercase tracking-widest mt-1">Preencha os dados do profissional</p>
               </div>
-              <button onClick={() => setShowModal(false)} className="w-10 h-10 rounded-xl hover:bg-slate-50 flex items-center justify-center text-text-placeholder transition-colors"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M9 3L3 9M3 3l6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg></button>
+              <button onClick={() => setShowModal(false)} className="w-10 h-10 shrink-0 rounded-xl hover:bg-slate-50 flex items-center justify-center text-text-placeholder transition-colors"><svg width="14" height="14" viewBox="0 0 12 12" fill="none"><path d="M9 3L3 9M3 3l6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg></button>
             </div>
 
-            <form onSubmit={handleSave} className="p-10 grid grid-cols-1 md:grid-cols-2 gap-10">
+            <form onSubmit={handleSave} className="p-6 sm:p-10 grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-10">
                <div className="space-y-6">
                   <div className="space-y-2">
                     <label className="text-[9px] font-black text-text-placeholder uppercase tracking-[0.2em] ml-2">Nome Completo</label>
                     <input required value={nome} onChange={e => setNome(e.target.value)} className="input-premium w-full py-4" />
                   </div>
-                  <div className={isSaude ? "grid grid-cols-2 gap-4" : ""}>
+                  <div className={isSaude ? "grid grid-cols-1 sm:grid-cols-2 gap-4" : ""}>
                     <div className="space-y-2">
                       <label className="text-[9px] font-black text-text-placeholder uppercase tracking-[0.2em] ml-2">{isBeleza ? 'Especialidade' : 'Título/Especialidade'}</label>
                       <input type="text" value={especialidade} onChange={e => setEspecialidade(e.target.value)} className="input-premium w-full" placeholder={placeholderEspecialidade} />
@@ -257,16 +260,16 @@ export default function TeamPage() {
                     )}
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[9px] font-black text-text-placeholder uppercase tracking-[0.2em] ml-2">Cor de Identificação Lateral</label>
+                    <label className="text-[9px] font-black text-text-placeholder uppercase tracking-[0.2em] ml-2">Cor Lateral</label>
                     <div className="flex flex-wrap gap-2.5 pt-2">
-                      {PRESET_COLORS.map(c => <button key={c} type="button" onClick={() => setColor(c)} className={`w-10 h-10 rounded-xl transition-all ${color === c ? 'ring-4 ring-primary/20 scale-110 shadow-lg' : 'opacity-30 hover:opacity-100'}`} style={{ backgroundColor: c }} />)}
+                      {PRESET_COLORS.map(c => <button key={c} type="button" onClick={() => setColor(c)} className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl transition-all ${color === c ? 'ring-4 ring-primary/20 scale-110 shadow-lg' : 'opacity-30 hover:opacity-100'}`} style={{ backgroundColor: c }} />)}
                     </div>
                   </div>
                </div>
 
                <div className="space-y-6">
                   <div className="space-y-2">
-                    <label className="text-[9px] font-black text-text-placeholder uppercase tracking-[0.2em] ml-2">Fotografia Profissional</label>
+                    <label className="text-[9px] font-black text-text-placeholder uppercase tracking-[0.2em] ml-2">Fotografia</label>
                     <div className="w-full aspect-square rounded-[2rem] bg-slate-50 border-2 border-dashed border-card-border flex items-center justify-center overflow-hidden relative">
                       <AvatarEditor
                         currentUrl={fotoUrl}
@@ -281,13 +284,11 @@ export default function TeamPage() {
                     <div className="grid grid-cols-2 gap-2 pt-1">
                       <button type="button" onClick={() => inputGaleriaRef.current?.click()}
                         className="flex items-center justify-center gap-2 py-3 border border-card-border rounded-2xl text-[10px] font-black uppercase tracking-widest text-text-placeholder hover:border-primary/30 hover:text-primary transition-all bg-slate-50">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                         Galeria
                       </button>
                       <button type="button" onClick={() => inputCameraRef.current?.click()}
                         className="flex items-center justify-center gap-2 py-3 border border-card-border rounded-2xl text-[10px] font-black uppercase tracking-widest text-text-placeholder hover:border-primary/30 hover:text-primary transition-all bg-slate-50">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                        Camera
+                        Câmera
                       </button>
                     </div>
                     <input ref={inputGaleriaRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
@@ -296,7 +297,7 @@ export default function TeamPage() {
                       onChange={e => { const f = e.target.files?.[0]; if (f) handleFotoFile(f); e.target.value = ''; }} />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[9px] font-black text-text-placeholder uppercase tracking-[0.2em] ml-2">Status do Profissional</label>
+                    <label className="text-[9px] font-black text-text-placeholder uppercase tracking-[0.2em] ml-2">Status</label>
                     <button type="button" onClick={() => setAtivo(!ativo)} className={`w-full py-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${ativo ? 'bg-status-success-bg text-status-success border border-status-success/10' : 'bg-slate-100 text-text-placeholder border border-card-border'}`}>
                        {ativo ? 'Ativo na Unidade' : 'Afastado / Inativo'}
                     </button>
@@ -304,7 +305,7 @@ export default function TeamPage() {
                </div>
 
                {/* Seção de Escalas V5.0 - Simplificada (Estilo Empresa) */}
-               <div className="col-span-full space-y-6 pt-6 border-t border-slate-50">
+               <div className="col-span-1 md:col-span-2 space-y-6 pt-6 border-t border-slate-50">
                   <div className="flex items-center justify-between">
                     <div>
                       <h4 className="text-xs font-black text-text-main uppercase tracking-widest italic">Horários de Atendimento</h4>
@@ -312,7 +313,7 @@ export default function TeamPage() {
                     </div>
                   </div>
 
-                  <div className="bg-slate-50/50 p-6 rounded-3xl border border-card-border space-y-6">
+                  <div className="bg-slate-50/50 p-4 sm:p-6 rounded-3xl border border-card-border space-y-6">
                     <div className="flex flex-wrap gap-2 justify-center">
                       {['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'].map((d, i) => {
                         const active = escalas.some(e => e.diaSemana === i);
@@ -321,7 +322,7 @@ export default function TeamPage() {
                             key={i}
                             type="button"
                             onClick={() => toggleDay(i)}
-                            className={`h-12 px-5 rounded-2xl text-[10px] font-black transition-all border ${
+                            className={`h-10 sm:h-12 px-3 sm:px-5 rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black transition-all border ${
                               active 
                                 ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' 
                                 : 'bg-white text-text-placeholder border-card-border opacity-40 hover:opacity-100'
@@ -333,36 +334,36 @@ export default function TeamPage() {
                       })}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-6 pt-4 border-t border-slate-100">
+                    <div className="grid grid-cols-2 gap-4 sm:gap-6 pt-4 border-t border-slate-100">
                       <div className="space-y-2">
                         <label className="text-[9px] font-black text-text-placeholder uppercase tracking-widest ml-1">Início do Turno</label>
-                        <input type="time" value={startHour} onChange={e => setStartHour(e.target.value)} className="input-premium w-full py-4" />
+                        <input type="time" value={startHour} onChange={e => setStartHour(e.target.value)} className="input-premium w-full py-4 text-center" />
                       </div>
                       <div className="space-y-2">
                         <label className="text-[9px] font-black text-text-placeholder uppercase tracking-widest ml-1">Fim do Turno</label>
-                        <input type="time" value={endHour} onChange={e => setEndHour(e.target.value)} className="input-premium w-full py-4" />
+                        <input type="time" value={endHour} onChange={e => setEndHour(e.target.value)} className="input-premium w-full py-4 text-center" />
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-6 pt-4 border-t border-slate-100">
+                    <div className="grid grid-cols-2 gap-4 sm:gap-6 pt-4 border-t border-slate-100">
                       <div className="space-y-2">
                         <label className="text-[9px] font-black text-text-placeholder uppercase tracking-widest ml-1">Início Almoço</label>
-                        <input type="time" value={lunchStart} onChange={e => setLunchStart(e.target.value)} className="input-premium w-full py-4 text-primary" />
+                        <input type="time" value={lunchStart} onChange={e => setLunchStart(e.target.value)} className="input-premium w-full py-4 text-primary text-center" />
                       </div>
                       <div className="space-y-2">
                         <label className="text-[9px] font-black text-text-placeholder uppercase tracking-widest ml-1">Fim Almoço</label>
-                        <input type="time" value={lunchEnd} onChange={e => setLunchEnd(e.target.value)} className="input-premium w-full py-4 text-primary" />
+                        <input type="time" value={lunchEnd} onChange={e => setLunchEnd(e.target.value)} className="input-premium w-full py-4 text-primary text-center" />
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-6 pt-4 border-t border-slate-100">
+                    <div className="grid grid-cols-2 gap-4 sm:gap-6 pt-4 border-t border-slate-100">
                       <div className="space-y-2">
-                        <label className="text-[9px] font-black text-text-placeholder uppercase tracking-widest ml-1">Tempo da Consulta (min)</label>
-                        <input type="number" value={sessionDuration} onChange={e => setSessionDuration(parseInt(e.target.value))} className="input-premium w-full py-4" />
+                        <label className="text-[9px] font-black text-text-placeholder uppercase tracking-widest ml-1 truncate">Duração (min)</label>
+                        <input type="number" value={sessionDuration} onChange={e => setSessionDuration(parseInt(e.target.value))} className="input-premium w-full py-4 text-center" />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[9px] font-black text-text-placeholder uppercase tracking-widest ml-1">Intervalo (min)</label>
-                        <input type="number" value={sessionBuffer} onChange={e => setSessionBuffer(parseInt(e.target.value))} className="input-premium w-full py-4" />
+                        <label className="text-[9px] font-black text-text-placeholder uppercase tracking-widest ml-1 truncate">Intervalo (min)</label>
+                        <input type="number" value={sessionBuffer} onChange={e => setSessionBuffer(parseInt(e.target.value))} className="input-premium w-full py-4 text-center" />
                       </div>
                     </div>
                   </div>
@@ -370,7 +371,7 @@ export default function TeamPage() {
 
                {/* Seção de Convênios — apenas para nichos de saúde */}
                {isSaude && (
-               <div className="col-span-full space-y-6 pt-6 border-t border-slate-50">
+               <div className="col-span-1 md:col-span-2 space-y-6 pt-6 border-t border-slate-50">
                   <div>
                     <h4 className="text-xs font-black text-text-main uppercase tracking-widest italic">Comercial e Convênios</h4>
                     <p className="text-[8px] text-text-placeholder font-bold uppercase tracking-widest mt-0.5">Defina as modalidades de pagamento aceitas</p>
@@ -380,21 +381,21 @@ export default function TeamPage() {
                     <button
                       type="button"
                       onClick={() => setAtendeConvenio(false)}
-                      className={`py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all ${!atendeConvenio ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' : 'bg-slate-50 text-text-placeholder border-card-border'}`}
+                      className={`py-4 sm:py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all ${!atendeConvenio ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' : 'bg-slate-50 text-text-placeholder border-card-border'}`}
                     >
                       Só Particular
                     </button>
                     <button
                       type="button"
                       onClick={() => setAtendeConvenio(true)}
-                      className={`py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all ${atendeConvenio ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' : 'bg-slate-50 text-text-placeholder border-card-border'}`}
+                      className={`py-4 sm:py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all ${atendeConvenio ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' : 'bg-slate-50 text-text-placeholder border-card-border'}`}
                     >
                       Atende Convênio
                     </button>
                   </div>
 
                   {atendeConvenio && (
-                    <div className="p-6 bg-slate-50/50 rounded-3xl border border-card-border grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div className="p-4 sm:p-6 bg-slate-50/50 rounded-3xl border border-card-border grid grid-cols-2 sm:grid-cols-3 gap-3">
                       {['Unimed', 'Bradesco', 'Amil', 'SulAmérica', 'Cassi', 'Porto Seguro', 'Golden Cross', 'Care Plus', 'Intermédica', 'Outros'].map(c => {
                         const selected = conveniosSelecionados.includes(c);
                         return (
@@ -416,10 +417,10 @@ export default function TeamPage() {
                </div>
                )}
 
-               <div className="col-span-full pt-10 border-t border-slate-50">
-                  <div className="flex gap-4">
-                    <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-5 bg-slate-100 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 transition-all">Cancelar</button>
-                    <button type="submit" disabled={saving} className="btn-primary flex-2 py-5 rounded-[1.5rem] text-[10px]">
+               <div className="col-span-1 md:col-span-2 pt-8 sm:pt-10 border-t border-slate-50">
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <button type="button" onClick={() => setShowModal(false)} className="w-full sm:flex-1 py-4 sm:py-5 bg-slate-100 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 transition-all">Cancelar</button>
+                    <button type="submit" disabled={saving} className="btn-primary w-full sm:flex-2 py-4 sm:py-5 rounded-[1.5rem] text-[10px]">
                       {saving ? 'Processando Registro...' : 'Confirmar e Publicar'}
                     </button>
                   </div>
@@ -428,6 +429,6 @@ export default function TeamPage() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
