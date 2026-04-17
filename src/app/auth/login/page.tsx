@@ -122,13 +122,15 @@ function LoginForm() {
       {/* LADO DIREITO — formulário */}
       <div className="flex-1 flex flex-col items-center justify-center p-6 lg:p-12">
         {/* Logo mobile */}
-        <div className="lg:hidden flex items-center gap-2.5 mb-8">
-          <SynkaLogo variant="light" height={32} />
+        <div className="lg:hidden flex items-center justify-center w-full mb-8">
+          <SynkaLogo variant="light" height={64} />
         </div>
 
         <div className="w-full max-w-[400px]">
-          <h2 className="text-2xl font-bold text-slate-700 mb-1">Bem-vindo de volta</h2>
-          <p className="text-slate-300 text-sm mb-7">Faça login para gerenciar sua clínica.</p>
+          <div className="text-center lg:text-left">
+            <h2 className="text-2xl font-bold text-slate-700 mb-1">Bem-vindo de volta</h2>
+            <p className="text-slate-300 text-sm mb-7">Faça login para gerenciar sua clínica.</p>
+          </div>
 
           {/* Erro global */}
           {error && (
