@@ -59,7 +59,10 @@
       "Bash(grep:*)",
       "Bash(python3 *)",
       "Bash(npx next *2)",
-      "Bash(npx next)"
+      "Bash(npx next)",
+      "Bash(npx create-remotion@latest *)",
+      "Bash(npm search *)",
+      "Bash(npx create-video@latest *)"
     ]
   }
 }
