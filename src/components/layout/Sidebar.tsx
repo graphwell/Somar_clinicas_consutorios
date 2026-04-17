@@ -11,7 +11,7 @@ import {
   IconProntuario, IconOdontograma, IconConvenio, IconRelatorios,
   IconCampanhas, IconIntegracoes, IconFinanceiro, IconAssinaturas,
   IconConfiguracoes, IconLogout, IconAjuda, IconStethoscope, IconVitrine,
-  IconAntesDepois, IconInsumos,
+  IconAntesDepois, IconInsumos, IconFechamento,
 } from "@/components/icons/NavIcons";
 
 interface NavItemProps {
@@ -218,6 +218,9 @@ export default function Sidebar({
           )}
           {!isProfissional && (
             <NavItem href="/dashboard/settings" label="Configurações" Icon={IconConfiguracoes} active={is("/dashboard/settings", true) || is("/dashboard/settings/convenios") || is("/dashboard/settings/upsell")} />
+          )}
+          {isAdmin && (
+            <NavItem href="/dashboard/fechamentos" label="Avisos de Fechamento" Icon={IconFechamento} active={is("/dashboard/fechamentos")} />
           )}
           {isAdmin && (
             <NavItem href="/dashboard/settings/permissoes" label="Permissões" Icon={IconConfiguracoes} active={is("/dashboard/settings/permissoes")} />

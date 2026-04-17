@@ -192,6 +192,9 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
   const [protocolo, setProtocolo] = useState('');
   const [erroConfirm, setErroConfirm] = useState('');
 
+  // Fechamento / Feriado
+  const [diaBloqueado, setDiaBloqueado] = useState<{ titulo: string; mensagem: string; retornoData?: string | null; retornoHora?: string | null } | null>(null);
+
   useEffect(() => { params.then(p => setSlug(p.slug)); }, [params]);
 
   useEffect(() => {
@@ -199,11 +202,13 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
     Promise.all([
       fetch(`/api/public/clinic/${slug}`).then(r => r.json()),
       fetch(`/api/public/clinic/${slug}/services`).then(r => r.json()),
+      fetch(`/api/dias-bloqueados/verificar?slug=${slug}`).then(r => r.json()).catch(() => ({ bloqueado: false })),
     ])
-      .then(([c, s]) => {
+      .then(([c, s, bloq]) => {
         if (c.error) { setErro('Estabelecimento não encontrado.'); return; }
         setClinica({ ...c, aceitaPagamento: c.aceitaPagamento ?? false });
         setServicos(Array.isArray(s) ? s : []);
+        if (bloq?.bloqueado) setDiaBloqueado(bloq);
       })
       .catch(() => setErro('Erro ao carregar dados.'))
       .finally(() => setCarregando(false));
@@ -403,7 +408,40 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
           width: '100%', maxWidth: 480,
           boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
         }}>
+          {/* ── AVISO DE FECHAMENTO ── */}
+          {diaBloqueado ? (
+            <div style={{ textAlign: 'center', padding: '12px 8px' }}>
+              <div style={{ fontSize: 52, marginBottom: 12 }}>🚫</div>
+              <h2 style={{ fontSize: 19, fontWeight: 700, color: '#1B2B3A', marginBottom: 8 }}>
+                {diaBloqueado.titulo || 'Hoje não estamos funcionando'}
+              </h2>
+              <p style={{ fontSize: 14, color: '#64748B', lineHeight: 1.6, marginBottom: 20 }}>
+                {diaBloqueado.mensagem}
+              </p>
+              {(diaBloqueado.retornoData || diaBloqueado.retornoHora) && (
+                <div style={{
+                  background: '#F0FDF4', border: '1px solid #BBF7D0',
+                  borderRadius: 14, padding: '14px 20px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                }}>
+                  <span style={{ fontSize: 20 }}>📅</span>
+                  <div style={{ textAlign: 'left' }}>
+                    <p style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#16A34A', margin: 0 }}>Retorno previsto</p>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: '#15803D', margin: '2px 0 0' }}>
+                      {diaBloqueado.retornoData && `${diaBloqueado.retornoData}`}
+                      {diaBloqueado.retornoHora && ` às ${diaBloqueado.retornoHora}`}
+                    </p>
+                  </div>
+                </div>
+              )}
+              <p style={{ fontSize: 12, color: '#94A3B8', marginTop: 20 }}>
+                Você pode agendar para outra data através do nosso WhatsApp. 😊
+              </p>
+            </div>
+          ) : (
+            <>
           {passo < 6 && <IndicadorPassos passo={passo} cor={cor} />}
+
 
           {/* ── PASSO 1: Identificação ── */}
           {passo === 1 && (
@@ -991,7 +1029,8 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
                 Fazer outro agendamento
               </button>
             </div>
-          )}
+          </> /* fim ramo formulário */
+          )}{/* fim ternário bloqueado */}
         </div>{/* fim card */}
 
         {/* Footer */}

@@ -107,6 +107,45 @@ export async function enviarConviteProfissional(
   });
 }
 
+export async function enviarConviteUsuario(params: {
+  email: string;
+  nome: string;
+  nomeClinica: string;
+  role: string;
+  link: string;
+  expirarEm: Date;
+}): Promise<void> {
+  const expiraStr = params.expirarEm.toLocaleDateString('pt-BR', {
+    day: '2-digit', month: 'long', year: 'numeric',
+  });
+  await resend.emails.send({
+    from: FROM,
+    to: params.email,
+    subject: `Você foi convidado para ${params.nomeClinica} — Synka`,
+    html: baseTemplate(`
+      <h2 style="color:#1B2B3A;font-size:22px;margin:0 0 12px;">Você foi convidado! 🎉</h2>
+      <p style="color:#4A6480;line-height:1.7;font-size:15px;margin:0 0 20px;">
+        Olá, <strong>${params.nome}</strong>! Você foi convidado para fazer parte da equipe de
+        <strong>${params.nomeClinica}</strong> no Synka.
+      </p>
+      <div style="background:#F5F0E8;border-radius:12px;padding:16px 20px;margin:0 0 28px;">
+        <p style="margin:0 0 6px;font-size:13px;color:#8A9BB0;">Função</p>
+        <p style="margin:0;font-size:16px;font-weight:600;color:#1B2B3A;">${params.role}</p>
+      </div>
+      <div style="text-align:center;margin:0 0 28px;">
+        <a href="${params.link}"
+           style="display:inline-block;background:linear-gradient(135deg,#40916C,#2D6A4F);color:#fff;
+                  padding:15px 36px;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px;">
+          Criar minha senha →
+        </a>
+      </div>
+      <p style="color:#8A9BB0;font-size:12px;text-align:center;margin:0;">
+        Link válido até <strong>${expiraStr}</strong>.
+      </p>
+    `),
+  });
+}
+
 export async function enviarResetSenha(
   email: string,
   nome: string,

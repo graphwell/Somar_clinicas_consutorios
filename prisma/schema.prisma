@@ -65,6 +65,9 @@ model Clinica {
   // Insumos
   fichasTecnicas       InsumoFichaTecnica[]
   movimentacoesEstoque MovimentacaoEstoque[]
+  convites             Convite[]
+  // Fechamentos / Feriados
+  diasBloqueados       DiaBloqueado[]
 }
 
 enum NichoType {
@@ -104,6 +107,7 @@ model Usuario {
   // Onboarding
   primeiroAcesso Boolean       @default(true)
   perfilCompleto Boolean       @default(false)
+  ativo          Boolean       @default(true)
 
   clinica        Clinica       @relation(fields: [tenantId], references: [tenantId])
   profissional   Profissional? @relation(fields: [profissionalId], references: [id])
@@ -1285,4 +1289,47 @@ model MovimentacaoEstoque {
   @@index([tenantId, produtoId])
   @@index([tenantId, createdAt])
   @@map("movimentacoes_estoque")
+}
+
+// ─── Convites de usuário ──────────────────────────────────────────────────────
+
+model Convite {
+  id             String    @id @default(cuid())
+  tenantId       String
+  email          String?
+  telefone       String?
+  nome           String
+  role           String    // admin | recepcao | profissional
+  profissionalId String?
+  token          String    @unique @default(cuid())
+  status         String    @default("pendente") // pendente | aceito | expirado | cancelado
+  criadoPor      String    // userId do admin
+  expirarEm      DateTime
+  aceitoEm       DateTime?
+
+  clinica        Clinica   @relation(fields: [tenantId], references: [tenantId])
+
+  createdAt      DateTime  @default(now())
+
+  @@index([tenantId, status])
+  @@map("convites")
+}
+
+// ─── Dias Bloqueados / Feriados ───────────────────────────────────────────────
+
+model DiaBloqueado {
+  id            String    @id @default(uuid())
+  tenantId      String
+  data          DateTime  // dia do fechamento (a hora é irrelevante; usa-se só a data)
+  titulo        String    @default("Feriado")
+  mensagem      String    // ex: "Hoje não estamos funcionando. Voltamos dia 21/04 às 08h 🙏"
+  retornoData   DateTime? // data de retorno (opcional)
+  retornoHora   String?   // ex: "08:00"
+  ativo         Boolean   @default(true)
+  clinica       Clinica   @relation(fields: [tenantId], references: [tenantId])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([tenantId, data, ativo])
+  @@map("dias_bloqueados")
 }

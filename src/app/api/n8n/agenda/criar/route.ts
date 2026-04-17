@@ -74,6 +74,25 @@ export async function POST(req: NextRequest) {
     }
 
     if (!clinica) return n8nError('Clínica não encontrada', 'NOT_FOUND', 404);
+    tenantId = clinica.tenantId;
+
+    // ── Verificar se o dia está bloqueado (feriado / fechamento) ──────────────
+    if (data) {
+      const [_a, _m, _d] = data.split('-').map(Number);
+      const inicioDia = new Date(Date.UTC(_a, _m - 1, _d, 0, 0, 0));
+      const fimDia    = new Date(Date.UTC(_a, _m - 1, _d, 23, 59, 59));
+      const diaBloq = await prisma.diaBloqueado.findFirst({
+        where: { tenantId: clinica.tenantId, ativo: true, data: { gte: inicioDia, lte: fimDia } },
+      });
+      if (diaBloq) {
+        return n8nSuccess({
+          bloqueado: true,
+          msgBot: diaBloq.mensagem,
+          msgConfirmacao: diaBloq.mensagem,
+        });
+      }
+    }
+
 
     // No modo N8N puro (bot antigo), o servicoId pode faltar se não foi bem amarrado
     // Se faltar servicoId, busco o primeiro ativo para não quebrar a transição

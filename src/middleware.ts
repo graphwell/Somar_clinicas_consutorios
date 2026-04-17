@@ -10,6 +10,7 @@ const API_PUBLICAS = [
   '/api/n8n/',
   '/api/cron/',
   '/api/public/',
+  '/api/convite/',
   '/api/health',
   '/api/webhook/',
   '/api/admin/',

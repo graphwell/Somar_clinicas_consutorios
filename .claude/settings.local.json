@@ -62,7 +62,19 @@
       "Bash(npx next)",
       "Bash(npx create-remotion@latest *)",
       "Bash(npm search *)",
-      "Bash(npx create-video@latest *)"
+      "Bash(npx create-video@latest *)",
+      "Bash(cp \"/c/SOMAR/projeto-somar-n8n/public/agenda.png\" \"/c/SOMAR/remotion-studio/public/\")",
+      "Bash(cp \"/c/SOMAR/projeto-somar-n8n/public/ante_depois.png\" \"/c/SOMAR/remotion-studio/public/\")",
+      "Bash(cp \"/c/SOMAR/projeto-somar-n8n/public/antes_depois_1.png\" \"/c/SOMAR/remotion-studio/public/\")",
+      "Bash(cp \"/c/SOMAR/projeto-somar-n8n/public/financeiro.png\" \"/c/SOMAR/remotion-studio/public/\")",
+      "Bash(cp \"/c/SOMAR/projeto-somar-n8n/public/lembrete.png\" \"/c/SOMAR/remotion-studio/public/\")",
+      "Bash(./node_modules/.bin/tsc --noEmit)",
+      "Bash(node_modules/.bin/tsc --noEmit)",
+      "Bash(npx remotion *)",
+      "Bash(ls src/app/dashboard/permissions/)",
+      "Bash(ls src/app/aceitar-convite/)",
+      "Bash(mkdir -p \"/c/SOMAR/projeto-somar-n8n/src/app/api/permissions/users/[id]\")",
+      "Bash(mkdir -p \"/c/SOMAR/projeto-somar-n8n/src/app/api/convite/[token]\")"
     ]
   }
 }

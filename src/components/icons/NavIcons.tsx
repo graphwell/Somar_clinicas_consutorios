@@ -169,3 +169,12 @@ export const IconInsumos = () => (
     <line strokeLinecap="round" x1="12" y1="22.08" x2="12" y2="12" />
   </svg>
 );
+
+export const IconFechamento = () => (
+  <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
+    <rect x="3" y="4" width="18" height="18" rx="3" />
+    <path strokeLinecap="round" d="M16 2v4M8 2v4M3 10h18" />
+    <path strokeLinecap="round" d="M9 15l6-6M15 15l-6-6" />
+  </svg>
+);
+
