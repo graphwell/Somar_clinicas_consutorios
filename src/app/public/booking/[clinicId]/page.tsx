@@ -19,6 +19,7 @@ export default function PublicBookingPage() {
   const [telefone, setTelefone] = useState('');
   const [success, setSuccess] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [diaBloqueado, setDiaBloqueado] = useState<{ mensagem: string } | null>(null);
 
   useEffect(() => {
     if (!clinicId) return;
@@ -31,6 +32,12 @@ export default function PublicBookingPage() {
   const handleFinish = async () => {
     setSaving(true);
     try {
+      const bloqCheck = await fetch(`/api/dias-bloqueados/verificar?tenantId=${clinic.tenantId}&data=${selectedDate}`).then(r => r.json()).catch(() => null);
+      if (bloqCheck?.bloqueado) {
+        setDiaBloqueado({ mensagem: bloqCheck.mensagem });
+        setStep(3);
+        return;
+      }
       const res = await fetch('/api/bot/appointments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -151,11 +158,25 @@ export default function PublicBookingPage() {
               <h3 className="text-xl font-black italic uppercase mb-8 flex items-center gap-3">
                 <span className="text-blue-500">03</span> Data e Horário
               </h3>
-              <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} min={new Date().toISOString().split('T')[0]}
-                className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-sm font-black uppercase tracking-widest focus:outline-none focus:border-blue-500 transition-all mb-8" />
-              
+              <input type="date" value={selectedDate} onChange={async e => {
+                const d = e.target.value;
+                setSelectedDate(d);
+                setDiaBloqueado(null);
+                if (d && clinic?.tenantId) {
+                  const res = await fetch(`/api/dias-bloqueados/verificar?tenantId=${clinic.tenantId}&data=${d}`).then(r => r.json()).catch(() => null);
+                  if (res?.bloqueado) setDiaBloqueado({ mensagem: res.mensagem });
+                }
+              }} min={new Date().toISOString().split('T')[0]}
+                className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-sm font-black uppercase tracking-widest focus:outline-none focus:border-blue-500 transition-all mb-4" />
+
+              {diaBloqueado && (
+                <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-2xl text-red-400 text-xs font-black uppercase tracking-widest text-center">
+                  {diaBloqueado.mensagem}
+                </div>
+              )}
+
               <div className="grid grid-cols-3 gap-3">
-                {['08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00'].map(h => (
+                {!diaBloqueado && ['08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00'].map(h => (
                   <button key={h} onClick={() => { setSelectedTime(h); setStep(4); }}
                     className="py-3 bg-white/[0.02] hover:bg-blue-500 border border-white/5 hover:border-blue-500 rounded-xl text-[10px] font-black transition-all hover:scale-105 active:scale-95">
                     {h}

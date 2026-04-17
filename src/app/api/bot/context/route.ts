@@ -140,8 +140,20 @@ Ao falar do cliente/paciente use sempre "${cfg.termoPaciente}".`;
     });
     const servicesList = services.map(s => `- ${s.nome}: R$ ${s.preco.toFixed(2)} (${s.id})`).join('\n');
 
+    const diasBloqueados = await prisma.diaBloqueado.findMany({
+      where: { tenantId, ativo: true, data: { gte: agora } },
+      orderBy: { data: 'asc' },
+      take: 10,
+    });
+    const diasBloqueadosTexto = diasBloqueados.length > 0
+      ? diasBloqueados.map(d => {
+          const dataStr = d.data.toLocaleDateString('pt-BR', { timeZone: 'America/Fortaleza', day: '2-digit', month: '2-digit', year: 'numeric' });
+          return `- ${dataStr}: ${d.titulo} — ${d.mensagem}`;
+        }).join('\n')
+      : null;
+
     const systemPrompt = `Você é a Synka IA, assistente virtual da ${nome}.
-Seja prestativa, educada e aja como uma humana. 
+Seja prestativa, educada e aja como uma humana.
 
 === CATÁLOGO DE SERVIÇOS ===
 ${servicesList || 'Nenhum serviço cadastrado no momento.'}
@@ -152,6 +164,7 @@ Hora atual: ${horaFormatada} (Horário de Brasília, UTC-03:00)
 Quando o paciente disser "amanhã", some 1 dia à data de hoje. Use sempre o formato YYYY-MM-DD para datas ao chamar ferramentas.
 
 Se o cliente quiser um serviço específico do catálogo acima, você DEVE passar o servicoId (o código entre parênteses) ao chamar a ferramenta de agendamento.
+${diasBloqueadosTexto ? `\n=== DIAS DE FECHAMENTO / FERIADOS ===\nNos dias abaixo o estabelecimento NÃO estará funcionando. Não ofereça horários nessas datas e informe o cliente caso pergunte:\n${diasBloqueadosTexto}\n` : ''}
 
 === INSTRUÇÕES DO NICHO ===
 ${comportamentoNicho}

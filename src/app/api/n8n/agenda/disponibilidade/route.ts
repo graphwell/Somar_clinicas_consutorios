@@ -58,6 +58,16 @@ export async function GET(req: NextRequest) {
     });
     if (!clinica) return n8nError('Clínica não encontrada', 'NOT_FOUND', 404);
 
+    // Verificar dia bloqueado
+    const dataInicio = new Date(dataParam + 'T00:00:00-03:00');
+    const dataFim = new Date(dataParam + 'T23:59:59-03:00');
+    const diaBloqueado = await prisma.diaBloqueado.findFirst({
+      where: { tenantId: clinica.tenantId, ativo: true, data: { gte: dataInicio, lte: dataFim } },
+    });
+    if (diaBloqueado) {
+      return n8nSuccess({ data: dataParam, profissionais: [], resumoBot: diaBloqueado.mensagem, bloqueado: true });
+    }
+
     const servico = await prisma.servico.findFirst({
       where: { id: servicoId, tenantId: clinica.tenantId, ativo: true },
       select: {

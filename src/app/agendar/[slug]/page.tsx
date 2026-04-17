@@ -258,6 +258,12 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
         `/api/public/clinic/${slug}/slots?data=${data}&servicoId=${servico.id}&profissionalId=${profId}`
       );
       const d = await res.json();
+      if (d.bloqueado) {
+        setDiaBloqueado({ titulo: 'Fechado', mensagem: d.mensagem });
+        setSlots([]);
+        return;
+      }
+      setDiaBloqueado(null);
       const fetchedSlots: string[] = d.slots ?? [];
       setSlots(fetchedSlots);
       setProfEscolhido(d.profissionalEscolhidoId ?? null);

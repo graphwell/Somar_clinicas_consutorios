@@ -77,6 +77,23 @@ export async function POST(
       return NextResponse.json({ error: 'Clínica não encontrada' }, { status: 404 });
     }
 
+    // 1b. Verificar dia bloqueado
+    const dataInicio = new Date(`${data}T00:00:00-03:00`);
+    const dataFim = new Date(`${data}T23:59:59-03:00`);
+    const diaBloqueado = await prisma.diaBloqueado.findFirst({
+      where: {
+        tenantId: clinica.tenantId,
+        ativo: true,
+        data: { gte: dataInicio, lte: dataFim },
+      },
+    });
+    if (diaBloqueado) {
+      return NextResponse.json(
+        { error: diaBloqueado.mensagem },
+        { status: 422 }
+      );
+    }
+
     // Rate limiting: máx 3 agendamentos por telefone por dia nesta clínica
     const telefoneDigits = clienteTelefone.replace(/\D/g, '');
     const hoje = new Date();

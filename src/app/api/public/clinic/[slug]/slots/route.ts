@@ -40,6 +40,20 @@ export async function GET(
       return NextResponse.json({ error: 'not_found' }, { status: 404 });
     }
 
+    // 1b. Verificar dia bloqueado
+    const dataInicio = new Date(`${dataParam}T00:00:00-03:00`);
+    const dataFim = new Date(`${dataParam}T23:59:59-03:00`);
+    const diaBloqueado = await prisma.diaBloqueado.findFirst({
+      where: {
+        tenantId: clinica.tenantId,
+        ativo: true,
+        data: { gte: dataInicio, lte: dataFim },
+      },
+    });
+    if (diaBloqueado) {
+      return NextResponse.json({ slots: [], bloqueado: true, mensagem: diaBloqueado.mensagem });
+    }
+
     const clinicaStart = toMin(clinica.openingTime ?? '08:00');
     const clinicaEnd = toMin(clinica.closingTime ?? '18:00');
 
