@@ -826,23 +826,27 @@ function TabSugestoes({ produtos }: { produtos: Produto[] }) {
       const sug = sugestoesDoServico.find(s => s.produto.id === produtoId);
       if (!sug) return;
       const res = await fetchWithAuth(`/api/vitrine/suggestions?id=${sug.id}`, { method: 'DELETE' });
-      if (res.ok) { setSugestoes(prev => prev.filter(s => s.id !== sug.id)); showToast('Ancoragem removida'); }
+      if (res.ok) { setSugestoes(prev => prev.filter(s => s.id !== sug.id)); showToast('Produto removido da sugestão'); }
     } else {
       const res = await fetchWithAuth('/api/vitrine/suggestions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ servicoId: servicoSelecionado, produtoId }) });
-      if (res.ok) { const data = await res.json(); setSugestoes(prev => [...prev, data]); showToast('Produto vinculado ao serviço!'); }
+      if (res.ok) { const data = await res.json(); setSugestoes(prev => [...prev, data]); showToast('Produto vinculado!'); }
     }
   };
 
-  if (loading) return <div className="flex justify-center py-12"><div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" /></div>;
+  if (loading) return <div className="flex justify-center py-12"><div className="w-8 h-8 border-2 border-slate-200 border-t-slate-500 rounded-full animate-spin" /></div>;
+
+  const produtosAtivos = produtos.filter(p => p.status === 'active');
+  const servicoAtual = servicos.find(s => s.id === servicoSelecionado);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-10">
-      {/* Lista de serviços */}
-      <div className="bg-white rounded-[3rem] border border-slate-100 overflow-hidden shadow-sm h-fit">
-        <div className="p-6 border-b border-slate-50 bg-slate-50/50">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Fluxo de Atendimento</p>
+    <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-5">
+
+      {/* Lista de serviços — painel esquerdo */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden h-fit">
+        <div className="px-4 py-3 border-b border-slate-100">
+          <p className="text-[11px] font-medium text-slate-400 tracking-wide">Serviços</p>
         </div>
-        <div className="overflow-y-auto max-h-[560px] custom-scrollbar">
+        <div className="overflow-y-auto max-h-[70vh]">
           {servicos.map(s => {
             const qtd = sugestoes.filter(sg => sg.servicoId === s.id).length;
             const active = servicoSelecionado === s.id;
@@ -850,54 +854,120 @@ function TabSugestoes({ produtos }: { produtos: Produto[] }) {
               <button
                 key={s.id}
                 onClick={() => setServicoSelecionado(s.id)}
-                className={`w-full flex items-center justify-between px-6 py-5 text-left border-b border-slate-50/50 transition-all ${active ? 'bg-primary-soft text-primary font-black shadow-inner' : 'text-slate-600 hover:bg-slate-50'}`}
+                style={active ? { background: '#f0faf5', borderLeft: '3px solid #40916C' } : { borderLeft: '3px solid transparent' }}
+                className="w-full flex items-center justify-between px-4 py-3.5 text-left border-b border-slate-50 transition-all hover:bg-slate-50"
               >
-                <span className="text-[11px] font-black uppercase tracking-tighter truncate italic">{s.nome}</span>
-                {qtd > 0 && <span className={`text-[10px] font-black px-2.5 py-1 rounded-full ${active ? 'bg-primary text-white shadow-md' : 'bg-slate-100 text-slate-400'}`}>{qtd}</span>}
+                <span className={`text-[13px] truncate ${active ? 'font-semibold text-slate-800' : 'font-medium text-slate-500'}`}>
+                  {s.nome}
+                </span>
+                {qtd > 0 && (
+                  <span
+                    className="text-[11px] font-semibold px-2 py-0.5 rounded-full shrink-0 ml-2"
+                    style={active ? { background: '#40916C', color: 'white' } : { background: '#f1f5f9', color: '#64748b' }}
+                  >
+                    {qtd}
+                  </span>
+                )}
               </button>
             );
           })}
-          {servicos.length === 0 && <p className="text-[11px] font-black text-slate-300 py-20 text-center uppercase tracking-widest italic opacity-60 px-8">Nenhum serviço disponível para ancorar produtos.</p>}
+          {servicos.length === 0 && (
+            <p className="text-[12px] text-slate-400 py-10 text-center px-4">
+              Nenhum serviço cadastrado.
+            </p>
+          )}
         </div>
       </div>
 
-      {/* Produtos para vincular */}
-      <div className="bg-white rounded-[2rem] md:rounded-[3rem] border border-slate-100 p-5 md:p-10 shadow-sm relative">
+      {/* Painel direito — produtos para vincular */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm">
         {!servicoSelecionado ? (
-          <div className="flex flex-col items-center justify-center h-[520px] text-center px-16">
-            <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center text-slate-200 mb-8 italic font-black text-4xl border border-slate-100 shadow-inner opacity-40">?</div>
-            <p className="text-[12px] font-black text-slate-300 uppercase tracking-widest leading-relaxed">
-              Selecione à esquerda um procedimento para configurar o <span className="text-primary italic">upsell estratégico</span> no agendamento.
+          <div className="flex flex-col items-center justify-center h-80 text-center px-8">
+            <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-4 border border-slate-100">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                <line x1="12" y1="22.08" x2="12" y2="12"/>
+              </svg>
+            </div>
+            <p className="text-[13px] font-medium text-slate-400 leading-relaxed">
+              Selecione um serviço ao lado para configurar quais produtos serão sugeridos durante o agendamento.
             </p>
           </div>
         ) : (
-          <>
-            <div className="mb-10 border-b border-slate-100 pb-8">
-               <h4 className="text-[16px] font-black text-slate-800 uppercase tracking-tighter italic">Inteligência Cross-Sell</h4>
-               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2 leading-loose">
-                 Os <span className="text-primary font-black">3 primeiros</span> habilitados serão destacados no menu de agendamento online para aumentar seu ticket médio.
-               </p>
+          <div className="p-5 md:p-6">
+            {/* Header do painel */}
+            <div className="flex items-start justify-between mb-5 pb-4 border-b border-slate-100">
+              <div>
+                <h4 className="text-[15px] font-semibold text-slate-800">{servicoAtual?.nome}</h4>
+                <p className="text-[12px] text-slate-400 mt-0.5">
+                  Os <span className="font-semibold text-slate-600">3 primeiros</span> selecionados serão sugeridos no agendamento online
+                </p>
+              </div>
+              {sugestoesDoServico.length > 0 && (
+                <span className="shrink-0 text-[11px] font-medium px-2.5 py-1 rounded-full" style={{ background: '#f0faf5', color: '#40916C' }}>
+                  {sugestoesDoServico.length} vinculado{sugestoesDoServico.length > 1 ? 's' : ''}
+                </span>
+              )}
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {produtos.filter(p => p.status === 'active').map(p => {
+
+            {/* Grade de produtos */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {produtosAtivos.map(p => {
                 const checked = produtosSugeridos.has(p.id);
                 return (
-                  <label key={p.id} className={`flex items-center gap-5 p-5 rounded-[2rem] border cursor-pointer transition-all ${checked ? 'border-primary/40 bg-primary-soft shadow-inner' : 'border-slate-50 bg-slate-50/50 hover:bg-white hover:shadow-md'}`}>
-                    <input type="checkbox" checked={checked} onChange={() => toggleSugestao(p.id)} className="w-7 h-7 accent-primary rounded-2xl" />
-                    <ProdutoImagem url={p.imageUrl} nome={p.nome} size={48} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[12px] font-black text-slate-800 truncate uppercase tracking-tighter leading-tight group-hover:text-primary">{p.nome}</p>
-                      <p className="text-[10px] text-slate-400 font-bold tracking-widest mt-1 italic">{formatPreco(p.preco)}</p>
+                  <button
+                    key={p.id}
+                    onClick={() => toggleSugestao(p.id)}
+                    className="flex items-center gap-3 p-3 rounded-xl border text-left transition-all hover:shadow-sm"
+                    style={checked
+                      ? { borderColor: '#40916C', background: '#f0faf5' }
+                      : { borderColor: '#f1f5f9', background: '#fafafa' }
+                    }
+                  >
+                    {/* Check indicator */}
+                    <div
+                      className="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all"
+                      style={checked
+                        ? { borderColor: '#40916C', background: '#40916C' }
+                        : { borderColor: '#CBD5E1', background: 'white' }
+                      }
+                    >
+                      {checked && (
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                      )}
                     </div>
-                  </label>
+
+                    <ProdutoImagem url={p.imageUrl} nome={p.nome} size={40} />
+
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-[12px] font-medium truncate leading-tight ${checked ? 'text-slate-800' : 'text-slate-600'}`}>
+                        {p.nome}
+                      </p>
+                      <p className="text-[11px] mt-0.5" style={{ color: checked ? '#40916C' : '#94A3B8' }}>
+                        {formatPreco(p.preco)}
+                      </p>
+                    </div>
+                  </button>
                 );
               })}
-              {produtos.filter(p => p.status === 'active').length === 0 && <p className="text-center py-40 text-[11px] font-black text-slate-300 uppercase tracking-widest italic col-span-full opacity-60">Nenhum produto cadastrado com estoque para sugerir.</p>}
+              {produtosAtivos.length === 0 && (
+                <p className="text-[12px] text-slate-400 py-12 text-center col-span-full">
+                  Nenhum produto ativo para sugerir.
+                </p>
+              )}
             </div>
-          </>
+          </div>
         )}
       </div>
-      {toast && <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] bg-slate-800/90 backdrop-blur-md text-white text-[11px] font-black uppercase tracking-widest px-10 py-5 rounded-full shadow-2xl animate-in fade-in slide-in-from-bottom duration-500">{toast}</div>}
+
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] bg-slate-800 text-white text-[12px] font-medium px-5 py-2.5 rounded-full shadow-xl">
+          {toast}
+        </div>
+      )}
     </div>
   );
 }
