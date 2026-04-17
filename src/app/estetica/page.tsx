@@ -2,6 +2,30 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Script from "next/script";
+/* ─── GATILHOS HERO ROTATIVOS ─── */
+const GATILHOS = [
+  {
+    linha1: "Aqui você vai",
+    destaque: "vender mais.",
+  },
+  {
+    linha1: "Receba o pagamento",
+    destaque: "na hora do agendamento.",
+  },
+  {
+    linha1: "Venda combos e produtos",
+    destaque: "pela sua vitrine online.",
+  },
+  {
+    linha1: "Cliente sumiu?",
+    destaque: "O sistema chama ele de volta.",
+  },
+  {
+    linha1: "Chega de falta sem aviso.",
+    destaque: "WhatsApp confirma sozinho.",
+  },
+];
+
 /* ─── DORES ROTATIVAS ─── */
 const DORES = [
   {
@@ -102,10 +126,24 @@ const DEPOIMENTOS = [
 
 /* ─── COMPONENTE PRINCIPAL ─── */
 export default function PageEstetica() {
+  const [gatilhoIdx, setGatilhoIdx] = useState(0);
+  const [gatilhoVisible, setGatilhoVisible] = useState(true);
   const [doreIdx, setDoreIdx] = useState(0);
   const [visible, setVisible] = useState(true);
   const [statCounts, setStatCounts] = useState([0, 0, 0]);
   const statsRef = useRef<HTMLDivElement>(null);
+
+  /* rotação de gatilhos hero */
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setGatilhoVisible(false);
+      setTimeout(() => {
+        setGatilhoIdx((i) => (i + 1) % GATILHOS.length);
+        setGatilhoVisible(true);
+      }, 350);
+    }, 3500);
+    return () => clearInterval(interval);
+  }, []);
 
   /* rotação de dores */
   useEffect(() => {
@@ -212,17 +250,19 @@ export default function PageEstetica() {
           Para Clínicas de Estética
         </div>
 
-        {/* headline */}
-        <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold leading-tight max-w-5xl mb-6 tracking-tight">
-          Organize sua clínica e{" "}
+        {/* headline rotativa */}
+        <h1
+          className="text-4xl sm:text-6xl md:text-7xl font-extrabold leading-tight max-w-5xl mb-6 tracking-tight transition-opacity duration-300"
+          style={{ opacity: gatilhoVisible ? 1 : 0 }}
+        >
+          {GATILHOS[gatilhoIdx].linha1}{" "}
           <span className="bg-gradient-to-r from-[#52B788] to-[#95D5B2] bg-clip-text text-transparent">
-            aumente seu faturamento
+            {GATILHOS[gatilhoIdx].destaque}
           </span>
-          {" "}com uma agenda inteligente
         </h1>
 
         <p className="text-gray-400 text-xl max-w-2xl mb-4 leading-relaxed">
-          Reduza faltas, automatize atendimentos e venda mais com ajuda da tecnologia.
+          Agenda online, pagamento antecipado, vitrine de produtos e lembretes automáticos — tudo no seu WhatsApp.
         </p>
 
         <p className="text-[#95D5B2] text-sm font-medium mb-10">
