@@ -949,10 +949,11 @@ export default function VitrinePage() {
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
-            className={`px-4 py-2.5 rounded-xl text-[11px] font-semibold whitespace-nowrap transition-all shrink-0 ${
+            style={tab === t.id ? { background: '#40916C', color: 'white', borderColor: '#40916C' } : {}}
+            className={`px-4 py-2.5 rounded-xl text-[11px] font-semibold whitespace-nowrap transition-all shrink-0 border ${
               tab === t.id
-                ? 'bg-sage-600 text-white shadow-md'
-                : 'bg-white text-slate-500 border border-slate-200 hover:border-sage-300 hover:text-sage-600'
+                ? 'shadow-md'
+                : 'bg-white text-slate-500 border-slate-200 hover:border-slate-400'
             }`}
           >
             {t.label}
