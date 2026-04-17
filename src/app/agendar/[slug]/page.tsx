@@ -325,20 +325,20 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
       {/* Header fixo */}
       <div className="sticky top-0 z-10 px-4 py-3 flex items-center gap-3" style={{ background: cor }}>
         {logoUrl ? (
-          <div style={{ background: 'white', borderRadius: 8, padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-             <img src={logoUrl} alt={clinica.nome} style={{ height: 28, width: 'auto', objectFit: 'contain' }} />
+          <div className="flex shrink-0 items-center justify-center">
+             <img src={logoUrl} alt={clinica.nome} className="rounded-lg shadow-sm" style={{ height: 52, width: 'auto', objectFit: 'contain', background: 'transparent' }} />
           </div>
         ) : (
           <div style={{
-            width: 32, height: 32, borderRadius: 8,
+            width: 40, height: 40, borderRadius: 8,
             background: 'rgba(255,255,255,0.2)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: 'white', fontWeight: 700, fontSize: 14,
+            color: 'white', fontWeight: 700, fontSize: 18,
           }}>
             {clinica.nome.charAt(0)}
           </div>
         )}
-        <p style={{ color: 'white', fontWeight: 600, fontSize: 15 }}>{clinica.nome}</p>
+        <p style={{ color: 'white', fontWeight: 600, fontSize: 16 }}>{clinica.nome}</p>
       </div>
 
       {/* Conteúdo */}
