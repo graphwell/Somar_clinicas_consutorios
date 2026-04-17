@@ -1035,6 +1035,7 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
                 Fazer outro agendamento
               </button>
             </div>
+          )}
           </div>
         </div>
 
