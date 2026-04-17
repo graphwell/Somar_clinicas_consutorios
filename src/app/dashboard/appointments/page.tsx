@@ -362,6 +362,7 @@ export default function AtendimentosHojePage() {
   // Fila de espera
   type FilaItem = {
     id: string; posicao: number; prioridade: number; status: string;
+    tenantId: string; servicoId: string; profissionalId?: string | null;
     dataDesejada: string; horarioDesejado?: string | null; preferencia: string;
     paciente: { nome: string; telefone: string };
     profissional?: { nome: string } | null;
@@ -392,9 +393,9 @@ export default function AtendimentosHojePage() {
       await fetchWithAuth('/api/fila-espera/verificar-e-notificar', {
         method: 'POST',
         body: JSON.stringify({
-          tenantId: '',
-          profissionalId: item.profissional ? undefined : null,
-          servicoId: item.servico.nome,
+          tenantId: item.tenantId,
+          profissionalId: item.profissionalId ?? null,
+          servicoId: item.servicoId,
           dataHora: item.dataDesejada,
         }),
       });

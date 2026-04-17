@@ -21,7 +21,7 @@ export async function PATCH(
 
     const agendamento = await prisma.agendamento.findFirst({
       where: { id: params.id, tenantId },
-      select: { id: true, status: true, servicoId: true, profissionalId: true, tenantId: true },
+      select: { id: true, status: true, servicoId: true, profissionalId: true, tenantId: true, dataHora: true },
     });
 
     if (!agendamento) {
@@ -46,6 +46,21 @@ export async function PATCH(
       if (resultado.erros.length > 0) {
         console.warn('[insumos-baixa] Erros:', resultado.erros);
       }
+    }
+
+    // Ao cancelar, notificar próximo da fila de espera em background
+    if (status === 'cancelado' && agendamento.status !== 'cancelado' && agendamento.servicoId) {
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+      fetch(`${baseUrl}/api/fila-espera/verificar-e-notificar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenantId,
+          profissionalId: agendamento.profissionalId ?? null,
+          servicoId: agendamento.servicoId,
+          dataHora: agendamento.dataHora.toISOString(),
+        }),
+      }).catch(() => {});
     }
 
     return NextResponse.json({ ...updated, insumosBaixados });
