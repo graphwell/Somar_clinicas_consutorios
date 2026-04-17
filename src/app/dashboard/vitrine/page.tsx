@@ -929,25 +929,31 @@ export default function VitrinePage() {
   ];
 
   return (
-    <div className="max-w-7xl mx-auto py-8 px-4">
-      {/* Header Premium V4.0 */}
-      <div className="bg-white border border-card-border p-5 md:p-10 rounded-[2rem] md:rounded-[3rem] shadow-sm flex flex-col md:flex-row justify-between items-center gap-6 mb-8 md:mb-12">
-        <div className="flex items-center gap-4 md:gap-6 w-full md:text-left">
-           <div className="w-12 h-12 md:w-16 md:h-16 rounded-[1.4rem] md:rounded-[1.8rem] bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-800 text-white flex items-center justify-center shadow-2xl shadow-emerald-500/30 font-black italic text-2xl md:text-4xl shrink-0">V</div>
-           <div>
-              <h1 className="text-xl md:text-3xl font-black italic uppercase tracking-tighter text-text-main leading-tight underline decoration-primary/10 underline-offset-8">Inteligência de <span className="text-primary">Vitrine</span></h1>
-              <p className="text-[10px] md:text-[11px] font-black text-text-placeholder uppercase tracking-[0.2em] mt-1 opacity-70">Sincronize estoque com o catálogo Somar.</p>
-           </div>
+    <div className="max-w-7xl mx-auto py-4 lg:py-8 px-4">
+      {/* Header Premium */}
+      <div className="bg-white border border-card-border p-4 md:p-8 rounded-2xl shadow-sm flex items-center gap-4 mb-6">
+        <div className="w-10 h-10 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-800 text-white flex items-center justify-center shadow-lg font-black italic text-xl md:text-3xl shrink-0">V</div>
+        <div>
+          <h1 className="text-lg md:text-2xl font-black italic uppercase tracking-tighter text-text-main leading-tight">
+            Inteligência de <span className="text-primary">Vitrine</span>
+          </h1>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+            Sincronize estoque com o catálogo Somar.
+          </p>
         </div>
       </div>
 
-      {/* Tabs Estilizadas para Mobile e Desktop */}
-      <div className="flex gap-2 mb-12 overflow-x-auto pb-6 custom-scrollbar scroll-smooth no-scrollbar">
+      {/* Tabs de navegação */}
+      <div className="flex gap-2 mb-5 overflow-x-auto no-scrollbar pb-1">
         {tabs.map(t => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
-            className={`px-10 py-5 rounded-[1.6rem] text-[11px] font-black uppercase tracking-widest whitespace-nowrap transition-all border-2 ${tab === t.id ? 'bg-primary text-white border-primary shadow-2xl shadow-primary/30 translate-y-[-4px]' : 'bg-white text-slate-400 border-slate-50 hover:border-primary/20 hover:text-primary active:scale-95 shadow-sm'}`}
+            className={`px-4 py-2.5 rounded-xl text-[11px] font-semibold whitespace-nowrap transition-all shrink-0 ${
+              tab === t.id
+                ? 'bg-sage-600 text-white shadow-md'
+                : 'bg-white text-slate-500 border border-slate-200 hover:border-sage-300 hover:text-sage-600'
+            }`}
           >
             {t.label}
           </button>
