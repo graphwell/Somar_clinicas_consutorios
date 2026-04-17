@@ -415,7 +415,7 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
           boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
         }}>
           {/* ── AVISO DE FECHAMENTO ── */}
-          {diaBloqueado ? (
+          {diaBloqueado && (
             <div style={{ textAlign: 'center', padding: '12px 8px' }}>
               <div style={{ fontSize: 52, marginBottom: 12 }}>🚫</div>
               <h2 style={{ fontSize: 19, fontWeight: 700, color: '#1B2B3A', marginBottom: 8 }}>
@@ -444,7 +444,8 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
                 Você pode agendar para outra data através do nosso WhatsApp. 😊
               </p>
             </div>
-          ) : (
+          )}
+          {!diaBloqueado && (
             <div>
           {passo < 6 && <IndicadorPassos passo={passo} cor={cor} />}
 
