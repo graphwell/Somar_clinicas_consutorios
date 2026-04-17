@@ -439,7 +439,7 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
               </p>
             </div>
           ) : (
-            <>
+            <div>
           {passo < 6 && <IndicadorPassos passo={passo} cor={cor} />}
 
 
@@ -1029,7 +1029,7 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
                 Fazer outro agendamento
               </button>
             </div>
-          </>
+          </div>
           )}{/* fim ternário bloqueado */}
         </div>{/* fim card */}
 
