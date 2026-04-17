@@ -68,6 +68,7 @@ model Clinica {
   convites             Convite[]
   // Fechamentos / Feriados
   diasBloqueados       DiaBloqueado[]
+  pixConfig            PixConfig?
 }
 
 enum NichoType {
@@ -1332,4 +1333,22 @@ model DiaBloqueado {
 
   @@index([tenantId, data, ativo])
   @@map("dias_bloqueados")
+}
+
+model PixConfig {
+  id             String  @id @default(cuid())
+  tenantId       String  @unique
+  ativo          Boolean @default(false)
+  tipoChave      String  // 'cpf'|'cnpj'|'email'|'telefone'|'aleatoria'
+  chave          String
+  nomeFavorecido String
+  banco          String?
+  exibirNoLink   Boolean @default(true)  // link publico
+  exibirNoWpp    Boolean @default(true)  // bot whatsapp
+  mensagemPix    String? // texto personalizado
+  
+  clinica Clinica @relation(fields: [tenantId], references: [tenantId])
+  updatedAt DateTime @updatedAt
+
+  @@map("pix_configs")
 }

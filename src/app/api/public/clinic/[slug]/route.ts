@@ -40,6 +40,16 @@ export async function GET(
             preco: true,
           },
         },
+        pixConfig: {
+          select: {
+            ativo: true,
+            tipoChave: true,
+            chave: true,
+            nomeFavorecido: true,
+            banco: true,
+            exibirNoLink: true,
+          }
+        }
       },
     });
 
@@ -67,6 +77,7 @@ export async function GET(
       workingDays: clinica.workingDays,
       profissionais: clinica.profissionais,
       servicos: clinica.servicos,
+      pixConfig: clinica.pixConfig,
     });
   } catch (err) {
     console.error('[public/clinic/slug]', err);

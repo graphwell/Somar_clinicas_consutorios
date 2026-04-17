@@ -25,6 +25,11 @@ export function IntegrationsTab() {
   const [integrations, setIntegrations] = useState<IntegrationConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingProvider, setEditingProvider] = useState<string | null>(null);
+  
+  // PIX Manual
+  const [pix, setPix] = useState<any>(null);
+  const [editandoPix, setEditandoPix] = useState(false);
+  const [salvandoPix, setSalvandoPix] = useState(false);
 
   useEffect(() => { loadData(); }, []);
 
@@ -38,6 +43,39 @@ export function IntegrationsTab() {
       console.error(e);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadPixData() {
+    try {
+      const res = await fetchWithAuth("/api/integrations/pix");
+      const data = await res.json();
+      setPix(data);
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  useEffect(() => {
+    loadPixData();
+  }, []);
+
+  async function salvarPix(dados: any) {
+    setSalvandoPix(true);
+    try {
+      const res = await fetchWithAuth("/api/integrations/pix", {
+        method: "POST",
+        body: JSON.stringify(dados),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setPix(data.config);
+        setEditandoPix(false);
+      }
+    } catch (e) {
+      alert("Erro ao salvar PIX.");
+    } finally {
+      setSalvandoPix(false);
     }
   }
 
@@ -81,6 +119,138 @@ export function IntegrationsTab() {
 
       {/* Grid de gateways */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        
+        {/* Card PIX Manual */}
+        <div style={{
+          background: 'white',
+          border: pix?.ativo
+            ? '1.5px solid #40916C'
+            : '1px solid #EEE9DF',
+          borderRadius: '16px',
+          padding: '20px',
+          position: 'relative',
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
+          {/* Header do card: */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            marginBottom: '12px',
+          }}>
+            <div style={{
+              width: '44px', height: '44px',
+              borderRadius: '12px',
+              background: '#32BCAD22',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '22px',
+            }}>
+              🏦
+            </div>
+            <div style={{ flex: 1 }}>
+              <p style={{
+                fontSize: '15px',
+                fontWeight: '600',
+                color: '#1B2B3A',
+                margin: 0,
+              }}>
+                PIX Manual
+              </p>
+              <p style={{
+                fontSize: '12px',
+                color: '#8A9BB0',
+                margin: 0,
+              }}>
+                Receba agendamentos com pagamento via PIX
+              </p>
+            </div>
+            {/* Badge status: */}
+            <div style={{
+              padding: '4px 12px',
+              borderRadius: '20px',
+              background: pix?.ativo ? '#D1FAE5' : '#F3F4F6',
+              fontSize: '11px',
+              fontWeight: '600',
+              color: pix?.ativo ? '#065F46' : '#6B7280',
+            }}>
+              {pix?.ativo ? 'Ativo' : 'Inativo'}
+            </div>
+          </div>
+
+          {/* Chave configurada: */}
+          {pix?.ativo && pix?.chave && !editandoPix && (
+            <div style={{
+              background: '#F0FAF4',
+              border: '1px solid #D8F3DC',
+              borderRadius: '10px',
+              padding: '10px 14px',
+              marginBottom: '12px',
+            }}>
+              <p style={{
+                fontSize: '11px',
+                color: '#8A9BB0',
+                margin: '0 0 2px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+              }}>
+                Chave {pix.tipoChave}
+              </p>
+              <p style={{
+                fontSize: '14px',
+                color: '#1B2B3A',
+                fontWeight: '500',
+                margin: 0,
+                fontFamily: 'monospace',
+              }}>
+                {pix.chave}
+              </p>
+              <p style={{
+                fontSize: '12px',
+                color: '#2D6A4F',
+                margin: '4px 0 0',
+              }}>
+                {pix.nomeFavorecido}
+              </p>
+            </div>
+          )}
+
+          {/* Formulário de edição: */}
+          {editandoPix && (
+            <PixForm
+              inicial={pix}
+              onSalvar={salvarPix}
+              onCancelar={() => setEditandoPix(false)}
+              salvando={salvandoPix}
+            />
+          )}
+
+          {/* Botão: */}
+          {!editandoPix && (
+            <button
+              onClick={() => setEditandoPix(true)}
+              style={{
+                width: '100%',
+                padding: '10px',
+                background: pix?.ativo ? 'white' : '#40916C',
+                color: pix?.ativo ? '#40916C' : 'white',
+                border: pix?.ativo
+                  ? '1px solid #40916C'
+                  : 'none',
+                borderRadius: '10px',
+                fontSize: '13px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                marginTop: 'auto'
+              }}
+            >
+              {pix?.ativo ? 'Editar configuração' : 'Configurar PIX'}
+            </button>
+          )}
+        </div>
+
         {GATEWAYS.map((g) => {
           const status = getStatus(g.provider);
           const cfg = integrations.find(i => i.provider === g.provider);
@@ -374,4 +544,187 @@ function ConfigModal({ provider, onClose, onDone, isConnected }: {
       </div>
     </div>
   );
+}
+
+// ─── Componentes PIX Manual ───
+
+function PixForm({ inicial, onSalvar, onCancelar, salvando }: any) {
+  const [form, setForm] = useState({
+    ativo: inicial?.ativo ?? true,
+    tipoChave: inicial?.tipoChave ?? 'telefone',
+    chave: inicial?.chave ?? '',
+    nomeFavorecido: inicial?.nomeFavorecido ?? '',
+    banco: inicial?.banco ?? '',
+    exibirNoLink: inicial?.exibirNoLink ?? true,
+    exibirNoWpp: inicial?.exibirNoWpp ?? true,
+    mensagemPix: inicial?.mensagemPix ?? '',
+  })
+
+  return (
+    <div style={{ marginBottom: '12px' }}>
+
+      {/* Tipo da chave: */}
+      <div style={{ marginBottom: '12px' }}>
+        <label style={labelStyle}>Tipo de chave PIX</label>
+        <select
+          value={form.tipoChave}
+          onChange={e => setForm({
+            ...form, tipoChave: e.target.value
+          })}
+          style={inputStyle}
+        >
+          <option value="telefone">Telefone</option>
+          <option value="cpf">CPF</option>
+          <option value="cnpj">CNPJ</option>
+          <option value="email">Email</option>
+          <option value="aleatoria">Chave aleatória</option>
+        </select>
+      </div>
+
+      {/* Chave: */}
+      <div style={{ marginBottom: '12px' }}>
+        <label style={labelStyle}>Chave PIX</label>
+        <input
+          value={form.chave}
+          onChange={e => setForm({
+            ...form, chave: e.target.value
+          })}
+          placeholder={
+            form.tipoChave === 'telefone'
+              ? '(85) 99999-0000'
+              : form.tipoChave === 'email'
+              ? 'seu@email.com'
+              : form.tipoChave === 'cpf'
+              ? '000.000.000-00'
+              : 'Cole sua chave aqui'
+          }
+          style={inputStyle}
+        />
+      </div>
+
+      {/* Nome favorecido: */}
+      <div style={{ marginBottom: '12px' }}>
+        <label style={labelStyle}>Nome do favorecido</label>
+        <input
+          value={form.nomeFavorecido}
+          onChange={e => setForm({
+            ...form, nomeFavorecido: e.target.value
+          })}
+          placeholder="Nome que aparece no PIX"
+          style={inputStyle}
+        />
+      </div>
+
+      {/* Banco (opcional): */}
+      <div style={{ marginBottom: '12px' }}>
+        <label style={labelStyle}>Banco (opcional)</label>
+        <input
+          value={form.banco}
+          onChange={e => setForm({
+            ...form, banco: e.target.value
+          })}
+          placeholder="Ex: Nubank, Bradesco..."
+          style={inputStyle}
+        />
+      </div>
+
+      {/* Ativo? */}
+      <div style={{ marginBottom: '12px' }}>
+        <label style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', textTransform: 'none' }}>
+           <input
+             type="checkbox"
+             checked={form.ativo}
+             onChange={e => setForm({ ...form, ativo: e.target.checked })}
+           />
+           Gateway PIX Manual Ativo
+        </label>
+      </div>
+
+      {/* Onde exibir: */}
+      <div style={{ marginBottom: '16px' }}>
+        <label style={labelStyle}>Exibir no</label>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          {[
+            { key: 'exibirNoLink', label: 'Link público' },
+            { key: 'exibirNoWpp', label: 'WhatsApp bot' },
+          ].map(op => (
+            <label key={op.key} style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              cursor: 'pointer',
+              fontSize: '13px',
+              color: '#1B2B3A',
+            }}>
+              <input
+                type="checkbox"
+                checked={form[op.key as keyof typeof form] as boolean}
+                onChange={e => setForm({
+                  ...form,
+                  [op.key]: e.target.checked
+                })}
+              />
+              {op.label}
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* Botões: */}
+      <div style={{ display: 'flex', gap: '8px' }}>
+        <button
+          onClick={onCancelar}
+          style={{
+            flex: 1, padding: '10px',
+            background: 'white',
+            border: '1px solid #EEE9DF',
+            borderRadius: '10px',
+            fontSize: '13px',
+            cursor: 'pointer',
+            color: '#4A6480',
+          }}
+        >
+          Cancelar
+        </button>
+        <button
+          onClick={() => onSalvar(form)}
+          disabled={salvando}
+          style={{
+            flex: 2, padding: '10px',
+            background: '#40916C',
+            border: 'none',
+            borderRadius: '10px',
+            fontSize: '13px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            color: 'white',
+            opacity: salvando ? 0.7 : 1,
+          }}
+        >
+          {salvando ? 'Salvando...' : 'Salvar PIX'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+const labelStyle = {
+  fontSize: '11px',
+  fontWeight: '600' as const,
+  color: '#8A9BB0',
+  textTransform: 'uppercase' as const,
+  letterSpacing: '0.5px',
+  display: 'block',
+  marginBottom: '6px',
+}
+
+const inputStyle = {
+  width: '100%',
+  padding: '10px 12px',
+  border: '1.5px solid #EEE9DF',
+  borderRadius: '8px',
+  fontSize: '14px',
+  outline: 'none',
+  boxSizing: 'border-box' as const,
+  fontFamily: 'DM Sans, sans-serif',
 }

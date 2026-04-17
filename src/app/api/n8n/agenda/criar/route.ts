@@ -204,13 +204,26 @@ export async function POST(req: NextRequest) {
       select: { nome: true },
     });
 
+    const pixConfig = await prisma.pixConfig.findUnique({
+      where: { tenantId: clinica.tenantId }
+    });
+
+    const msgPix = pixConfig?.ativo && pixConfig?.exibirNoWpp
+      ? `\n\nPagamento via PIX:\n` +
+        `Chave: ${pixConfig.chave}\n` +
+        `Favorecido: ${pixConfig.nomeFavorecido}\n` +
+        (pixConfig.banco ? `Banco: ${pixConfig.banco}\n` : '') +
+        `Para garantir seu horário, realize o pagamento e envie o comprovante.`
+      : '';
+
     const msgConfirmacao =
       `Agendamento confirmado!\n\n` +
       `Protocolo: #${protocolo}\n` +
       `Data: ${dataFormatada} as ${horario}\n` +
-      (servicoDetails ? `Servico: ${servicoDetails.nome}\n` : '') +
+      (servicoDetails ? `Serviço: ${servicoDetails.nome}\n` : '') +
       (profissional ? `Profissional: ${profissional.nome}\n` : '') +
-      `\nAte la!`;
+      msgPix +
+      `\n\nAté lá!`;
 
     // Notificação WA em background
     import('@/lib/whatsapp-service')

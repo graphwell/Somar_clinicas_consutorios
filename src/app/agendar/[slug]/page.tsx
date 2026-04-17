@@ -8,6 +8,14 @@ interface ClinicaPublica {
   tenantId: string;
   branding: { logoUrl?: string; primaryColor?: string } | null;
   aceitaPagamento: boolean;
+  pixConfig?: {
+    ativo: boolean;
+    tipoChave: string;
+    chave: string;
+    nomeFavorecido: string;
+    banco?: string | null;
+    exibirNoLink: boolean;
+  } | null;
 }
 
 interface Servico {
@@ -1009,6 +1017,100 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
                   </div>
                 ))}
               </div>
+
+              {/* PIX Manual */}
+              {clinica?.pixConfig?.ativo && clinica?.pixConfig?.exibirNoLink && (
+                 <div style={{
+                  background: '#F0FAF4',
+                  border: '1px solid #D8F3DC',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  marginTop: '16px',
+                  marginBottom: '16px',
+                  textAlign: 'left'
+                }}>
+                  <p style={{
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    color: '#1B2B3A',
+                    margin: '0 0 8px',
+                  }}>
+                    Pagar agora via PIX
+                  </p>
+                  <p style={{
+                    fontSize: '12px',
+                    color: '#8A9BB0',
+                    margin: '0 0 12px',
+                  }}>
+                    Garanta seu horário pagando agora
+                  </p>
+              
+                  {/* Dados PIX: */}
+                  <div style={{
+                    background: 'white',
+                    borderRadius: '8px',
+                    padding: '12px',
+                    marginBottom: '10px',
+                  }}>
+                    <p style={{
+                      fontSize: '11px',
+                      color: '#8A9BB0',
+                      margin: '0 0 4px',
+                      textTransform: 'uppercase',
+                    }}>
+                      Chave {clinica.pixConfig.tipoChave}
+                    </p>
+                    <p style={{
+                      fontSize: '15px',
+                      fontWeight: '600',
+                      color: '#1B2B3A',
+                      margin: 0,
+                      fontFamily: 'monospace',
+                    }}>
+                      {clinica.pixConfig.chave}
+                    </p>
+                    <p style={{
+                      fontSize: '12px',
+                      color: '#2D6A4F',
+                      margin: '4px 0 0',
+                    }}>
+                      {clinica.pixConfig.nomeFavorecido}
+                      {clinica.pixConfig.banco ? ` · ${clinica.pixConfig.banco}` : ''}
+                    </p>
+                  </div>
+              
+                  {/* Botão copiar chave: */}
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(clinica.pixConfig!.chave)
+                      alert('Chave copiada!')
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      background: cor,
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Copiar chave PIX
+                  </button>
+              
+                  <p style={{
+                    fontSize: '11px',
+                    color: '#8A9BB0',
+                    textAlign: 'center',
+                    margin: '8px 0 0',
+                  }}>
+                    Após o pagamento seu agendamento
+                    sera confirmado pelo estabelecimento
+                  </p>
+                </div>
+              )}
 
               {/* Adicionar ao calendário */}
               <a
