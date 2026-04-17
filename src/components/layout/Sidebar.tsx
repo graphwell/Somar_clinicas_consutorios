@@ -123,11 +123,11 @@ export default function Sidebar({
           style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}
         >
           {clientLogo ? (
-            <div className="h-10 flex items-center">
+            <div className="h-16 flex items-center">
               <img
                 src={clientLogo}
                 alt={clientName || "Logo"}
-                style={{ maxHeight: '40px', maxWidth: '120px', objectFit: 'contain', background: 'transparent' }}
+                style={{ maxHeight: '64px', maxWidth: '160px', objectFit: 'contain', background: 'transparent' }}
               />
             </div>
           ) : clientName ? (
