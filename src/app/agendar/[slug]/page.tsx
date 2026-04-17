@@ -1036,15 +1036,15 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
               </button>
             </div>
           </div>
-          )}{/* fim ternário bloqueado */}
-        </div>{/* fim card */}
+          )}
+        </div>
 
         {/* Footer */}
         <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11, marginTop: 24 }}>
           Powered by Synka
         </p>
 
-      </div>{/* fim conteúdo */}
+      </div>
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
