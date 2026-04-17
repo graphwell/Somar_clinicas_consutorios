@@ -105,6 +105,48 @@ function IndicadorPassos({ passo, cor }: { passo: Passo; cor: string }) {
   );
 }
 
+/* ─── Utilitários PIX ─────────────────────────────────── */
+function calculatePixCRC16(data: string): string {
+  let crc = 0xFFFF;
+  const polynomial = 0x1021;
+  for (let i = 0; i < data.length; i++) {
+    let byte = data.charCodeAt(i);
+    crc ^= (byte << 8);
+    for (let j = 0; j < 8; j++) {
+      if ((crc & 0x8000) !== 0) {
+        crc = ((crc << 1) ^ polynomial) & 0xFFFF;
+      } else {
+        crc = (crc << 1) & 0xFFFF;
+      }
+    }
+  }
+  return crc.toString(16).toUpperCase().padStart(4, '0');
+}
+
+function generatePixPayload(key: string, name: string, amount: number | null): string {
+  // Limpar a chave (remover caracteres especiais para telefones/CPFs no payload se necessário)
+  const cleanKey = key.includes('@') ? key : key.replace(/\D/g, ''); 
+  const pad = (id: string, val: string) => id + val.length.toString().padStart(2, '0') + val;
+  
+  const merchantInfo = 
+    pad('00', 'BR.GOV.BCB.PIX') + 
+    pad('01', cleanKey);
+  
+  let payload = 
+    pad('00', '01') +
+    pad('26', merchantInfo) +
+    pad('52', '0000') +
+    pad('53', '986') +
+    (amount ? pad('54', amount.toFixed(2)) : '') +
+    pad('58', 'BR') +
+    pad('59', name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').substring(0, 25).toUpperCase()) + 
+    pad('60', 'BRASILIA') +
+    pad('62', pad('05', '***')) +
+    '6304';
+    
+  return payload + calculatePixCRC16(payload);
+}
+
 /* ─── Página principal ─────────────────────────────────── */
 export default function AgendarPage({ params }: { params: Promise<{ slug: string }> }) {
   const [slug, setSlug] = useState('');
@@ -942,6 +984,12 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
                                        clinica.pixConfig?.ativo && 
                                        clinica.pixConfig?.exibirNoLink;
 
+                      const pixPayload = exibirPix ? generatePixPayload(
+                        clinica.pixConfig!.chave,
+                        clinica.pixConfig!.nomeFavorecido,
+                        tipo === 'total' ? totalCusto : totalCusto * 0.5
+                      ) : '';
+
                       return (
                         <div key={tipo}>
                           <label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: 14, borderRadius: 12, cursor: 'pointer', border: `2px solid ${sel ? cor : '#EEE9DF'}`, background: sel ? `${cor}0D` : 'white', transition: 'all 150ms', marginBottom: sel && exibirPix ? 0 : 8 }}>
@@ -982,7 +1030,7 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
                                 marginBottom: 16
                               }}>
                                 <img 
-                                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(clinica.pixConfig!.chave)}`} 
+                                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(pixPayload)}`} 
                                   alt="PIX QR Code" 
                                   style={{ width: 140, height: 140 }}
                                 />
@@ -991,8 +1039,8 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
                               <button
                                 onClick={(e) => {
                                   e.preventDefault();
-                                  navigator.clipboard.writeText(clinica.pixConfig!.chave);
-                                  alert('Código PIX copiado!');
+                                  navigator.clipboard.writeText(pixPayload);
+                                  alert('Código PIX Copia e Cola copiado!');
                                 }}
                                 style={{
                                   width: '100%',
