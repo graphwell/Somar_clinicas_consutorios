@@ -69,7 +69,7 @@ function Toggle({ value, onChange, color = 'bg-[var(--accent)]' }: { value: bool
 // ─── Page ─────────────────────────────────────────────────────────
 export default function MarketingPage() {
   const { labels } = useNicho();
-  const [tab, setTab] = useState<'lembretes' | 'aniversarios' | 'combos' | 'campanhas' | 'config' | 'log'>('lembretes');
+  const [tab, setTab] = useState<'lembretes' | 'aniversarios' | 'combos' | 'campanhas' | 'config' | 'log' | 'fechamentos'>('lembretes');
 
   // Data
   const [config, setConfig] = useState<Config | null>(null);
@@ -106,6 +106,69 @@ export default function MarketingPage() {
   const [estimando, setEstimando] = useState(false);
   const [dispatchingId, setDispatchingId] = useState<string | null>(null);
   const [dispatchProgress, setDispatchProgress] = useState<{ enviados: number; erros: number; total: number; nome: string } | null>(null);
+
+  // Fechamentos
+  interface DiaBloq { id: string; data: string; titulo: string; mensagem: string; retornoData?: string | null; retornoHora?: string | null; ativo: boolean; }
+  const [diasBloq, setDiasBloq] = useState<DiaBloq[]>([]);
+  const [loadingBloq, setLoadingBloq] = useState(false);
+  const [showModalBloq, setShowModalBloq] = useState(false);
+  const [formBloq, setFormBloq] = useState({ data: '', titulo: 'Feriado', mensagem: '', retornoData: '', retornoHora: '08:00' });
+  const [savingBloq, setSavingBloq] = useState(false);
+  const [errBloq, setErrBloq] = useState('');
+  const hojeStr = new Date().toISOString().split('T')[0];
+
+  const carregarBloq = async () => {
+    setLoadingBloq(true);
+    try {
+      const r = await fetchWithAuth('/api/dias-bloqueados?ativos=false');
+      const d = await r.json();
+      setDiasBloq(Array.isArray(d) ? d : []);
+    } finally { setLoadingBloq(false); }
+  };
+
+  useEffect(() => { if (tab === 'fechamentos') carregarBloq(); }, [tab]);
+
+  useEffect(() => {
+    if (formBloq.data) {
+      const dF = new Date(formBloq.data).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'UTC' });
+      const rF = formBloq.retornoData ? new Date(formBloq.retornoData).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'UTC' }) : null;
+      const msg = `Olá! 👋 Hoje, dia ${dF}, não estaremos funcionando${formBloq.titulo ? ` por conta do ${formBloq.titulo}` : ''}.` +
+        (rF ? ` Voltamos no dia ${rF}${formBloq.retornoHora ? ` às ${formBloq.retornoHora}` : ''}. ` : ' ') +
+        'Caso queira agendar para outra data, é só responder aqui! 😊';
+      setFormBloq(f => ({ ...f, mensagem: msg }));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formBloq.data, formBloq.titulo, formBloq.retornoData, formBloq.retornoHora]);
+
+  const handleSalvarBloq = async () => {
+    if (!formBloq.data) { setErrBloq('Selecione uma data'); return; }
+    setSavingBloq(true); setErrBloq('');
+    try {
+      const res = await fetchWithAuth('/api/dias-bloqueados', {
+        method: 'POST',
+        body: JSON.stringify({ data: formBloq.data, titulo: formBloq.titulo, mensagem: formBloq.mensagem, retornoData: formBloq.retornoData || null, retornoHora: formBloq.retornoHora || null }),
+      });
+      if (!res.ok) { const d = await res.json(); setErrBloq(d.error || 'Erro'); return; }
+      setShowModalBloq(false);
+      setFormBloq({ data: '', titulo: 'Feriado', mensagem: '', retornoData: '', retornoHora: '08:00' });
+      await carregarBloq();
+      showToast('Aviso de fechamento configurado! ✅');
+    } finally { setSavingBloq(false); }
+  };
+
+  const toggleBloq = async (d: DiaBloq) => {
+    await fetchWithAuth('/api/dias-bloqueados', { method: 'PATCH', body: JSON.stringify({ id: d.id, ativo: !d.ativo }) });
+    await carregarBloq();
+    showToast(d.ativo ? 'Aviso desativado' : 'Aviso reativado');
+  };
+
+  const excluirBloq = async (id: string) => {
+    if (!confirm('Remover este aviso?')) return;
+    await fetchWithAuth(`/api/dias-bloqueados?id=${id}`, { method: 'DELETE' });
+    await carregarBloq();
+    showToast('Aviso removido');
+  };
+
 
   // Combos
   const [showNovoCombo, setShowNovoCombo] = useState(false);
@@ -398,6 +461,7 @@ export default function MarketingPage() {
     { id: 'aniversarios', label: 'Aniversários' },
     { id: 'combos', label: 'Combos' },
     { id: 'campanhas', label: 'Campanhas' },
+    { id: 'fechamentos', label: '🚨 Fechamentos' },
     { id: 'config', label: 'Configurações' },
     { id: 'log', label: 'Log' },
   ] as const;
@@ -828,6 +892,150 @@ export default function MarketingPage() {
                       </div>
                     );
                   })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ══ Aba: Fechamentos ══════════════════════════════════════ */}
+          {tab === 'fechamentos' && (
+            <div className="space-y-4">
+              {/* Header */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-black text-[var(--foreground)] tracking-tight">Avisos de Fechamento</p>
+                  <p className="text-[11px] text-[var(--text-muted)] font-medium mt-0.5">Feriados e dias sem atendimento — aviso automático via WhatsApp e link público</p>
+                </div>
+                <button onClick={() => setShowModalBloq(true)}
+                  className="px-5 py-2.5 bg-red-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-red-500/20 hover:opacity-90 transition-all">
+                  + Adicionar
+                </button>
+              </div>
+
+              {/* Info */}
+              <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-2xl flex gap-3">
+                <span className="text-lg shrink-0">💡</span>
+                <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
+                  No dia configurado, clientes que tentarem agendar via <strong>WhatsApp</strong> ou pelo <strong>Link Público</strong> recebem o aviso automaticamente — sem precisar de ninguém respondendo.
+                </p>
+              </div>
+
+              {/* Lista */}
+              {loadingBloq ? (
+                <div className="flex justify-center py-12"><div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" /></div>
+              ) : diasBloq.length === 0 ? (
+                <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-[2.5rem] p-14 text-center">
+                  <div className="text-4xl mb-3">📅</div>
+                  <p className="font-black text-[var(--text-muted)] uppercase tracking-widest text-xs">Nenhum fechamento configurado</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {diasBloq.map(d => (
+                    <div key={d.id} className={`bg-[var(--card-bg)] border rounded-[2rem] p-5 shadow-sm flex items-start gap-4 transition-all ${d.ativo ? 'border-red-200/60' : 'border-[var(--border)] opacity-60'}`}>
+                      <div className="w-10 h-10 rounded-xl shrink-0 flex items-center justify-center bg-red-50 border border-red-100">
+                        <span className="text-lg">{d.ativo ? '🚫' : '🗓'}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-sm font-black text-[var(--foreground)] tracking-tight">{d.titulo}</p>
+                          {d.ativo && <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-red-100 text-red-600 uppercase">Ativo</span>}
+                        </div>
+                        <p className="text-xs text-[var(--text-muted)] font-medium mt-0.5 capitalize">
+                          {new Date(d.data).toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric', timeZone: 'UTC' })}
+                        </p>
+                        <p className="text-[11px] text-[var(--text-muted)] mt-1 line-clamp-2">{d.mensagem}</p>
+                        {(d.retornoData || d.retornoHora) && (
+                          <p className="text-[11px] text-emerald-500 font-medium mt-1">
+                            📅 Retorno: {d.retornoData ? new Date(d.retornoData).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'UTC' }) : ''}
+                            {d.retornoHora ? ` às ${d.retornoHora}` : ''}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-1.5 shrink-0">
+                        <button onClick={() => toggleBloq(d)}
+                          className="text-[10px] px-3 py-1.5 rounded-xl border border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--accent)]/40 transition-all">
+                          {d.ativo ? 'Desativar' : 'Reativar'}
+                        </button>
+                        <button onClick={() => excluirBloq(d.id)}
+                          className="text-[10px] px-3 py-1.5 rounded-xl border border-red-100 text-red-400 hover:border-red-300 transition-all">
+                          Remover
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Modal de criação */}
+              {showModalBloq && (
+                <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-slate-900/40 backdrop-blur-sm p-0 md:p-4">
+                  <div className="bg-[var(--card-bg)] w-full h-[90vh] md:h-auto md:max-h-[90vh] md:max-w-lg md:rounded-2xl rounded-t-2xl flex flex-col overflow-hidden shadow-2xl border border-[var(--border)]">
+                    <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
+                      <div>
+                        <h3 className="text-sm font-black text-[var(--foreground)] tracking-tight">Novo Aviso de Fechamento</h3>
+                        <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Configure o dia e a mensagem automática</p>
+                      </div>
+                      <button onClick={() => setShowModalBloq(false)}
+                        className="flex items-center gap-1.5 text-[11px] font-medium text-[var(--text-muted)] hover:text-[var(--foreground)] px-2 py-1 rounded-lg hover:bg-[var(--foreground)]/5 transition-colors">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                        Fechar
+                      </button>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">Data *</label>
+                        <input type="date" value={formBloq.data} min={hojeStr}
+                          onChange={e => setFormBloq(f => ({ ...f, data: e.target.value }))}
+                          className="w-full h-11 px-4 rounded-2xl border border-[var(--border)] bg-[var(--foreground)]/5 text-sm focus:outline-none focus:border-[var(--accent)] font-medium" />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">Motivo</label>
+                        <select value={formBloq.titulo} onChange={e => setFormBloq(f => ({ ...f, titulo: e.target.value }))}
+                          className="w-full h-11 px-3 rounded-2xl border border-[var(--border)] bg-[var(--foreground)]/5 text-sm focus:outline-none font-medium">
+                          {['Feriado','Feriado Nacional','Feriado Municipal','Recesso','Manutenção','Evento interno','Outro'].map(o => <option key={o}>{o}</option>)}
+                        </select>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">Retorno em</label>
+                          <input type="date" value={formBloq.retornoData} min={formBloq.data || hojeStr}
+                            onChange={e => setFormBloq(f => ({ ...f, retornoData: e.target.value }))}
+                            className="w-full h-11 px-4 rounded-2xl border border-[var(--border)] bg-[var(--foreground)]/5 text-sm focus:outline-none focus:border-[var(--accent)] font-medium" />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">Abertura às</label>
+                          <input type="time" value={formBloq.retornoHora}
+                            onChange={e => setFormBloq(f => ({ ...f, retornoHora: e.target.value }))}
+                            className="w-full h-11 px-4 rounded-2xl border border-[var(--border)] bg-[var(--foreground)]/5 text-sm focus:outline-none focus:border-[var(--accent)] font-medium" />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">Mensagem ao cliente *</label>
+                        <textarea value={formBloq.mensagem} onChange={e => setFormBloq(f => ({ ...f, mensagem: e.target.value }))}
+                          rows={4} placeholder="Gerado automaticamente ao preencher a data..."
+                          className="w-full px-4 py-3 rounded-2xl border border-[var(--border)] bg-[var(--foreground)]/5 text-sm focus:outline-none focus:border-[var(--accent)] font-medium resize-none" />
+                      </div>
+
+                      {formBloq.mensagem && <WhatsAppBubble mensagem={formBloq.mensagem} />}
+                      {errBloq && <p className="text-[11px] text-red-500 bg-red-50 p-3 rounded-xl">{errBloq}</p>}
+                    </div>
+
+                    <div className="p-4 border-t border-[var(--border)] flex gap-3">
+                      <button onClick={() => setShowModalBloq(false)}
+                        className="flex-1 h-11 rounded-2xl bg-[var(--foreground)]/5 text-[11px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+                        Cancelar
+                      </button>
+                      <button onClick={handleSalvarBloq} disabled={savingBloq}
+                        className="flex-1 h-11 rounded-2xl text-[11px] font-black uppercase tracking-widest text-white disabled:opacity-50"
+                        style={{ background: '#EF4444' }}>
+                        {savingBloq ? 'Salvando...' : 'Confirmar'}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
