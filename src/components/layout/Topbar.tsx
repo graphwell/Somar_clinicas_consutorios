@@ -1,14 +1,11 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import { IconMenu, IconBell } from "@/components/icons/NavIcons";
-import Avatar from "@/components/ui/Avatar";
-import Link from "next/link";
-import { fetchWithAuth, clearAuthSession } from "@/lib/api-utils";
+import { fetchWithAuth } from "@/lib/api-utils";
 import { useToast } from "@/components/ui/Toast";
 
 interface TopbarProps {
   onMenuClick: () => void;
-  currentUser: { nome?: string; email?: string; role?: string } | null;
   currentUser: { nome?: string; email?: string; role?: string } | null;
   clientName?: string | null;
   clientSlug?: string | null;
@@ -35,9 +32,7 @@ export default function Topbar({ onMenuClick, currentUser, clientName, clientSlu
   const [notifCount, setNotifCount] = useState(0);
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifs, setNotifs] = useState<any[]>([]);
-  const [userOpen, setUserOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
-  const userRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchWithAuth("/api/notifications")
@@ -50,13 +45,11 @@ export default function Topbar({ onMenuClick, currentUser, clientName, clientSlu
       .catch(() => {});
   }, []);
 
-  // Fechar dropdowns ao clicar fora
+  // Fechar dropdown de notif ao clicar fora
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (notifRef.current && !notifRef.current.contains(e.target as Node))
         setNotifOpen(false);
-      if (userRef.current && !userRef.current.contains(e.target as Node))
-        setUserOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -65,14 +58,8 @@ export default function Topbar({ onMenuClick, currentUser, clientName, clientSlu
   const nome = currentUser?.nome || currentUser?.email?.split("@")[0] || "Usuário";
   const dateStr = formatDate();
 
-  const handleCopyLink = () => {
-    if (!clientSlug) return;
-    const url = `${window.location.origin}/agendar/${clientSlug}`;
-    navigator.clipboard.writeText(url)
-      .then(() => toast.success("Link copiado para a área de transferência!"))
-      .catch(() => toast.error("Não foi possível copiar o link."));
-    setUserOpen(false);
-  };
+  // toast ainda usado para notificações no futuro
+  void toast;
 
   return (
     <header
@@ -153,62 +140,70 @@ export default function Topbar({ onMenuClick, currentUser, clientName, clientSlu
           )}
         </div>
 
-        {/* Avatar / user dropdown */}
-        <div ref={userRef} className="relative">
-          <button
-            onClick={() => setUserOpen((v) => !v)}
-            className="flex items-center gap-2 hover:bg-warm-200 rounded-lg px-2 py-1 transition-colors"
+        {/* Atalho: Link Público */}
+        {clientSlug && (
+          <a
+            href={`/agendar/${clientSlug}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Abrir link público de agendamento"
+            className="hidden sm:flex items-center gap-1.5 h-9 px-3 rounded-lg border border-warm-300 text-slate-300 hover:border-sage-400 hover:text-sage-600 hover:bg-sage-50 transition-all text-[12px] font-medium"
           >
-            <Avatar nome={nome} size="md" />
-            <div className="hidden sm:block text-left">
-              <p className="text-[11px] font-medium text-slate-700 leading-tight">
-                {nome.split(" ")[0]}
-              </p>
-              <p className="text-[10px] text-slate-100 capitalize">
-                {currentUser?.role || ""}
-              </p>
-            </div>
-          </button>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
+              <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
+            </svg>
+            Link Público
+          </a>
+        )}
 
-          {userOpen && (
-            <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl border border-warm-200 shadow-card-hover z-50 overflow-hidden fade-up">
-              <div className="px-4 py-3 border-b border-warm-200">
-                <p className="text-xs font-medium text-slate-700">{nome}</p>
-                <p className="text-[11px] text-slate-100">{currentUser?.email}</p>
-              </div>
+        {/* Atalho mobile: Link Público (somente ícone) */}
+        {clientSlug && (
+          <a
+            href={`/agendar/${clientSlug}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Link público"
+            className="sm:hidden w-9 h-9 flex items-center justify-center rounded-lg text-slate-300 hover:bg-warm-200 hover:text-sage-600 transition-colors"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
+              <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
+            </svg>
+          </a>
+        )}
 
-              <div className="py-1 flex flex-col border-b border-warm-100">
-                <Link
-                  href="/dashboard/settings"
-                  onClick={() => setUserOpen(false)}
-                  className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-2"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-                  Configurações
-                </Link>
-                
-                {clientSlug && (
-                  <button
-                    onClick={handleCopyLink}
-                    className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-2"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
-                    Copiar Meu Link Público
-                  </button>
-                )}
-              </div>
+        {/* Atalho: Central de Ajuda */}
+        <a
+          href="/dashboard/ajuda"
+          title="Central de Ajuda"
+          className="hidden sm:flex items-center gap-1.5 h-9 px-3 rounded-lg border border-warm-300 text-slate-300 hover:border-gold-400 hover:text-gold-600 hover:bg-gold-50 transition-all text-[12px] font-medium"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          Ajuda
+        </a>
 
-              <div className="py-1">
-                <button
-                  onClick={() => clearAuthSession()}
-                  className="w-full text-left px-4 py-2 text-xs text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                  Sair da conta
-                </button>
-              </div>
-            </div>
-          )}
+        {/* Atalho mobile: Central de Ajuda (somente ícone) */}
+        <a
+          href="/dashboard/ajuda"
+          title="Central de Ajuda"
+          className="sm:hidden w-9 h-9 flex items-center justify-center rounded-lg text-slate-300 hover:bg-warm-200 hover:text-gold-600 transition-colors"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+        </a>
+
+        {/* Nome do usuário compacto + role (desktop) */}
+        <div className="hidden sm:flex flex-col text-right leading-tight">
+          <p className="text-[11px] font-medium text-slate-700">{nome.split(" ")[0]}</p>
+          <p className="text-[10px] text-slate-100 capitalize">{currentUser?.role || ""}</p>
         </div>
       </div>
     </header>
