@@ -1029,7 +1029,7 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
                 Fazer outro agendamento
               </button>
             </div>
-          </> /* fim ramo formulário */
+          </>
           )}{/* fim ternário bloqueado */}
         </div>{/* fim card */}
 
