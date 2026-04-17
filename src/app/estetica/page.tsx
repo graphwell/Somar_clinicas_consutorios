@@ -250,31 +250,43 @@ export default function PageEstetica() {
           Para Clínicas de Estética
         </div>
 
-        {/* barra de nichos — mostra amplitude do sistema */}
-        <div className="w-full max-w-2xl mb-8 overflow-x-auto scrollbar-none">
-          <div className="flex items-center gap-0 whitespace-nowrap justify-center flex-wrap gap-y-1">
+        {/* barra de nichos — chips animados */}
+        <div className="w-full max-w-3xl mb-8">
+          <div className="flex flex-wrap justify-center gap-2">
             {[
-              "Clínica de Estética",
-              "Salão de Beleza",
-              "Barbearia",
-              "Clínica Médica",
-              "Odontologia",
-              "Nutrição",
-              "Psicologia",
-              "Fisioterapia",
-              "e muito mais…",
-            ].map((nicho, i, arr) => (
-              <span key={nicho} className="flex items-center">
-                <span className={`text-[11px] font-medium px-1.5 ${i === arr.length - 1 ? "text-[#52B788]" : "text-gray-500"}`}>
-                  {nicho}
-                </span>
-                {i < arr.length - 1 && (
-                  <span className="text-gray-700 text-[11px] select-none">·</span>
-                )}
+              { label: "Clínica de Estética", delay: "0s" },
+              { label: "Salão de Beleza", delay: "0.3s" },
+              { label: "Barbearia", delay: "0.6s" },
+              { label: "Clínica Médica", delay: "0.9s" },
+              { label: "Odontologia", delay: "1.2s" },
+              { label: "Nutrição", delay: "1.5s" },
+              { label: "Psicologia", delay: "1.8s" },
+              { label: "Fisioterapia", delay: "2.1s" },
+              { label: "e muito mais…", delay: "2.4s", destaque: true },
+            ].map(({ label, delay, destaque }) => (
+              <span
+                key={label}
+                className={`inline-flex items-center px-3 py-1.5 rounded-full text-[13px] font-semibold border transition-all
+                  ${destaque
+                    ? "text-[#52B788] border-[#52B788]/40 bg-[#52B788]/10"
+                    : "text-gray-300 border-white/10 bg-white/5"
+                  }`}
+                style={{
+                  animation: `nichoPulse 3s ease-in-out infinite`,
+                  animationDelay: delay,
+                }}
+              >
+                {label}
               </span>
             ))}
           </div>
         </div>
+        <style>{`
+          @keyframes nichoPulse {
+            0%, 100% { opacity: 0.55; transform: scale(1); box-shadow: none; }
+            50% { opacity: 1; transform: scale(1.06); box-shadow: 0 0 12px rgba(82,183,136,0.35); }
+          }
+        `}</style>
 
         {/* headline rotativa */}
         <h1
