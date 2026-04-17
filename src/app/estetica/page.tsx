@@ -291,9 +291,22 @@ export default function PageEstetica() {
           Agenda online, pagamento antecipado, vitrine de produtos e lembretes automáticos — tudo no seu WhatsApp.
         </p>
 
-        <p className="text-[#95D5B2] text-sm font-medium mb-10">
-          ✓ Teste grátis por 30 dias &nbsp;·&nbsp; ✓ Planos a partir de R$ 37,90/mês &nbsp;·&nbsp; ✓ Cancele quando quiser
-        </p>
+        <div className="flex flex-wrap justify-center gap-2 mb-10">
+          {[
+            { icon: "✓", text: "30 dias grátis" },
+            { icon: "✓", text: "Sem cartão de crédito" },
+            { icon: "✓", text: "A partir de R$ 37,90/mês" },
+            { icon: "✓", text: "Cancele quando quiser" },
+          ].map((g) => (
+            <span
+              key={g.text}
+              className="inline-flex items-center gap-1.5 bg-[#40916C]/10 border border-[#40916C]/20 text-[#95D5B2] text-xs font-semibold px-3 py-1.5 rounded-full"
+            >
+              <span className="text-[#52B788]">{g.icon}</span>
+              {g.text}
+            </span>
+          ))}
+        </div>
 
         {/* CTAs */}
         <div className="flex flex-col items-center gap-2 mb-20 w-full sm:w-auto">
