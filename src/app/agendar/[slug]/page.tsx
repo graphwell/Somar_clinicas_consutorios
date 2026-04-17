@@ -921,28 +921,106 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
                 <div style={{ marginBottom: 16 }}>
                   <p style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600, color: '#8A9BB0', marginBottom: 10 }}>Como prefere pagar?</p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {/* Pagar na hora — sempre visível */}
-                    {(['hora'] as const).concat(clinica.aceitaPagamento ? (['total', 'sinal'] as const) : []).map(tipo => {
+                    {/* Opções de pagamento configuráveis */}
+                    {((): ('hora' | 'total' | 'sinal')[] => {
+                      const base: ('hora' | 'total' | 'sinal')[] = ['hora'];
+                      if (clinica.aceitaPagamento || (clinica.pixConfig?.ativo && clinica.pixConfig?.exibirNoLink)) {
+                        return [...base, 'total', 'sinal'];
+                      }
+                      return base;
+                    })().map(tipo => {
+                      const totalCusto = servico.preco + totalProdutos;
                       const opcoes = {
                         hora: { label: 'Pagar na hora', sub: 'Pague no dia do atendimento' },
-                        total: { label: 'Pagar agora (100%)', sub: `R$ ${servico.preco.toFixed(2).replace('.', ',')} — garante seu horário` },
-                        sinal: { label: 'Sinal (50%)', sub: `R$ ${(servico.preco * 0.5).toFixed(2).replace('.', ',')} agora + R$ ${(servico.preco * 0.5).toFixed(2).replace('.', ',')} no dia` },
+                        total: { label: 'Pagar agora (100%)', sub: `R$ ${totalCusto.toFixed(2).replace('.', ',')} — garante seu horário` },
+                        sinal: { label: 'Pagar agora (50%)', sub: `R$ ${(totalCusto * 0.5).toFixed(2).replace('.', ',')} agora + R$ ${(totalCusto * 0.5).toFixed(2).replace('.', ',')} no dia` },
                       };
                       const op = opcoes[tipo];
                       const sel = tipoPagamento === tipo;
+                      
+                      const exibirPix = (tipo === 'total' || tipo === 'sinal') && 
+                                       clinica.pixConfig?.ativo && 
+                                       clinica.pixConfig?.exibirNoLink;
+
                       return (
-                        <label key={tipo} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: 14, borderRadius: 12, cursor: 'pointer', border: `2px solid ${sel ? cor : '#EEE9DF'}`, background: sel ? `${cor}0D` : 'white', transition: 'all 150ms' }}>
-                          <input type="radio" name="pagamento" checked={sel} onChange={() => setTipoPagamento(tipo)} style={{ accentColor: cor, marginTop: 2, flexShrink: 0 }} />
-                          <div style={{ flex: 1 }}>
-                            <p style={{ fontSize: 14, fontWeight: 500, color: '#1B2B3A' }}>
-                              {op.label}
-                              {tipo === 'total' && (
-                                <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 600, color: cor, background: `${cor}20`, padding: '2px 8px', borderRadius: 20 }}>Recomendado</span>
-                              )}
-                            </p>
-                            <p style={{ fontSize: 12, color: '#8A9BB0', marginTop: 2 }}>{op.sub}</p>
-                          </div>
-                        </label>
+                        <div key={tipo}>
+                          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: 14, borderRadius: 12, cursor: 'pointer', border: `2px solid ${sel ? cor : '#EEE9DF'}`, background: sel ? `${cor}0D` : 'white', transition: 'all 150ms', marginBottom: sel && exibirPix ? 0 : 8 }}>
+                            <input type="radio" name="pagamento" checked={sel} onChange={() => setTipoPagamento(tipo)} style={{ accentColor: cor, marginTop: 2, flexShrink: 0 }} />
+                            <div style={{ flex: 1 }}>
+                              <p style={{ fontSize: 14, fontWeight: 500, color: '#1B2B3A' }}>
+                                {op.label}
+                                {tipo === 'total' && (
+                                  <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 600, color: cor, background: `${cor}20`, padding: '2px 8px', borderRadius: 20 }}>Recomendado</span>
+                                )}
+                              </p>
+                              <p style={{ fontSize: 12, color: '#8A9BB0', marginTop: 2 }}>{op.sub}</p>
+                            </div>
+                          </label>
+
+                          {/* Bloco de PIX exibido apenas quando selecionado e configurado */}
+                          {sel && exibirPix && (
+                            <div style={{
+                              background: 'white',
+                              border: `2px solid ${cor}`,
+                              borderTop: 'none',
+                              borderBottomLeftRadius: 12,
+                              borderBottomRightRadius: 12,
+                              padding: '16px',
+                              textAlign: 'center',
+                              marginBottom: 8
+                            }}>
+                              <p style={{ fontSize: 12, fontWeight: 600, color: '#1B2B3A', marginBottom: 12 }}>
+                                Escaneie para pagar R$ {(tipo === 'total' ? totalCusto : totalCusto * 0.5).toFixed(2).replace('.', ',')}
+                              </p>
+                              
+                              {/* QR Code */}
+                              <div style={{ 
+                                background: '#F8F6F1', 
+                                padding: 12, 
+                                borderRadius: 12, 
+                                display: 'inline-block',
+                                marginBottom: 16
+                              }}>
+                                <img 
+                                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(clinica.pixConfig!.chave)}`} 
+                                  alt="PIX QR Code" 
+                                  style={{ width: 140, height: 140 }}
+                                />
+                              </div>
+
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  navigator.clipboard.writeText(clinica.pixConfig!.chave);
+                                  alert('Código PIX copiado!');
+                                }}
+                                style={{
+                                  width: '100%',
+                                  padding: '12px',
+                                  background: '#F0FAF4',
+                                  color: '#2D6A4F',
+                                  border: '1.5px dashed #40916C',
+                                  borderRadius: 10,
+                                  fontSize: 13,
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: 8
+                                }}
+                              >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                Copiar código do QR Code
+                              </button>
+                              
+                              <p style={{ fontSize: 11, color: '#8A9BB0', marginTop: 10 }}>
+                                {clinica.pixConfig!.nomeFavorecido}
+                                {clinica.pixConfig!.banco ? ` · ${clinica.pixConfig!.banco}` : ''}
+                              </p>
+                            </div>
+                          )}
+                        </div>
                       );
                     })}
                   </div>
@@ -1018,99 +1096,7 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
                 ))}
               </div>
 
-              {/* PIX Manual */}
-              {clinica?.pixConfig?.ativo && clinica?.pixConfig?.exibirNoLink && (
-                 <div style={{
-                  background: '#F0FAF4',
-                  border: '1px solid #D8F3DC',
-                  borderRadius: '12px',
-                  padding: '16px',
-                  marginTop: '16px',
-                  marginBottom: '16px',
-                  textAlign: 'left'
-                }}>
-                  <p style={{
-                    fontSize: '13px',
-                    fontWeight: '600',
-                    color: '#1B2B3A',
-                    margin: '0 0 8px',
-                  }}>
-                    Pagar agora via PIX
-                  </p>
-                  <p style={{
-                    fontSize: '12px',
-                    color: '#8A9BB0',
-                    margin: '0 0 12px',
-                  }}>
-                    Garanta seu horário pagando agora
-                  </p>
-              
-                  {/* Dados PIX: */}
-                  <div style={{
-                    background: 'white',
-                    borderRadius: '8px',
-                    padding: '12px',
-                    marginBottom: '10px',
-                  }}>
-                    <p style={{
-                      fontSize: '11px',
-                      color: '#8A9BB0',
-                      margin: '0 0 4px',
-                      textTransform: 'uppercase',
-                    }}>
-                      Chave {clinica.pixConfig.tipoChave}
-                    </p>
-                    <p style={{
-                      fontSize: '15px',
-                      fontWeight: '600',
-                      color: '#1B2B3A',
-                      margin: 0,
-                      fontFamily: 'monospace',
-                    }}>
-                      {clinica.pixConfig.chave}
-                    </p>
-                    <p style={{
-                      fontSize: '12px',
-                      color: '#2D6A4F',
-                      margin: '4px 0 0',
-                    }}>
-                      {clinica.pixConfig.nomeFavorecido}
-                      {clinica.pixConfig.banco ? ` · ${clinica.pixConfig.banco}` : ''}
-                    </p>
-                  </div>
-              
-                  {/* Botão copiar chave: */}
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(clinica.pixConfig!.chave)
-                      alert('Chave copiada!')
-                    }}
-                    style={{
-                      width: '100%',
-                      padding: '10px',
-                      background: cor,
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontSize: '13px',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Copiar chave PIX
-                  </button>
-              
-                  <p style={{
-                    fontSize: '11px',
-                    color: '#8A9BB0',
-                    textAlign: 'center',
-                    margin: '8px 0 0',
-                  }}>
-                    Após o pagamento seu agendamento
-                    sera confirmado pelo estabelecimento
-                  </p>
-                </div>
-              )}
+
 
               {/* Adicionar ao calendário */}
               <a
