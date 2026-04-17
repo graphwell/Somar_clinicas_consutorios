@@ -245,9 +245,35 @@ export default function PageEstetica() {
         </div>
 
         {/* badge nicho */}
-        <div className="inline-flex items-center gap-2 bg-[#40916C]/10 border border-[#40916C]/25 rounded-full px-4 py-1.5 text-xs text-[#95D5B2] font-semibold uppercase tracking-widest mb-8">
+        <div className="inline-flex items-center gap-2 bg-[#40916C]/10 border border-[#40916C]/25 rounded-full px-4 py-1.5 text-xs text-[#95D5B2] font-semibold uppercase tracking-widest mb-5">
           <span className="w-1.5 h-1.5 rounded-full bg-[#40916C] animate-pulse" />
           Para Clínicas de Estética
+        </div>
+
+        {/* barra de nichos — mostra amplitude do sistema */}
+        <div className="w-full max-w-2xl mb-8 overflow-x-auto scrollbar-none">
+          <div className="flex items-center gap-0 whitespace-nowrap justify-center flex-wrap gap-y-1">
+            {[
+              "Clínica de Estética",
+              "Salão de Beleza",
+              "Barbearia",
+              "Clínica Médica",
+              "Odontologia",
+              "Nutrição",
+              "Psicologia",
+              "Fisioterapia",
+              "e muito mais…",
+            ].map((nicho, i, arr) => (
+              <span key={nicho} className="flex items-center">
+                <span className={`text-[11px] font-medium px-1.5 ${i === arr.length - 1 ? "text-[#52B788]" : "text-gray-500"}`}>
+                  {nicho}
+                </span>
+                {i < arr.length - 1 && (
+                  <span className="text-gray-700 text-[11px] select-none">·</span>
+                )}
+              </span>
+            ))}
+          </div>
         </div>
 
         {/* headline rotativa */}

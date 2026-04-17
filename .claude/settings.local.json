@@ -74,7 +74,8 @@
       "Bash(ls src/app/dashboard/permissions/)",
       "Bash(ls src/app/aceitar-convite/)",
       "Bash(mkdir -p \"/c/SOMAR/projeto-somar-n8n/src/app/api/permissions/users/[id]\")",
-      "Bash(mkdir -p \"/c/SOMAR/projeto-somar-n8n/src/app/api/convite/[token]\")"
+      "Bash(mkdir -p \"/c/SOMAR/projeto-somar-n8n/src/app/api/convite/[token]\")",
+      "Read(//tmp/**)"
     ]
   }
 }
