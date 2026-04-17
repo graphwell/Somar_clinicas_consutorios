@@ -445,8 +445,7 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
               </p>
             </div>
           )}
-          {!diaBloqueado && (
-            <div>
+          <div style={{ display: diaBloqueado ? 'none' : undefined }}>
           {passo < 6 && <IndicadorPassos passo={passo} cor={cor} />}
 
 
@@ -1037,7 +1036,6 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
               </button>
             </div>
           </div>
-          )}
         </div>
 
         {/* Footer */}
