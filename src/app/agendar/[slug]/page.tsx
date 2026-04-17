@@ -211,6 +211,35 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
 
   const cor = (clinica?.branding as any)?.primaryColor || '#40916C';
 
+  const NICHO_VISUAL = {
+    BARBEARIA: {
+      bg: 'linear-gradient(145deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+      pattern: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+      corTitulo: '#C4973A',
+      tagline: 'Reserve seu horário agora',
+    },
+    CLINICA_ESTETICA: {
+      bg: 'linear-gradient(145deg, #2d1b35 0%, #1a0a2e 50%, #2d1635 100%)',
+      pattern: `url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Ccircle cx='40' cy='40' r='30'/%3E%3C/g%3E%3C/svg%3E")`,
+      corTitulo: '#D4A5C9',
+      tagline: 'Agende seu procedimento',
+    },
+    SALAO_BELEZA: {
+      bg: 'linear-gradient(145deg, #1a0a2e 0%, #2d1635 50%, #1a1a2e 100%)',
+      pattern: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M20 20c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10zm10 0c0 5.5 4.5 10 10 10s10-4.5 10-10-4.5-10-10-10-10 4.5-10 10z'/%3E%3C/g%3E%3C/svg%3E")`,
+      corTitulo: '#F9A8D4',
+      tagline: 'Agende com sua profissional',
+    },
+    DEFAULT: {
+      bg: 'linear-gradient(145deg, #1B2B3A 0%, #2D3E50 100%)',
+      pattern: '',
+      corTitulo: '#40916C',
+      tagline: 'Agende seu horário',
+    },
+  } as const;
+
+  const visual = (NICHO_VISUAL as Record<string, typeof NICHO_VISUAL.DEFAULT>)[clinica?.nicho ?? ''] ?? NICHO_VISUAL.DEFAULT;
+
   const buscarSlots = async (data: string, horarioRef?: string) => {
     if (!servico) return;
     setCarregandoSlots(true);
@@ -321,32 +350,58 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
   const logoUrl = (clinica.branding as any)?.logoUrl;
 
   return (
-    <div className="min-h-[100svh]" style={{ background: cor }}>
-      {/* Header fixo */}
-      <div className="sticky top-0 z-10 px-4 py-3 flex items-center gap-3" style={{ background: cor }}>
-        {logoUrl ? (
-          <div className="flex shrink-0 items-center justify-center">
-             <img src={logoUrl} alt={clinica.nome} className="rounded-lg shadow-sm" style={{ height: 52, width: 'auto', objectFit: 'contain', background: 'transparent' }} />
-          </div>
-        ) : (
-          <div style={{
-            width: 40, height: 40, borderRadius: 8,
-            background: 'rgba(255,255,255,0.2)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: 'white', fontWeight: 700, fontSize: 18,
-          }}>
-            {clinica.nome.charAt(0)}
-          </div>
-        )}
-        <p style={{ color: 'white', fontWeight: 600, fontSize: 16 }}>{clinica.nome}</p>
-      </div>
+    <div style={{ minHeight: '100svh', background: visual.bg, position: 'relative', overflow: 'hidden' }}>
+      {/* Pattern de fundo */}
+      {visual.pattern && (
+        <div style={{
+          position: 'absolute', inset: 0,
+          backgroundImage: visual.pattern,
+          backgroundSize: '60px 60px',
+          pointerEvents: 'none',
+        }} />
+      )}
 
       {/* Conteúdo */}
-      <div style={{ padding: '0 16px 40px', maxWidth: 480, margin: '0 auto' }}>
+      <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '48px 20px 20px' }}>
+
+        {/* Logo destacada */}
+        <div style={{ marginBottom: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+          {logoUrl ? (
+            <img
+              src={logoUrl}
+              alt={clinica.nome}
+              style={{
+                width: 80, height: 80, borderRadius: 20, objectFit: 'cover',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+                border: '2px solid rgba(255,255,255,0.1)',
+              }}
+            />
+          ) : (
+            <div style={{
+              width: 80, height: 80, borderRadius: 20,
+              background: cor,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 32, fontWeight: 700, color: 'white',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+            }}>
+              {clinica.nome.charAt(0)}
+            </div>
+          )}
+          <div style={{ textAlign: 'center' }}>
+            <p style={{ color: 'white', fontSize: 20, fontWeight: 700, margin: 0, textShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
+              {clinica.nome}
+            </p>
+            <p style={{ color: visual.corTitulo, fontSize: 13, margin: '4px 0 0', letterSpacing: '0.5px' }}>
+              {visual.tagline}
+            </p>
+          </div>
+        </div>
+
         {/* Card */}
         <div style={{
-          background: 'white', borderRadius: 24, padding: '24px 20px',
-          boxShadow: '0 4px 24px rgba(27,43,58,0.10)',
+          background: 'white', borderRadius: 24, padding: '28px 24px',
+          width: '100%', maxWidth: 480,
+          boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
         }}>
           {passo < 6 && <IndicadorPassos passo={passo} cor={cor} />}
 
@@ -937,13 +992,14 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
               </button>
             </div>
           )}
-        </div>
-      </div>
+        </div>{/* fim card */}
 
-      {/* Footer */}
-      <div style={{ textAlign: 'center', padding: '0 0 16px', color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>
-        Powered by Synka
-      </div>
+        {/* Footer */}
+        <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11, marginTop: 24 }}>
+          Powered by Synka
+        </p>
+
+      </div>{/* fim conteúdo */}
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
