@@ -24,6 +24,7 @@ interface DadosFluxo {
   laudoIA: string
   laudoEditado: string
   assinaturaProfissional: string | null
+  resultadoId: string
   slug: string
   urlPublica: string
 }
@@ -52,9 +53,15 @@ export default function AntesDePoisNovo() {
     laudoIA: '',
     laudoEditado: '',
     assinaturaProfissional: null,
+    resultadoId: '',
     slug: '',
     urlPublica: '',
   })
+
+  const [gerandoImg, setGerandoImg] = useState(false)
+  const [imgUrl, setImgUrl] = useState<string | null>(null)
+  const [gerandoVideo, setGerandoVideo] = useState(false)
+  const [videoUrl, setVideoUrl] = useState<string | null>(null)
 
   const [pacientes, setPacientes] = useState<{ id: string; nome: string }[]>([])
   const [profissionais, setProfissionais] = useState<{ id: string; nome: string }[]>([])
@@ -199,7 +206,7 @@ export default function AntesDePoisNovo() {
       })
       const result = await res.json()
       if (!res.ok) throw new Error(result.error)
-      setDados(d => ({ ...d, slug: result.slug, urlPublica: result.urlPublica }))
+      setDados(d => ({ ...d, resultadoId: result.id, slug: result.slug, urlPublica: result.urlPublica }))
       setStep(5)
     } catch (e: any) {
       setErro(e.message)
@@ -207,6 +214,26 @@ export default function AntesDePoisNovo() {
       setLoading(false)
     }
   }
+
+  async function gerarImagem() {
+    if (!dados.resultadoId || gerandoImg) return
+    setGerandoImg(true)
+    try {
+      const res = await fetchWithAuth('/api/antes-depois/gerar-imagem', {
+        method: 'POST',
+        body: JSON.stringify({ resultadoId: dados.resultadoId }),
+      })
+      const data = await res.json()
+      if (data.url) setImgUrl(data.url)
+    } catch {}
+    setGerandoImg(false)
+  }
+
+  useEffect(() => {
+    if (step === 5 && dados.resultadoId && !imgUrl) {
+      gerarImagem()
+    }
+  }, [step, dados.resultadoId])
 
   const stepLabels = ['Consentimento', 'Foto Antes', 'Foto Depois', 'Laudo', 'Publicado']
 
@@ -500,39 +527,118 @@ export default function AntesDePoisNovo() {
       {/* STEP 5: Publicado */}
       {step === 5 && (
         <div className="space-y-6">
-          <div className="bg-white border border-card-border rounded-[2.5rem] p-8 text-center space-y-5 shadow-sm">
+
+          {/* Cabeçalho de sucesso */}
+          <div className="bg-white border border-card-border rounded-[2.5rem] p-8 text-center space-y-3 shadow-sm">
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-primary"><polyline points="20 6 9 17 4 12"/></svg>
             </div>
             <h2 className="font-black text-xl uppercase italic tracking-tighter text-text-main">Resultado Publicado!</h2>
-            <p className="text-sm text-text-muted font-medium">Link publico gerado com sucesso</p>
-
-            <div className="bg-slate-50 border border-card-border rounded-2xl px-5 py-4 font-mono text-xs text-text-main break-all">
+            <div className="bg-slate-50 border border-card-border rounded-2xl px-5 py-3 font-mono text-xs text-text-main break-all">
               {dados.urlPublica}
             </div>
-
-            <div className="grid grid-cols-2 gap-3 pt-2">
-              <a href={`https://wa.me/?text=${encodeURIComponent(`Confira o resultado:\n${dados.urlPublica}`)}`} target="_blank"
-                className="flex items-center justify-center gap-2 py-4 bg-green-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-green-600 transition-colors">
-                WhatsApp
-              </a>
-              <button type="button" onClick={() => navigator.clipboard.writeText(dados.urlPublica).then(() => alert('Link copiado!'))}
-                className="flex items-center justify-center gap-2 py-4 border border-card-border rounded-2xl text-[10px] font-black uppercase tracking-widest text-text-placeholder hover:bg-slate-50 transition-colors">
-                Copiar link
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <a href={dados.urlPublica} target="_blank"
-                className="flex items-center justify-center py-3 border border-card-border rounded-2xl text-[10px] font-black uppercase tracking-widest text-text-placeholder hover:bg-slate-50 transition-colors">
-                Ver pagina
-              </a>
-              <button onClick={() => router.push('/dashboard/antes-depois')}
-                className="flex items-center justify-center py-3 border border-card-border rounded-2xl text-[10px] font-black uppercase tracking-widest text-text-placeholder hover:bg-slate-50 transition-colors">
-                Ver historico
-              </button>
-            </div>
           </div>
+
+          {/* Preview da imagem gerada */}
+          <div className="bg-white border border-card-border rounded-[2.5rem] p-6 space-y-4 shadow-sm">
+            <p className="text-[9px] font-black uppercase tracking-widest text-text-placeholder">Imagem para redes sociais</p>
+
+            <div style={{ borderRadius: 16, overflow: 'hidden', position: 'relative', aspectRatio: '1', background: '#111' }}>
+              {gerandoImg && (
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+                  <div style={{ width: 40, height: 40, borderRadius: '50%', border: '3px solid #40916C', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
+                  <p style={{ color: '#8A9BB0', fontSize: 13 }}>Gerando imagem com moldura...</p>
+                </div>
+              )}
+              {!gerandoImg && imgUrl && (
+                <img src={imgUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="preview" />
+              )}
+              {!gerandoImg && !imgUrl && (
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <button onClick={gerarImagem} style={{ padding: '12px 24px', background: '#40916C', color: 'white', border: 'none', borderRadius: 12, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                    Gerar imagem
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {imgUrl && (
+              <div style={{ background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 10, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 16 }}>⏳</span>
+                <p style={{ fontSize: 12, color: '#92400E', margin: 0 }}>Imagem disponível por 48 horas. Compartilhe agora!</p>
+              </div>
+            )}
+
+            {imgUrl && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <a
+                  href={imgUrl}
+                  download={`resultado-${dados.slug}.png`}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: 14, background: '#40916C', color: 'white', borderRadius: 12, textDecoration: 'none', fontSize: 14, fontWeight: 600 }}
+                >
+                  ⬇️ Baixar imagem (1080×1080)
+                </a>
+
+                <a
+                  href={`https://wa.me/?text=${encodeURIComponent(`Veja o resultado de ${dados.procedimento}!\n${dados.urlPublica}`)}`}
+                  target="_blank"
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: 14, background: '#25D366', color: 'white', borderRadius: 12, textDecoration: 'none', fontSize: 14, fontWeight: 600 }}
+                >
+                  📲 Enviar pelo WhatsApp
+                </a>
+
+                <button
+                  onClick={() => navigator.clipboard.writeText(dados.urlPublica).then(() => alert('Link copiado!'))}
+                  style={{ padding: 14, background: 'white', border: '1px solid #EEE9DF', borderRadius: 12, fontSize: 14, color: '#1B2B3A', cursor: 'pointer', fontWeight: 500 }}
+                >
+                  🔗 Copiar link da página
+                </button>
+
+                <button
+                  onClick={async () => {
+                    setGerandoVideo(true)
+                    try {
+                      const res = await fetchWithAuth('/api/antes-depois/gerar-video', {
+                        method: 'POST',
+                        body: JSON.stringify({ resultadoId: dados.resultadoId }),
+                      })
+                      const data = await res.json()
+                      if (data.url) setVideoUrl(data.url)
+                    } catch {}
+                    setGerandoVideo(false)
+                  }}
+                  disabled={gerandoVideo || !!videoUrl}
+                  style={{ padding: 14, background: videoUrl ? '#D1FAE5' : '#F0FAF4', border: `1px solid ${videoUrl ? '#10B981' : '#40916C'}`, borderRadius: 12, fontSize: 14, color: videoUrl ? '#065F46' : '#40916C', cursor: gerandoVideo ? 'wait' : 'pointer', fontWeight: 500 }}
+                >
+                  {gerandoVideo ? '⏳ Gerando vídeo... (30s)' : videoUrl ? '✅ Vídeo pronto — baixar' : '🎬 Gerar vídeo para Stories'}
+                </button>
+
+                {videoUrl && (
+                  <a
+                    href={videoUrl}
+                    download={`resultado-${dados.slug}.mp4`}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 14, background: '#E9D5FF', borderRadius: 12, textDecoration: 'none', fontSize: 14, fontWeight: 600, color: '#6B21A8' }}
+                  >
+                    ⬇️ Baixar vídeo MP4
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Ações de navegação */}
+          <div className="grid grid-cols-2 gap-3">
+            <a href={dados.urlPublica} target="_blank"
+              className="flex items-center justify-center py-4 border border-card-border rounded-[2rem] text-[10px] font-black uppercase tracking-widest text-text-placeholder hover:bg-slate-50 transition-colors">
+              Ver página
+            </a>
+            <button onClick={() => router.push('/dashboard/antes-depois')}
+              className="flex items-center justify-center py-4 border border-card-border rounded-[2rem] text-[10px] font-black uppercase tracking-widest text-text-placeholder hover:bg-slate-50 transition-colors">
+              Ver histórico
+            </button>
+          </div>
+
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       )}
     </div>

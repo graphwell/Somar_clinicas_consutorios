@@ -1,1 +1,8 @@
-{}
+{
+  "crons": [
+    {
+      "path": "/api/cron/limpar-midias",
+      "schedule": "0 * * * *"
+    }
+  ]
+}

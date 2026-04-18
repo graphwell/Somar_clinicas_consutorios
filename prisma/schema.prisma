@@ -1204,6 +1204,12 @@ model ResultadoAntesDepois {
   expirarEm        DateTime?
   totalVisualizacoes Int    @default(0)
   totalCompartilhamentos Int @default(0)
+  imagemPngUrl     String?
+  imagemGeradaEm   DateTime?
+  imagemExpirarEm  DateTime?
+  videoMp4Url      String?
+  videoGeradoEm    DateTime?
+  videoExpirarEm   DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

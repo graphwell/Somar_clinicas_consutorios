@@ -13,6 +13,7 @@
     "@google/generative-ai": "^0.24.1",
     "@prisma/client": "5.18.0",
     "bcryptjs": "https://registry.npmjs.org/bcryptjs/-/bcryptjs-2.4.3.tgz",
+    "canvas": "^3.2.3",
     "jose": "^6.2.2",
     "jsonwebtoken": "https://registry.npmjs.org/jsonwebtoken/-/jsonwebtoken-9.0.3.tgz",
     "lucide-react": "^1.7.0",
