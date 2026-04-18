@@ -62,6 +62,7 @@ export default function AntesDePoisNovo() {
   const [imgUrl, setImgUrl] = useState<string | null>(null)
   const [gerandoVideo, setGerandoVideo] = useState(false)
   const [videoUrl, setVideoUrl] = useState<string | null>(null)
+  const [clinicaBranding, setClinicaBranding] = useState<{ nome: string; logoUrl?: string; primaryColor?: string } | null>(null)
 
   const [pacientes, setPacientes] = useState<{ id: string; nome: string }[]>([])
   const [profissionais, setProfissionais] = useState<{ id: string; nome: string }[]>([])
@@ -215,25 +216,176 @@ export default function AntesDePoisNovo() {
     }
   }
 
-  async function gerarImagem() {
-    if (!dados.resultadoId || gerandoImg) return
-    setGerandoImg(true)
-    try {
-      const res = await fetchWithAuth('/api/antes-depois/gerar-imagem', {
-        method: 'POST',
-        body: JSON.stringify({ resultadoId: dados.resultadoId }),
-      })
-      const data = await res.json()
-      if (data.url) setImgUrl(data.url)
-    } catch {}
-    setGerandoImg(false)
-  }
-
+  // Busca branding da clínica ao entrar no step 5
   useEffect(() => {
-    if (step === 5 && dados.resultadoId && !imgUrl) {
+    if (step === 5 && !clinicaBranding) {
+      fetchWithAuth('/api/settings').then(r => r.json()).then(data => {
+        if (data.clinica) {
+          const b = data.clinica.configBranding as any
+          setClinicaBranding({
+            nome: data.clinica.nome || data.clinica.razaoSocial || '',
+            logoUrl: b?.logoUrl,
+            primaryColor: b?.primaryColor,
+          })
+        }
+      }).catch(() => {})
+    }
+  }, [step])
+
+  // Gera a imagem no browser quando branding estiver pronto
+  useEffect(() => {
+    if (step === 5 && dados.resultadoId && clinicaBranding && !imgUrl && !gerandoImg) {
       gerarImagem()
     }
-  }, [step, dados.resultadoId])
+  }, [step, dados.resultadoId, clinicaBranding])
+
+  async function carregarImagem(url: string): Promise<HTMLImageElement> {
+    return new Promise((resolve, reject) => {
+      const img = new window.Image()
+      img.crossOrigin = 'anonymous'
+      img.onload = () => resolve(img)
+      img.onerror = reject
+      img.src = url
+    })
+  }
+
+  async function gerarImagem() {
+    if (!dados.resultadoId || gerandoImg || !clinicaBranding) return
+    setGerandoImg(true)
+    try {
+      const W = 1080
+      const H = 1080
+      const cor = clinicaBranding.primaryColor ?? '#40916C'
+
+      const canvas = document.createElement('canvas')
+      canvas.width = W
+      canvas.height = H
+      const ctx = canvas.getContext('2d')!
+
+      // Fundo
+      ctx.fillStyle = '#0a0a0a'
+      ctx.fillRect(0, 0, W, H)
+
+      // Header 160px
+      ctx.fillStyle = '#111111'
+      ctx.fillRect(0, 0, W, 160)
+      ctx.fillStyle = cor
+      ctx.fillRect(0, 0, W, 4)
+
+      // Logo da clínica
+      if (clinicaBranding.logoUrl) {
+        try {
+          const logo = await carregarImagem(clinicaBranding.logoUrl)
+          const logoH = 70
+          const logoW = (logo.width / logo.height) * logoH
+          ctx.drawImage(logo, 40, 45, logoW, logoH)
+        } catch {}
+      }
+
+      // Nome da clínica
+      ctx.fillStyle = '#FFFFFF'
+      ctx.font = 'bold 28px sans-serif'
+      ctx.fillText(clinicaBranding.nome, 140, 85)
+      ctx.fillStyle = cor
+      ctx.font = '18px sans-serif'
+      ctx.fillText('Resultado verificado', 140, 115)
+
+      // Fotos lado a lado (760px altura)
+      const fotoY = 160
+      const fotoH = 760
+      const fotoW = W / 2
+
+      try {
+        const imgAntes = await carregarImagem(dados.fotoAntesUrl)
+        ctx.save()
+        ctx.beginPath()
+        ctx.rect(0, fotoY, fotoW, fotoH)
+        ctx.clip()
+        // Centraliza mantendo aspect ratio
+        const scaleA = Math.max(fotoW / imgAntes.width, fotoH / imgAntes.height)
+        const dxA = (fotoW - imgAntes.width * scaleA) / 2
+        const dyA = fotoY + (fotoH - imgAntes.height * scaleA) / 2
+        ctx.drawImage(imgAntes, dxA, dyA, imgAntes.width * scaleA, imgAntes.height * scaleA)
+        ctx.restore()
+      } catch {}
+
+      try {
+        const imgDepois = await carregarImagem(dados.fotoDepoisUrl)
+        ctx.save()
+        ctx.beginPath()
+        ctx.rect(fotoW, fotoY, fotoW, fotoH)
+        ctx.clip()
+        const scaleD = Math.max(fotoW / imgDepois.width, fotoH / imgDepois.height)
+        const dxD = fotoW + (fotoW - imgDepois.width * scaleD) / 2
+        const dyD = fotoY + (fotoH - imgDepois.height * scaleD) / 2
+        ctx.drawImage(imgDepois, dxD, dyD, imgDepois.width * scaleD, imgDepois.height * scaleD)
+        ctx.restore()
+      } catch {}
+
+      // Divisor central
+      ctx.fillStyle = '#FFFFFF'
+      ctx.fillRect(W / 2 - 2, fotoY, 4, fotoH)
+
+      // Círculo com seta
+      ctx.beginPath()
+      ctx.arc(W / 2, fotoY + fotoH / 2, 30, 0, Math.PI * 2)
+      ctx.fillStyle = '#FFFFFF'
+      ctx.fill()
+      ctx.fillStyle = '#1B2B3A'
+      ctx.font = 'bold 24px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.fillText('↔', W / 2, fotoY + fotoH / 2 + 8)
+      ctx.textAlign = 'left'
+
+      // Labels ANTES / DEPOIS
+      ctx.fillStyle = 'rgba(0,0,0,0.6)'
+      ctx.fillRect(20, fotoY + 20, 90, 32)
+      ctx.fillStyle = '#FFFFFF'
+      ctx.font = 'bold 16px sans-serif'
+      ctx.fillText('ANTES', 30, fotoY + 41)
+
+      ctx.fillStyle = 'rgba(0,0,0,0.6)'
+      ctx.fillRect(W - 110, fotoY + 20, 90, 32)
+      ctx.fillStyle = '#FFFFFF'
+      ctx.fillText('DEPOIS', W - 100, fotoY + 41)
+
+      // Footer
+      ctx.fillStyle = '#111111'
+      ctx.fillRect(0, 920, W, 160)
+      ctx.fillStyle = cor
+      ctx.fillRect(0, 920, W, 3)
+
+      ctx.fillStyle = '#FFFFFF'
+      ctx.font = 'bold 24px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.fillText(dados.procedimento, W / 2, 960)
+
+      ctx.fillStyle = '#8A9BB0'
+      ctx.font = '18px sans-serif'
+      ctx.fillText(`${dados.periodoTratamento} · ${dados.profissionalNome}`, W / 2, 990)
+
+      ctx.fillStyle = '#4A6480'
+      ctx.font = '14px sans-serif'
+      ctx.fillText('Imagem publicada com autorização do cliente', W / 2, 1020)
+
+      ctx.fillStyle = cor
+      ctx.font = 'bold 16px sans-serif'
+      ctx.fillText('synka.somar.ia.br', W / 2, 1055)
+      ctx.textAlign = 'left'
+
+      const base64 = canvas.toDataURL('image/png')
+      setImgUrl(base64)
+
+      // Salva no banco em background (sem bloquear UI)
+      fetchWithAuth('/api/antes-depois/salvar-imagem', {
+        method: 'POST',
+        body: JSON.stringify({ resultadoId: dados.resultadoId, imagemPngUrl: base64 }),
+      }).catch(() => {})
+    } catch (err) {
+      console.error('[gerarImagem client]', err)
+    }
+    setGerandoImg(false)
+  }
 
   const stepLabels = ['Consentimento', 'Foto Antes', 'Foto Depois', 'Laudo', 'Publicado']
 
