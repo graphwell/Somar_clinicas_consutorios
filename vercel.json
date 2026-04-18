@@ -1,12 +1,20 @@
 {
   "crons": [
     {
-      "path": "/api/cron/limpar-midias",
-      "schedule": "0 * * * *"
+      "path": "/api/cron/lembretes",
+      "schedule": "0 11 * * *"
     },
     {
       "path": "/api/cron/resumo-diario",
-      "schedule": "0 * * * *"
+      "schedule": "0 10 * * *"
+    },
+    {
+      "path": "/api/cron/fila-expirar",
+      "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron/limpar-midias",
+      "schedule": "0 9 * * *"
     }
   ]
 }
