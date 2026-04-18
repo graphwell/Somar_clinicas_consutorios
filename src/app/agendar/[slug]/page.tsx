@@ -234,6 +234,39 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
   const [produtosReservados, setProdutosReservados] = useState<ItemReservado[]>([]);
   const [carregandoSugestoes, setCarregandoSugestoes] = useState(false);
 
+  // Vitrine completa (overlay)
+  interface ProdutoVitrine { id: string; nome: string; descricao?: string; preco: number; imageUrl?: string | null; estoque: number; tags: string[]; categoriaId?: string | null }
+  interface ComboVitrine { id: string; nome: string; preco: number; desconto: number; itens: { produto: { id: string; nome: string; preco: number; imageUrl?: string | null } }[] }
+  interface CategoriaVitrine { id: string; nome: string }
+  const [vitrineAberta, setVitrineAberta] = useState(false);
+  const [vitrineCarregando, setVitrineCarregando] = useState(false);
+  const [vitrineProdutos, setVitrineProdutos] = useState<ProdutoVitrine[]>([]);
+  const [vitrineCombos, setVitrineCombos] = useState<ComboVitrine[]>([]);
+  const [vitrineCategorias, setVitrineCategorias] = useState<CategoriaVitrine[]>([]);
+  const [vitrineCategoria, setVitrineCategoria] = useState('');
+
+  const abrirVitrine = async () => {
+    setVitrineAberta(true);
+    if (vitrineProdutos.length > 0) return;
+    setVitrineCarregando(true);
+    try {
+      const res = await fetch(`/api/public/clinic/${slug}/vitrine`);
+      const d = await res.json();
+      setVitrineProdutos(Array.isArray(d.produtos) ? d.produtos : []);
+      setVitrineCombos(Array.isArray(d.combos) ? d.combos : []);
+      setVitrineCategorias(Array.isArray(d.categorias) ? d.categorias : []);
+    } catch {}
+    finally { setVitrineCarregando(false); }
+  };
+
+  const toggleVitrineItem = (item: { id: string; nome: string; preco: number; imageUrl?: string | null }) => {
+    setProdutosReservados(prev => {
+      const ex = prev.find(r => r.id === item.id);
+      if (ex) return prev.filter(r => r.id !== item.id);
+      return [...prev, { id: item.id, nome: item.nome, preco: item.preco, imageUrl: item.imageUrl ?? null, quantidade: 1 }];
+    });
+  };
+
   // Passo 6 — Pagamento
   const [tipoPagamento, setTipoPagamento] = useState<'hora' | 'total' | 'sinal'>('hora');
 
@@ -881,15 +914,13 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
                 </div>
               )}
 
-              {/* Link para vitrine completa */}
-              <a
-                href={`/agendar/${slug}/vitrine`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, width: '100%', padding: '12px 0', borderRadius: 10, border: `1.5px solid ${cor}30`, background: `${cor}08`, color: cor, fontSize: 13, fontWeight: 500, textDecoration: 'none', marginBottom: 16, boxSizing: 'border-box' }}
+              {/* Botão para vitrine completa (overlay inline) */}
+              <button
+                onClick={abrirVitrine}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, width: '100%', padding: '12px 0', borderRadius: 10, border: `1.5px solid ${cor}30`, background: `${cor}08`, color: cor, fontSize: 13, fontWeight: 500, cursor: 'pointer', marginBottom: 16, boxSizing: 'border-box' }}
               >
                 🏪 Ver vitrine completa
-              </a>
+              </button>
 
               {/* Mini resumo do carrinho */}
               {produtosReservados.length > 0 && (
@@ -1183,6 +1214,161 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
       </div>
 
       <style dangerouslySetInnerHTML={{ __html: '@keyframes spin { to { transform: rotate(360deg); } }' }} />
+
+      {/* ── Overlay Vitrine Completa ── */}
+      {vitrineAberta && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 50, background: '#F5F0E8', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+          {/* Header */}
+          <div style={{ position: 'sticky', top: 0, zIndex: 10, padding: '12px 16px', background: cor, display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <button
+                onClick={() => setVitrineAberta(false)}
+                style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path strokeLinecap="round" d="M19 12H5M12 19l-7-7 7-7"/></svg>
+              </button>
+              <p style={{ color: 'white', fontWeight: 600, fontSize: 15 }}>Vitrine</p>
+            </div>
+            {produtosReservados.length > 0 && (
+              <button
+                onClick={() => setVitrineAberta(false)}
+                style={{ background: 'white', color: cor, border: 'none', borderRadius: 20, padding: '6px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+              >
+                ✓ {produtosReservados.length} reservado{produtosReservados.length > 1 ? 's' : ''} — Voltar
+              </button>
+            )}
+          </div>
+
+          <div style={{ padding: '16px 16px 100px', maxWidth: 640, margin: '0 auto', width: '100%' }}>
+            {/* Filtro de categorias */}
+            {vitrineCategorias.length > 0 && (
+              <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 8, marginBottom: 16 }}>
+                <button
+                  onClick={() => setVitrineCategoria('')}
+                  style={{ flexShrink: 0, padding: '7px 16px', borderRadius: 20, border: 'none', fontSize: 13, fontWeight: 500, cursor: 'pointer', background: !vitrineCategoria ? cor : 'white', color: !vitrineCategoria ? 'white' : '#4A6480' }}
+                >Todos</button>
+                {vitrineCategorias.map(c => (
+                  <button
+                    key={c.id}
+                    onClick={() => setVitrineCategoria(c.id === vitrineCategoria ? '' : c.id)}
+                    style={{ flexShrink: 0, padding: '7px 16px', borderRadius: 20, border: 'none', fontSize: 13, fontWeight: 500, cursor: 'pointer', background: vitrineCategoria === c.id ? cor : 'white', color: vitrineCategoria === c.id ? 'white' : '#4A6480' }}
+                  >{c.nome}</button>
+                ))}
+              </div>
+            )}
+
+            {vitrineCarregando ? (
+              <div style={{ textAlign: 'center', padding: '48px 0' }}>
+                <div style={{ width: 28, height: 28, borderRadius: '50%', border: `2px solid ${cor}30`, borderTopColor: cor, animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
+              </div>
+            ) : (
+              <>
+                {/* Combos */}
+                {vitrineCombos.length > 0 && !vitrineCategoria && (
+                  <div style={{ marginBottom: 20 }}>
+                    <p style={{ fontSize: 11, fontWeight: 700, color: '#8A9BB0', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Combos especiais</p>
+                    {vitrineCombos.map(c => {
+                      const reservado = produtosReservados.some(r => r.id === c.id);
+                      const somaOriginal = c.itens.reduce((s, i) => s + i.produto.preco, 0);
+                      return (
+                        <div key={c.id} style={{ background: 'white', borderRadius: 16, border: `2px solid ${reservado ? cor : cor + '40'}`, overflow: 'hidden', marginBottom: 10 }}>
+                          <div style={{ padding: '6px 12px', background: cor, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <p style={{ color: 'white', fontSize: 11, fontWeight: 700 }}>COMBO ESPECIAL</p>
+                          </div>
+                          <div style={{ padding: 14 }}>
+                            <p style={{ fontSize: 14, fontWeight: 700, color: '#1B2B3A', marginBottom: 6 }}>{c.nome}</p>
+                            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+                              {c.itens.map(i => (
+                                <span key={i.produto.id} style={{ fontSize: 11, background: '#F1F5F9', color: '#4A6480', padding: '3px 8px', borderRadius: 6 }}>{i.produto.nome}</span>
+                              ))}
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <div>
+                                {somaOriginal > c.preco && <p style={{ fontSize: 11, color: '#9CA3AF', textDecoration: 'line-through' }}>R$ {somaOriginal.toFixed(2).replace('.', ',')}</p>}
+                                <p style={{ fontSize: 15, fontWeight: 700, color: cor }}>R$ {c.preco.toFixed(2).replace('.', ',')}</p>
+                              </div>
+                              <button
+                                onClick={() => toggleVitrineItem({ id: c.id, nome: c.nome, preco: c.preco, imageUrl: null })}
+                                style={{ padding: '8px 16px', borderRadius: 10, border: 'none', background: reservado ? cor : `${cor}15`, color: reservado ? 'white' : cor, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                              >
+                                {reservado ? '✓ Reservado' : 'Reservar'}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Produtos */}
+                {(vitrineCategoria ? vitrineProdutos.filter(p => p.categoriaId === vitrineCategoria) : vitrineProdutos).length > 0 ? (
+                  <div>
+                    <p style={{ fontSize: 11, fontWeight: 700, color: '#8A9BB0', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
+                      {vitrineCategoria ? vitrineCategorias.find(c => c.id === vitrineCategoria)?.nome : 'Todos os produtos'}
+                    </p>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                      {(vitrineCategoria ? vitrineProdutos.filter(p => p.categoriaId === vitrineCategoria) : vitrineProdutos).map(p => {
+                        const reservado = produtosReservados.some(r => r.id === p.id);
+                        const semEstoque = p.estoque === 0;
+                        return (
+                          <div key={p.id} style={{ background: 'white', borderRadius: 16, border: `1.5px solid ${reservado ? cor : '#EEE9DF'}`, overflow: 'hidden', display: 'flex', flexDirection: 'column', opacity: semEstoque ? 0.5 : 1 }}>
+                            <div style={{ aspectRatio: '1', background: '#F8FAFC', position: 'relative' }}>
+                              {p.imageUrl ? (
+                                <img src={p.imageUrl} alt={p.nome} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                              ) : (
+                                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth="1.2"><path strokeLinecap="round" strokeLinejoin="round" d="M20 7H4a1 1 0 00-1 1v10a1 1 0 001 1h16a1 1 0 001-1V8a1 1 0 00-1-1z"/></svg>
+                                </div>
+                              )}
+                              {p.tags.includes('Mais vendido') && (
+                                <div style={{ position: 'absolute', top: 6, left: 6, background: '#059669', color: 'white', fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 20 }}>⭐ TOP</div>
+                              )}
+                            </div>
+                            <div style={{ padding: 10, display: 'flex', flexDirection: 'column', flex: 1 }}>
+                              <p style={{ fontSize: 12, fontWeight: 600, color: '#1B2B3A', marginBottom: 2, lineHeight: 1.3 }}>{p.nome}</p>
+                              {p.descricao && <p style={{ fontSize: 10, color: '#8A9BB0', marginBottom: 4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{p.descricao}</p>}
+                              <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <p style={{ fontSize: 14, fontWeight: 700, color: cor }}>R$ {p.preco.toFixed(2).replace('.', ',')}</p>
+                                {semEstoque ? (
+                                  <span style={{ fontSize: 10, color: '#9CA3AF', background: '#F1F5F9', padding: '4px 8px', borderRadius: 8 }}>Indisponível</span>
+                                ) : (
+                                  <button
+                                    onClick={() => toggleVitrineItem(p)}
+                                    style={{ padding: '5px 10px', borderRadius: 8, border: 'none', background: reservado ? cor : `${cor}15`, color: reservado ? 'white' : cor, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+                                  >
+                                    {reservado ? '✓' : '+ Reservar'}
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : !vitrineCarregando && (
+                  <div style={{ textAlign: 'center', padding: '48px 0', color: '#8A9BB0', fontSize: 13 }}>
+                    Nenhum produto disponível
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Botão fixo de retorno com contagem */}
+          {produtosReservados.length > 0 && (
+            <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, padding: '12px 16px 20px', background: 'white', borderTop: '1px solid #EEE9DF', display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => setVitrineAberta(false)}
+                style={{ flex: 1, height: 52, borderRadius: 14, border: 'none', background: cor, color: 'white', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}
+              >
+                Continuar com {produtosReservados.length} produto{produtosReservados.length > 1 ? 's' : ''} →
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
