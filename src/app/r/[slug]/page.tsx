@@ -1,33 +1,40 @@
 import { Metadata } from 'next'
+import { notFound } from 'next/navigation'
 import prisma from '@/lib/prisma'
 import { SliderAntesDePois } from '@/components/ui/SliderAntesDePois'
-import ShareButtons from './ShareButtons'
+import BotoesCompartilhar from '@/components/ui/BotoesCompartilhar'
 
 export const dynamic = 'force-dynamic'
+
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://synka.somar.ia.br'
 
 async function getResultado(slug: string) {
   return prisma.resultadoAntesDepois.findUnique({
     where: { slugPublico: slug },
     include: {
-      profissional: { select: { nome: true, fotoUrl: true } },
-      clinica: { select: { nome: true, slug: true } },
+      profissional: { select: { nome: true, fotoUrl: true, especialidade: true } },
+      clinica: { select: { nome: true, slug: true, configBranding: true } },
       consentimento: { select: { revogado: true } },
     },
   })
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>
+}): Promise<Metadata> {
   try {
     const { slug } = await params
     const r = await getResultado(slug)
-    if (!r) return { title: 'Resultado nao encontrado' }
+    if (!r) return { title: 'Resultado não encontrado' }
     return {
       title: `${r.procedimento} — ${r.clinica.nome}`,
       description: `Resultado verificado de ${r.procedimento} em ${r.clinica.nome}`,
       openGraph: {
         images: [r.fotoDepoisUrl],
         title: `Resultado: ${r.procedimento}`,
-        description: `Veja a transformacao realizada em ${r.clinica.nome}`,
+        description: `Transformação verificada em ${r.clinica.nome}`,
       },
     }
   } catch {
@@ -35,98 +42,244 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
 }
 
-export default async function ResultadoPublico({ params }: { params: Promise<{ slug: string }> }) {
+export default async function ResultadoPublico({
+  params,
+}: {
+  params: Promise<{ slug: string }>
+}) {
   const { slug } = await params
   const resultado = await getResultado(slug)
 
   if (!resultado || !resultado.publicado || resultado.consentimento?.revogado) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <p className="text-slate-400 text-sm">Este resultado nao esta disponivel.</p>
-      </div>
-    )
+    return notFound()
   }
 
-  // Incrementar visualizacoes (fire and forget)
-  prisma.resultadoAntesDepois.update({
-    where: { id: resultado.id },
-    data: { totalVisualizacoes: { increment: 1 } },
-  }).catch(() => {})
+  // Fire-and-forget
+  prisma.resultadoAntesDepois
+    .update({ where: { id: resultado.id }, data: { totalVisualizacoes: { increment: 1 } } })
+    .catch(() => {})
 
+  const branding = (resultado.clinica.configBranding ?? {}) as { logoUrl?: string; primaryColor?: string }
+  const cor = branding.primaryColor ?? '#40916C'
+  const urlPublica = `${BASE_URL}/r/${slug}`
+  const linkAgendar = `${BASE_URL}/agendar/${resultado.clinica.slug}`
   const laudo = resultado.laudoEditado ?? resultado.laudoIA
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://synka.somar.ia.br'
-  const urlCompleta = `${baseUrl}/r/${slug}`
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans">
-      {/* Header */}
-      <div className="bg-white border-b border-slate-100 px-5 py-4 flex items-center gap-3 sticky top-0 z-10">
-        <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center text-white font-black text-sm"
-          style={{ background: 'linear-gradient(135deg, #40916C, #2D6A4F)' }}>
-          {resultado.clinica.nome.charAt(0)}
-        </div>
-        <div>
-          <p className="text-sm font-semibold text-slate-800">{resultado.clinica.nome}</p>
-          <p className="text-[11px] text-slate-400">Resultado verificado</p>
-        </div>
-      </div>
+    <>
+      <style>{`
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: #0a0a0a; }
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .fade-up  { animation: fadeUp 0.5s ease forwards; }
+        .fade-up-2 { animation: fadeUp 0.5s 0.15s ease both; }
+        .fade-up-3 { animation: fadeUp 0.5s 0.3s ease both; }
+      `}</style>
 
-      <div className="max-w-lg mx-auto px-5 py-6 space-y-6">
-        <div>
-          <h1 className="text-2xl font-black text-slate-800 tracking-tight">{resultado.procedimento}</h1>
-          <p className="text-sm text-slate-400 mt-1">Periodo: {resultado.periodoTratamento}</p>
-        </div>
+      <div style={{
+        minHeight: '100svh',
+        background: '#0a0a0a',
+        fontFamily: 'DM Sans, system-ui, sans-serif',
+        color: 'white',
+      }}>
 
-        <SliderAntesDePois fotoAntes={resultado.fotoAntesUrl} fotoDepois={resultado.fotoDepoisUrl} />
-        <p className="text-[11px] text-slate-400 text-center">Arraste para comparar</p>
-
-        {/* Laudo */}
-        <div className="bg-white border border-slate-100 rounded-2xl p-5">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Analise do Resultado</p>
-          <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{laudo}</p>
-          <p className="text-[10px] text-slate-400 mt-4 pt-3 border-t border-slate-50">
-            Analise gerada por IA e validada pelo profissional responsavel.
-          </p>
-        </div>
-
-        {/* Profissional */}
-        <div className="bg-white border border-slate-100 rounded-2xl p-4 flex items-center gap-3">
-          {resultado.profissional.fotoUrl ? (
-            <img src={resultado.profissional.fotoUrl} alt={resultado.profissional.nome}
-              className="w-11 h-11 rounded-full object-cover" />
-          ) : (
-            <div className="w-11 h-11 rounded-full flex items-center justify-center font-black text-white text-sm"
-              style={{ background: 'linear-gradient(135deg, #40916C, #2D6A4F)' }}>
-              {resultado.profissional.nome.charAt(0)}
+        {/* HEADER STICKY */}
+        <div style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 50,
+          background: 'rgba(10,10,10,0.92)',
+          backdropFilter: 'blur(12px)',
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          padding: '14px 20px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {branding.logoUrl ? (
+              <img
+                src={branding.logoUrl}
+                alt={resultado.clinica.nome}
+                style={{ width: '36px', height: '36px', borderRadius: '10px', objectFit: 'cover' }}
+              />
+            ) : (
+              <div style={{
+                width: '36px', height: '36px', borderRadius: '10px',
+                background: cor, display: 'flex', alignItems: 'center',
+                justifyContent: 'center', fontWeight: '700', fontSize: '16px',
+              }}>
+                {resultado.clinica.nome.charAt(0)}
+              </div>
+            )}
+            <div>
+              <p style={{ fontSize: '14px', fontWeight: '600', color: 'white', lineHeight: 1.2 }}>
+                {resultado.clinica.nome}
+              </p>
+              <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>Resultado verificado</p>
             </div>
-          )}
-          <div>
-            <p className="text-sm font-semibold text-slate-800">{resultado.profissional.nome}</p>
-            <p className="text-[11px] text-slate-400">Resultado validado pelo profissional</p>
+          </div>
+
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '6px',
+            background: `${cor}22`, border: `1px solid ${cor}44`,
+            borderRadius: '20px', padding: '4px 12px',
+          }}>
+            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: cor }} />
+            <span style={{ fontSize: '11px', color: cor, fontWeight: '600' }}>Verificado</span>
           </div>
         </div>
 
-        {/* LGPD */}
-        <p className="text-[10px] text-slate-400 text-center">
-          Imagens publicadas com autorizacao expressa do cliente. LGPD — Lei 13.709/2018.
-        </p>
+        {/* HERO */}
+        <div className="fade-up" style={{ padding: '32px 20px 24px', textAlign: 'center' }}>
+          <p style={{
+            fontSize: '12px', color: 'rgba(255,255,255,0.4)',
+            textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '8px',
+          }}>
+            Resultado do procedimento
+          </p>
+          <h1 style={{
+            fontSize: 'clamp(24px, 6vw, 38px)',
+            fontFamily: 'Playfair Display, Georgia, serif',
+            fontWeight: '700', color: 'white', marginBottom: '8px', lineHeight: 1.2,
+          }}>
+            {resultado.procedimento}
+          </h1>
+          <p style={{ fontSize: '14px', color: cor, fontWeight: '500' }}>
+            {resultado.periodoTratamento}
+          </p>
+        </div>
 
-        {/* CTA */}
-        <a href={`${baseUrl}/agendar/${resultado.clinica.slug}`}
-          className="block text-white text-center py-4 rounded-2xl text-sm font-semibold hover:opacity-90 transition-opacity"
-          style={{ background: 'linear-gradient(135deg, #40916C, #2D6A4F)' }}>
-          Agendar meu procedimento
-        </a>
+        {/* SLIDER */}
+        <div className="fade-up-2" style={{ padding: '0 16px 8px' }}>
+          <SliderAntesDePois
+            fotoAntes={resultado.fotoAntesUrl}
+            fotoDepois={resultado.fotoDepoisUrl}
+          />
+          <p style={{
+            textAlign: 'center', fontSize: '12px',
+            color: 'rgba(255,255,255,0.35)', marginTop: '10px',
+          }}>
+            Arraste para comparar
+          </p>
+        </div>
 
-        {/* Compartilhamento */}
-        <ShareButtons
-          urlCompleta={urlCompleta}
-          clinicaNome={resultado.clinica.nome}
-          procedimento={resultado.procedimento}
-        />
+        {/* CONTEÚDO */}
+        <div className="fade-up-3" style={{ padding: '20px 16px 0' }}>
 
-        <p className="text-[11px] text-slate-300 text-center">Powered by Synka</p>
+          {/* LAUDO */}
+          <div style={{
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: '20px', padding: '20px', marginBottom: '12px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+              <div style={{ width: '3px', height: '20px', background: cor, borderRadius: '2px' }} />
+              <p style={{
+                fontSize: '11px', fontWeight: '700',
+                color: 'rgba(255,255,255,0.5)',
+                textTransform: 'uppercase', letterSpacing: '1.5px',
+              }}>
+                Análise do Resultado
+              </p>
+            </div>
+            <p style={{
+              fontSize: '14px', color: 'rgba(255,255,255,0.8)',
+              lineHeight: 1.75, whiteSpace: 'pre-wrap',
+            }}>
+              {laudo}
+            </p>
+            <p style={{
+              fontSize: '11px', color: 'rgba(255,255,255,0.25)',
+              marginTop: '14px', fontStyle: 'italic',
+            }}>
+              Análise gerada por IA — validada pelo profissional responsável.
+            </p>
+          </div>
+
+          {/* PROFISSIONAL */}
+          <div style={{
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: '16px', padding: '16px',
+            display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px',
+          }}>
+            {resultado.profissional.fotoUrl ? (
+              <img
+                src={resultado.profissional.fotoUrl}
+                alt={resultado.profissional.nome}
+                style={{
+                  width: '48px', height: '48px', borderRadius: '50%',
+                  objectFit: 'cover', border: `2px solid ${cor}`, flexShrink: 0,
+                }}
+              />
+            ) : (
+              <div style={{
+                width: '48px', height: '48px', borderRadius: '50%',
+                background: cor, display: 'flex', alignItems: 'center',
+                justifyContent: 'center', fontWeight: '700', fontSize: '18px', flexShrink: 0,
+              }}>
+                {resultado.profissional.nome.charAt(0)}
+              </div>
+            )}
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: '14px', fontWeight: '600', color: 'white' }}>
+                {resultado.profissional.nome}
+              </p>
+              <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>
+                {resultado.profissional.especialidade ?? 'Resultado validado pelo profissional'}
+              </p>
+            </div>
+            <div style={{
+              background: `${cor}22`, border: `1px solid ${cor}44`,
+              borderRadius: '8px', padding: '4px 10px',
+              fontSize: '11px', color: cor, fontWeight: '600', flexShrink: 0,
+            }}>
+              Validado
+            </div>
+          </div>
+
+          {/* LGPD */}
+          <p style={{
+            fontSize: '11px', color: 'rgba(255,255,255,0.2)',
+            textAlign: 'center', marginBottom: '20px', lineHeight: 1.6,
+          }}>
+            Imagens publicadas com autorização expressa do cliente. LGPD — Lei 13.709/2018.
+          </p>
+
+          {/* CTA */}
+          <a
+            href={linkAgendar}
+            style={{
+              display: 'block',
+              background: `linear-gradient(135deg, ${cor}, ${cor}cc)`,
+              color: 'white', textAlign: 'center', padding: '16px',
+              borderRadius: '16px', fontSize: '15px', fontWeight: '600',
+              textDecoration: 'none', marginBottom: '10px',
+              boxShadow: `0 8px 32px ${cor}44`,
+            }}
+          >
+            Agendar meu procedimento
+          </a>
+
+          {/* COMPARTILHAR */}
+          <BotoesCompartilhar
+            urlPublica={urlPublica}
+            nomeClinica={resultado.clinica.nome}
+            procedimento={resultado.procedimento}
+          />
+
+          <p style={{
+            fontSize: '11px', color: 'rgba(255,255,255,0.15)',
+            textAlign: 'center', margin: '24px 0 32px',
+          }}>
+            Powered by Synka — synka.somar.ia.br
+          </p>
+        </div>
       </div>
-    </div>
+    </>
   )
 }
