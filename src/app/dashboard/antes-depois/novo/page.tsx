@@ -62,6 +62,7 @@ export default function AntesDePoisNovo() {
   const [imgUrl, setImgUrl] = useState<string | null>(null)
   const [gerandoVideo, setGerandoVideo] = useState(false)
   const [videoUrl, setVideoUrl] = useState<string | null>(null)
+  const [copiado, setCopiado] = useState(false)
   const [clinicaBranding, setClinicaBranding] = useState<{ nome: string; logoUrl?: string; primaryColor?: string } | null>(null)
 
   const [pacientes, setPacientes] = useState<{ id: string; nome: string }[]>([])
@@ -740,10 +741,10 @@ export default function AntesDePoisNovo() {
                 </a>
 
                 <button
-                  onClick={() => navigator.clipboard.writeText(dados.urlPublica).then(() => alert('Link copiado!'))}
-                  style={{ padding: 14, background: 'white', border: '1px solid #EEE9DF', borderRadius: 12, fontSize: 14, color: '#1B2B3A', cursor: 'pointer', fontWeight: 500 }}
+                  onClick={() => navigator.clipboard.writeText(dados.urlPublica).then(() => { setCopiado(true); setTimeout(() => setCopiado(false), 2000) })}
+                  style={{ padding: 14, background: copiado ? '#D1FAE5' : 'white', border: `1px solid ${copiado ? '#10B981' : '#EEE9DF'}`, borderRadius: 12, fontSize: 14, color: copiado ? '#065F46' : '#1B2B3A', cursor: 'pointer', fontWeight: 500, transition: 'all 0.2s' }}
                 >
-                  🔗 Copiar link da página
+                  {copiado ? '✅ Link copiado!' : '🔗 Copiar link da página'}
                 </button>
 
                 <button

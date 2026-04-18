@@ -2,6 +2,9 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { fetchWithAuth } from '@/lib/api-utils'
+import { SliderAntesDePois } from '@/components/ui/SliderAntesDePois'
+
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://synka.somar.ia.br'
 
 interface Resultado {
   id: string
@@ -102,6 +105,8 @@ async function gerarPNG(r: Resultado, branding: Branding): Promise<string> {
 }
 
 /* ─── Drawer de ações ───────────────────────────────────────────── */
+const WA_ICON = <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+
 function Drawer({
   resultado, branding, onClose,
 }: {
@@ -110,19 +115,14 @@ function Drawer({
   onClose: () => void
 }) {
   const [tab, setTab] = useState<'compartilhar' | 'imagem'>('compartilhar')
-  const [imgUrl, setImgUrl] = useState<string | null>(resultado.imagemPngUrl)
+  const [imgUrl, setImgUrl] = useState<string | null>(
+    resultado.imagemExpirarEm && new Date(resultado.imagemExpirarEm) < new Date()
+      ? null  // descarta imagem expirada imediatamente
+      : resultado.imagemPngUrl
+  )
   const [gerando, setGerando] = useState(false)
   const [copiado, setCopiado] = useState(false)
-  const [sliderX, setSliderX] = useState(50)
-  const sliderRef = useRef<HTMLDivElement>(null)
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
-  const urlPublica = `${baseUrl}/r/${resultado.slugPublico}`
-
-  const imgExpirada = resultado.imagemExpirarEm
-    ? new Date(resultado.imagemExpirarEm) < new Date()
-    : false
-
-  const imagemDisponivel = imgUrl && !imgExpirada
+  const urlPublica = `${BASE_URL}/r/${resultado.slugPublico}`
 
   const handleGerar = async () => {
     if (!branding || gerando) return
@@ -134,7 +134,9 @@ function Drawer({
         method: 'POST',
         body: JSON.stringify({ resultadoId: resultado.id, imagemPngUrl: png }),
       }).catch(() => {})
-    } catch {}
+    } catch (err) {
+      console.error('[drawer gerarPNG]', err)
+    }
     setGerando(false)
   }
 
@@ -145,32 +147,9 @@ function Drawer({
     })
   }
 
-  // Slider de comparação drag
-  const onPointerMove = useCallback((e: PointerEvent) => {
-    const el = sliderRef.current
-    if (!el) return
-    const rect = el.getBoundingClientRect()
-    const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100))
-    setSliderX(x)
-  }, [])
-  const onPointerDown = (e: React.PointerEvent) => {
-    e.currentTarget.setPointerCapture(e.pointerId)
-    const el = sliderRef.current
-    if (!el) return
-    const rect = el.getBoundingClientRect()
-    setSliderX(Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100)))
-  }
-
+  // Ao trocar para a aba imagem sem imagem disponível → gera automaticamente
   useEffect(() => {
-    const el = sliderRef.current
-    if (!el) return
-    el.addEventListener('pointermove', onPointerMove)
-    return () => el.removeEventListener('pointermove', onPointerMove)
-  }, [onPointerMove])
-
-  // Gera automaticamente ao abrir na aba imagem se não houver
-  useEffect(() => {
-    if (tab === 'imagem' && !imagemDisponivel && !gerando && branding) {
+    if (tab === 'imagem' && !imgUrl && !gerando && branding) {
       handleGerar()
     }
   }, [tab, branding])
@@ -178,10 +157,7 @@ function Drawer({
   return (
     <>
       {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/50 z-40 backdrop-blur-sm"
-        onClick={onClose}
-      />
+      <div className="fixed inset-0 bg-black/50 z-40 backdrop-blur-sm" onClick={onClose} />
 
       {/* Drawer */}
       <div className="fixed inset-y-0 right-0 z-50 w-full max-w-xl bg-white shadow-2xl flex flex-col overflow-hidden">
@@ -201,27 +177,9 @@ function Drawer({
         </div>
 
         {/* Slider de comparação */}
-        <div
-          ref={sliderRef}
-          onPointerDown={onPointerDown}
-          className="relative cursor-col-resize shrink-0 select-none"
-          style={{ aspectRatio: '16/9', background: '#0a0a0a' }}
-        >
-          <img src={resultado.fotoDepoisUrl} alt="depois" className="absolute inset-0 w-full h-full object-cover" />
-          <div className="absolute inset-0 overflow-hidden" style={{ width: `${sliderX}%` }}>
-            <img src={resultado.fotoAntesUrl} alt="antes" className="absolute inset-0 w-full h-full object-cover" style={{ width: `${100 / (sliderX / 100 || 0.01)}%`, maxWidth: 'none' }} />
-          </div>
-          {/* Divisor */}
-          <div className="absolute inset-y-0 flex items-center pointer-events-none" style={{ left: `${sliderX}%`, transform: 'translateX(-50%)' }}>
-            <div className="w-0.5 h-full bg-white/80" />
-            <div className="absolute w-9 h-9 rounded-full bg-white shadow-xl flex items-center justify-center">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1B2B3A" strokeWidth="2.5"><path d="M8 4l-4 4 4 4M16 4l4 4-4 4"/></svg>
-            </div>
-          </div>
-          {/* Labels */}
-          <div className="absolute top-3 left-3 bg-black/60 text-white text-[10px] font-bold px-2.5 py-1 rounded-full">ANTES</div>
-          <div className="absolute top-3 right-3 bg-black/60 text-white text-[10px] font-bold px-2.5 py-1 rounded-full">DEPOIS</div>
-          <p className="absolute bottom-2 left-0 right-0 text-center text-white/40 text-[10px]">Arraste para comparar</p>
+        <div className="shrink-0 px-4 pt-4">
+          <SliderAntesDePois fotoAntes={resultado.fotoAntesUrl} fotoDepois={resultado.fotoDepoisUrl} />
+          <p className="text-[10px] text-slate-400 text-center mt-1 mb-3">Arraste para comparar</p>
         </div>
 
         {/* Tabs */}
@@ -237,14 +195,13 @@ function Drawer({
           ))}
         </div>
 
-        {/* Conteúdo das tabs */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-3">
+        {/* Conteúdo */}
+        <div className="flex-1 overflow-y-auto p-5 space-y-3">
 
           {tab === 'compartilhar' && (
             <>
-              {/* Link público */}
               <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
-                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Link público</p>
+                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Link público</p>
                 <p className="text-xs text-slate-600 font-mono break-all leading-relaxed">{urlPublica}</p>
               </div>
 
@@ -253,7 +210,7 @@ function Drawer({
                 className={`w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all ${copiado ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-primary text-white hover:opacity-90'}`}
               >
                 {copiado ? (
-                  <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg> Link copiado!</>
+                  <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg> Copiado!</>
                 ) : (
                   <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copiar link</>
                 )}
@@ -265,8 +222,7 @@ function Drawer({
                 className="w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest text-white transition-opacity hover:opacity-90"
                 style={{ background: '#25D366' }}
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                Enviar pelo WhatsApp
+                {WA_ICON} Enviar pelo WhatsApp
               </a>
 
               <a
@@ -278,9 +234,9 @@ function Drawer({
                 Ver página pública
               </a>
 
-              <div className="text-center pt-1">
-                <p className="text-[10px] text-slate-300">{resultado.totalVisualizacoes} visualização{resultado.totalVisualizacoes !== 1 ? 'ões' : ''}</p>
-              </div>
+              <p className="text-center text-[10px] text-slate-300 pt-1">
+                {resultado.totalVisualizacoes} visualização{resultado.totalVisualizacoes !== 1 ? 'ões' : ''}
+              </p>
             </>
           )}
 
@@ -291,16 +247,16 @@ function Drawer({
                 {gerando && (
                   <div className="w-full h-full flex flex-col items-center justify-center gap-3">
                     <div className="w-10 h-10 rounded-full border-[3px] border-primary/30 border-t-primary animate-spin" />
-                    <p className="text-slate-400 text-xs">Gerando imagem...</p>
+                    <p className="text-slate-400 text-xs">Gerando imagem 1080×1080...</p>
                   </div>
                 )}
-                {!gerando && imagemDisponivel && (
-                  <img src={imgUrl!} alt="preview" className="w-full h-full object-cover" />
+                {!gerando && imgUrl && (
+                  <img src={imgUrl} alt="preview" className="w-full h-full object-cover" />
                 )}
-                {!gerando && !imagemDisponivel && (
+                {!gerando && !imgUrl && (
                   <div className="w-full h-full flex flex-col items-center justify-center gap-4 p-6 text-center">
                     <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#4A6480" strokeWidth="1.2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                    <p className="text-slate-400 text-sm">Imagem ainda não gerada</p>
+                    <p className="text-slate-400 text-sm">Imagem não gerada ainda</p>
                     <button
                       onClick={handleGerar}
                       disabled={!branding}
@@ -312,18 +268,18 @@ function Drawer({
                 )}
               </div>
 
-              {imagemDisponivel && resultado.imagemExpirarEm && (
+              {imgUrl && resultado.imagemExpirarEm && (
                 <div className="flex items-center gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-                  <span className="text-base">⏳</span>
+                  <span>⏳</span>
                   <p className="text-xs text-amber-700">
                     Expira em {new Date(resultado.imagemExpirarEm).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
               )}
 
-              {imagemDisponivel && (
+              {imgUrl && (
                 <a
-                  href={imgUrl!}
+                  href={imgUrl}
                   download={`resultado-${resultado.slugPublico}.png`}
                   className="w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest text-white bg-primary hover:opacity-90 transition-opacity"
                 >
@@ -332,24 +288,24 @@ function Drawer({
                 </a>
               )}
 
-              {imagemDisponivel && (
+              {imgUrl && (
                 <a
                   href={`https://wa.me/?text=${encodeURIComponent(`Veja o resultado de ${resultado.procedimento}!\n${urlPublica}`)}`}
                   target="_blank"
                   className="w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest text-white hover:opacity-90 transition-opacity"
                   style={{ background: '#25D366' }}
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                  Enviar pelo WhatsApp
+                  {WA_ICON} Enviar pelo WhatsApp
                 </a>
               )}
 
-              {(imgExpirada || !imgUrl) && !gerando && imagemDisponivel === false && imgUrl && (
+              {imgUrl && (
                 <button
                   onClick={handleGerar}
-                  className="w-full py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest text-primary border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors"
+                  disabled={gerando}
+                  className="w-full py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 border border-slate-200 hover:bg-slate-50 transition-colors disabled:opacity-40"
                 >
-                  Regenerar imagem
+                  {gerando ? 'Gerando...' : 'Regenerar imagem'}
                 </button>
               )}
             </>
