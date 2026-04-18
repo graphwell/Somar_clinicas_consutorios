@@ -1,6 +1,7 @@
 import { Metadata } from 'next'
 import prisma from '@/lib/prisma'
 import { SliderAntesDePois } from '@/components/ui/SliderAntesDePois'
+import ShareButtons from './ShareButtons'
 
 export const dynamic = 'force-dynamic'
 
@@ -118,15 +119,11 @@ export default async function ResultadoPublico({ params }: { params: Promise<{ s
         </a>
 
         {/* Compartilhamento */}
-        <div className="grid grid-cols-2 gap-3">
-          <a href={`https://wa.me/?text=${encodeURIComponent(`Veja meu resultado em ${resultado.clinica.nome}:\n${urlCompleta}`)}`} target="_blank"
-            className="flex items-center justify-center gap-2 py-3 border border-slate-100 rounded-xl bg-white text-sm text-slate-700 hover:bg-slate-50 transition-colors">
-            Enviar por WhatsApp
-          </a>
-          <div className="flex items-center justify-center py-3 border border-slate-100 rounded-xl bg-white text-sm text-slate-400">
-            {slug}
-          </div>
-        </div>
+        <ShareButtons
+          urlCompleta={urlCompleta}
+          clinicaNome={resultado.clinica.nome}
+          procedimento={resultado.procedimento}
+        />
 
         <p className="text-[11px] text-slate-300 text-center">Powered by Synka</p>
       </div>
