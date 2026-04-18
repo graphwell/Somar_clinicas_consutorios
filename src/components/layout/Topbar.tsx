@@ -35,14 +35,23 @@ export default function Topbar({ onMenuClick, currentUser, clientName, clientSlu
   const notifRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetchWithAuth("/api/notifications")
-      .then((r) => r.json())
-      .then((data) => {
-        const list = Array.isArray(data) ? data : data.notifications || [];
-        setNotifs(list.slice(0, 5));
-        setNotifCount(list.filter((n: any) => !n.lida).length);
-      })
-      .catch(() => {});
+    Promise.all([
+      fetchWithAuth("/api/notifications").then(r => r.json()).catch(() => []),
+      fetchWithAuth("/api/notificacoes").then(r => r.json()).catch(() => ({ notificacoes: [], naoLidas: 0 })),
+    ]).then(([sysData, internData]) => {
+      const sys = Array.isArray(sysData) ? sysData : sysData.notifications || [];
+      const intern = internData.notificacoes || [];
+      const internMapped = intern.map((n: any) => ({
+        id: n.id,
+        titulo: n.titulo,
+        mensagem: n.conteudo?.slice(0, 80) + (n.conteudo?.length > 80 ? '…' : ''),
+        lida: n.lida,
+        _interno: true,
+      }));
+      const merged = [...internMapped, ...sys];
+      setNotifs(merged.slice(0, 8));
+      setNotifCount(merged.filter((n: any) => !n.lida).length);
+    });
   }, []);
 
   // Fechar dropdown de notif ao clicar fora
@@ -127,7 +136,14 @@ export default function Topbar({ onMenuClick, currentUser, clientName, clientSlu
                 notifs.map((n: any) => (
                   <div
                     key={n.id}
-                    className={`px-4 py-3 border-b border-warm-100 text-xs ${
+                    onClick={() => {
+                      if (n._interno && !n.lida) {
+                        fetchWithAuth(`/api/notificacoes/${n.id}/lida`, { method: 'POST' }).catch(() => {})
+                        setNotifs(prev => prev.map(x => x.id === n.id ? { ...x, lida: true } : x))
+                        setNotifCount(c => Math.max(0, c - 1))
+                      }
+                    }}
+                    className={`px-4 py-3 border-b border-warm-100 text-xs cursor-pointer hover:bg-warm-50 transition-colors ${
                       !n.lida ? "bg-sage-50" : ""
                     }`}
                   >

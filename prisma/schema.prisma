@@ -69,6 +69,8 @@ model Clinica {
   // Fechamentos / Feriados
   diasBloqueados       DiaBloqueado[]
   pixConfig            PixConfig?
+  resumoConfig         ResumoConfig?
+  notificacoesInternas NotificacaoInterna[]
 }
 
 enum NichoType {
@@ -110,8 +112,9 @@ model Usuario {
   perfilCompleto Boolean       @default(false)
   ativo          Boolean       @default(true)
 
-  clinica        Clinica       @relation(fields: [tenantId], references: [tenantId])
-  profissional   Profissional? @relation(fields: [profissionalId], references: [id])
+  clinica              Clinica              @relation(fields: [tenantId], references: [tenantId])
+  profissional         Profissional?        @relation(fields: [profissionalId], references: [id])
+  notificacoesInternas NotificacaoInterna[]
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
@@ -1357,4 +1360,50 @@ model PixConfig {
   updatedAt DateTime @updatedAt
 
   @@map("pix_configs")
+}
+
+// ─── Resumo Diário / Semanal ──────────────────────────────────────────────────
+
+model ResumoConfig {
+  id                   String   @id @default(cuid())
+  tenantId             String   @unique
+  ativo                Boolean  @default(true)
+  frequencia           String   @default("diario")   // "diario" | "semanal"
+  horaDiario           String   @default("07:00")
+  diaSemana            String   @default("segunda")  // segunda..domingo
+  horaSemanal          String   @default("07:00")
+  recebeAdmin          Boolean  @default(true)
+  recebeRecepcao       Boolean  @default(false)
+  recebeProfissional   Boolean  @default(false)
+  secaoAgenda          Boolean  @default(true)
+  secaoOcupacao        Boolean  @default(true)
+  secaoFinanceiro      Boolean  @default(true)
+  secaoEstoque         Boolean  @default(true)
+  secaoFilaEspera      Boolean  @default(true)
+  secaoInsightsIA      Boolean  @default(true)
+  estoqueMinimo        Int      @default(3)
+  clinica              Clinica  @relation(fields: [tenantId], references: [tenantId])
+  updatedAt            DateTime @updatedAt
+
+  @@map("resumo_configs")
+}
+
+// ─── Notificações Internas ────────────────────────────────────────────────────
+
+model NotificacaoInterna {
+  id        String   @id @default(cuid())
+  tenantId  String
+  usuarioId String
+  tipo      String   // "resumo" | "alerta" | "sistema"
+  titulo    String
+  conteudo  String   @db.Text
+  lida      Boolean  @default(false)
+  lidaEm   DateTime?
+  createdAt DateTime @default(now())
+
+  usuario  Usuario @relation(fields: [usuarioId], references: [id])
+  clinica  Clinica @relation(fields: [tenantId], references: [tenantId])
+
+  @@index([usuarioId, lida])
+  @@map("notificacoes_internas")
 }

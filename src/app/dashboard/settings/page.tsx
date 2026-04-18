@@ -33,6 +33,45 @@ export default function SettingsPage() {
   const [closingTime, setClosingTime] = useState('18:00');
   const [workingDays, setWorkingDays] = useState('1,2,3,4,5');
 
+  // Resumo diário/semanal
+  const [resumoCfg, setResumoCfg] = useState<any>({
+    ativo: true, frequencia: 'diario', horaDiario: '07:00',
+    diaSemana: 'segunda', horaSemanal: '07:00',
+    recebeAdmin: true, recebeRecepcao: false, recebeProfissional: false,
+    secaoAgenda: true, secaoOcupacao: true, secaoFinanceiro: true,
+    secaoEstoque: true, secaoFilaEspera: true, secaoInsightsIA: true,
+    estoqueMinimo: 3,
+  });
+  const [resumoSalvo, setResumoSalvo] = useState(false);
+  const [resumoTestando, setResumoTestando] = useState(false);
+
+  useEffect(() => {
+    fetchWithAuth('/api/resumo/config')
+      .then(r => r.json())
+      .then(data => { if (data && !data.error) setResumoCfg((p: any) => ({ ...p, ...data })) })
+      .catch(() => {})
+  }, [])
+
+  const handleSaveResumo = async () => {
+    try {
+      const res = await fetchWithAuth('/api/resumo/config', {
+        method: 'PATCH',
+        body: JSON.stringify(resumoCfg),
+      })
+      if (res.ok) { setResumoSalvo(true); setTimeout(() => setResumoSalvo(false), 2000) }
+    } catch {}
+  }
+
+  const handleTestarResumo = async () => {
+    setResumoTestando(true)
+    try {
+      await fetchWithAuth('/api/resumo/config', { method: 'POST', body: JSON.stringify({ action: 'testar' }) })
+      alert('Resumo enviado! Verifique seu WhatsApp ou as notificações internas.')
+    } catch {
+      alert('Erro ao testar. Tente novamente.')
+    } finally { setResumoTestando(false) }
+  }
+
   useEffect(() => {
     fetchWithAuth('/api/settings/profile')
       .then(r => r.json())
@@ -480,6 +519,146 @@ export default function SettingsPage() {
               </a>
            </div>
 
+        </div>
+
+        {/* Resumo Diário / Semanal */}
+        <div className="lg:col-span-12">
+          <div className="premium-card p-6 md:p-10 bg-white space-y-6 shadow-lg">
+            <div className="flex items-center justify-between border-b border-slate-50 pb-4">
+              <div>
+                <h3 className="text-base md:text-lg font-black text-text-main italic uppercase tracking-tighter">6. Resumo via WhatsApp</h3>
+                <p className="text-[10px] text-text-muted mt-0.5">Receba um resumo automático de agenda, financeiro e estoque</p>
+              </div>
+              <button
+                onClick={() => setResumoCfg((p: any) => ({ ...p, ativo: !p.ativo }))}
+                className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all ${resumoCfg.ativo ? 'bg-status-success-bg text-status-success border-status-success/20' : 'bg-slate-100 text-text-placeholder border-card-border'}`}
+              >
+                {resumoCfg.ativo ? 'ATIVO' : 'PAUSADO'}
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {/* Frequência */}
+              <div className="space-y-2">
+                <label className="text-[8px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-1">Frequência</label>
+                <select
+                  value={resumoCfg.frequencia}
+                  onChange={e => setResumoCfg((p: any) => ({ ...p, frequencia: e.target.value }))}
+                  className="input-premium w-full py-2.5 text-sm"
+                >
+                  <option value="diario">Diário</option>
+                  <option value="semanal">Semanal</option>
+                </select>
+              </div>
+
+              {resumoCfg.frequencia === 'diario' ? (
+                <div className="space-y-2">
+                  <label className="text-[8px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-1">Horário (diário)</label>
+                  <input
+                    type="time"
+                    value={resumoCfg.horaDiario}
+                    onChange={e => setResumoCfg((p: any) => ({ ...p, horaDiario: e.target.value }))}
+                    className="input-premium w-full py-2.5 text-sm"
+                  />
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <label className="text-[8px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-1">Dia da semana</label>
+                    <select
+                      value={resumoCfg.diaSemana}
+                      onChange={e => setResumoCfg((p: any) => ({ ...p, diaSemana: e.target.value }))}
+                      className="input-premium w-full py-2.5 text-sm"
+                    >
+                      {['segunda','terca','quarta','quinta','sexta','sabado','domingo'].map(d => (
+                        <option key={d} value={d}>{d.charAt(0).toUpperCase() + d.slice(1)}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[8px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-1">Horário (semanal)</label>
+                    <input
+                      type="time"
+                      value={resumoCfg.horaSemanal}
+                      onChange={e => setResumoCfg((p: any) => ({ ...p, horaSemanal: e.target.value }))}
+                      className="input-premium w-full py-2.5 text-sm"
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Estoque mínimo */}
+              <div className="space-y-2">
+                <label className="text-[8px] font-black uppercase tracking-[0.2em] text-text-placeholder ml-1">Alerta estoque ≤</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={resumoCfg.estoqueMinimo}
+                  onChange={e => setResumoCfg((p: any) => ({ ...p, estoqueMinimo: Number(e.target.value) }))}
+                  className="input-premium w-full py-2.5 text-sm"
+                />
+              </div>
+            </div>
+
+            {/* Destinatários */}
+            <div className="space-y-2">
+              <p className="text-[8px] font-black uppercase tracking-[0.2em] text-text-placeholder">Quem recebe</p>
+              <div className="flex flex-wrap gap-3">
+                {[
+                  { key: 'recebeAdmin', label: 'Admin' },
+                  { key: 'recebeRecepcao', label: 'Recepção' },
+                  { key: 'recebeProfissional', label: 'Profissional' },
+                ].map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => setResumoCfg((p: any) => ({ ...p, [key]: !p[key] }))}
+                    className={`px-4 py-2 rounded-xl text-[10px] font-bold border transition-all ${resumoCfg[key] ? 'bg-primary text-white border-primary' : 'bg-slate-50 text-text-placeholder border-card-border'}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Seções */}
+            <div className="space-y-2">
+              <p className="text-[8px] font-black uppercase tracking-[0.2em] text-text-placeholder">Seções incluídas</p>
+              <div className="flex flex-wrap gap-3">
+                {[
+                  { key: 'secaoAgenda', label: 'Agenda' },
+                  { key: 'secaoOcupacao', label: 'Ocupação' },
+                  { key: 'secaoFinanceiro', label: 'Financeiro' },
+                  { key: 'secaoEstoque', label: 'Estoque' },
+                  { key: 'secaoFilaEspera', label: 'Fila de Espera' },
+                  { key: 'secaoInsightsIA', label: 'Insights IA' },
+                ].map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => setResumoCfg((p: any) => ({ ...p, [key]: !p[key] }))}
+                    className={`px-4 py-2 rounded-xl text-[10px] font-bold border transition-all ${resumoCfg[key] ? 'bg-primary/10 text-primary border-primary/30' : 'bg-slate-50 text-text-placeholder border-card-border'}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={handleTestarResumo}
+                disabled={resumoTestando}
+                className="btn-secondary px-6 py-3 text-[10px] font-black uppercase tracking-widest"
+              >
+                {resumoTestando ? 'Enviando...' : 'Testar agora'}
+              </button>
+              <button
+                onClick={handleSaveResumo}
+                className="btn-primary px-6 py-3 text-[10px] font-black uppercase tracking-widest"
+              >
+                {resumoSalvo ? 'Salvo!' : 'Salvar configuração'}
+              </button>
+            </div>
+          </div>
         </div>
 
       </div>
