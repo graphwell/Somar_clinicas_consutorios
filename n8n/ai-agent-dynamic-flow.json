@@ -298,7 +298,7 @@
         "conditions": {
           "string": [
             {
-              "value1": "={{ $('Webhook WhatsApp').item.json.body.mensagem.trim().toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '') }}",
+              "value1": "={{ ($('Webhook WhatsApp').item.json.body?.mensagem || $('Webhook WhatsApp').item.json.mensagem || '').trim().toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '') }}",
               "operation": "regex",
               "value2": "^(sim|s|confirmo|confirmar)[!?.]*$"
             }
@@ -316,7 +316,7 @@
         "conditions": {
           "string": [
             {
-              "value1": "={{ $('Webhook WhatsApp').item.json.body.mensagem.trim().toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '') }}",
+              "value1": "={{ ($('Webhook WhatsApp').item.json.body?.mensagem || $('Webhook WhatsApp').item.json.mensagem || '').trim().toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '') }}",
               "operation": "regex",
               "value2": "^(nao|n|cancelar|cancela|nao)[!?.]*$"
             }
@@ -509,7 +509,10 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {}
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $('Buscar Config WA').item.json.data.whatsappInstanceKey }}"
+            }
           ]
         },
         "sendBody": true,
