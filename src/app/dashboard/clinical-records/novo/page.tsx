@@ -225,7 +225,7 @@ function EtapaAgendamento({
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-[10px] font-black text-slate-700">
-                {new Date(ag.dataHora).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                {new Date(ag.dataHora).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Fortaleza" })}
                 {ag.servico ? ` — ${ag.servico.nome}` : ""}
               </p>
               <p className="text-[9px] text-slate-400">{ag.status}</p>

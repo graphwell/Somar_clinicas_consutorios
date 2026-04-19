@@ -142,11 +142,11 @@ export default function DashboardPage() {
                   <span className="text-slate-100">Horário</span>
                   <span className="text-slate-700 font-medium">
                     {new Date(agendamentoSelecionado.dataHora).toLocaleTimeString("pt-BR", {
-                      hour: "2-digit", minute: "2-digit",
+                      hour: "2-digit", minute: "2-digit", timeZone: "America/Fortaleza",
                     })}
                     {" – "}
                     {new Date(agendamentoSelecionado.fimDataHora).toLocaleTimeString("pt-BR", {
-                      hour: "2-digit", minute: "2-digit",
+                      hour: "2-digit", minute: "2-digit", timeZone: "America/Fortaleza",
                     })}
                   </span>
                 </div>

@@ -45,8 +45,8 @@ export const STATUS_MAP: Record<string, { label: string; bg: string; text: strin
 export const WEEKDAYS_SHORT = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
 export const MONTHS = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
-export function formatTime(iso: string) { 
-  try { return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); } catch { return "--:--"; }
+export function formatTime(iso: string) {
+  try { return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Fortaleza' }); } catch { return "--:--"; }
 }
 
 export function formatDate(iso: string) { 
@@ -97,8 +97,10 @@ export const generateSmartSlots = (
     slots.push(timeStr);
     
     const appt = existingAppts.find(a => {
-      const aDate = new Date(a.dataHora);
-      return aDate.getHours() === current.getHours() && aDate.getMinutes() === current.getMinutes();
+      const aFortaleza = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'America/Fortaleza', hour: '2-digit', minute: '2-digit', hour12: false,
+      }).format(new Date(a.dataHora));
+      return aFortaleza === timeStr;
     });
 
     if (appt) {

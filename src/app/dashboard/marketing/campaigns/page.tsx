@@ -583,7 +583,7 @@ export default function MarketingPage() {
                         <div className="space-y-0.5">
                           <p className="font-black text-[var(--foreground)] text-sm">{ag.paciente.nome}</p>
                           <p className="text-xs text-[var(--text-muted)] font-medium">
-                            {new Date(ag.dataHora).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' })} às {new Date(ag.dataHora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                            {new Date(ag.dataHora).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short', timeZone: 'America/Fortaleza' })} às {new Date(ag.dataHora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Fortaleza' })}
                             {ag.servico && ` · ${ag.servico}`}
                           </p>
                           {!ag.paciente.telefone && <p className="text-[10px] text-red-400 font-medium">Sem telefone cadastrado</p>}

@@ -97,12 +97,16 @@ export default function QuickAppointmentForm({
   useEffect(() => {
     if (initialAppt && viewMode === 'form') {
       const dt = new Date(initialAppt.dataHora);
+      const fmtFortaleza = new Intl.DateTimeFormat('en-GB', { timeZone: 'America/Fortaleza', hour: '2-digit', minute: '2-digit', hour12: false });
+      const parts = fmtFortaleza.formatToParts(dt);
+      const fHour = parts.find(p => p.type === 'hour')!.value;
+      const fMin = parts.find(p => p.type === 'minute')!.value;
       setForm({
         nome: initialAppt.paciente?.nome || '',
         telefone: initialAppt.paciente?.telefone || '',
         dataNascimento: initialAppt.paciente?.dataNascimento ? new Date(initialAppt.paciente.dataNascimento).toISOString().split('T')[0] : '',
-        dataAgendamento: dt.toISOString().split('T')[0],
-        horario: dt.getHours().toString().padStart(2, '0') + ':' + dt.getMinutes().toString().padStart(2, '0'),
+        dataAgendamento: new Intl.DateTimeFormat('fr-CA', { timeZone: 'America/Fortaleza' }).format(dt),
+        horario: `${fHour}:${fMin}`,
         profissionalId: initialAppt.profissionalId || '',
         servicoId: initialAppt.servicoId || '',
         categoria: (initialAppt.categoria as any) || 'consulta',
@@ -370,7 +374,7 @@ export default function QuickAppointmentForm({
                     </div>
                     <div>
                        <p className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-1">Horário</p>
-                       <p className="text-sm font-black text-primary italic uppercase">{new Date(initialAppt.dataHora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}H</p>
+                       <p className="text-sm font-black text-primary italic uppercase">{new Date(initialAppt.dataHora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Fortaleza' })}H</p>
                     </div>
                     <div>
                        <p className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-1">WhatsApp</p>
