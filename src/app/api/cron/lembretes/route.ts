@@ -32,7 +32,7 @@ export async function GET(req: Request) {
   inicioBRT.setUTCHours(3, 0, 0, 0);   // 00:00 Fortaleza = 03:00 UTC
 
   const fimBRT = new Date(inicioBRT);
-  fimBRT.setUTCHours(27, 0, 0, 0);     // 23:59 Fortaleza = 03:00 UTC do dia seguinte
+  fimBRT.setUTCHours(26, 59, 59, 999); // 23:59:59 Fortaleza = 02:59:59 UTC do dia seguinte
 
   // Buscar tenants com lembrete ativo
   const configs = await prisma.marketingConfig.findMany({

@@ -39,9 +39,9 @@ export async function GET() {
       paciente: { nome: ag.paciente.nome, telefone: ag.paciente.telefone },
       servico: ag.servico?.nome ?? null,
       profissional: ag.profissional?.nome ?? null,
-      lembreteEnviado: ag.paciente.telefone
+      lembreteEnviado: ag.lembreteEnviado || (ag.paciente.telefone
         ? telefonesJaEnviados.has(ag.paciente.telefone)
-        : false,
+        : false),
     }));
 
     return NextResponse.json(result);

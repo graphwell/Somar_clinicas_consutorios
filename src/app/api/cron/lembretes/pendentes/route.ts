@@ -32,7 +32,7 @@ export async function GET(request: Request) {
   amanha.setDate(amanha.getDate() + 1);
   amanha.setUTCHours(3, 0, 0, 0);
   const amanhaFim = new Date(amanha);
-  amanhaFim.setUTCHours(27, 0, 0, 0); // = amanhã 00:00 UTC+3 → next day 03:00 UTC
+  amanhaFim.setUTCHours(26, 59, 59, 999); // 23:59:59 Fortaleza = 02:59:59 UTC do dia seguinte
 
   try {
     const agendamentos = await prisma.agendamento.findMany({
