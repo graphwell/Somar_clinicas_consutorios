@@ -97,11 +97,12 @@ function formatTime(iso: string): string {
   }).format(new Date(iso));
 }
 function formatDateHeader(d: Date): string {
-  return d.toLocaleDateString("pt-BR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  });
+  return new Intl.DateTimeFormat('pt-BR', {
+    timeZone: 'America/Fortaleza',
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  }).format(d);
 }
 function addDays(d: Date, n: number): Date {
   const copy = new Date(d);
@@ -325,31 +326,46 @@ export default function AgendaConsolidada({
     <div className="space-y-4">
       {/* ── Header: navegação de data + botão Novo ── */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 bg-white border border-warm-300 rounded-xl px-2 py-1.5">
+          {/* Seta esquerda */}
           <button
             onClick={() => onDataChange(addDays(data, -1))}
-            className="w-8 h-8 flex items-center justify-center rounded-lg border border-warm-300 text-slate-300 hover:bg-warm-200 transition-colors text-sm"
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:bg-warm-200 hover:text-slate-700 transition-colors text-sm"
           >
             ←
           </button>
-          <div>
-            <p className="text-sm font-medium text-slate-700 capitalize">
+
+          {/* Data clicável — input date invisível sobreposto */}
+          <div className="relative">
+            <button className="px-2 py-0.5 text-[14px] font-semibold text-slate-700 capitalize rounded-lg hover:bg-warm-100 transition-colors whitespace-nowrap pointer-events-none select-none">
               {formatDateHeader(data)}
-            </p>
-            {today && (
-              <p className="text-[11px] text-sage-500 font-medium">Hoje</p>
-            )}
+            </button>
+            <input
+              type="date"
+              value={new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Fortaleza' }).format(data)}
+              onChange={(e) => {
+                if (e.target.value) {
+                  const [ano, mes, dia] = e.target.value.split('-').map(Number);
+                  onDataChange(new Date(Date.UTC(ano, mes - 1, dia, 3, 0, 0)));
+                }
+              }}
+              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+            />
           </div>
+
+          {/* Seta direita */}
           <button
             onClick={() => onDataChange(addDays(data, 1))}
-            className="w-8 h-8 flex items-center justify-center rounded-lg border border-warm-300 text-slate-300 hover:bg-warm-200 transition-colors text-sm"
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:bg-warm-200 hover:text-slate-700 transition-colors text-sm"
           >
             →
           </button>
+
+          {/* Botão Hoje — só aparece quando não é hoje */}
           {!today && (
             <button
               onClick={() => onDataChange(new Date())}
-              className="px-3 py-1 rounded-lg bg-sage-50 text-sage-600 text-[11px] font-medium hover:bg-sage-100 transition-colors"
+              className="px-2.5 py-1 rounded-lg bg-sage-50 text-sage-600 text-[11px] font-semibold hover:bg-sage-100 transition-colors border border-sage-100 whitespace-nowrap"
             >
               Hoje
             </button>
