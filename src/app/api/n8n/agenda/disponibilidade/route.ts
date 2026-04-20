@@ -95,7 +95,8 @@ export async function GET(req: NextRequest) {
 
     const data = new Date(dataParam + 'T00:00:00-03:00');
     const fimDia = new Date(dataParam + 'T23:59:59-03:00');
-    const diaSemana = data.getDay();
+    // getUTCDay() evita dependência do timezone do servidor
+    const diaSemana = data.getUTCDay();
 
     const profissionais = await prisma.profissional.findMany({
       where: { tenantId: clinica.tenantId, ativo: true, id: { in: profIds } },
@@ -118,7 +119,7 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    const isHoje = new Date().toISOString().split('T')[0] === dataParam;
+    const isHoje = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Fortaleza' }).format(new Date()) === dataParam;
     const nowMin = isHoje ? dateToFortalezaMin(new Date()) : 0;
 
     const resultado = profissionais.flatMap(prof => {
