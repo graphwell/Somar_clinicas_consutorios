@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Avatar from "@/components/ui/Avatar";
 import Badge from "@/components/ui/Badge";
 import { SkeletonCard } from "@/components/ui/Skeleton";
@@ -110,12 +110,9 @@ function addDays(d: Date, n: number): Date {
   return copy;
 }
 function isToday(d: Date): boolean {
-  const today = new Date();
-  return (
-    d.getDate() === today.getDate() &&
-    d.getMonth() === today.getMonth() &&
-    d.getFullYear() === today.getFullYear()
-  );
+  const fmt = (x: Date) =>
+    new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Fortaleza' }).format(x);
+  return fmt(d) === fmt(new Date());
 }
 function nowLocalHHMM(): string {
   const formatter = new Intl.DateTimeFormat('en-GB', {
@@ -305,6 +302,7 @@ export default function AgendaConsolidada({
 }: Props) {
   const isProfissional = role === "profissional";
   const [selectedProfIdx, setSelectedProfIdx] = useState(0);
+  const inputDataRef = useRef<HTMLInputElement>(null);
 
   const profsVisiveis = isProfissional
     ? profissionais.filter((p) => p.id === profissionalId)
@@ -335,21 +333,32 @@ export default function AgendaConsolidada({
             ←
           </button>
 
-          {/* Data clicável — input date invisível sobreposto */}
+          {/* Data clicável — abre o picker via showPicker() */}
           <div className="relative">
-            <button className="px-2 py-0.5 text-[14px] font-semibold text-slate-700 capitalize rounded-lg hover:bg-warm-100 transition-colors whitespace-nowrap pointer-events-none select-none">
+            <button
+              onClick={() => {
+                const el = inputDataRef.current;
+                if (!el) return;
+                if (typeof (el as any).showPicker === 'function') {
+                  (el as any).showPicker();
+                } else {
+                  el.click();
+                }
+              }}
+              className="px-2 py-0.5 text-[14px] font-semibold text-slate-700 capitalize rounded-lg hover:bg-warm-100 transition-colors whitespace-nowrap"
+            >
               {formatDateHeader(data)}
             </button>
             <input
+              ref={inputDataRef}
               type="date"
               value={new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Fortaleza' }).format(data)}
               onChange={(e) => {
-                if (e.target.value) {
-                  const [ano, mes, dia] = e.target.value.split('-').map(Number);
-                  onDataChange(new Date(Date.UTC(ano, mes - 1, dia, 3, 0, 0)));
-                }
+                if (!e.target.value) return;
+                const [ano, mes, dia] = e.target.value.split('-').map(Number);
+                onDataChange(new Date(Date.UTC(ano, mes - 1, dia, 12, 0, 0)));
               }}
-              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+              className="absolute opacity-0 pointer-events-none w-0 h-0 top-0 left-0"
             />
           </div>
 
