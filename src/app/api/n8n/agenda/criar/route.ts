@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
 import { autenticarApiKey, UNAUTHORIZED } from '@/lib/n8n-auth';
 import { n8nSuccess, n8nError } from '@/lib/n8n-response';
+import { gerarPixBRCode } from '@/lib/pix-brcode';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,6 +28,7 @@ export async function POST(req: NextRequest) {
     data?: string;
     horario?: string;
     origem?: string;
+    opcaoPagamento?: string;
   };
 
   try {
@@ -208,13 +210,29 @@ export async function POST(req: NextRequest) {
       where: { tenantId: clinica.tenantId }
     });
 
-    const msgPix = pixConfig?.ativo && pixConfig?.exibirNoWpp
-      ? `\n\nPagamento via PIX:\n` +
-        `Chave: ${pixConfig.chave}\n` +
-        `Favorecido: ${pixConfig.nomeFavorecido}\n` +
-        (pixConfig.banco ? `Banco: ${pixConfig.banco}\n` : '') +
-        `Para garantir seu horário, realize o pagamento e envie o comprovante.`
-      : '';
+    // Se opcaoPagamento foi fornecido, o pagamento já foi tratado antes da confirmação
+    let msgPix = '';
+    if (!body.opcaoPagamento && pixConfig?.ativo && pixConfig?.exibirNoWpp) {
+      const favorecido = pixConfig.nomeFavorecido || clinica.nome;
+      const valor = Number(servico.preco ?? 0);
+      if (valor > 0) {
+        const brCode = gerarPixBRCode(pixConfig.chave, favorecido, valor);
+        msgPix =
+          `\n\nPagamento via PIX:\n` +
+          `Copia e cola: ${brCode}\n` +
+          (pixConfig.banco ? `Banco: ${pixConfig.banco}\n` : '') +
+          `Favorecido: ${favorecido}\n` +
+          `Valor: R$ ${valor.toFixed(2)}\n` +
+          `Para garantir seu horário, realize o pagamento e envie o comprovante.`;
+      } else {
+        msgPix =
+          `\n\nPagamento via PIX:\n` +
+          (pixConfig.banco ? `Banco: ${pixConfig.banco}\n` : '') +
+          `Favorecido: ${favorecido}\n` +
+          `Chave: ${pixConfig.chave}\n` +
+          `Para garantir seu horário, realize o pagamento e envie o comprovante.`;
+      }
+    }
 
     const msgConfirmacao =
       `Agendamento confirmado!\n\n` +

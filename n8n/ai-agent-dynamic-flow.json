@@ -59,7 +59,7 @@
       "parameters": {
         "text": "={{ $('Webhook WhatsApp').item.json.body.mensagem || $('Webhook WhatsApp').item.json.mensagem }}",
         "options": {
-          "systemMessage": "={{ `Você é a Assistente Virtual inteligente da ${$node[\"Carregar Contexto Clínica\"].json.data.nome}.\nSeu objetivo é ser extremamente amigável e garantir que o cliente agende um horário de forma simples.\n\n🏥 Horário: ${$node[\"Carregar Contexto Clínica\"].json.data.horarioFuncionamento}\n🔗 Link direto (Plano B): ${$node[\"Carregar Contexto Clínica\"].json.data.linkAgendamento}\n\nDIRETRIZES DE OURO:\n1. PRIORIDADE WHATSAPP: Se o cliente quiser agendar, você DEVE fazer por aqui usando suas Ferramentas (Ver Horários e Criar Agendamento).\n2. FLUXO DE COLETA: Para agendar aqui, você precisa de: Nome, Serviço, Profissional, Data e Hora. Pergunte um por um de forma natural. \n3. RESPOSTAS CURTAS: Como no WhatsApp real, responda em no máximo 1 ou 2 frases curtas.\n4. CONFIRMAÇÃO OBRIGATÓRIA: Antes de finalizar qualquer agendamento, resuma os dados e peça um \"SIM\" do cliente.\n5. LINK ALTERNATIVO: Só ofereça o link direto se o cliente pedir para agendar sozinho ou se você perceber que ele está com muita pressa.\n\nINSTRUÇÕES CRÍTICAS:\n- Data atual: ${new Date().toLocaleDateString('pt-BR', {timeZone:'America/Fortaleza'})} (ano 2026)\n- Use SEMPRE o campo \"id\" retornado pelas ferramentas para servicoId e profissionalId. NUNCA invente IDs.\n- Para ver horários, chame PRIMEIRO Listar Opções para obter o servicoId real, depois Ver Horários.` }}"
+          "systemMessage": "={{ `Você é a Assistente Virtual inteligente da ${$node[\"Carregar Contexto Clínica\"].json.data.nome}.\nSeu objetivo é ser extremamente amigável e garantir que o cliente agende um horário de forma simples.\n\n🏥 Horário: ${$node[\"Carregar Contexto Clínica\"].json.data.horarioFuncionamento}\n🔗 Link direto (Plano B): ${$node[\"Carregar Contexto Clínica\"].json.data.linkAgendamento}\n\nDIRETRIZES DE OURO:\n1. PRIORIDADE WHATSAPP: Se o cliente quiser agendar, você DEVE fazer por aqui usando suas Ferramentas (Ver Horários e Criar Agendamento).\n2. FLUXO DE COLETA: Para agendar aqui, você precisa de: Nome, Serviço, Profissional, Data e Hora. Pergunte um por um de forma natural. \n3. RESPOSTAS CURTAS: Como no WhatsApp real, responda em no máximo 1 ou 2 frases curtas.\n4. CONFIRMAÇÃO OBRIGATÓRIA: Antes de finalizar qualquer agendamento, resuma os dados e peça um \"SIM\" do cliente.\n5. LINK ALTERNATIVO: Só ofereça o link direto se o cliente pedir para agendar sozinho ou se você perceber que ele está com muita pressa.\n\nINSTRUÇÕES CRÍTICAS:\n- Data atual: ${new Date().toLocaleDateString('pt-BR', {timeZone:'America/Fortaleza'})} (ano 2026)\n- Use SEMPRE o campo \"id\" retornado pelas ferramentas para servicoId e profissionalId. NUNCA invente IDs.\n- Para ver horários, chame PRIMEIRO Listar Opções para obter o servicoId real, depois Ver Horários.\n\nFLUXO DE PAGAMENTO (seguir esta ordem):\n- Após coletar Nome, Serviço, Profissional, Data e Hora, chame Ferramenta: Opcoes Pagamento (passando tenantId e servicoId).\n- Se a ferramenta retornar temOpcoes=true, apresente as opcoes ao cliente e aguarde a escolha (1, 2 ou 3).\n- Se escolheu opcao 1 (PIX), chame Ferramenta: Gerar PIX e envie o codigo ao cliente. Informe que, apos o pagamento, confirme com SIM.\n- Se escolheu opcao 2 ou 3, pule o PIX e vá direto para confirmação (SIM/NÃO).\n- Ao chamar Ferramenta: Criar Agendamento, passe o campo opcaoPagamento com o numero escolhido (ex: '1', '2' ou '3').\n- NUNCA mostre a chave PIX diretamente. Use sempre a Ferramenta: Gerar PIX.` }}"
         }
       },
       "id": "ai-agent-main",
@@ -309,7 +309,10 @@
       "name": "É SIM?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [ 304, 160 ]
+      "position": [
+        304,
+        160
+      ]
     },
     {
       "parameters": {
@@ -327,7 +330,10 @@
       "name": "É NAO?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [ 304, 480 ]
+      "position": [
+        304,
+        480
+      ]
     },
     {
       "parameters": {
@@ -336,15 +342,24 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "x-api-key", "value": "synka132504fE@" }
+            {
+              "name": "x-api-key",
+              "value": "synka132504fE@"
+            }
           ]
         },
         "sendBody": true,
         "contentType": "json",
         "bodyParameters": {
           "parameters": [
-            { "name": "telefone", "value": "={{ $('Webhook WhatsApp').item.json.body.telefone }}" },
-            { "name": "tenantId", "value": "={{ $('Carregar Contexto Clínica').item.json.data.tenantId }}" }
+            {
+              "name": "telefone",
+              "value": "={{ $('Webhook WhatsApp').item.json.body.telefone }}"
+            },
+            {
+              "name": "tenantId",
+              "value": "={{ $('Carregar Contexto Clínica').item.json.data.tenantId }}"
+            }
           ]
         },
         "options": {}
@@ -353,7 +368,10 @@
       "name": "Confirmar Agendamento",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [ 512, 160 ]
+      "position": [
+        512,
+        160
+      ]
     },
     {
       "parameters": {
@@ -362,15 +380,24 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "x-api-key", "value": "synka132504fE@" }
+            {
+              "name": "x-api-key",
+              "value": "synka132504fE@"
+            }
           ]
         },
         "sendBody": true,
         "contentType": "json",
         "bodyParameters": {
           "parameters": [
-            { "name": "telefone", "value": "={{ $('Webhook WhatsApp').item.json.body.telefone }}" },
-            { "name": "tenantId", "value": "={{ $('Carregar Contexto Clínica').item.json.data.tenantId }}" }
+            {
+              "name": "telefone",
+              "value": "={{ $('Webhook WhatsApp').item.json.body.telefone }}"
+            },
+            {
+              "name": "tenantId",
+              "value": "={{ $('Carregar Contexto Clínica').item.json.data.tenantId }}"
+            }
           ]
         },
         "options": {}
@@ -379,7 +406,10 @@
       "name": "Cancelar por Telefone",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [ 512, 480 ]
+      "position": [
+        512,
+        480
+      ]
     },
     {
       "parameters": {
@@ -389,8 +419,14 @@
         "contentType": "form-urlencoded",
         "bodyParameters": {
           "parameters": [
-            { "name": "to", "value": "={{ $('Webhook WhatsApp').item.json.body.telefone }}" },
-            { "name": "body", "value": "={{ $json.data?.msgBot ?? 'Agendamento confirmado!' }}" }
+            {
+              "name": "to",
+              "value": "={{ $('Webhook WhatsApp').item.json.body.telefone }}"
+            },
+            {
+              "name": "body",
+              "value": "={{ $json.data?.msgBot ?? 'Agendamento confirmado!' }}"
+            }
           ]
         },
         "options": {}
@@ -399,7 +435,10 @@
       "name": "Enviar Confirmação WA",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [ 720, 160 ]
+      "position": [
+        720,
+        160
+      ]
     },
     {
       "parameters": {
@@ -409,8 +448,14 @@
         "contentType": "form-urlencoded",
         "bodyParameters": {
           "parameters": [
-            { "name": "to", "value": "={{ $('Webhook WhatsApp').item.json.body.telefone }}" },
-            { "name": "body", "value": "={{ $json.data?.msgBot ?? 'Agendamento cancelado.' }}" }
+            {
+              "name": "to",
+              "value": "={{ $('Webhook WhatsApp').item.json.body.telefone }}"
+            },
+            {
+              "name": "body",
+              "value": "={{ $json.data?.msgBot ?? 'Agendamento cancelado.' }}"
+            }
           ]
         },
         "options": {}
@@ -419,7 +464,10 @@
       "name": "Enviar Cancelamento WA",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [ 720, 480 ]
+      "position": [
+        720,
+        480
+      ]
     },
     {
       "parameters": {
@@ -537,6 +585,63 @@
       "position": [
         1312,
         64
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ \"https://synka.somar.ia.br/api/n8n/pagamento/gerar-pix?_key=synka132504fE@\"}}",
+        "sendHeaders": false,
+        "sendBody": true,
+        "parametersBody": {
+          "values": [
+            {
+              "name": "tenantId"
+            },
+            {
+              "name": "servicoId"
+            },
+            {
+              "name": "valor"
+            }
+          ]
+        },
+        "toolDescription": "Gera o codigo PIX (copia e cola) para pagamento. Chame com tenantId (do contexto), servicoId e valor (numero). Retorna msg pronta para enviar ao cliente."
+      },
+      "id": "tool-gerar-pix",
+      "name": "Ferramenta: Gerar PIX",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1,
+      "position": [
+        1500,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ \"https://synka.somar.ia.br/api/n8n/pagamento/opcoes?_key=synka132504fE@\"}}",
+        "sendHeaders": false,
+        "sendBody": true,
+        "parametersBody": {
+          "values": [
+            {
+              "name": "tenantId"
+            },
+            {
+              "name": "servicoId"
+            }
+          ]
+        },
+        "toolDescription": "Retorna as opcoes de pagamento disponiveis para o servico. Chame ANTES de criar o agendamento, logo apos o cliente confirmar os dados. Use tenantId do contexto e servicoId do servico escolhido."
+      },
+      "id": "tool-opcoes-pagamento",
+      "name": "Ferramenta: Opcoes Pagamento",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1,
+      "position": [
+        1500,
+        608
       ]
     }
   ],
@@ -755,6 +860,28 @@
           {
             "node": "Disparar Resposta WhatsApp",
             "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ferramenta: Gerar PIX": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente Autônomo Especializado",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ferramenta: Opcoes Pagamento": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente Autônomo Especializado",
+            "type": "ai_tool",
             "index": 0
           }
         ]
