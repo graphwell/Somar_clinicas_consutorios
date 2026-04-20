@@ -16,25 +16,39 @@ export const dynamic = 'force-dynamic';
 export async function PATCH(req: NextRequest) {
   if (!autenticarApiKey(req)) return UNAUTHORIZED();
 
-  let body: { telefone?: string; tenantId?: string; motivo?: string };
+  let body: { telefone?: string; sender_number?: string; from?: string; tenantId?: string; motivo?: string };
   try {
     body = await req.json();
   } catch {
     return n8nError('Corpo JSON inválido', 'INVALID_BODY');
   }
 
-  const { telefone, tenantId, motivo } = body;
-  if (!telefone)
+  // Aceitar telefone de qualquer campo que o n8n envie
+  const telefoneRaw =
+    (body as any).telefone ??
+    (body as any).sender_number ??
+    (body as any).from ?? '';
+  const { tenantId, motivo } = body;
+
+  if (!telefoneRaw)
     return n8nError('telefone é obrigatório', 'MISSING_PARAM', 400);
 
   try {
-    const telefoneClean = telefone.replace(/\D/g, '');
-    const last8 = telefoneClean.slice(-8);
+    const tel = telefoneRaw.replace(/\D/g, '');
+    // Remove prefixo 55 do Brasil para ter o número local
+    const telSem55 = tel.startsWith('55') && tel.length > 11 ? tel.slice(2) : tel;
+    const last8 = telSem55.slice(-8);
+
+    console.log('[cancelar] buscando por:', { telefoneRaw, tel, telSem55, last8, tenantId });
 
     const wherePhone = {
       OR: [
-        { telefone },
-        { telefone: telefoneClean },
+        { telefone: telefoneRaw },
+        { telefone: tel },
+        { telefone: telSem55 },
+        { telefone: `55${telSem55}` },
+        { telefone: `+55${telSem55}` },
+        { telefone: { contains: last8 } },
         { telefone: { endsWith: last8 } },
       ],
     };
@@ -47,8 +61,7 @@ export async function PATCH(req: NextRequest) {
       select: { id: true, nome: true, tenantId: true },
     });
 
-    // Fallback: normaliza o telefone armazenado (remove não-dígitos)
-    // Cobre pacientes com formatação, ex: "(11) 98765-4321"
+    // Fallback SQL: normaliza o telefone armazenado (cobre formatações como "(11) 98765-4321")
     if (!paciente) {
       type PacienteRow = { id: string; nome: string; tenantId: string };
       const rows = tenantId
@@ -66,10 +79,14 @@ export async function PATCH(req: NextRequest) {
       paciente = rows[0] ?? null;
     }
 
+    console.log('[cancelar] paciente:', paciente?.nome ?? 'NÃO ENCONTRADO');
+
     if (!paciente) {
       return n8nSuccess({
         cancelado: false,
-        msgBot: 'Não encontrei agendamento para cancelar.',
+        msgBot:
+          `Nao encontrei agendamento para seu numero.\n\n` +
+          `Verifique se o agendamento foi feito com este WhatsApp ou acesse o link para reagendar.`,
       });
     }
 
@@ -78,9 +95,9 @@ export async function PATCH(req: NextRequest) {
     const ag = await prisma.agendamento.findFirst({
       where: {
         pacienteId: paciente.id,
-        tenantId: tenantReal,
-        status:   'pendente',
-        dataHora: { gte: new Date() },
+        tenantId:   tenantReal,
+        status:     { in: ['pendente', 'confirmado'] },
+        dataHora:   { gte: new Date() },
       },
       orderBy: { dataHora: 'asc' },
       include: {
@@ -92,7 +109,9 @@ export async function PATCH(req: NextRequest) {
     if (!ag) {
       return n8nSuccess({
         cancelado: false,
-        msgBot: 'Nenhum agendamento pendente encontrado.',
+        msgBot:
+          `Nao encontrei agendamento pendente para cancelar.\n\n` +
+          `Gostaria de fazer um novo agendamento?`,
       });
     }
 
@@ -104,19 +123,38 @@ export async function PATCH(req: NextRequest) {
       },
     });
 
+    const hora = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'America/Fortaleza', hour: '2-digit', minute: '2-digit', hour12: false,
+    }).format(ag.dataHora);
+    const data = new Intl.DateTimeFormat('pt-BR', {
+      timeZone: 'America/Fortaleza', weekday: 'long', day: '2-digit', month: '2-digit',
+    }).format(ag.dataHora);
+
     // Notificação WA em background
     import('@/lib/whatsapp-service')
       .then(({ notificarCancelamento }) => notificarCancelamento(ag.id))
       .catch(e => console.error('[WA]', e));
 
+    // Fila de espera em background
+    fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/fila-espera/verificar-e-notificar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-tenant-id': tenantReal },
+      body: JSON.stringify({
+        profissionalId: ag.profissionalId,
+        servicoId: ag.servicoId,
+        dataHora: ag.dataHora.toISOString(),
+      }),
+    }).catch(() => {});
+
     return n8nSuccess({
       cancelado:     true,
       agendamentoId: ag.id,
       msgBot:
-        `Agendamento cancelado.\n\n` +
-        (ag.servico ? `${ag.servico.nome} ` : '') +
-        (ag.profissional ? `com ${ag.profissional.nome} ` : '') +
-        `foi cancelado.\n\nPara reagendar e so me avisar!`,
+        `Agendamento cancelado!\n\n` +
+        (ag.servico ? `${ag.servico.nome}\n` : '') +
+        `${data} as ${hora}\n` +
+        (ag.profissional ? `${ag.profissional.nome}\n` : '') +
+        `\nPara reagendar e so me avisar!`,
     });
   } catch (err) {
     console.error('[n8n/agenda/cancelar-por-telefone]', err);

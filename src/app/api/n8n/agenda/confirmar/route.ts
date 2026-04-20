@@ -16,31 +16,36 @@ export const dynamic = 'force-dynamic';
 export async function PATCH(req: NextRequest) {
   if (!autenticarApiKey(req)) return UNAUTHORIZED();
 
-  let body: { telefone?: string; tenantId?: string };
+  let body: { telefone?: string; sender_number?: string; from?: string; tenantId?: string };
   try {
     body = await req.json();
   } catch {
     return n8nError('Corpo JSON inválido', 'INVALID_BODY');
   }
 
-  const { telefone, tenantId } = body;
-  console.log('[confirmar] telefone recebido:', telefone, '| tenantId:', tenantId);
-  if (!telefone)  return n8nError('telefone é obrigatório', 'MISSING_PARAM');
+  const telefoneRaw =
+    (body as any).telefone ??
+    (body as any).sender_number ??
+    (body as any).from ?? '';
+  const { tenantId } = body;
+
+  console.log('[confirmar] telefone recebido:', telefoneRaw, '| tenantId:', tenantId);
+  if (!telefoneRaw) return n8nError('telefone é obrigatório', 'MISSING_PARAM');
 
   try {
-    const telefoneClean = telefone.replace(/\D/g, '');
-    const last8 = telefoneClean.slice(-8);
-    console.log('[confirmar] telefoneClean:', telefoneClean, '| last8:', last8);
+    const tel = telefoneRaw.replace(/\D/g, '');
+    const telSem55 = tel.startsWith('55') && tel.length > 11 ? tel.slice(2) : tel;
+    const last8 = telSem55.slice(-8);
+    console.log('[confirmar] tel:', tel, '| telSem55:', telSem55, '| last8:', last8);
 
-    // Busca paciente pelo telefone — primeiro no tenant informado,
-    // depois em qualquer tenant (instância UltraMsg compartilhada).
-    // endsWith só funciona para telefones sem formatação. Para cobrir
-    // pacientes cadastrados com formatação (ex: "(11) 98765-4321"),
-    // usamos raw SQL como fallback que normaliza o campo no banco.
     const wherePhone = {
       OR: [
-        { telefone },
-        { telefone: telefoneClean },
+        { telefone: telefoneRaw },
+        { telefone: tel },
+        { telefone: telSem55 },
+        { telefone: `55${telSem55}` },
+        { telefone: `+55${telSem55}` },
+        { telefone: { contains: last8 } },
         { telefone: { endsWith: last8 } },
       ],
     };
