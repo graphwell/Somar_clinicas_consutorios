@@ -25,14 +25,14 @@ export async function GET(req: NextRequest) {
   if (!autenticarApiKey(req)) return UNAUTHORIZED();
 
   const slug = req.nextUrl.searchParams.get('slug');
+  const tenantIdParam = req.nextUrl.searchParams.get('tenantId');
   const servicoId = req.nextUrl.searchParams.get('servicoId');
-  if (!slug) return n8nError('Parâmetro slug obrigatório', 'MISSING_PARAM');
+  if (!slug && !tenantIdParam) return n8nError('Parâmetro slug ou tenantId obrigatório', 'MISSING_PARAM');
 
   try {
-    const clinica = await prisma.clinica.findUnique({
-      where: { slug },
-      select: { tenantId: true },
-    });
+    const clinica = slug
+      ? await prisma.clinica.findUnique({ where: { slug }, select: { tenantId: true } })
+      : await prisma.clinica.findUnique({ where: { tenantId: tenantIdParam! }, select: { tenantId: true } });
     if (!clinica) return n8nError('Clínica não encontrada', 'NOT_FOUND', 404);
 
     let profissionais;
@@ -46,8 +46,17 @@ export async function GET(req: NextRequest) {
           },
         },
       });
-      if (!servico) return n8nError('Serviço não encontrado', 'NOT_FOUND', 404);
-      profissionais = servico.profissionais;
+      // Se não encontrou vínculo serviço→profissional, retorna todos (fallback)
+      if (!servico || servico.profissionais.length === 0) {
+        console.warn(`[profissionais] sem vínculos para servicoId=${servicoId} — retornando todos`);
+        profissionais = await prisma.profissional.findMany({
+          where: { tenantId: clinica.tenantId, ativo: true },
+          include: { escalas: { where: { ativo: true } } },
+          orderBy: { nome: 'asc' },
+        });
+      } else {
+        profissionais = servico.profissionais;
+      }
     } else {
       profissionais = await prisma.profissional.findMany({
         where: { tenantId: clinica.tenantId, ativo: true },

@@ -64,7 +64,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const favorecido = pixConfig.nomeFavorecido || clinica.nome;
+    const nomePix = pixConfig.nomeFavorecido?.trim();
+    const favorecido = (nomePix && nomePix.toLowerCase() !== 'synka') ? nomePix : clinica.nome;
     const brCode = gerarPixBRCode(pixConfig.chave, favorecido, valor);
 
     const msg =

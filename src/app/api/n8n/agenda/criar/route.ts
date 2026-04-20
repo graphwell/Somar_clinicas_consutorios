@@ -213,7 +213,8 @@ export async function POST(req: NextRequest) {
     // Se opcaoPagamento foi fornecido, o pagamento já foi tratado antes da confirmação
     let msgPix = '';
     if (!body.opcaoPagamento && pixConfig?.ativo && pixConfig?.exibirNoWpp) {
-      const favorecido = pixConfig.nomeFavorecido || clinica.nome;
+      const nomePix = pixConfig.nomeFavorecido?.trim();
+      const favorecido = (nomePix && nomePix.toLowerCase() !== 'synka') ? nomePix : clinica.nome;
       const valor = Number(servico.preco ?? 0);
       if (valor > 0) {
         const brCode = gerarPixBRCode(pixConfig.chave, favorecido, valor);
