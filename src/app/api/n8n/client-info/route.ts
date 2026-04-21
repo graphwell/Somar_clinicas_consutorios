@@ -34,7 +34,7 @@ export async function GET(request: Request) {
       include: {
         assinaturas: { where: { status: 'ativo' }, take: 1 },
         agendamentos: {
-          where: { status: { in: ['confirmado', 'concluido'] } },
+          where: { status: { in: ['confirmado', 'done'] as any[] } },
           orderBy: { dataHora: 'desc' },
           take: 5,
           include: {
