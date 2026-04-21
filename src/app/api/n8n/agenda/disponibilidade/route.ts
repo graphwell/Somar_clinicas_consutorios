@@ -41,9 +41,6 @@ export async function GET(req: NextRequest) {
   if (!slug && !tenantIdParam) {
     return n8nError('slug ou tenantId é obrigatório', 'MISSING_PARAM');
   }
-  if (!servicoId) {
-    return n8nError('servicoId é obrigatório', 'MISSING_PARAM');
-  }
   if (!dataParam) {
     return n8nError('data é obrigatório', 'MISSING_PARAM');
   }
@@ -68,23 +65,35 @@ export async function GET(req: NextRequest) {
       return n8nSuccess({ data: dataParam, profissionais: [], resumoBot: diaBloqueado.mensagem, bloqueado: true });
     }
 
-    const servico = await prisma.servico.findFirst({
-      where: { id: servicoId, tenantId: clinica.tenantId, ativo: true },
-      select: {
-        duracaoMinutos: true,
-        bufferTimeMinutes: true,
-        profissionais: { where: { ativo: true }, select: { id: true } },
-      },
-    });
-    if (!servico) return n8nError('Serviço não encontrado', 'NOT_FOUND', 404);
+    let duracao = 30;
+    let buffer = 0;
+    let profIds: string[] = [];
 
-    const duracao = servico.duracaoMinutos;
-    const buffer = servico.bufferTimeMinutes ?? 0;
+    if (servicoId) {
+      const servico = await prisma.servico.findFirst({
+        where: { id: servicoId, tenantId: clinica.tenantId, ativo: true },
+        select: {
+          duracaoMinutos: true,
+          bufferTimeMinutes: true,
+          profissionais: { where: { ativo: true }, select: { id: true } },
+        },
+      });
+      if (!servico) return n8nError('Serviço não encontrado', 'NOT_FOUND', 404);
+      duracao = servico.duracaoMinutos;
+      buffer = servico.bufferTimeMinutes ?? 0;
+      profIds = servico.profissionais.map(p => p.id);
+      if (profIds.length === 0) return n8nSuccess({ data: dataParam, profissionais: [], resumoBot: 'Não há horários disponíveis neste dia.' });
+    } else {
+      const allProfs = await prisma.profissional.findMany({
+        where: { tenantId: clinica.tenantId, ativo: true },
+        select: { id: true },
+      });
+      profIds = allProfs.map(p => p.id);
+      if (profIds.length === 0) return n8nSuccess({ data: dataParam, profissionais: [], resumoBot: 'Não há profissionais ativos.' });
+    }
+
     const clinicaStart = toMin(clinica.openingTime ?? '08:00');
     const clinicaEnd = toMin(clinica.closingTime ?? '18:00');
-
-    let profIds = servico.profissionais.map(p => p.id);
-    if (profIds.length === 0) return n8nSuccess({ data: dataParam, profissionais: [], resumoBot: 'Não há horários disponíveis neste dia.' });
 
     if (profissionalIdParam && profissionalIdParam !== 'qualquer') {
       if (!profIds.includes(profissionalIdParam)) {
@@ -152,7 +161,7 @@ export async function GET(req: NextRequest) {
 
     const resumoBot = resultado.length === 0
       ? 'Não há horários disponíveis neste dia.'
-      : resultado.map(p => `${p.nome}: ${p.slots.slice(0, 5).join(', ')}`).join('\n');
+      : resultado.map(p => `${p.nome}: ${p.slots.slice(0, 10).join(', ')}`).join('\n');
 
     return n8nSuccess({ data: dataParam, profissionais: resultado, resumoBot });
   } catch (err) {
