@@ -175,7 +175,7 @@
     },
     {
       "parameters": {
-        "url": "={{ \"https://synka.somar.ia.br/api/n8n/agenda/disponibilidade?_key=\" + 'synka132504fE@' + \"&tenantId=\" + $('Carregar Contexto Clínica').item.json.data.tenantId }}",
+        "url": "={{ \"https://synka.somar.ia.br/api/n8n/agenda/disponibilidade?tenantId=\" + $('Carregar Contexto Clínica').item.json.data.tenantId }}",
         "sendQuery": true,
         "parametersQuery": {
           "values": [
@@ -190,7 +190,15 @@
             }
           ]
         },
-        "sendHeaders": false,
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "synka132504fE@"
+            }
+          ]
+        },
         "toolDescription": "Consulta horários disponíveis de um profissional em uma data específica. Parâmetros: data (YYYY-MM-DD, ano SEMPRE 2026 ou posterior), servicoId (ID do serviço — usar o campo \"id\" retornado pela ferramenta Listar Opções), profissionalId (ID do profissional — usar o campo \"id\" retornado pela ferramenta Listar Opções, NUNCA inventar)."
       },
       "id": "tool-availability",
