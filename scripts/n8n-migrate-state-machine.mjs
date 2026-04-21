@@ -258,11 +258,12 @@ return [{ json: { op, gerarPix: op==='2', valor: dados.valor||0, novoEstado: op=
       tenantId: TENANT,
       etapa: `={{ $json.novoEstado }}`,
       dados: `={{ JSON.stringify($json.dadosEstado ?? {}) }}`,
+      mensagem: `={{ $json.mensagem }}`
     }),
 
     // Limpar estado
     http('limpar-estado-sm', 'Limpar Estado SM', 'DELETE', `${SYNKA}/api/n8n/estado?_key=${KEY}`, [2300, 980], undefined,
-      { telefone: WA_TO, tenantId: TENANT }),
+      { telefone: WA_TO, tenantId: TENANT, mensagem: `={{ $json.mensagem }}` }),
 
     // Enviar resposta WA (UltraMsg)
     {
@@ -273,7 +274,7 @@ return [{ json: { op, gerarPix: op==='2', valor: dados.valor||0, novoEstado: op=
         sendBody: true, contentType: 'form-urlencoded',
         bodyParameters: { parameters: [
           { name: 'to', value: WA_TO },
-          { name: 'body', value: `={{ $json.mensagem ?? 'Erro ao processar.' }}` },
+          { name: 'body', value: `={{ $json.data?.mensagem ?? 'Erro ao processar.' }}` },
         ]},
         options: {},
       },

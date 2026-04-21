@@ -33,10 +33,10 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   if (!autenticarApiKey(req)) return UNAUTHORIZED();
 
-  let body: { telefone?: string; tenantId?: string; etapa?: string; dados?: unknown };
+  let body: { telefone?: string; tenantId?: string; etapa?: string; dados?: unknown; mensagem?: string };
   try { body = await req.json(); } catch { return n8nError('JSON inválido', 'INVALID_BODY'); }
 
-  const { telefone, tenantId, etapa, dados } = body;
+  const { telefone, tenantId, etapa, dados, mensagem } = body;
   if (!telefone || !tenantId || !etapa) return n8nError('telefone, tenantId e etapa obrigatórios', 'MISSING_PARAM');
 
   const tel = limparTel(telefone);
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     create: { telefone: tel, tenantId, etapa, dados: dados as any ?? {} },
   });
 
-  return n8nSuccess({ ok: true, etapa: estado.etapa });
+  return n8nSuccess({ ok: true, etapa: estado.etapa, mensagem });
 }
 
 export async function DELETE(req: NextRequest) {
@@ -55,11 +55,12 @@ export async function DELETE(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const telefone = searchParams.get('telefone');
   const tenantId = searchParams.get('tenantId');
+  const mensagem = searchParams.get('mensagem');
 
   if (!telefone || !tenantId) return n8nError('telefone e tenantId obrigatórios', 'MISSING_PARAM');
 
   const tel = limparTel(telefone);
   await prisma.conversaEstado.deleteMany({ where: { telefone: tel, tenantId } });
 
-  return n8nSuccess({ ok: true });
+  return n8nSuccess({ ok: true, mensagem });
 }
