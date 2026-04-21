@@ -76,8 +76,10 @@ export async function GET(request: Request) {
       return NextResponse.json({
         empresa_id: tenantId,
         tipo: 'servicos',
-        items: clinica.servicos.map(s => ({
-          id: s.id,
+        instrucao: 'Use o campo servicoId (nao o numero da lista) ao chamar outras ferramentas',
+        items: clinica.servicos.map((s, i) => ({
+          numero: i + 1,
+          servicoId: s.id,
           nome: s.nome,
           preco: s.preco,
           duracao: s.duracaoMinutos
@@ -89,8 +91,10 @@ export async function GET(request: Request) {
       return NextResponse.json({
         empresa_id: tenantId,
         tipo: 'profissionais',
-        items: clinica.profissionais.map(p => ({
-          id: p.id,
+        instrucao: 'Use o campo profissionalId (nao o numero da lista) ao chamar outras ferramentas',
+        items: clinica.profissionais.map((p, i) => ({
+          numero: i + 1,
+          profissionalId: p.id,
           nome: p.nome,
           crm: p.registroProfissional || null,
           especialidade: p.especialidade,

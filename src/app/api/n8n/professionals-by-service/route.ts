@@ -25,7 +25,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const servico = await prisma.servico.findUnique({
+    let servico = await prisma.servico.findFirst({
       where: { id: servicoId, tenantId },
       include: {
         profissionais: {
@@ -35,8 +35,21 @@ export async function GET(request: Request) {
       }
     });
 
+    // Se servicoId inválido (ex: inteiro inventado pelo AI), retorna todos os profissionais ativos
     if (!servico) {
-      return NextResponse.json({ error: 'Serviço não encontrado' }, { status: 404 });
+      console.warn(`[professionals-by-service] servicoId="${servicoId}" não encontrado — fallback para todos`);
+      const profsTodos = await prisma.profissional.findMany({
+        where: { tenantId, ativo: true },
+        include: { escalas: { where: { ativo: true } } }
+      });
+      const profissionais = profsTodos.map(p => ({
+        id: p.id,
+        nome: p.nome,
+        crm: p.registroProfissional || null,
+        especialidade: p.especialidade,
+        dias_atendimento: formatDias(p.escalas)
+      }));
+      return NextResponse.json({ success: true, empresa_id: tenantId, servico_id: servicoId, servico_nome: 'Todos', profissionais });
     }
 
     const profissionais = servico.profissionais.map(p => ({
