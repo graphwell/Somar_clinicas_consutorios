@@ -107,7 +107,7 @@
     },
     {
       "parameters": {
-        "url": "https://synka.somar.ia.br/api/n8n/list-metadata",
+        "url": "https://synka.somar.ia.br/api/n8n/list-metadata?_key=synka132504fE@",
         "sendQuery": true,
         "parametersQuery": {
           "values": [
@@ -119,15 +119,7 @@
             }
           ]
         },
-        "sendHeaders": true,
-        "parametersHeaders": {
-          "values": [
-            {
-              "name": "x-api-key",
-              "value": "synka132504fE@"
-            }
-          ]
-        },
+        "sendHeaders": false,
         "toolDescription": "Lista serviços, profissionais ou especialidades da clínica. Parâmetro tipo: \"servicos\", \"profissionais\" ou \"especialidades\". Retorna lista com campo \"id\" que DEVE ser usado nas outras ferramentas."
       },
       "id": "tool-list",
@@ -141,7 +133,7 @@
     },
     {
       "parameters": {
-        "url": "https://synka.somar.ia.br/api/n8n/professionals-by-service",
+        "url": "https://synka.somar.ia.br/api/n8n/professionals-by-service?_key=synka132504fE@",
         "sendQuery": true,
         "parametersQuery": {
           "values": [
@@ -153,15 +145,7 @@
             }
           ]
         },
-        "sendHeaders": true,
-        "parametersHeaders": {
-          "values": [
-            {
-              "name": "x-api-key",
-              "value": "synka132504fE@"
-            }
-          ]
-        },
+        "sendHeaders": false,
         "toolDescription": "Lista os profissionais que atendem um serviço específico. Parâmetro servicoId: usar o campo \"id\" retornado pela ferramenta Listar Opções."
       },
       "id": "tool-list-by-service",
@@ -175,7 +159,7 @@
     },
     {
       "parameters": {
-        "url": "https://synka.somar.ia.br/api/n8n/client-info",
+        "url": "https://synka.somar.ia.br/api/n8n/client-info?_key=synka132504fE@",
         "sendQuery": true,
         "parametersQuery": {
           "values": [
@@ -187,15 +171,7 @@
             }
           ]
         },
-        "sendHeaders": true,
-        "parametersHeaders": {
-          "values": [
-            {
-              "name": "x-api-key",
-              "value": "synka132504fE@"
-            }
-          ]
-        },
+        "sendHeaders": false,
         "toolDescription": "Busca dados do cliente pelo número de WhatsApp. Parâmetro whatsapp: número do TELEFONE DO CLIENTE (do contexto da sessão). Retorna nome e histórico se já cadastrado."
       },
       "id": "tool-client-info",
@@ -209,7 +185,7 @@
     },
     {
       "parameters": {
-        "url": "https://synka.somar.ia.br/api/n8n/agenda/disponibilidade",
+        "url": "https://synka.somar.ia.br/api/n8n/agenda/disponibilidade?_key=synka132504fE@",
         "sendQuery": true,
         "parametersQuery": {
           "values": [
@@ -227,15 +203,7 @@
             }
           ]
         },
-        "sendHeaders": true,
-        "parametersHeaders": {
-          "values": [
-            {
-              "name": "x-api-key",
-              "value": "synka132504fE@"
-            }
-          ]
-        },
+        "sendHeaders": false,
         "toolDescription": "Consulta horários disponíveis de um profissional em uma data específica. Parâmetros: data (YYYY-MM-DD, ano SEMPRE 2026 ou posterior), servicoId (ID do serviço — usar o campo \"id\" retornado pela ferramenta Listar Opções), profissionalId (ID do profissional — usar o campo \"id\" retornado pela ferramenta Listar Opções, NUNCA inventar)."
       },
       "id": "tool-availability",
@@ -249,7 +217,7 @@
     },
     {
       "parameters": {
-        "url": "https://synka.somar.ia.br/api/n8n/cliente/buscar",
+        "url": "https://synka.somar.ia.br/api/n8n/cliente/buscar?_key=synka132504fE@",
         "sendQuery": true,
         "parametersQuery": {
           "values": [
@@ -261,15 +229,7 @@
             }
           ]
         },
-        "sendHeaders": true,
-        "parametersHeaders": {
-          "values": [
-            {
-              "name": "x-api-key",
-              "value": "synka132504fE@"
-            }
-          ]
-        },
+        "sendHeaders": false,
         "toolDescription": "Consulta agendamentos futuros do cliente pelo telefone. Parâmetro telefone: TELEFONE DO CLIENTE (do contexto). Retorna lista de agendamentos ativos."
       },
       "id": "tool-get-appointments",
@@ -284,16 +244,8 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://synka.somar.ia.br/api/n8n/agenda/criar",
-        "sendHeaders": true,
-        "parametersHeaders": {
-          "values": [
-            {
-              "name": "x-api-key",
-              "value": "synka132504fE@"
-            }
-          ]
-        },
+        "url": "https://synka.somar.ia.br/api/n8n/agenda/criar?_key=synka132504fE@",
+        "sendHeaders": false,
         "sendBody": true,
         "parametersBody": {
           "values": [
@@ -337,16 +289,8 @@
     {
       "parameters": {
         "method": "PATCH",
-        "url": "https://synka.somar.ia.br/api/n8n/agenda/cancelar-por-telefone",
-        "sendHeaders": true,
-        "parametersHeaders": {
-          "values": [
-            {
-              "name": "x-api-key",
-              "value": "synka132504fE@"
-            }
-          ]
-        },
+        "url": "https://synka.somar.ia.br/api/n8n/agenda/cancelar-por-telefone?_key=synka132504fE@",
+        "sendHeaders": false,
         "sendBody": true,
         "parametersBody": {
           "values": [
@@ -670,16 +614,8 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://synka.somar.ia.br/api/n8n/pagamento/gerar-pix",
-        "sendHeaders": true,
-        "parametersHeaders": {
-          "values": [
-            {
-              "name": "x-api-key",
-              "value": "synka132504fE@"
-            }
-          ]
-        },
+        "url": "https://synka.somar.ia.br/api/n8n/pagamento/gerar-pix?_key=synka132504fE@",
+        "sendHeaders": false,
         "sendBody": true,
         "parametersBody": {
           "values": [
@@ -708,16 +644,8 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://synka.somar.ia.br/api/n8n/pagamento/opcoes",
-        "sendHeaders": true,
-        "parametersHeaders": {
-          "values": [
-            {
-              "name": "x-api-key",
-              "value": "synka132504fE@"
-            }
-          ]
-        },
+        "url": "https://synka.somar.ia.br/api/n8n/pagamento/opcoes?_key=synka132504fE@",
+        "sendHeaders": false,
         "sendBody": true,
         "parametersBody": {
           "values": [
