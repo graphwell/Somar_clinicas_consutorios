@@ -113,7 +113,9 @@ return [{ json: {
     // Aguardando nome → salvar nome
     code('proc-nome', 'Processar Nome', [1300, 450], `
 const msg = ($('Webhook WhatsApp').first().json.body?.mensagem || $('Webhook WhatsApp').first().json.mensagem || '').trim()
-if (msg.length < 2) return [{ json: { mensagem: 'Informe seu nome completo.', novoEstado: 'aguardando_nome', dadosEstado: {} }}]
+if (msg.length < 2 || /^(oi|ol[áa]|bom dia|boa tarde|boa noite|oie)$/i.test(msg)) {
+  return [{ json: { mensagem: 'Por favor, informe seu nome completo para prosseguirmos com o agendamento.', novoEstado: 'aguardando_nome', dadosEstado: {} }}]
+}
 return [{ json: {
   mensagem: 'Obrigado, ' + msg.split(' ')[0] + '! Qual serviço deseja?\\nDigite o número.',
   novoEstado: 'aguardando_servico',
@@ -127,7 +129,7 @@ return [{ json: {
     code('proc-servico', 'Processar Serviço SM', [1550, 600], `
 const msg = ($('Webhook WhatsApp').first().json.body?.mensagem || $('Webhook WhatsApp').first().json.mensagem || '').trim()
 const dados = ($('Buscar Estado').first().json.data?.dados) || {}
-const items = $input.first().json.data?.items || []
+const items = $input.first().json.items || $input.first().json.data?.items || []
 const num = parseInt(msg)
 let srv = null
 if (!isNaN(num) && num >= 1 && num <= items.length) {
