@@ -361,6 +361,82 @@
     },
     {
       "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ ($('Webhook WhatsApp').item.json.body?.mensagem || $('Webhook WhatsApp').item.json.mensagem || '').trim().toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '') }}",
+              "operation": "regex",
+              "value2": "pix"
+            }
+          ]
+        }
+      },
+      "id": "if-pix",
+      "name": "É PIX?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        304,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://synka.somar.ia.br/api/n8n/pagamento/gerar-pix?_key=synka132504fE@",
+        "sendHeaders": false,
+        "sendBody": true,
+        "contentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "tenantId",
+              "value": "={{ $('Carregar Contexto Clínica').item.json.data.tenantId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "http-gerar-pix",
+      "name": "Gerar PIX Direto",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        512,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.ultramsg.com/instance168762/messages/chat?token=xp3fx1lj7lsnozzg",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "to",
+              "value": "={{ $('Webhook WhatsApp').item.json.body?.telefone || $('Webhook WhatsApp').item.json.telefone }}"
+            },
+            {
+              "name": "body",
+              "value": "={{ $json.data?.msg ?? 'Não foi possível gerar o PIX. Entre em contato com a clínica.' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "send-wa-pix",
+      "name": "Enviar PIX WA",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        720,
+        640
+      ]
+    },
+    {
+      "parameters": {
         "method": "PATCH",
         "url": "https://synka.somar.ia.br/api/n8n/agenda/confirmar",
         "sendHeaders": true,
@@ -789,7 +865,36 @@
         ],
         [
           {
+            "node": "É PIX?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "É PIX?": {
+      "main": [
+        [
+          {
+            "node": "Gerar PIX Direto",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
             "node": "Agente Autônomo Especializado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gerar PIX Direto": {
+      "main": [
+        [
+          {
+            "node": "Enviar PIX WA",
             "type": "main",
             "index": 0
           }
