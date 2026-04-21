@@ -1407,3 +1407,18 @@ model NotificacaoInterna {
   @@index([usuarioId, lida])
   @@map("notificacoes_internas")
 }
+
+// ─── Estado de Conversa WhatsApp Bot ─────────────────────────────────────────
+
+model ConversaEstado {
+  id        String   @id @default(cuid())
+  telefone  String
+  tenantId  String
+  etapa     String
+  dados     Json     @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([telefone, tenantId])
+  @@map("conversa_estados")
+}
