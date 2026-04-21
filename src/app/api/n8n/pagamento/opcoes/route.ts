@@ -50,6 +50,14 @@ export async function POST(req: NextRequest) {
       });
       if (servico?.preco) valorServico = Number(servico.preco);
     }
+    // Fallback: se servicoId inválido, busca qualquer serviço com preço
+    if (!valorServico) {
+      const qualquer = await prisma.servico.findFirst({
+        where: { tenantId: clinica.tenantId, ativo: true, preco: { gt: 0 } },
+        select: { preco: true },
+      });
+      if (qualquer?.preco) valorServico = Number(qualquer.preco);
+    }
 
     const temPix = !!(pixConfig?.ativo && pixConfig?.chave);
     const valorStr = valorServico ? `R$ ${valorServico.toFixed(2)}` : null;

@@ -55,6 +55,14 @@ export async function POST(req: NextRequest) {
       });
       if (servico?.preco) valor = Number(servico.preco);
     }
+    // Fallback: se ainda sem valor, busca qualquer serviço ativo com preço
+    if (!valor) {
+      const qualquerServico = await prisma.servico.findFirst({
+        where: { tenantId: clinica.tenantId, ativo: true, preco: { gt: 0 } },
+        select: { preco: true },
+      });
+      if (qualquerServico?.preco) valor = Number(qualquerServico.preco);
+    }
 
     if (!valor || valor <= 0) {
       return n8nError(
