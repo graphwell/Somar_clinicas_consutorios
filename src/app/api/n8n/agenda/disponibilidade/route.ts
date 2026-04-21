@@ -69,6 +69,8 @@ export async function GET(req: NextRequest) {
     let buffer = 0;
     let profIds: string[] = [];
 
+    // Tentar resolver servicoId — se inválido/não encontrado, fallback para todos os profissionais
+    let servicoResolvido = false;
     if (servicoId) {
       const servico = await prisma.servico.findFirst({
         where: { id: servicoId, tenantId: clinica.tenantId, ativo: true },
@@ -78,12 +80,17 @@ export async function GET(req: NextRequest) {
           profissionais: { where: { ativo: true }, select: { id: true } },
         },
       });
-      if (!servico) return n8nError('Serviço não encontrado', 'NOT_FOUND', 404);
-      duracao = servico.duracaoMinutos;
-      buffer = servico.bufferTimeMinutes ?? 0;
-      profIds = servico.profissionais.map(p => p.id);
-      if (profIds.length === 0) return n8nSuccess({ data: dataParam, profissionais: [], resumoBot: 'Não há horários disponíveis neste dia.' });
-    } else {
+      if (servico) {
+        duracao = servico.duracaoMinutos;
+        buffer = servico.bufferTimeMinutes ?? 0;
+        profIds = servico.profissionais.map(p => p.id);
+        servicoResolvido = true;
+      } else {
+        console.warn(`[disponibilidade] servicoId="${servicoId}" não encontrado — fallback para todos os profissionais`);
+      }
+    }
+
+    if (!servicoResolvido) {
       const allProfs = await prisma.profissional.findMany({
         where: { tenantId: clinica.tenantId, ativo: true },
         select: { id: true },
@@ -95,11 +102,13 @@ export async function GET(req: NextRequest) {
     const clinicaStart = toMin(clinica.openingTime ?? '08:00');
     const clinicaEnd = toMin(clinica.closingTime ?? '18:00');
 
+    // profissionalId: se inválido ou não pertence ao serviço, ignorar (não retornar erro)
     if (profissionalIdParam && profissionalIdParam !== 'qualquer') {
-      if (!profIds.includes(profissionalIdParam)) {
-        return n8nError('Profissional não atende este serviço', 'INVALID_PARAM');
+      if (profIds.includes(profissionalIdParam)) {
+        profIds = [profissionalIdParam];
+      } else {
+        console.warn(`[disponibilidade] profissionalId="${profissionalIdParam}" inválido — usando todos`);
       }
-      profIds = [profissionalIdParam];
     }
 
     const data = new Date(dataParam + 'T00:00:00-03:00');
