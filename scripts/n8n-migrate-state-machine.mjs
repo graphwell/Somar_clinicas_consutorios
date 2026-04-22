@@ -356,7 +356,10 @@ return [{ json: { op, gerarPix: op==='2', valor: dados.valor||0, novoEstado: op=
     body: JSON.stringify({ name: wf.name, nodes: nosFinais, connections: conn, settings: { executionOrder: 'v1' } }),
   })
 
-  console.log('✅ State machine publicada com sucesso!')
+  console.log('Ativando workflow...')
+  await api(`/workflows/${WF_ID}/activate`, { method: 'POST', body: JSON.stringify({}) })
+
+  console.log('✅ State machine publicada e ativada com sucesso!')
 }
 
 main().catch(e => { console.error('❌', e.message); process.exit(1) })
