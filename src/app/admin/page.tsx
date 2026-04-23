@@ -312,7 +312,8 @@ export default function AdminSynkaPage() {
         />
         )}
 
-        {/* Tabela */}
+        {/* Tabela de Empresas */}
+        {aba === 'empresas' && (
         <div className="bg-[#0a0a20]/50 border border-white/5 rounded-2xl overflow-hidden">
           <div className="p-5 border-b border-white/5 flex items-center justify-between">
             <h2 className="font-bold text-lg">Empresas (Tenants)</h2>
@@ -391,6 +392,7 @@ export default function AdminSynkaPage() {
           </div>
         </div>
         )}
+
 
         {/* ── Aba Acessos ── */}
         {aba === 'acessos' && (
