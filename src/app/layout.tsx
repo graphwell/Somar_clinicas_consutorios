@@ -33,6 +33,30 @@ export const metadata: Metadata = {
     icon: "/icon-192.png",
     apple: "/icon-192.png",
   },
+  openGraph: {
+    title: "Synka — Agendamento Inteligente para Clínicas",
+    description:
+      "Automatize agendamentos, lembretes e atendimento pelo WhatsApp com IA. Ativo em menos de 24h para clínicas, consultórios e salões.",
+    url: "https://synka.somar.ia.br",
+    siteName: "Synka",
+    images: [
+      {
+        url: "https://synka.somar.ia.br/synka-logo-quadrada.png",
+        width: 512,
+        height: 512,
+        alt: "Synka — Agendamento Inteligente para Clínicas",
+      },
+    ],
+    locale: "pt_BR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "Synka — Agendamento Inteligente para Clínicas",
+    description:
+      "Automatize agendamentos, lembretes e atendimento pelo WhatsApp com IA.",
+    images: ["https://synka.somar.ia.br/synka-logo-quadrada.png"],
+  },
 };
 
 export default function RootLayout({
