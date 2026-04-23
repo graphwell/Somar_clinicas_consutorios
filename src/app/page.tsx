@@ -304,15 +304,91 @@ export default function LandingPage() {
       </section>
 
       {/* ── Footer ── */}
-      <footer className="bg-white border-t border-gray-100 py-20 px-6">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-10 text-xs text-gray-400 font-medium">
-          <div className="text-center">
-            © 2025 SOMMAR SOLUÇÕES DIGITAIS — CNPJ: 65.771.133/0001-07
+      <footer className="bg-[#050510] border-t border-white/8 pt-16 pb-8 px-6">
+        <div className="max-w-6xl mx-auto">
+
+          {/* Top grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 mb-14">
+
+            {/* Col 1 — Marca */}
+            <div className="lg:col-span-2">
+              <img src="/synka-logo.png" alt="Synka" className="h-9 object-contain mb-4 brightness-0 invert" />
+              <p className="text-gray-400 text-sm leading-relaxed max-w-sm">
+                Plataforma de gestão inteligente para clínicas, consultórios e salões de beleza. Powered by Somar.IA.
+              </p>
+              <div className="mt-5 inline-flex items-center gap-2 bg-[#40916C]/10 border border-[#40916C]/25 rounded-full px-4 py-1.5 text-xs text-[#95D5B2] font-semibold uppercase tracking-widest">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#40916C] animate-pulse" />
+                Atendemos em todo o Brasil
+              </div>
+            </div>
+
+            {/* Col 2 — Atendimento Sul / Sudeste / Centro-Oeste */}
+            <div>
+              <p className="text-[#52B788] text-xs font-bold uppercase tracking-widest mb-4">
+                Sul · Sudeste · Centro-Oeste
+              </p>
+              <a
+                href="https://wa.me/5511925203237"
+                target="_blank"
+                rel="noreferrer"
+                className="group flex items-center gap-3 bg-white/4 hover:bg-[#40916C]/15 border border-white/8 hover:border-[#40916C]/40 rounded-xl px-4 py-3 transition-all"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" className="text-[#52B788] shrink-0">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                  <path d="M12.004 2C6.477 2 2.004 6.473 2.004 12c0 1.989.58 3.842 1.585 5.408L2 22l4.701-1.557A9.945 9.945 0 0012.004 22C17.531 22 22 17.527 22 12c0-5.523-4.469-10-9.996-10zm0 18.181a8.164 8.164 0 01-4.17-1.144l-.299-.178-3.1 1.026 1.04-3.015-.194-.309A8.164 8.164 0 013.823 12c0-4.51 3.67-8.181 8.181-8.181 4.51 0 8.178 3.671 8.178 8.181 0 4.51-3.668 8.181-8.178 8.181z"/>
+                </svg>
+                <div>
+                  <p className="text-white text-sm font-semibold group-hover:text-[#52B788] transition-colors">(11) 92520-3237</p>
+                  <p className="text-gray-500 text-xs">WhatsApp disponível</p>
+                </div>
+              </a>
+            </div>
+
+            {/* Col 3 — Atendimento Norte / Nordeste */}
+            <div>
+              <p className="text-[#52B788] text-xs font-bold uppercase tracking-widest mb-4">
+                Norte · Nordeste
+              </p>
+              <a
+                href="https://wa.me/5585991516106"
+                target="_blank"
+                rel="noreferrer"
+                className="group flex items-center gap-3 bg-white/4 hover:bg-[#40916C]/15 border border-white/8 hover:border-[#40916C]/40 rounded-xl px-4 py-3 transition-all"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" className="text-[#52B788] shrink-0">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                  <path d="M12.004 2C6.477 2 2.004 6.473 2.004 12c0 1.989.58 3.842 1.585 5.408L2 22l4.701-1.557A9.945 9.945 0 0012.004 22C17.531 22 22 17.527 22 12c0-5.523-4.469-10-9.996-10zm0 18.181a8.164 8.164 0 01-4.17-1.144l-.299-.178-3.1 1.026 1.04-3.015-.194-.309A8.164 8.164 0 013.823 12c0-4.51 3.67-8.181 8.181-8.181 4.51 0 8.178 3.671 8.178 8.181 0 4.51-3.668 8.181-8.178 8.181z"/>
+                </svg>
+                <div>
+                  <p className="text-white text-sm font-semibold group-hover:text-[#52B788] transition-colors">(85) 99151-6106</p>
+                  <p className="text-gray-500 text-xs">WhatsApp disponível</p>
+                </div>
+              </a>
+            </div>
           </div>
-          <div className="flex gap-5">
-            <a href="https://wa.me/5511925203237" className="hover:text-gray-700 transition-colors">WhatsApp</a>
-            <a href="mailto:somar.solucoes.suporte@gmail.com" className="hover:text-gray-700 transition-colors">Suporte</a>
-            <Link href="/auth/login" className="hover:text-gray-700 transition-colors">Login</Link>
+
+          {/* Divider */}
+          <div className="border-t border-white/8 pt-8">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+
+              {/* Slogan */}
+              <p className="text-[#52B788] text-sm font-bold italic tracking-wide text-center sm:text-left">
+                "Faça o seu melhor."
+              </p>
+
+              {/* Links */}
+              <div className="flex items-center gap-6 text-xs text-gray-500">
+                <Link href="/auth/login" className="hover:text-[#52B788] transition-colors">Login</Link>
+                <a href="mailto:somar.solucoes.suporte@gmail.com" className="hover:text-[#52B788] transition-colors">Suporte</a>
+                <Link href="/planos" className="hover:text-[#52B788] transition-colors">Planos</Link>
+              </div>
+
+              {/* Legal */}
+              <div className="text-center text-xs text-gray-600 leading-relaxed">
+                <p className="font-semibold text-gray-400">© 2025 SOMMAR SOLUÇÕES DIGITAIS</p>
+                <p>CNPJ: 65.771.133/0001-07 · Todos os direitos reservados.</p>
+              </div>
+            </div>
           </div>
         </div>
       </footer>
