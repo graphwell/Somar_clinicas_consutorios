@@ -2,6 +2,26 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { comparePassword, signToken } from '@/lib/auth';
 
+async function registrarLog(
+  request: Request,
+  email: string,
+  resultado: string,
+  detalhe?: string
+) {
+  try {
+    const ip =
+      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+      request.headers.get('x-real-ip') ??
+      null;
+    const userAgent = request.headers.get('user-agent') ?? null;
+    await prisma.loginLog.create({
+      data: { email, resultado, detalhe: detalhe ?? null, ip, userAgent },
+    });
+  } catch {
+    // Não deixar falha de log quebrar o login
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const { email, senha } = await request.json();
@@ -15,23 +35,19 @@ export async function POST(request: Request) {
       include: { clinica: true },
     });
 
-    if (!usuario || !usuario.senhaHash || !(await comparePassword(senha, usuario.senhaHash))) {
+    if (!usuario) {
+      await registrarLog(request, email, 'email_nao_encontrado');
       return NextResponse.json({ error: 'Credenciais inválidas.' }, { status: 401 });
     }
 
-    // Verificação de email obrigatória para login com senha
-    // LIBERADO PARA TESTES: bypass total da verificação
-    /*
-    if (!usuario.emailVerificado && !email.includes('teste') && !email.includes('demo')) {
-      return NextResponse.json({
-        error: 'Email não verificado. Verifique sua caixa de entrada.',
-        code: 'EMAIL_NAO_VERIFICADO',
-      }, { status: 403 });
+    if (!usuario.senhaHash || !(await comparePassword(senha, usuario.senhaHash))) {
+      await registrarLog(request, email, 'credenciais_invalidas');
+      return NextResponse.json({ error: 'Credenciais inválidas.' }, { status: 401 });
     }
-    */
 
     // Verificar acesso temporário
     if (usuario.acessoExpiraEm && usuario.acessoExpiraEm < new Date()) {
+      await registrarLog(request, email, 'acesso_expirado');
       return NextResponse.json({
         error: 'Seu acesso temporário expirou. Entre em contato com o administrador.',
         code: 'ACESSO_EXPIRADO',
@@ -46,6 +62,8 @@ export async function POST(request: Request) {
       profissionalId: usuario.profissionalId || undefined,
       acessoExpiraEm: usuario.acessoExpiraEm?.toISOString(),
     });
+
+    await registrarLog(request, email, 'sucesso');
 
     return NextResponse.json({
       token,

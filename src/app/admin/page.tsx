@@ -43,6 +43,13 @@ export default function AdminSynkaPage() {
   const [modal, setModal] = useState<Modal>(null);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
+  const [aba, setAba] = useState<'empresas' | 'acessos'>('empresas');
+  // Acessos
+  const [logs, setLogs] = useState<any[]>([]);
+  const [logsMeta, setLogsMeta] = useState<any>(null);
+  const [logsLoading, setLogsLoading] = useState(false);
+  const [filtroEmail, setFiltroEmail] = useState('');
+  const [filtroResultado, setFiltroResultado] = useState('todos');
 
   // Form states
   const [editNome, setEditNome] = useState('');
@@ -65,6 +72,7 @@ export default function AdminSynkaPage() {
         setMetrics(data.metrics);
         setAuthenticated(true);
         fetchClinicas(secret);
+        fetchLogs(secret);
       } else {
         alert('Senha incorreta');
       }
@@ -80,6 +88,25 @@ export default function AdminSynkaPage() {
     if (res.ok) {
       const data = await res.json();
       setClinicas(data.clinicas);
+    }
+  };
+
+  const fetchLogs = async (s = secret, email = filtroEmail, resultado = filtroResultado) => {
+    setLogsLoading(true);
+    try {
+      const params = new URLSearchParams({ secret: s });
+      if (email) params.set('email', email);
+      if (resultado !== 'todos') params.set('resultado', resultado);
+      const res = await fetch(`/api/admin/login-logs?${params}`, {
+        headers: { 'x-admin-secret': s }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setLogs(data.logs);
+        setLogsMeta(data.meta);
+      }
+    } finally {
+      setLogsLoading(false);
     }
   };
 
@@ -211,6 +238,22 @@ export default function AdminSynkaPage() {
 
   // ── Painel Principal ───────────────────────────────────────────────────────
 
+  const resultadoCor = (r: string) => {
+    if (r === 'sucesso') return 'text-green-400 bg-green-500/10 border-green-500/20';
+    if (r === 'email_nao_encontrado') return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20';
+    if (r === 'acesso_expirado') return 'text-orange-400 bg-orange-500/10 border-orange-500/20';
+    return 'text-red-400 bg-red-500/10 border-red-500/20';
+  };
+
+  const resultadoLabel = (r: string) => ({
+    sucesso: '✅ Sucesso',
+    credenciais_invalidas: '❌ Senha errada',
+    email_nao_encontrado: '⚠️ E-mail não cadastrado',
+    acesso_expirado: '🔒 Acesso expirado',
+    google_erro: '🔴 Erro Google',
+    erro_interno: '💥 Erro interno',
+  }[r] ?? r);
+
   return (
     <div className="min-h-screen bg-[#050510] text-white p-4 md:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -224,9 +267,29 @@ export default function AdminSynkaPage() {
               <p className="text-sm text-gray-400">{clinicas.length} empresas cadastradas</p>
             </div>
           </div>
-          <button onClick={() => setAuthenticated(false)} className="text-sm text-gray-400 hover:text-white transition-colors">
-            Sair
-          </button>
+          <div className="flex items-center gap-4">
+            <div className="flex gap-1 bg-white/5 rounded-xl p-1">
+              <button
+                onClick={() => setAba('empresas')}
+                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  aba === 'empresas' ? 'bg-[#4a4ae2] text-white' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                Empresas
+              </button>
+              <button
+                onClick={() => { setAba('acessos'); fetchLogs(); }}
+                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  aba === 'acessos' ? 'bg-[#4a4ae2] text-white' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                Acessos
+              </button>
+            </div>
+            <button onClick={() => setAuthenticated(false)} className="text-sm text-gray-400 hover:text-white transition-colors">
+              Sair
+            </button>
+          </div>
         </div>
 
         {/* KPIs */}
@@ -239,7 +302,7 @@ export default function AdminSynkaPage() {
           </div>
         )}
 
-        {/* Busca */}
+        {aba === 'empresas' && (
         <input
           type="text"
           value={search}
@@ -247,6 +310,7 @@ export default function AdminSynkaPage() {
           placeholder="Buscar empresa ou tenant ID..."
           className="w-full bg-[#0a0a20] border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#4a4ae2] transition-colors"
         />
+        )}
 
         {/* Tabela */}
         <div className="bg-[#0a0a20]/50 border border-white/5 rounded-2xl overflow-hidden">
@@ -326,6 +390,117 @@ export default function AdminSynkaPage() {
             </table>
           </div>
         </div>
+        )}
+
+        {/* ── Aba Acessos ── */}
+        {aba === 'acessos' && (
+          <div className="space-y-6">
+            {/* KPIs de acesso */}
+            {logsMeta && (
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <KPI label="Total de tentativas" value={logsMeta.total} color="text-white" />
+                <KPI label="Hoje" value={logsMeta.hoje} color="text-[#8080ff]" />
+                <KPI label="Taxa de sucesso" value={`${logsMeta.taxaSucesso}%`} color="text-green-400" />
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+                  <p className="text-xs text-gray-400 uppercase tracking-widest font-semibold mb-2">Top falhas</p>
+                  {logsMeta.topFalhas.slice(0, 3).map((f: any) => (
+                    <p key={f.email} className="text-xs text-gray-300 truncate">
+                      <span className="text-red-400 font-bold">{f.tentativas}x</span> {f.email}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Filtros */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <input
+                type="text"
+                value={filtroEmail}
+                onChange={e => setFiltroEmail(e.target.value)}
+                placeholder="Filtrar por e-mail..."
+                className="flex-1 bg-[#0a0a20] border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#4a4ae2] transition-colors"
+              />
+              <select
+                value={filtroResultado}
+                onChange={e => setFiltroResultado(e.target.value)}
+                className="bg-[#0a0a20] border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#4a4ae2] transition-colors"
+              >
+                <option value="todos">Todos os resultados</option>
+                <option value="sucesso">✅ Sucesso</option>
+                <option value="credenciais_invalidas">❌ Senha errada</option>
+                <option value="email_nao_encontrado">⚠️ E-mail não cadastrado</option>
+                <option value="acesso_expirado">🔒 Acesso expirado</option>
+              </select>
+              <button
+                onClick={() => fetchLogs(secret, filtroEmail, filtroResultado)}
+                disabled={logsLoading}
+                className="px-6 py-3 bg-[#4a4ae2] hover:bg-[#3a3ab2] rounded-xl text-sm font-bold transition-all disabled:opacity-60"
+              >
+                {logsLoading ? 'Buscando...' : 'Buscar'}
+              </button>
+            </div>
+
+            {/* Tabela de logs */}
+            <div className="bg-[#0a0a20]/50 border border-white/5 rounded-2xl overflow-hidden">
+              <div className="p-5 border-b border-white/5 flex items-center justify-between">
+                <h2 className="font-bold text-lg">Tentativas de Login</h2>
+                <span className="text-xs text-gray-500">{logs.length} registro(s)</span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="text-xs text-gray-400 uppercase tracking-wider bg-white/5">
+                    <tr>
+                      <th className="px-5 py-3 font-medium">Data/Hora</th>
+                      <th className="px-5 py-3 font-medium">E-mail</th>
+                      <th className="px-5 py-3 font-medium">Resultado</th>
+                      <th className="px-5 py-3 font-medium">IP</th>
+                      <th className="px-5 py-3 font-medium">Dispositivo</th>
+                      <th className="px-5 py-3 font-medium text-right">Ação</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {logs.map((log) => (
+                      <tr key={log.id} className="hover:bg-white/[0.03] transition-colors">
+                        <td className="px-5 py-3 text-xs text-gray-400 whitespace-nowrap">
+                          {new Date(log.createdAt).toLocaleString('pt-BR')}
+                        </td>
+                        <td className="px-5 py-3">
+                          <p className="text-white text-xs font-mono">{log.email}</p>
+                        </td>
+                        <td className="px-5 py-3">
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border ${resultadoCor(log.resultado)}`}>
+                            {resultadoLabel(log.resultado)}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3 text-xs text-gray-500 font-mono">{log.ip ?? '—'}</td>
+                        <td className="px-5 py-3 text-xs text-gray-500 max-w-[180px] truncate">
+                          {log.userAgent ? log.userAgent.split(' ').slice(0, 3).join(' ') : '—'}
+                        </td>
+                        <td className="px-5 py-3 text-right">
+                          {log.resultado !== 'sucesso' && (
+                            <a
+                              href={`https://wa.me/?text=${encodeURIComponent(`Olá! Vi que você tentou entrar no Synka com o e-mail ${log.email} e não conseguiu. Posso te ajudar?`)}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-500/10 text-green-400 hover:bg-green-500/20 border border-green-500/20 rounded-lg text-[10px] font-bold transition-all"
+                            >
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413z"/><path d="M12 2C6.477 2 2 6.473 2 12c0 1.989.58 3.842 1.585 5.408L2 22l4.701-1.557A9.945 9.945 0 0012 22c5.523 0 10-4.473 10-10S17.523 2 12 2z"/></svg>
+                              Contatar
+                            </a>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                    {logs.length === 0 && (
+                      <tr><td colSpan={6} className="px-5 py-12 text-center text-gray-500">Nenhum registro encontrado</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Modais ── */}

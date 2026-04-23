@@ -403,6 +403,20 @@ model SenhaReset {
   @@map("senha_resets")
 }
 
+model LoginLog {
+  id        String   @id @default(cuid())
+  email     String
+  resultado String   // sucesso | credenciais_invalidas | email_nao_encontrado | acesso_expirado | google_erro | erro_interno
+  detalhe   String?
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([createdAt])
+  @@map("login_logs")
+}
+
 model Assinatura {
   id                 String    @id @default(uuid())
   tenantId           String    @unique
