@@ -193,7 +193,7 @@ export default function PageBarbearia() {
 
   const dore = DORES[doreIdx];
   const WA_LINK =
-    "https://wa.me/5585991516106?text=Ol%C3%A1!%20Vi%20o%20Synka%20para%20barbearia%20e%20quero%20saber%20mais.";
+    "https://wa.me/5511925203237?text=Ol%C3%A1!%20Vi%20o%20Synka%20para%20barbearia%20e%20quero%20saber%20mais.";
   const CADASTRO_LINK = "/auth/login";
 
   return (

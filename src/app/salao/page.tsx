@@ -25,7 +25,7 @@ const DEPOIMENTOS = [
   { nome: "Juliana Melo", negocio: "Hair Studio JM – Recife/PE", avatar: "JM", texto: "Antes eu ficava horas respondendo WhatsApp. Agora a IA faz tudo e eu uso esse tempo para atender mais clientes. Simples assim.", estrelas: 5 },
 ];
 
-const WA = "https://wa.me/5585991516106?text=Ol%C3%A1!%20Vi%20o%20Synka%20para%20sal%C3%A3o%20e%20quero%20saber%20mais.";
+const WA = "https://wa.me/5511925203237?text=Ol%C3%A1!%20Vi%20o%20Synka%20para%20sal%C3%A3o%20e%20quero%20saber%20mais.";
 const CTA = "/auth/login";
 
 export default function PageSalao() {

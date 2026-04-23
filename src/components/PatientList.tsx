@@ -2,7 +2,7 @@
 import React from 'react';
 
 const PATIENTS = [
-  { id: '1', nome: 'Alan Santos', telefone: '5585991516106', ultCons: '20/03/2026' },
+  { id: '1', nome: 'Alan Santos', telefone: '5511925203237', ultCons: '20/03/2026' },
   { id: '2', nome: 'Julia Lima', telefone: '5585991223344', ultCons: '18/03/2026' },
   { id: '3', nome: 'Carlos Eduardo', telefone: '5585988776655', ultCons: '15/03/2026' },
 ];

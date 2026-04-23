@@ -310,7 +310,7 @@ export default function LandingPage() {
             © 2025 SOMMAR SOLUÇÕES DIGITAIS — CNPJ: 65.771.133/0001-07
           </div>
           <div className="flex gap-5">
-            <a href="https://wa.me/5585991516106" className="hover:text-gray-700 transition-colors">WhatsApp</a>
+            <a href="https://wa.me/5511925203237" className="hover:text-gray-700 transition-colors">WhatsApp</a>
             <a href="mailto:somar.solucoes.suporte@gmail.com" className="hover:text-gray-700 transition-colors">Suporte</a>
             <Link href="/auth/login" className="hover:text-gray-700 transition-colors">Login</Link>
           </div>

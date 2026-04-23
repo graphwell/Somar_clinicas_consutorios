@@ -25,7 +25,7 @@ const DEPOIMENTOS = [
   { nome: "Dr. Felipe Novais", negocio: "Nutrição Esportiva – Recife/PE", avatar: "FN", texto: "Coloquei meus pacotes na vitrine com preços. Os pacientes chegam decididos. Vendo mais pacotes sem precisar oferecer.", estrelas: 5 },
 ];
 
-const WA = "https://wa.me/5585991516106?text=Ol%C3%A1!%20Vi%20o%20Synka%20para%20nutri%C3%A7%C3%A3o%20e%20quero%20saber%20mais.";
+const WA = "https://wa.me/5511925203237?text=Ol%C3%A1!%20Vi%20o%20Synka%20para%20nutri%C3%A7%C3%A3o%20e%20quero%20saber%20mais.";
 const CTA = "/auth/login";
 
 export default function PageNutricao() {

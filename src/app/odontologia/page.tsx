@@ -25,7 +25,7 @@ const DEPOIMENTOS = [
   { nome: "Dr. Paulo Neto", negocio: "Clínica Paulo Neto – Recife/PE", avatar: "PN", texto: "Coloquei o clareamento na vitrine com fotos do antes e depois. Os pacientes chegam já querendo fazer. Fechei 3 tratamentos completos na primeira semana.", estrelas: 5 },
 ];
 
-const WA = "https://wa.me/5585991516106?text=Ol%C3%A1!%20Vi%20o%20Synka%20para%20odontologia%20e%20quero%20saber%20mais.";
+const WA = "https://wa.me/5511925203237?text=Ol%C3%A1!%20Vi%20o%20Synka%20para%20odontologia%20e%20quero%20saber%20mais.";
 const CTA = "/auth/login";
 
 export default function PageOdontologia() {

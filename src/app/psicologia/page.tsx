@@ -25,7 +25,7 @@ const DEPOIMENTOS = [
   { nome: "Dra. Marina Souza", negocio: "Clínica de Psicologia – Recife/PE", avatar: "MS", texto: "O lembrete automático de retorno mudou tudo. Pacientes que sumiam agora voltam quando o Synka avisa. Fidelização real.", estrelas: 5 },
 ];
 
-const WA = "https://wa.me/5585991516106?text=Ol%C3%A1!%20Vi%20o%20Synka%20para%20psicologia%20e%20quero%20saber%20mais.";
+const WA = "https://wa.me/5511925203237?text=Ol%C3%A1!%20Vi%20o%20Synka%20para%20psicologia%20e%20quero%20saber%20mais.";
 const CTA = "/auth/login";
 
 export default function PagePsicologia() {
