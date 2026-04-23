@@ -2,7 +2,8 @@
 import bcrypt from 'bcryptjs';
 import { SignJWT, jwtVerify } from 'jose';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'somar-ia-super-secret-key-mudar-em-producao';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) throw new Error('JWT_SECRET não está configurado nas variáveis de ambiente.');
 const secretKey = new TextEncoder().encode(JWT_SECRET);
 
 export interface AuthPayload {

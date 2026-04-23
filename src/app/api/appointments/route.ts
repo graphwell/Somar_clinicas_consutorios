@@ -99,6 +99,29 @@ export async function POST(request: Request) {
     const duration = durationMinutes || 30;
     const end = new Date(start.getTime() + duration * 60000);
 
+    // ── Verificar conflito de horário ────────────────────────────
+    if (profissionalId) {
+      const conflito = await prisma.agendamento.findFirst({
+        where: {
+          tenantId,
+          profissionalId,
+          status: { notIn: ['cancelado', 'faltou', 'recusado'] },
+          dataHora: { lt: end },
+          fimDataHora: { gt: start },
+        },
+        select: { id: true, dataHora: true, paciente: { select: { nome: true } } },
+      });
+
+      if (conflito) {
+        return NextResponse.json({
+          error: 'CONFLITO_HORARIO',
+          mensagem: `Já existe um agendamento neste horário para este profissional.`,
+          detalhe: `Conflito com agendamento de ${conflito.paciente?.nome ?? 'outro paciente'} às ${new Date(conflito.dataHora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}.`,
+        }, { status: 409 });
+      }
+    }
+    // ────────────────────────────────────────────────────────────
+
     const agendamento = await prisma.agendamento.create({
       data: {
         tenantId,

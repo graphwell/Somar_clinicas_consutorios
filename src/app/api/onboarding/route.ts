@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { planoTrialPorNicho } from '@/lib/planos-synka';
+import { getSessionInfo } from '@/lib/auth-helpers';
 
 function gerarSlugBase(nome: string): string {
   return nome
@@ -27,7 +28,9 @@ async function gerarSlugUnico(base: string): Promise<string> {
 
 export async function POST(request: Request) {
   try {
-    const { tenantId, nicho, multiProfissional, nomeClinica, telefoneClinica, openingTime, closingTime, workingDays } = await request.json();
+    // tenantId vem do JWT (middleware), não do body — previne manipulação entre tenants
+    const { tenantId } = await getSessionInfo();
+    const { nicho, multiProfissional, nomeClinica, telefoneClinica, openingTime, closingTime, workingDays } = await request.json();
 
     if (!tenantId || !nicho) {
       return NextResponse.json({ error: 'Faltam campos obrigatórios' }, { status: 400 });

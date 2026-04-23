@@ -305,6 +305,9 @@ model Agendamento {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
+  @@index([tenantId, dataHora])
+  @@index([profissionalId, dataHora])
+  @@index([tenantId, status])
   @@map("agendamentos")
 }
 

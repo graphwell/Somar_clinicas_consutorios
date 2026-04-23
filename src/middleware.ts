@@ -13,12 +13,25 @@ const API_PUBLICAS = [
   '/api/convite/',
   '/api/health',
   '/api/webhook/',
-  '/api/admin/',
   '/api/debug/',
+  // NOTA: /api/admin/ foi removido intencionalmente — protegido pelo middleware JWT
+  // Os endpoints admin validam adicionalmente o x-admin-secret internamente
 ];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Rotas de admin: validadas pelo x-admin-secret (não usam JWT)
+  if (pathname.startsWith('/api/admin/')) {
+    const adminSecret = process.env.ADMIN_SECRET;
+    const providedSecret =
+      request.headers.get('x-admin-secret') ??
+      request.nextUrl.searchParams.get('secret') ?? '';
+    if (!adminSecret || providedSecret !== adminSecret) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+    }
+    return NextResponse.next();
+  }
 
   // Deixar passar rotas públicas sem validar token
   if (API_PUBLICAS.some(p => pathname.startsWith(p))) {
