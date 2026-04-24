@@ -70,8 +70,8 @@ export default function Sidebar({
   const pathname = usePathname();
   const { labels, nicho } = useNicho();
   const NICHOS_ANTES_DEPOIS = ['CLINICA_ESTETICA', 'SALAO_BELEZA', 'BARBEARIA'];
-  const temAntesDepois = NICHOS_ANTES_DEPOIS.includes(nicho);
-  const temVitrine = true; // disponível para todos os nichos
+  const temAntesDepois = true; // disponível para todos os nichos
+  const temVitrine = true;     // disponível para todos os nichos
   const [planoAtual, setPlanoAtual] = useState<string>('trial');
   const [diasRestantes, setDiasRestantes] = useState<number>(30);
 
