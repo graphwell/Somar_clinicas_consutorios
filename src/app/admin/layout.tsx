@@ -2,22 +2,22 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { fetchWithAuth, clearAuthSession } from '@/lib/api-utils';
+import { fetchWithAuth } from '@/lib/api-utils';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [authorized, setAuthorized] = React.useState(false);
 
-  // O Painel Master (/admin) tem autenticação própria por senha mestra
-  // Este layout só atua nas sub-rotas do Ops Center (/admin/health, /admin/ops)
+  // O Painel Master (/admin) tem autenticação própria por senha mestra — não usa este layout
+  // Este layout (Ops Center) só age nas sub-rotas /admin/health e /admin/ops
   const isRootAdmin = pathname === '/admin';
 
+  const [authorized, setAuthorized] = React.useState(isRootAdmin); // já true para /admin
+
   React.useEffect(() => {
-    if (isRootAdmin) {
-      setAuthorized(true); // /admin gerencia sua própria autenticação
-      return;
-    }
-    // Verificação de autoridade admin via API (segura) — apenas para sub-rotas
+    // Para /admin raiz: autorizado diretamente (auth própria por senha mestra)
+    if (isRootAdmin) return;
+
+    // Apenas sub-rotas do Ops Center exigem JWT admin
     fetchWithAuth('/api/admin/health')
       .then((r: any) => {
         if (r.ok) setAuthorized(true);
@@ -28,10 +28,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (!authorized) return null;
 
-  // Para a rota raiz /admin, renderiza os children diretamente sem o header do Ops Center
-  if (isRootAdmin) {
-    return <>{children}</>;
-  }
+  // /admin: renderiza direto sem header do Ops Center
+  if (isRootAdmin) return <>{children}</>;
 
   const isTabActive = (path: string) => pathname.startsWith(path);
 
