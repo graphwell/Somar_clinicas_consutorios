@@ -229,15 +229,62 @@ export function WhatsAppCard() {
     );
   };
 
+  const isTrial = wa.migrationStatus === 'TRIAL';
+
+  const trialBanner = () => (
+    <div style={{
+      background: 'linear-gradient(135deg, #FFF8E1, #FFFDE7)',
+      border: '1px solid #FFD54F',
+      borderRadius: 14,
+      padding: '14px 16px',
+      display: 'flex',
+      gap: 10,
+      alignItems: 'flex-start',
+    }}>
+      <span style={{ fontSize: 18, lineHeight: 1 }}>🕐</span>
+      <div>
+        <p style={{ fontSize: 12, fontWeight: 800, color: '#E65100', margin: 0, letterSpacing: '-0.2px' }}>
+          Período de avaliação ativo
+        </p>
+        <p style={{ fontSize: 11, color: '#795548', marginTop: 4, lineHeight: 1.5 }}>
+          Durante os 30 dias de teste, o agendamento automático já funciona usando a linha compartilhada do Synka. ✅
+          <br />
+          A conexão do seu número próprio de WhatsApp é liberada assim que seu plano for ativado pela nossa equipe.
+        </p>
+        <p style={{ fontSize: 10, color: '#A0856A', marginTop: 6, fontWeight: 700 }}>
+          📲 Dúvidas? Fale com a equipe Synka: (11) 92520-3237
+        </p>
+      </div>
+    </div>
+  );
+
   const actions = () => {
     if (wa.status === 'loading') return null;
+
+    // Durante trial: mostrar botão desabilitado com tooltip
+    if (isTrial && wa.status !== 'conectado' && wa.status !== 'central') {
+      return (
+        <button
+          disabled
+          title="Disponível após ativação do plano"
+          className="w-full py-4 bg-slate-100 border border-slate-200 text-slate-400 rounded-2xl text-[10px] font-black uppercase cursor-not-allowed"
+        >
+          🔒 Disponível após ativação
+        </button>
+      );
+    }
+
     if (wa.status === 'central') {
       return (
         <button
-          onClick={ativar}
-          className="flex-1 py-4 bg-white border border-card-border text-text-muted rounded-2xl text-[10px] font-black uppercase hover:border-primary/40 transition-all shadow-sm"
+          onClick={isTrial ? undefined : ativar}
+          disabled={isTrial}
+          title={isTrial ? 'Disponível após ativação do plano' : undefined}
+          className={`flex-1 py-4 bg-white border border-card-border rounded-2xl text-[10px] font-black uppercase transition-all shadow-sm ${
+            isTrial ? 'text-slate-400 cursor-not-allowed opacity-60' : 'text-text-muted hover:border-primary/40'
+          }`}
         >
-          Conectar numero proprio
+          {isTrial ? '🔒 Disponível após ativação' : 'Conectar numero proprio'}
         </button>
       );
     }
@@ -305,8 +352,11 @@ export function WhatsAppCard() {
           )}
         </div>
       </div>
-      <div className="mt-12 flex gap-4 relative z-10">
-        {actions()}
+      <div className="mt-6 flex flex-col gap-3 relative z-10">
+        {isTrial && wa.status !== 'conectado' && trialBanner()}
+        <div className="flex gap-4">
+          {actions()}
+        </div>
       </div>
     </div>
   );
