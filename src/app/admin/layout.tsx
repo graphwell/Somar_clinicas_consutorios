@@ -8,19 +8,32 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const [authorized, setAuthorized] = React.useState(false);
 
+  // O Painel Master (/admin) tem autenticação própria por senha mestra
+  // Este layout só atua nas sub-rotas do Ops Center (/admin/health, /admin/ops)
+  const isRootAdmin = pathname === '/admin';
+
   React.useEffect(() => {
-    // Verificação rápida de autoridade admin via API (segura)
+    if (isRootAdmin) {
+      setAuthorized(true); // /admin gerencia sua própria autenticação
+      return;
+    }
+    // Verificação de autoridade admin via API (segura) — apenas para sub-rotas
     fetchWithAuth('/api/admin/health')
       .then((r: any) => {
         if (r.ok) setAuthorized(true);
         else window.location.href = '/dashboard';
       })
       .catch(() => window.location.href = '/dashboard');
-  }, []);
+  }, [isRootAdmin]);
+
+  if (!authorized) return null;
+
+  // Para a rota raiz /admin, renderiza os children diretamente sem o header do Ops Center
+  if (isRootAdmin) {
+    return <>{children}</>;
+  }
 
   const isTabActive = (path: string) => pathname.startsWith(path);
-
-  if (!authorized) return null; // Prevenção de flash de admin para não-admins
 
   return (
     <div className="min-h-screen bg-background text-text-main flex flex-col">
