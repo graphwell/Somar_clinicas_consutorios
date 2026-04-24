@@ -316,7 +316,7 @@ function CardAtendimento({
                 key={a.nextStatus}
                 onClick={() => onStatusChange(ag.id, a.nextStatus)}
                 disabled={isUpdating}
-                className={`text-[8px] font-black uppercase px-3 py-1.5 rounded-lg transition-all whitespace-nowrap ${a.style} disabled:opacity-50`}
+                className={`text-[8px] font-black uppercase px-3 py-2 rounded-lg transition-all whitespace-nowrap min-h-[44px] ${a.style} disabled:opacity-50`}
               >
                 {isUpdating ? '...' : a.label}
               </button>
@@ -810,7 +810,7 @@ export default function AtendimentosHojePage() {
         <div className="relative flex-1 min-w-[180px]">
           <input value={busca} onChange={e => setBusca(e.target.value)}
             placeholder={`Buscar ${labels.termoPaciente.toLowerCase()}...`}
-            className="input-premium w-full py-2.5 text-sm pl-9" />
+            className="input-premium w-full py-3 text-sm pl-9" style={{ fontSize: '16px', minHeight: '48px' }} />
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-placeholder"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4" stroke="currentColor" strokeWidth="1.5"/><path d="M9.5 9.5l2.5 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg></span>
         </div>
 

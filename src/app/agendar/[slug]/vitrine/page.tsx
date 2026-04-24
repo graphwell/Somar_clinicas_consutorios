@@ -12,6 +12,7 @@ interface Produto {
 interface ComboItem { produto: { id: string; nome: string; preco: number; imageUrl?: string | null } }
 interface Combo { id: string; nome: string; preco: number; desconto: number; itens: ComboItem[] }
 interface ItemCarrinho { tipo: 'produto' | 'combo'; id: string; nome: string; preco: number; imageUrl?: string | null; quantidade: number }
+interface Servico { id: string; nome: string; descricao?: string | null; duracaoMinutos: number; preco: number; categoria?: string | null; imagemUrl?: string | null; color?: string | null }
 
 /* ─── Helpers ────────────────────────────────────────────────── */
 function formatPreco(v: number) { return `R$ ${v.toFixed(2).replace('.', ',')}` }
@@ -239,9 +240,12 @@ export default function VitrinePage({ params }: { params: Promise<{ slug: string
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [combos, setCombos] = useState<Combo[]>([]);
+  const [servicos, setServicos] = useState<Servico[]>([]);
   const [carregando, setCarregando] = useState(true);
 
+  const [aba, setAba] = useState<'servicos' | 'produtos'>('servicos');
   const [categoriaSelecionada, setCategoriaSelecionada] = useState('');
+  const [categServicoSelecionada, setCategServicoSelecionada] = useState('');
   const [carrinho, setCarrinho] = useState<ItemCarrinho[]>([]);
   const [modalCarrinho, setModalCarrinho] = useState(false);
 
@@ -266,6 +270,11 @@ export default function VitrinePage({ params }: { params: Promise<{ slug: string
       if (vitrineRes.categorias) setCategorias(vitrineRes.categorias);
       if (vitrineRes.produtos) setProdutos(vitrineRes.produtos);
       if (vitrineRes.combos) setCombos(vitrineRes.combos);
+      if (vitrineRes.servicos) {
+        setServicos(vitrineRes.servicos);
+        // Se não tiver produtos, ir direto para serviços
+        if (!vitrineRes.produtos?.length && vitrineRes.servicos?.length) setAba('servicos');
+      }
     } catch { /* silenciar */ }
     finally { setCarregando(false); }
   }, [slug]);
@@ -327,6 +336,98 @@ export default function VitrinePage({ params }: { params: Promise<{ slug: string
           </div>
         )}
 
+        {/* Abas Serviços / Produtos */}
+        {servicos.length > 0 && produtos.length > 0 && (
+          <div className="flex gap-1 mb-5 bg-slate-100 rounded-2xl p-1">
+            {(['servicos', 'produtos'] as const).map(a => (
+              <button
+                key={a}
+                onClick={() => setAba(a)}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all"
+                style={aba === a ? { background: cor, color: 'white' } : { color: '#64748b' }}
+              >
+                {a === 'servicos' ? '✂ Serviços' : '🛍 Produtos'}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* ABA: SERVIÇOS */}
+        {aba === 'servicos' && servicos.length > 0 && (
+          <div>
+            {/* Filtro de categorias de serviço */}
+            {Array.from(new Set(servicos.map(s => s.categoria).filter(Boolean))).length > 1 && (
+              <div className="flex gap-2 overflow-x-auto pb-2 mb-5 no-scrollbar">
+                <button
+                  onClick={() => setCategServicoSelecionada('')}
+                  className="shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all"
+                  style={!categServicoSelecionada ? { background: cor, color: 'white' } : { background: 'white', color: '#64748b' }}
+                >Todos</button>
+                {Array.from(new Set(servicos.map(s => s.categoria).filter(Boolean))).map(cat => (
+                  <button
+                    key={cat!}
+                    onClick={() => setCategServicoSelecionada(cat === categServicoSelecionada ? '' : cat!)}
+                    className="shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all"
+                    style={categServicoSelecionada === cat ? { background: cor, color: 'white' } : { background: 'white', color: '#64748b' }}
+                  >{cat}</button>
+                ))}
+              </div>
+            )}
+
+            <div className="space-y-3">
+              {servicos
+                .filter(s => !categServicoSelecionada || s.categoria === categServicoSelecionada)
+                .map(s => (
+                  <div key={s.id} className="bg-white rounded-2xl border border-slate-100 overflow-hidden flex shadow-sm">
+                    {s.imagemUrl ? (
+                      <img src={s.imagemUrl} alt={s.nome} className="w-24 h-24 object-cover shrink-0" />
+                    ) : (
+                      <div className="w-24 h-24 shrink-0 flex items-center justify-center text-3xl" style={{ background: (s.color ?? cor) + '18' }}>
+                        ✂
+                      </div>
+                    )}
+                    <div className="flex-1 p-3 flex flex-col justify-between min-w-0">
+                      <div>
+                        {s.categoria && (
+                          <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: cor }}>{s.categoria}</span>
+                        )}
+                        <p className="text-sm font-semibold text-slate-800 leading-snug">{s.nome}</p>
+                        {s.descricao && (
+                          <p className="text-xs text-slate-400 line-clamp-2 mt-0.5">{s.descricao}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between mt-2">
+                        <div>
+                          <p className="text-base font-bold" style={{ color: cor }}>
+                            {s.preco > 0 ? formatPreco(s.preco) : 'Consultar'}
+                          </p>
+                          <p className="text-[11px] text-slate-400">{s.duracaoMinutos} min</p>
+                        </div>
+                        <Link
+                          href={`/agendar/${slug}?servicoId=${s.id}`}
+                          className="text-xs font-semibold text-white px-3 py-2 rounded-xl"
+                          style={{ background: cor }}
+                        >
+                          Agendar
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+
+        {/* Se não tem serviços mas está na aba serviços */}
+        {aba === 'servicos' && servicos.length === 0 && !carregando && (
+          <div className="text-center py-16 text-slate-400">
+            <p className="text-sm">Nenhum serviço disponível no momento.</p>
+          </div>
+        )}
+
+        {/* ABA: PRODUTOS */}
+        {aba === 'produtos' && (
+          <>
         {/* Filtro de categorias */}
         {categorias.length > 0 && (
           <div className="flex gap-2 overflow-x-auto pb-2 mb-5 no-scrollbar">
@@ -346,7 +447,7 @@ export default function VitrinePage({ params }: { params: Promise<{ slug: string
           </div>
         )}
 
-        {carregando ? (
+        {carregando && aba === 'produtos' ? (
           <div className="flex justify-center py-16">
             <div className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: cor + '40', borderTopColor: cor }} />
           </div>
@@ -385,6 +486,8 @@ export default function VitrinePage({ params }: { params: Promise<{ slug: string
                 <p className="text-sm">Nenhum produto disponível</p>
               </div>
             )}
+          </>
+        )}
           </>
         )}
       </div>

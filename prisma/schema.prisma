@@ -447,6 +447,8 @@ model Servico {
   preco            Float    @default(0.0)
   color            String?  @default("#3B82F6")
   nicho            String?
+  categoria        String?
+  imagemUrl        String?  @db.Text
   ativo            Boolean  @default(true)
   tenantId         String
   clinica          Clinica  @relation(fields: [tenantId], references: [tenantId])

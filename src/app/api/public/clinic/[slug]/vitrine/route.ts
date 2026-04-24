@@ -68,7 +68,7 @@ export async function GET(
 
     const { tenantId } = clinica;
 
-    const [produtos, combos, categorias, sugestoes] = await Promise.all([
+    const [produtos, combos, categorias, sugestoes, servicos] = await Promise.all([
       prisma.produto.findMany({
         where: {
           tenantId,
@@ -112,6 +112,16 @@ export async function GET(
             take: 3,
           })
         : Promise.resolve([]),
+
+      prisma.servico.findMany({
+        where: { tenantId, ativo: true },
+        select: {
+          id: true, nome: true, descricao: true,
+          duracaoMinutos: true, preco: true,
+          categoria: true, imagemUrl: true, color: true,
+        },
+        orderBy: [{ categoria: 'asc' }, { nome: 'asc' }],
+      }),
     ]);
 
     return NextResponse.json({
@@ -119,6 +129,7 @@ export async function GET(
       combos,
       categorias,
       sugestoes: sugestoes.map((s: { produto: unknown }) => s.produto),
+      servicos,
     });
   } catch (err) {
     console.error('[public/vitrine GET]', err);

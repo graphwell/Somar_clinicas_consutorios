@@ -170,22 +170,22 @@ function PatientChart({ patient: initialPatient, onClose }: { patient: Paciente;
         className="relative w-full max-w-2xl bg-white h-full shadow-2xl border-l border-card-border flex flex-col animate-in slide-in-from-right duration-500"
         onClick={e => e.stopPropagation()}
       >
-        <div className="p-10 border-b border-slate-50 flex justify-between items-center bg-slate-50/20">
-           <div className="flex items-center gap-6">
-              <div className="w-16 h-16 rounded-ultra bg-primary-soft text-primary flex items-center justify-center text-3xl font-black italic shadow-inner">
+        <div className="p-4 sm:p-10 border-b border-slate-50 flex justify-between items-center bg-slate-50/20">
+           <div className="flex items-center gap-3 sm:gap-6 min-w-0">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 shrink-0 rounded-ultra bg-primary-soft text-primary flex items-center justify-center text-2xl sm:text-3xl font-black italic shadow-inner">
                 {patient.nome.charAt(0)}
               </div>
-              <div>
-                 <h3 className="text-2xl font-black tracking-tight text-text-main">{patient.nome}</h3>
+              <div className="min-w-0">
+                 <h3 className="text-lg sm:text-2xl font-black tracking-tight text-text-main truncate">{patient.nome}</h3>
                  <p className="text-[10px] font-black text-text-muted uppercase tracking-widest mt-1 opacity-60">{labels.termoProntuario} Digital</p>
               </div>
            </div>
-           <button onClick={onClose} className="w-11 h-11 rounded-xl hover:bg-slate-100 flex items-center justify-center text-text-placeholder transition-colors"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M9 3L3 9M3 3l6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg></button>
+           <button onClick={onClose} className="w-11 h-11 shrink-0 rounded-xl hover:bg-slate-100 flex items-center justify-center text-text-placeholder transition-colors"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M9 3L3 9M3 3l6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg></button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-12 space-y-12 no-scrollbar">
-           
-           <div className="grid grid-cols-3 gap-6">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-12 space-y-8 sm:space-y-12 no-scrollbar">
+
+           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-6">
               <div className="p-6 bg-slate-50 border border-card-border rounded-premium text-center">
                  <p className="text-[9px] font-black uppercase text-text-muted mb-1 opacity-40">Atendimentos</p>
                  <p className="text-2xl font-black text-text-main tracking-tighter italic">{patient._count.agendamentos}x</p>
@@ -226,12 +226,12 @@ function PatientChart({ patient: initialPatient, onClose }: { patient: Paciente;
            </div>
         </div>
 
-        <div className="px-12 pb-12">
+        <div className="px-4 sm:px-12 pb-4 sm:pb-12">
           <PlanoSaudeSection patient={patient} onUpdate={setPatient} />
         </div>
 
-        <div className="p-10 border-t border-card-border bg-slate-50/10">
-           <button className="w-full py-5 bg-white border border-card-border rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] text-text-muted hover:border-primary/40 hover:text-primary transition-all shadow-sm">Exportar Ficha Clínica complete (PDF)</button>
+        <div className="p-4 sm:p-10 border-t border-card-border bg-slate-50/10">
+           <button className="w-full py-4 sm:py-5 bg-white border border-card-border rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] text-text-muted hover:border-primary/40 hover:text-primary transition-all shadow-sm">Exportar Ficha Clínica (PDF)</button>
         </div>
       </div>
     </div>
@@ -293,8 +293,8 @@ export default function PatientsPage() {
     <div className="max-w-7xl mx-auto space-y-12 pb-40 animate-premium">
       
       {/* Header & Search */}
-      <div className="bg-white border border-card-border p-12 rounded-[3.5rem] shadow-sm flex flex-col gap-12">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
+      <div className="bg-white border border-card-border p-4 sm:p-12 rounded-[2rem] sm:rounded-[3.5rem] shadow-sm flex flex-col gap-6 sm:gap-12">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-8">
           <div className="flex items-center gap-6">
              <div className="w-14 h-14 rounded-3xl bg-primary text-white flex items-center justify-center shadow-xl shadow-primary/20"><svg width="28" height="28" viewBox="0 0 28 28" fill="none"><circle cx="10" cy="8" r="4" stroke="currentColor" strokeWidth="2"/><path d="M2 23c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><circle cx="20" cy="9" r="3" stroke="currentColor" strokeWidth="1.8"/><path d="M23 22c0-3.314-1.343-6-4-7.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg></div>
              <div>
@@ -341,33 +341,36 @@ export default function PatientsPage() {
             <table className="w-full text-left">
               <thead className="bg-slate-50 text-text-placeholder border-b border-slate-50 uppercase text-[9px] font-black tracking-[0.3em]">
                 <tr>
-                  <th className="px-12 py-8 font-black">Identificação</th>
-                  <th className="px-12 py-8 font-black">Telefone</th>
-                  <th className="px-12 py-8 font-black text-center hidden sm:table-cell">Frequência</th>
-                  <th className="px-12 py-8 font-black hidden md:table-cell">Última Visita</th>
-                  <th className="px-12 py-8 font-black text-right">Prontuário</th>
+                  <th className="px-3 sm:px-12 py-4 sm:py-8 font-black">Identificação</th>
+                  <th className="px-3 sm:px-12 py-4 sm:py-8 font-black hidden sm:table-cell">Telefone</th>
+                  <th className="px-3 sm:px-12 py-4 sm:py-8 font-black text-center hidden md:table-cell">Frequência</th>
+                  <th className="px-3 sm:px-12 py-4 sm:py-8 font-black hidden lg:table-cell">Última Visita</th>
+                  <th className="px-3 sm:px-12 py-4 sm:py-8 font-black text-right">Ação</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {filtered.map(p => (
                    <tr key={p.id} className="group hover:bg-slate-50/50 transition-all">
-                    <td className="px-12 py-10">
-                       <div className="flex items-center gap-3">
-                        <p className="font-semibold text-text-main text-sm group-hover:text-primary transition-colors">{p.nome}</p>
-                        {p.isSubscriber && (
-                          <span className="text-[10px] font-black text-amber-500 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Premium</span>
-                        )}
+                    <td className="px-3 sm:px-12 py-4 sm:py-10">
+                       <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold text-text-main text-sm group-hover:text-primary transition-colors">{p.nome}</p>
+                          {p.isSubscriber && (
+                            <span className="text-[10px] font-black text-amber-500 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Premium</span>
+                          )}
+                        </div>
+                        <p className="text-xs text-text-muted sm:hidden">{p.telefone}</p>
                        </div>
                     </td>
-                    <td className="px-12 py-10 text-text-muted font-medium text-sm">{p.telefone}</td>
-                    <td className="px-12 py-10 text-center hidden sm:table-cell">
-                      <span className="bg-primary-soft text-primary px-5 py-2 rounded-full border border-primary/10 font-black text-[10px]">{p._count.agendamentos}x</span>
+                    <td className="px-3 sm:px-12 py-4 sm:py-10 text-text-muted font-medium text-sm hidden sm:table-cell">{p.telefone}</td>
+                    <td className="px-3 sm:px-12 py-4 sm:py-10 text-center hidden md:table-cell">
+                      <span className="bg-primary-soft text-primary px-3 sm:px-5 py-1.5 sm:py-2 rounded-full border border-primary/10 font-black text-[10px]">{p._count.agendamentos}x</span>
                     </td>
-                    <td className="px-12 py-10 text-text-placeholder text-[11px] hidden md:table-cell">
+                    <td className="px-3 sm:px-12 py-4 sm:py-10 text-text-placeholder text-[11px] hidden lg:table-cell">
                       {p.agendamentos?.[0] ? new Date(p.agendamentos[0].dataHora).toLocaleDateString('pt-BR') : 'Sem visitas'}
                     </td>
-                    <td className="px-12 py-10 text-right">
-                       <button onClick={() => setSelectedPatient(p)} className="btn-secondary py-3 px-8 text-[9px]">{labels.prontuario}</button>
+                    <td className="px-3 sm:px-12 py-4 sm:py-10 text-right">
+                       <button onClick={() => setSelectedPatient(p)} className="btn-secondary py-2.5 px-3 sm:px-8 text-[9px] min-h-[44px]">{labels.prontuario}</button>
                     </td>
                   </tr>
                 ))}
@@ -375,7 +378,7 @@ export default function PatientsPage() {
             </table>
           </div>
           {filtered.length === 0 && (
-             <div className="p-40 text-center bg-slate-50/20">
+             <div className="p-12 sm:p-40 text-center bg-slate-50/20">
                 <div className="mb-4 flex justify-center opacity-20"><svg width="36" height="36" viewBox="0 0 36 36" fill="none"><path d="M6 30V9a3 3 0 013-3h7.5l3 3H27a3 3 0 013 3v18a3 3 0 01-3 3H9a3 3 0 01-3-3z" stroke="#40916C" strokeWidth="2" strokeLinejoin="round"/></svg></div>
                 <p className="font-black text-text-placeholder text-xs uppercase tracking-[0.3em]">Nenhum registro encontrado</p>
              </div>
@@ -422,7 +425,7 @@ export default function PatientsPage() {
       {showNovo && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center" onClick={() => setShowNovo(false)}>
           <div className="absolute inset-0 bg-slate-900/20 backdrop-blur-sm" />
-          <div className="relative bg-white rounded-[2.5rem] shadow-2xl border border-card-border p-10 w-full max-w-md space-y-6 animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+          <div className="relative bg-white rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl border border-card-border p-5 sm:p-10 w-full max-w-md mx-4 space-y-6 animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-black italic uppercase tracking-tighter text-text-main">Novo {labels.termoPaciente}</h3>
               <button onClick={() => setShowNovo(false)} className="w-8 h-8 flex items-center justify-center rounded-lg text-text-placeholder hover:text-text-main hover:bg-slate-100 transition-colors"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M9 3L3 9M3 3l6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg></button>
