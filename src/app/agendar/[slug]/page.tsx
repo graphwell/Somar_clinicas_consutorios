@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
+import BadgePlanoAssinante from '@/components/agenda/BadgePlanoAssinante';
 
 /* ─── Tipos ────────────────────────────────────────────── */
 interface ClinicaPublica {
@@ -267,6 +268,11 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
     });
   };
 
+  // Plano de assinatura (verificação pública por telefone)
+  interface PlanoPublico { incluso: boolean; usosRestantes: number | null; planoNome: string | null }
+  const [planoPublico, setPlanoPublico] = useState<PlanoPublico | null>(null);
+  const [verificandoPlanoPublico, setVerificandoPlanoPublico] = useState(false);
+
   // Passo 6 — Pagamento
   const [tipoPagamento, setTipoPagamento] = useState<'hora' | 'total' | 'sinal'>('hora');
 
@@ -357,6 +363,35 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
     } catch { setSlots([]); }
     finally { setCarregandoSlots(false); }
   };
+
+  // Verificar plano de assinatura quando serviço + telefone estiverem disponíveis
+  useEffect(() => {
+    const tel = clienteTelefone.replace(/\D/g, '');
+    if (!servico || tel.length < 10 || !slug) {
+      setPlanoPublico(null);
+      return;
+    }
+
+    let cancelled = false;
+    setVerificandoPlanoPublico(true);
+
+    fetch(
+      `/api/public/clinic/${slug}/assinatura?telefone=${encodeURIComponent(tel)}&servicoId=${encodeURIComponent(servico.id)}`
+    )
+      .then(r => r.json())
+      .then((d: Record<string, unknown>) => {
+        if (cancelled) return;
+        setPlanoPublico({
+          incluso:       !!(d['temPlano'] && d['servicoIncluso'] && !d['cobrarNormal']),
+          usosRestantes: typeof d['saldoRestante'] === 'number' ? d['saldoRestante'] : null,
+          planoNome:     typeof d['planoNome'] === 'string'     ? d['planoNome']     : null,
+        });
+      })
+      .catch(() => { if (!cancelled) setPlanoPublico(null); })
+      .finally(() => { if (!cancelled) setVerificandoPlanoPublico(false); });
+
+    return () => { cancelled = true; };
+  }, [servico?.id, clienteTelefone, slug]);
 
   const avancar = () => setPasso(p => (p < 7 ? (p + 1) as Passo : p));
   const voltar = () => setPasso(p => (p > 1 ? (p - 1) as Passo : p));
@@ -628,6 +663,18 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
                   </div>
                 ))}
               </div>
+              {/* Badge de plano — aparece quando serviço selecionado e telefone preenchido */}
+              {servico && (verificandoPlanoPublico || planoPublico?.incluso) && (
+                <div style={{ marginTop: 12 }}>
+                  <BadgePlanoAssinante
+                    pacienteId={null}
+                    servicoId={null}
+                    externalLoading={verificandoPlanoPublico}
+                    externalData={planoPublico}
+                  />
+                </div>
+              )}
+
               <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
                 <button onClick={voltar} style={{ flex: 1, height: 52, borderRadius: 12, border: '1.5px solid #EEE9DF', background: 'white', color: '#4A6480', fontSize: 15, fontWeight: 500, cursor: 'pointer' }}>← Voltar</button>
                 <button onClick={avancar} disabled={!servico} style={{ flex: 2, height: 52, borderRadius: 12, border: 'none', color: 'white', fontSize: 15, fontWeight: 500, cursor: 'pointer', background: cor, opacity: !servico ? 0.4 : 1, transition: 'opacity 150ms' }}>Continuar →</button>
@@ -1129,7 +1176,7 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
                       <div style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite' }} />
                       Confirmando...
                     </>
-                  ) : 'Confirmar agendamento'}
+                  ) : planoPublico?.incluso ? 'Confirmar — Incluso no plano ✓' : 'Confirmar agendamento'}
                 </button>
               </div>
             </div>

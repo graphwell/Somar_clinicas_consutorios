@@ -21,21 +21,43 @@ export async function PATCH(
 
     const agendamento = await prisma.agendamento.findFirst({
       where: { id: params.id, tenantId },
-      select: { id: true, status: true, servicoId: true, profissionalId: true, tenantId: true, dataHora: true },
+      select: {
+        id: true, status: true, servicoId: true,
+        profissionalId: true, tenantId: true, dataHora: true,
+        pacienteId: true,
+      },
     });
 
     if (!agendamento) {
       return NextResponse.json({ error: 'Agendamento não encontrado' }, { status: 404 });
     }
 
-    const updated = await prisma.agendamento.update({
-      where: { id: params.id },
-      data: { status },
+    const concluindoAgora = status === 'done' && agendamento.status !== 'done';
+
+    // Atualização de status + incremento de uso do plano em transação atômica
+    const updated = await prisma.$transaction(async (tx) => {
+      const ag = await tx.agendamento.update({
+        where: { id: params.id },
+        data: { status },
+      });
+
+      if (concluindoAgora && agendamento.pacienteId && agendamento.servicoId) {
+        await incrementarUsoSeAssinante(
+          {
+            pacienteId: agendamento.pacienteId,
+            servicoId:  agendamento.servicoId,
+            tenantId,
+          },
+          tx,
+        );
+      }
+
+      return ag;
     });
 
-    // Baixa automática de insumos ao concluir
+    // Baixa automática de insumos ao concluir (fora da transação — efeito colateral separado)
     let insumosBaixados = 0;
-    if (status === 'done' && agendamento.status !== 'done' && agendamento.servicoId) {
+    if (concluindoAgora && agendamento.servicoId) {
       const resultado = await baixarInsumosDoAtendimento({
         agendamentoId: params.id,
         servicoId: agendamento.servicoId,
@@ -67,5 +89,70 @@ export async function PATCH(
   } catch (error: any) {
     console.error('[appointments/status] Erro:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+type TxClient = Omit<
+  typeof prisma,
+  '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'
+>;
+
+/**
+ * Dentro da transação de conclusão do atendimento, verifica se o paciente
+ * tem plano ativo que cobre o serviço e incrementa o contadorUso atomicamente.
+ * Silencia erros para não impedir a conclusão do agendamento.
+ */
+async function incrementarUsoSeAssinante(
+  {
+    pacienteId,
+    servicoId,
+    tenantId,
+  }: { pacienteId: string; servicoId: string; tenantId: string },
+  tx: TxClient,
+): Promise<void> {
+  try {
+    const now = new Date();
+    const assinatura = await tx.assinaturaCliente.findFirst({
+      where: {
+        pacienteId,
+        tenantId,
+        status: 'ativo',
+        periodoInicio: { lte: now },
+        OR: [{ periodoFim: null }, { periodoFim: { gte: now } }],
+      },
+      include: { plano: true },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!assinatura) return;
+
+    const plano    = assinatura.plano as Record<string, unknown>;
+    const servicos = Array.isArray(plano['servicos']) ? plano['servicos'] as Record<string, unknown>[] : [];
+    const incluso  = servicos.some(s => s['servicoId'] === servicoId);
+    if (!incluso) return;
+
+    const contador = (assinatura.contadorUso as Record<string, unknown>)[servicoId] as Record<string, unknown> | undefined;
+    if (!contador) return;
+
+    const usado  = typeof contador['usado'] === 'number' ? contador['usado'] : 0;
+    const limite = typeof contador['limite'] === 'number' ? contador['limite'] : null;
+
+    // Se limitado e já esgotado, não incrementa (cobrar normalmente — sem bloquear)
+    if (limite !== null && usado >= limite) return;
+
+    const novoContador = { ...(assinatura.contadorUso as Record<string, unknown>) };
+    novoContador[servicoId] = { ...contador, usado: usado + 1 };
+
+    await tx.assinaturaCliente.update({
+      where: { id: assinatura.id },
+      data:  { contadorUso: novoContador },
+    });
+  } catch (err) {
+    // Logar mas não relançar: não impede a conclusão do atendimento
+    console.error('[incrementarUsoSeAssinante]', err);
   }
 }

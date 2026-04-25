@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { getTenantPrisma } from '@/lib/prisma';
+import { syncIsSubscriber } from '@/lib/sync-subscriber';
 
 export async function GET(request: Request) {
   const tenantId = request.headers.get('x-tenant-id');
@@ -109,11 +110,8 @@ export async function POST(request: Request) {
       },
     });
 
-    // Marcar paciente como assinante
-    await prisma.paciente.update({
-      where: { id: pacienteId },
-      data:  { isSubscriber: true },
-    });
+    // Sincroniza isSubscriber via helper centralizado
+    await syncIsSubscriber(pacienteId, prisma);
 
     return NextResponse.json(assinatura, { status: 201 });
   } catch (error: any) {

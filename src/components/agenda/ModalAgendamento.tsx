@@ -5,6 +5,7 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import { fetchWithAuth } from "@/lib/api-utils";
 import { useNicho } from "@/context/NichoContext";
+import BadgePlanoAssinante from "@/components/agenda/BadgePlanoAssinante";
 
 interface Props {
   open: boolean;
@@ -440,7 +441,9 @@ export default function ModalAgendamento({
             </Button>
           ) : (
             <Button variant="primary" loading={loading} onClick={handleSubmit} disabled={!!convenioConflito}>
-              Confirmar agendamento
+              {ehBeleza && tipoCobranca === 'plano' && planoInfo?.servicoIncluso && !planoInfo?.cobrarNormal
+                ? 'Confirmar — Incluso no plano'
+                : 'Confirmar agendamento'}
             </Button>
           )}
         </div>
@@ -591,6 +594,24 @@ export default function ModalAgendamento({
               ))}
             </select>
           </div>
+
+          {/* Badge de plano — usa dados já buscados pelo useEffect do modal (sem double-fetch) */}
+          {ehBeleza && selectedPaciente?.id && (
+            <BadgePlanoAssinante
+              pacienteId={selectedPaciente.id}
+              servicoId={selectedServico?.id ?? null}
+              externalLoading={verificandoPlano}
+              externalData={
+                planoInfo
+                  ? {
+                      incluso:       !!(planoInfo.temPlano && planoInfo.servicoIncluso && !planoInfo.cobrarNormal),
+                      usosRestantes: planoInfo.saldoRestante ?? null,
+                      planoNome:     planoInfo.planoNome ?? null,
+                    }
+                  : null
+              }
+            />
+          )}
 
           <div>
             <label className="block text-xs font-medium text-slate-300 mb-1">Profissional</label>
