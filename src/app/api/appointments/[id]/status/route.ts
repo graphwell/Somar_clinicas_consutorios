@@ -167,10 +167,10 @@ async function aplicarBlacklistSeAssinante(
       include: { plano: { select: { horasBlacklist: true } } },
       orderBy: { createdAt: 'desc' },
     });
-    if (!assinatura) return;
-
-    const horas = (assinatura.plano as { horasBlacklist?: number }).horasBlacklist ?? 24;
-    await aplicarBlacklist(pacienteId, horas, tx);
+    if (assinatura) {
+      const horas = (assinatura.plano as { horasBlacklist?: number }).horasBlacklist ?? 24;
+      await aplicarBlacklist(pacienteId, horas, tx);
+    }
   } catch (err) {
     console.error('[aplicarBlacklistSeAssinante]', err);
   }
