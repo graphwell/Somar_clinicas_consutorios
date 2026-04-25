@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNicho } from "@/context/NichoContext";
 import { fetchWithAuth } from "@/lib/api-utils";
-import { PLANOS_TEMPLATES } from "@/lib/planos-templates";
+import { PLANOS_TEMPLATES, TEMPLATES_GENERICOS, TEMPLATES_BARBEARIA } from "@/lib/planos-templates";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -433,9 +433,9 @@ function ModalAssinar({
 // ─── Tab Planos ──────────────────────────────────────────────────────────────
 
 function TabPlanos({
-  planos, servicos, loadingPlanos, onRefresh,
+  planos, servicos, loadingPlanos, nicho, onRefresh,
 }: {
-  planos: Plano[]; servicos: Servico[]; loadingPlanos: boolean; onRefresh: () => void;
+  planos: Plano[]; servicos: Servico[]; loadingPlanos: boolean; nicho: string; onRefresh: () => void;
 }) {
   const [modalPlano,    setModalPlano]    = useState<Plano | null | "novo">(null);
   const [ativarLoading, setAtivarLoading] = useState<string | null>(null);
@@ -482,7 +482,7 @@ function TabPlanos({
           <p className="font-semibold mb-1" style={{ color: "#1B2B3A" }}>Comece rápido com um template</p>
           <p className="text-sm mb-4" style={{ color: "#8A9BB0" }}>Ative um modelo pré-configurado e personalize depois.</p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {Object.values(PLANOS_TEMPLATES).map(t => (
+            {TEMPLATES_GENERICOS.map(t => (
               <div key={t.templateTipo} className="bg-white rounded-xl p-4"
                 style={{ border: t.templateTipo === "premium" ? "2px solid #40916C" : "1px solid #EEE9DF" }}>
                 {t.templateTipo === "premium" && (
@@ -509,6 +509,60 @@ function TabPlanos({
             <button onClick={() => setModalPlano("novo")} className="text-sm font-medium" style={{ color: "#40916C" }}>
               Ou criar plano do zero →
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Templates exclusivos de barbearia ──────────────────────────────── */}
+      {nicho === "BARBEARIA" && (
+        <div className="rounded-2xl p-6 mb-6" style={{ background: "#1a1a2e10", border: "1px solid #C4973A40" }}>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-base">✂</span>
+            <p className="font-semibold" style={{ color: "#1B2B3A" }}>Templates para Barbearia</p>
+          </div>
+          <p className="text-sm mb-4" style={{ color: "#8A9BB0" }}>
+            Planos pensados para barbearias — serviços mapeados automaticamente pelo nome.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {TEMPLATES_BARBEARIA.map(t => (
+              <div key={t.templateTipo} className="bg-white rounded-xl p-4"
+                style={{ border: t.templateTipo === "black_ilimitado" ? "2px solid #C4973A" : "1px solid #EEE9DF" }}>
+                {t.templateTipo === "black_ilimitado" && (
+                  <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full mb-2 inline-block"
+                    style={{ background: "#C4973A", color: "white" }}>Premium</span>
+                )}
+                <p className="font-semibold text-sm mb-0.5" style={{ color: "#1B2B3A" }}>{t.preview.titulo}</p>
+                <p className="text-lg font-bold mb-1" style={{ color: "#C4973A" }}>
+                  {fmtBRL(t.valor)}<span className="text-xs font-normal" style={{ color: "#8A9BB0" }}>/mês</span>
+                </p>
+                {/* Serviços inclusos */}
+                <div className="mb-2 space-y-0.5">
+                  {t.servicos.map((s, i) => (
+                    <p key={i} className="text-xs" style={{ color: "#4A6480" }}>
+                      {s.tipo === 'ilimitado'
+                        ? `∞ ${s.nome}`
+                        : `${s.quantidade}× ${s.nome}/mês`}
+                    </p>
+                  ))}
+                </div>
+                {/* Dias permitidos */}
+                {t.diasPermitidos.length > 0 && (
+                  <p className="text-[10px] mb-2" style={{ color: "#8A9BB0" }}>
+                    📅 {t.diasPermitidos.map(d => d.charAt(0).toUpperCase() + d.slice(1)).join(', ')}
+                  </p>
+                )}
+                <ul className="text-xs space-y-0.5 mb-3" style={{ color: "#4A6480" }}>
+                  {t.preview.exemplo.map(e => <li key={e}>{e}</li>)}
+                </ul>
+                <button
+                  onClick={() => ativarTemplate(t.templateTipo)}
+                  disabled={ativarLoading === t.templateTipo}
+                  className="w-full py-2 text-xs font-medium rounded-lg text-white disabled:opacity-60"
+                  style={{ background: "#C4973A" }}>
+                  {ativarLoading === t.templateTipo ? "Ativando…" : "Ativar template"}
+                </button>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -799,7 +853,7 @@ function TabUso({ planos }: { planos: Plano[] }) {
 // ─── Página Principal ────────────────────────────────────────────────────────
 
 export default function SubscriptionsPage() {
-  const { labels } = useNicho();
+  const { labels, nicho } = useNicho();
   const [tab,      setTab]      = useState<"planos" | "assinantes" | "uso">("planos");
   const [planos,   setPlanos]   = useState<Plano[]>([]);
   const [servicos, setServicos] = useState<Servico[]>([]);
@@ -859,7 +913,7 @@ export default function SubscriptionsPage() {
       </div>
 
       {tab === "planos" && (
-        <TabPlanos planos={planos} servicos={servicos} loadingPlanos={loading} onRefresh={loadPlanos} />
+        <TabPlanos planos={planos} servicos={servicos} loadingPlanos={loading} nicho={nicho} onRefresh={loadPlanos} />
       )}
       {tab === "assinantes" && (
         <TabAssinantes planos={planos} termoPaciente={termoPaciente} onRefresh={loadPlanos} />

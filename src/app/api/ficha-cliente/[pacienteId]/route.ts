@@ -31,8 +31,29 @@ export async function GET(
           },
         },
         assinaturas: {
-          where: { status: 'ativo' },
-          include: { plano: { select: { nome: true } } },
+          where: {
+            status: 'ativo',
+            OR: [{ dataFim: null }, { dataFim: { gte: new Date() } }],
+          },
+          include: {
+            plano: {
+              select: {
+                nome:                  true,
+                servicos:              true,
+                descontoProdutos:      true,
+                descontoServicosExtras: true,
+              },
+            },
+          },
+          select: {
+            id:           true,
+            contadorUso:  true,
+            dataFim:      true,
+            periodoFim:   true,
+            status:       true,
+            plano:        true,
+          },
+          orderBy: { createdAt: 'desc' },
           take: 1,
         },
       },

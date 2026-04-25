@@ -8,6 +8,7 @@ import { FichaSalao } from "@/components/ficha/FichaSalao";
 import { FichaEstetica } from "@/components/ficha/FichaEstetica";
 import { GaleriaFotos } from "@/components/ficha/GaleriaFotos";
 import { HistoricoVisitas } from "@/components/ficha/HistoricoVisitas";
+import PlanoAtivoCard from "@/components/agenda/PlanoAtivoCard";
 
 function iniciais(nome: string) {
   return nome.split(" ").slice(0, 2).map(p => p[0]).join("").toUpperCase();
@@ -91,10 +92,15 @@ export default function FichaClientePage() {
           const fichaData = await criarRes.json();
           setFicha(fichaData);
         }
-        // Plano ativo
+        // Plano ativo — mapeia para o formato esperado por PlanoAtivoCard
         if (dados.paciente.assinaturas?.length > 0) {
           const ass = dados.paciente.assinaturas[0];
-          setPlanoAtivo({ nome: ass.plano?.nome ?? "Plano ativo", ...ass });
+          setPlanoAtivo({
+            nome:        ass.plano?.nome ?? 'Plano ativo',
+            servicos:    Array.isArray(ass.plano?.servicos) ? ass.plano.servicos : [],
+            contadorUso: ass.contadorUso ?? {},
+            dataFim:     ass.dataFim ?? ass.periodoFim ?? null,
+          });
         }
       }
 
@@ -293,6 +299,11 @@ export default function FichaClientePage() {
           ))}
         </div>
       </div>
+
+      {/* Card de plano ativo — aparece acima dos campos da ficha */}
+      {planoAtivo && (
+        <PlanoAtivoCard planoAtivo={planoAtivo} />
+      )}
 
       {/* Conteúdo por tab (mobile) / grid desktop */}
       <div className="md:grid md:grid-cols-[2fr_3fr] md:gap-5">

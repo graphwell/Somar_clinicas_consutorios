@@ -530,9 +530,10 @@ model PlanoAssinatura {
   isTemplate    Boolean  @default(false)
   templateTipo  String?  // 'basico' | 'premium' | 'vip'
   stripePriceId String?
-  agendamentoPrioritario Boolean @default(false)
+  agendamentoPrioritario Boolean  @default(false)
   descontoProdutos       Float?
   descontoServicosExtras Float?
+  diasPermitidos         String[] @default([])
   tenantId    String
   clinica     Clinica  @relation(fields: [tenantId], references: [tenantId])
   assinantes  AssinaturaCliente[]
