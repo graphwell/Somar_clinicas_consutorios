@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { verificarBlacklist } from '@/lib/blacklist';
 
 function toMin(hhmm: string): number {
   const [h, m] = hhmm.split(':').map(Number);
@@ -178,6 +179,25 @@ export async function POST(
           tenantId: clinica.tenantId,
         },
       });
+    }
+
+    // 6b. Verificar blacklist e inadimplência
+    const { bloqueado, liberadoEm } = await verificarBlacklist(paciente.id, prisma);
+    if (bloqueado) {
+      return NextResponse.json(
+        { error: 'PACIENTE_BLOQUEADO', liberadoEm: liberadoEm?.toISOString() ?? null },
+        { status: 403 }
+      );
+    }
+    const assinaturaInadimplente = await prisma.assinaturaCliente.findFirst({
+      where: { pacienteId: paciente.id, tenantId: clinica.tenantId, status: 'inadimplente' },
+      select: { planoId: true },
+    });
+    if (assinaturaInadimplente) {
+      return NextResponse.json(
+        { error: 'ASSINANTE_INADIMPLENTE' },
+        { status: 403 }
+      );
     }
 
     // 7. Criar agendamento

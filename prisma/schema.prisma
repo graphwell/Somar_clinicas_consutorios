@@ -135,14 +135,15 @@ model Paciente {
   ultimaVisita    DateTime?
   contagemVisitas Int           @default(0)
 
-  isSubscriber          Boolean  @default(false)
+  isSubscriber          Boolean   @default(false)
   profissionalPreferidoId String?
-  cpf                   String?   // New field for patient identification
+  cpf                   String?
   // Plano de saúde
   carteirinha           String?
-  validadeConvenio      String?   // "MM/YYYY" livre, não DateTime
+  validadeConvenio      String?
   titularConvenio       String?
   deletedAt             DateTime?
+  blacklistedUntil      DateTime?
 
   tenantId        String
   clinica         Clinica       @relation(fields: [tenantId], references: [tenantId])
@@ -534,6 +535,7 @@ model PlanoAssinatura {
   descontoProdutos       Float?
   descontoServicosExtras Float?
   diasPermitidos         String[] @default([])
+  horasBlacklist         Int      @default(24)
   tenantId    String
   clinica     Clinica  @relation(fields: [tenantId], references: [tenantId])
   assinantes  AssinaturaCliente[]

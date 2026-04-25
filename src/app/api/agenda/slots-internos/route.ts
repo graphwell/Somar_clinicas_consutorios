@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getAuthorizedTenantId } from '@/lib/auth-helpers';
 import { calcularSlotsDisponiveis, toMin } from '@/lib/slots-helper';
+import { verificarBlacklist } from '@/lib/blacklist';
 
 /**
  * GET /api/agenda/slots-internos
@@ -16,15 +17,38 @@ export async function GET(req: Request) {
     }
 
     const { searchParams } = new URL(req.url);
-    const dataParam = searchParams.get('data');
-    const servicoId = searchParams.get('servicoId');
+    const dataParam      = searchParams.get('data');
+    const servicoId      = searchParams.get('servicoId');
     const profissionalId = searchParams.get('profissionalId');
+    const pacienteId     = searchParams.get('pacienteId');
 
     if (!dataParam || !servicoId) {
       return NextResponse.json(
         { error: 'data e servicoId são obrigatórios' },
         { status: 400 }
       );
+    }
+
+    // Guards de paciente (blacklist + inadimplência) — opcionais quando pacienteId presente
+    if (pacienteId) {
+      const { bloqueado, liberadoEm } = await verificarBlacklist(pacienteId, prisma);
+      if (bloqueado) {
+        return NextResponse.json(
+          { error: 'PACIENTE_BLOQUEADO', liberadoEm: liberadoEm?.toISOString() ?? null },
+          { status: 403 }
+        );
+      }
+
+      const assinaturaInadimplente = await prisma.assinaturaCliente.findFirst({
+        where: { pacienteId, status: 'inadimplente' },
+        select: { planoId: true },
+      });
+      if (assinaturaInadimplente) {
+        return NextResponse.json(
+          { error: 'ASSINANTE_INADIMPLENTE', planoId: assinaturaInadimplente.planoId },
+          { status: 403 }
+        );
+      }
     }
 
     // Buscar clínica para horários de operação

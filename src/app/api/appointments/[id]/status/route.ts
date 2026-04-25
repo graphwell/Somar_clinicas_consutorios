@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getSessionInfo } from '@/lib/auth-helpers';
 import { baixarInsumosDoAtendimento } from '@/lib/insumos-baixa';
+import { aplicarBlacklist, removerBlacklist } from '@/lib/blacklist';
 
 /**
  * PATCH /api/appointments/[id]/status
@@ -32,24 +33,30 @@ export async function PATCH(
       return NextResponse.json({ error: 'Agendamento não encontrado' }, { status: 404 });
     }
 
-    const concluindoAgora = status === 'done' && agendamento.status !== 'done';
+    const concluindoAgora   = status === 'done'   && agendamento.status !== 'done';
+    const faltouAgora       = status === 'faltou' && agendamento.status !== 'faltou';
 
-    // Atualização de status + incremento de uso do plano em transação atômica
+    // Atualização de status + incremento de uso + blacklist — transação atômica
     const updated = await prisma.$transaction(async (tx) => {
       const ag = await tx.agendamento.update({
         where: { id: params.id },
         data: { status },
       });
 
-      if (concluindoAgora && agendamento.pacienteId && agendamento.servicoId) {
-        await incrementarUsoSeAssinante(
-          {
-            pacienteId: agendamento.pacienteId,
-            servicoId:  agendamento.servicoId,
-            tenantId,
-          },
-          tx,
-        );
+      if (agendamento.pacienteId) {
+        // Ao concluir: incrementar uso do plano e limpar blacklist
+        if (concluindoAgora && agendamento.servicoId) {
+          await incrementarUsoSeAssinante(
+            { pacienteId: agendamento.pacienteId, servicoId: agendamento.servicoId, tenantId },
+            tx,
+          );
+          await removerBlacklist(agendamento.pacienteId, tx);
+        }
+
+        // Ao marcar faltou: aplicar blacklist se for assinante
+        if (faltouAgora) {
+          await aplicarBlacklistSeAssinante(agendamento.pacienteId, tenantId, tx);
+        }
       }
 
       return ag;
@@ -102,57 +109,69 @@ type TxClient = Omit<
 >;
 
 /**
- * Dentro da transação de conclusão do atendimento, verifica se o paciente
- * tem plano ativo que cobre o serviço e incrementa o contadorUso atomicamente.
- * Silencia erros para não impedir a conclusão do agendamento.
+ * Incrementa o contadorUso do plano quando o atendimento é concluído.
+ * Usa contadorUso como fonte de verdade (keyed by servicoId).
+ * Silencia erros — não deve impedir a conclusão do atendimento.
  */
 async function incrementarUsoSeAssinante(
-  {
-    pacienteId,
-    servicoId,
-    tenantId,
-  }: { pacienteId: string; servicoId: string; tenantId: string },
+  { pacienteId, servicoId, tenantId }: { pacienteId: string; servicoId: string; tenantId: string },
   tx: TxClient,
 ): Promise<void> {
   try {
     const now = new Date();
     const assinatura = await tx.assinaturaCliente.findFirst({
       where: {
-        pacienteId,
-        tenantId,
-        status: 'ativo',
+        pacienteId, tenantId, status: 'ativo',
         periodoInicio: { lte: now },
         OR: [{ periodoFim: null }, { periodoFim: { gte: now } }],
       },
-      include: { plano: true },
       orderBy: { createdAt: 'desc' },
     });
-
     if (!assinatura) return;
 
-    const plano    = assinatura.plano as Record<string, unknown>;
-    const servicos = Array.isArray(plano['servicos']) ? plano['servicos'] as Record<string, unknown>[] : [];
-    const incluso  = servicos.some(s => s['servicoId'] === servicoId);
-    if (!incluso) return;
-
     const contador = (assinatura.contadorUso as Record<string, unknown>)[servicoId] as Record<string, unknown> | undefined;
-    if (!contador) return;
+    if (!contador) return; // Serviço não incluso no plano
 
-    const usado  = typeof contador['usado'] === 'number' ? contador['usado'] : 0;
+    const usado  = typeof contador['usado']  === 'number' ? contador['usado']  : 0;
     const limite = typeof contador['limite'] === 'number' ? contador['limite'] : null;
-
-    // Se limitado e já esgotado, não incrementa (cobrar normalmente — sem bloquear)
-    if (limite !== null && usado >= limite) return;
+    if (limite !== null && usado >= limite) return; // Limite esgotado — cobrar normalmente
 
     const novoContador = { ...(assinatura.contadorUso as Record<string, unknown>) };
     novoContador[servicoId] = { ...contador, usado: usado + 1 };
-
     await tx.assinaturaCliente.update({
       where: { id: assinatura.id },
       data:  { contadorUso: novoContador },
     });
   } catch (err) {
-    // Logar mas não relançar: não impede a conclusão do atendimento
     console.error('[incrementarUsoSeAssinante]', err);
+  }
+}
+
+/**
+ * Quando o paciente é marcado como "faltou", aplica blacklist se ele for assinante ativo.
+ * A duração é definida pelo campo horasBlacklist do plano (default: 24h).
+ */
+async function aplicarBlacklistSeAssinante(
+  pacienteId: string,
+  tenantId: string,
+  tx: TxClient,
+): Promise<void> {
+  try {
+    const now = new Date();
+    const assinatura = await tx.assinaturaCliente.findFirst({
+      where: {
+        pacienteId, tenantId, status: 'ativo',
+        periodoInicio: { lte: now },
+        OR: [{ periodoFim: null }, { periodoFim: { gte: now } }],
+      },
+      include: { plano: { select: { horasBlacklist: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (!assinatura) return;
+
+    const horas = (assinatura.plano as { horasBlacklist?: number }).horasBlacklist ?? 24;
+    await aplicarBlacklist(pacienteId, horas, tx);
+  } catch (err) {
+    console.error('[aplicarBlacklistSeAssinante]', err);
   }
 }

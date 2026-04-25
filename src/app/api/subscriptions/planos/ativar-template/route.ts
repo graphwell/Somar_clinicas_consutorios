@@ -9,7 +9,12 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { templateTipo, nicho } = body as { templateTipo?: string; nicho?: string };
+    const { templateTipo, nicho, servicoMap } = body as {
+      templateTipo?: string;
+      nicho?: string;
+      /** Vínculo explícito: { nomeNoTemplate → servicoId real } */
+      servicoMap?: Record<string, string>;
+    };
 
     // Modo bulk: ativar todos templates compatíveis com o nicho
     if (!templateTipo && nicho) {
@@ -31,7 +36,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Template inválido.' }, { status: 400 });
     }
 
-    const plano = await criarPlanoFromTemplate(templateTipo, tenantId);
+    const plano = await criarPlanoFromTemplate(templateTipo, tenantId, servicoMap);
     return NextResponse.json(plano, { status: 201 });
 
   } catch (error: unknown) {
@@ -43,7 +48,11 @@ export async function POST(request: Request) {
 
 // ─── Helper ──────────────────────────────────────────────────────────────────
 
-async function criarPlanoFromTemplate(templateTipo: string, tenantId: string) {
+async function criarPlanoFromTemplate(
+  templateTipo: string,
+  tenantId: string,
+  servicoMap?: Record<string, string>,
+) {
   const template = PLANOS_TEMPLATES[templateTipo];
   if (!template) throw new Error(`Template "${templateTipo}" não encontrado.`);
 
@@ -58,11 +67,21 @@ async function criarPlanoFromTemplate(templateTipo: string, tenantId: string) {
   let servicosPlano: ServicoTemplate[];
 
   if (template.nichoAlvo !== null && template.servicos.length > 0) {
-    // Template de nicho específico: match por nome (case-insensitive)
+    // Template de nicho: tenta vínculos explícitos primeiro, fallback por nome
     servicosPlano = template.servicos.flatMap(ref => {
-      const refNome = (ref.nome ?? '').toLowerCase();
+      const refNome  = ref.nome ?? '';
+      const refLower = refNome.toLowerCase();
+
+      // 1. Vínculo explícito passado pelo cliente
+      const servicoIdExplicito = servicoMap?.[refNome];
+      if (servicoIdExplicito) {
+        const s = servicosClinuca.find(sv => sv.id === servicoIdExplicito);
+        if (s) return [{ servicoId: s.id, nomeServico: s.nome, tipo: ref.tipo, quantidade: ref.tipo === 'ilimitado' ? null : ref.quantidade }];
+      }
+
+      // 2. Fallback: match por nome (case-insensitive, ambas as direções)
       const encontrados = servicosClinuca.filter(s =>
-        s.nome.toLowerCase().includes(refNome) || refNome.includes(s.nome.toLowerCase())
+        s.nome.toLowerCase().includes(refLower) || refLower.includes(s.nome.toLowerCase())
       );
       return encontrados.map(s => ({
         servicoId:   s.id,

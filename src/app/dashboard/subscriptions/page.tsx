@@ -440,11 +440,32 @@ function TabPlanos({
   const [modalPlano,    setModalPlano]    = useState<Plano | null | "novo">(null);
   const [ativarLoading, setAtivarLoading] = useState<string | null>(null);
 
-  async function ativarTemplate(tipo: string) {
+  // Estado para vínculo de serviços na ativação de template de barbearia
+  type VinculoMap = Record<string, string>; // nomeTemplate → servicoId real
+  const [templateVinculando, setTemplateVinculando] = useState<string | null>(null);
+  const [vinculoServicos,    setVinculoServicos]    = useState<VinculoMap>({});
+
+  function iniciarVinculo(templateTipo: string) {
+    const t = PLANOS_TEMPLATES[templateTipo];
+    if (!t || t.nichoAlvo === null) {
+      // Template genérico: ativar direto
+      ativarTemplate(templateTipo, {});
+      return;
+    }
+    // Template de nicho: inicializar mapa com seleção vazia
+    const mapa: VinculoMap = {};
+    t.servicos.forEach(s => { if (s.nome) mapa[s.nome] = ''; });
+    setVinculoServicos(mapa);
+    setTemplateVinculando(templateTipo);
+  }
+
+  async function ativarTemplate(tipo: string, servicoMap: VinculoMap) {
     setAtivarLoading(tipo);
+    setTemplateVinculando(null);
     try {
       await fetchWithAuth("/api/subscriptions/planos/ativar-template", {
-        method: "POST", body: JSON.stringify({ templateTipo: tipo }),
+        method: "POST",
+        body: JSON.stringify({ templateTipo: tipo, servicoMap }),
       });
       onRefresh();
     } catch {
@@ -496,7 +517,7 @@ function TabPlanos({
                 <ul className="text-xs space-y-0.5 mb-3" style={{ color: "#4A6480" }}>
                   {t.preview.exemplo.map(e => <li key={e}>{e}</li>)}
                 </ul>
-                <button onClick={() => ativarTemplate(t.templateTipo)}
+                <button onClick={() => iniciarVinculo(t.templateTipo)}
                   disabled={ativarLoading === t.templateTipo}
                   className="w-full py-2 text-xs font-medium rounded-lg text-white disabled:opacity-60"
                   style={{ background: "#40916C" }}>
@@ -555,7 +576,7 @@ function TabPlanos({
                   {t.preview.exemplo.map(e => <li key={e}>{e}</li>)}
                 </ul>
                 <button
-                  onClick={() => ativarTemplate(t.templateTipo)}
+                  onClick={() => iniciarVinculo(t.templateTipo)}
                   disabled={ativarLoading === t.templateTipo}
                   className="w-full py-2 text-xs font-medium rounded-lg text-white disabled:opacity-60"
                   style={{ background: "#C4973A" }}>
@@ -635,6 +656,79 @@ function TabPlanos({
           onSaved={onRefresh}
         />
       )}
+
+      {/* Modal de vínculo de serviços para templates de nicho */}
+      {templateVinculando && (() => {
+        const t = PLANOS_TEMPLATES[templateVinculando];
+        if (!t) return null;
+        const nomesTemplate = t.servicos.map(s => s.nome ?? '').filter(Boolean);
+        const temVinculo = nomesTemplate.every(n => !!vinculoServicos[n]);
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(4px)" }}>
+            <div className="w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl"
+              style={{ background: "white", border: "1px solid #EEE9DF" }}>
+              <div className="px-6 py-5 flex justify-between items-center"
+                style={{ borderBottom: "1px solid #EEE9DF" }}>
+                <h3 className="font-semibold text-sm" style={{ color: "#1B2B3A" }}>
+                  Vincular serviços — {t.nome}
+                </h3>
+                <button onClick={() => setTemplateVinculando(null)} style={{ color: "#8A9BB0" }}>
+                  <svg width="14" height="14" viewBox="0 0 12 12" fill="none">
+                    <path d="M9 3L3 9M3 3l6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                  </svg>
+                </button>
+              </div>
+              <div className="px-6 py-5 space-y-4" style={{ background: "#FAFAF9" }}>
+                <p className="text-xs" style={{ color: "#8A9BB0" }}>
+                  Vincule cada serviço do template a um serviço real da sua barbearia.
+                  Se deixar em branco, o sistema tentará encontrar pelo nome automaticamente.
+                </p>
+                {nomesTemplate.map(nomeTemplate => (
+                  <div key={nomeTemplate}>
+                    <label className="block text-[11px] font-semibold uppercase mb-1.5"
+                      style={{ color: "#4A6480", letterSpacing: "0.5px" }}>
+                      Serviço &quot;{nomeTemplate}&quot;
+                    </label>
+                    <select
+                      value={vinculoServicos[nomeTemplate] ?? ''}
+                      onChange={e => setVinculoServicos(prev => ({ ...prev, [nomeTemplate]: e.target.value }))}
+                      className="w-full px-3 py-2.5 rounded-xl text-sm"
+                      style={{ border: "1px solid #EEE9DF", background: "white", color: "#1B2B3A" }}>
+                      <option value="">Sem vínculo (usar nome para busca)</option>
+                      {servicos.filter(s => (s as any).ativo !== false).map(s => (
+                        <option key={s.id} value={s.id}>
+                          {s.nome} {(s as any).preco > 0 ? `— R$ ${Number((s as any).preco).toFixed(2).replace('.', ',')}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                    {!vinculoServicos[nomeTemplate] && (
+                      <p className="text-[10px] mt-1" style={{ color: "#D97706" }}>
+                        ⚠ Sem vínculo explícito — usará nome para identificar o serviço.
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <div className="px-6 py-4 flex gap-2 justify-end"
+                style={{ borderTop: "1px solid #EEE9DF" }}>
+                <button onClick={() => setTemplateVinculando(null)}
+                  className="px-4 py-2 text-sm rounded-xl"
+                  style={{ border: "1px solid #EEE9DF", color: "#4A6480" }}>
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => ativarTemplate(templateVinculando, vinculoServicos)}
+                  disabled={ativarLoading === templateVinculando}
+                  className="px-5 py-2 text-sm font-medium rounded-xl text-white disabled:opacity-50"
+                  style={{ background: "#C4973A" }}>
+                  {ativarLoading === templateVinculando ? "Ativando…" : temVinculo ? "Ativar com vínculos" : "Ativar mesmo assim"}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </>
   );
 }

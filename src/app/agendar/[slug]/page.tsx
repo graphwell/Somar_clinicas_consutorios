@@ -438,7 +438,19 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
         }),
       });
       const data = await res.json();
-      if (!res.ok) { setErroConfirm(data.error || 'Erro ao confirmar.'); return; }
+      if (!res.ok) {
+        if (data.error === 'PACIENTE_BLOQUEADO' && data.liberadoEm) {
+          const lib = new Date(data.liberadoEm);
+          const fmt = lib.toLocaleDateString('pt-BR') + ' às ' +
+            lib.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Fortaleza' });
+          setErroConfirm(`Você tem um agendamento em aberto. Novos agendamentos liberados em ${fmt}.`);
+        } else if (data.error === 'ASSINANTE_INADIMPLENTE') {
+          setErroConfirm('Seu plano está com pagamento pendente. Entre em contato com a barbearia para regularizar.');
+        } else {
+          setErroConfirm(data.error || 'Erro ao confirmar.');
+        }
+        return;
+      }
       setProtocolo(data.protocolo);
       // Registrar produtos reservados se houver
       if (produtosReservados.length > 0 && data.agendamentoId) {

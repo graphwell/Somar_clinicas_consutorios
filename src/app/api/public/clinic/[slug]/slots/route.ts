@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { calcularSlotsDisponiveis, toMin } from '@/lib/slots-helper';
+import { verificarBlacklist } from '@/lib/blacklist';
 
 /**
  * GET /api/public/clinic/[slug]/slots
@@ -14,9 +15,10 @@ export async function GET(
   const { slug } = await props.params;
   const { searchParams } = new URL(req.url);
 
-  const dataParam = searchParams.get('data');
-  const servicoId = searchParams.get('servicoId');
+  const dataParam      = searchParams.get('data');
+  const servicoId      = searchParams.get('servicoId');
   const profissionalId = searchParams.get('profissionalId');
+  const pacienteId     = searchParams.get('pacienteId');
 
   if (!dataParam || !servicoId) {
     return NextResponse.json(
@@ -26,6 +28,28 @@ export async function GET(
   }
 
   try {
+    // 0. Guards de paciente (blacklist + inadimplência) — opcionais
+    if (pacienteId) {
+      const { bloqueado, liberadoEm } = await verificarBlacklist(pacienteId, prisma);
+      if (bloqueado) {
+        return NextResponse.json(
+          { error: 'PACIENTE_BLOQUEADO', liberadoEm: liberadoEm?.toISOString() ?? null },
+          { status: 403 }
+        );
+      }
+
+      const assinaturaInadimplente = await prisma.assinaturaCliente.findFirst({
+        where: { pacienteId, status: 'inadimplente' },
+        select: { planoId: true },
+      });
+      if (assinaturaInadimplente) {
+        return NextResponse.json(
+          { error: 'ASSINANTE_INADIMPLENTE', planoId: assinaturaInadimplente.planoId },
+          { status: 403 }
+        );
+      }
+    }
+
     // 1. Buscar clínica pelo slug
     const clinica = await prisma.clinica.findUnique({
       where: { slug },
