@@ -138,6 +138,8 @@ model Paciente {
   isSubscriber          Boolean   @default(false)
   profissionalPreferidoId String?
   cpf                   String?
+  email                 String?
+  googleId              String?
   // Plano de saúde
   carteirinha           String?
   validadeConvenio      String?
@@ -1445,4 +1447,20 @@ model ConversaEstado {
 
   @@unique([telefone, tenantId])
   @@map("conversa_estados")
+}
+
+// ─── Verificação de Telefone (OTP para agendamento público) ──────────────────
+
+model VerificacaoTelefone {
+  id         String   @id @default(cuid())
+  telefone   String
+  codigo     String
+  tenantId   String
+  expiresAt  DateTime
+  tentativas Int      @default(0)
+  usado      Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([telefone, tenantId])
+  @@map("verificacoes_telefone")
 }

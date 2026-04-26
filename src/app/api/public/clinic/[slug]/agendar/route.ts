@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { verificarBlacklist } from '@/lib/blacklist';
+import { verificarSessaoPublica } from '@/lib/public-session';
+import { syncIsSubscriber } from '@/lib/sync-subscriber';
 
 function toMin(hhmm: string): number {
   const [h, m] = hhmm.split(':').map(Number);
@@ -41,6 +43,9 @@ export async function POST(
   props: { params: Promise<{ slug: string }> }
 ) {
   const { slug } = await props.params;
+
+  // Sessão pública opcional — se válida, vincula o pacienteId autenticado
+  const sessao = await verificarSessaoPublica(req);
 
   let body: {
     servicoId?: string;
@@ -165,20 +170,44 @@ export async function POST(
     }
 
     // 6. Buscar ou criar paciente
-    const telefoneClean = clienteTelefone.replace(/\D/g, '');
-    let paciente = await prisma.paciente.findFirst({
-      where: { tenantId: clinica.tenantId, telefone: { contains: telefoneClean.slice(-8) } },
-    });
+    // Se há sessão autenticada: usar pacienteId da sessão (já existe no banco)
+    let paciente: { id: string } | null = null;
+
+    if (sessao?.pacienteId && sessao.tenantId === clinica.tenantId) {
+      paciente = await prisma.paciente.findFirst({
+        where: { id: sessao.pacienteId, tenantId: clinica.tenantId },
+        select: { id: true },
+      });
+      // Atualizar nome/telefone se fornecidos
+      if (paciente && (clienteNome.trim() || clienteTelefone)) {
+        await prisma.paciente.update({
+          where: { id: paciente.id },
+          data: {
+            ...(clienteNome.trim()   ? { nome:     clienteNome.trim() }                : {}),
+            ...(clienteTelefone      ? { telefone: clienteTelefone.replace(/\D/g,'') } : {}),
+          },
+        });
+      }
+    }
 
     if (!paciente) {
-      paciente = await prisma.paciente.create({
-        data: {
-          nome: clienteNome.trim(),
-          telefone: clienteTelefone.trim(),
-          tipoAtendimento: 'particular',
-          tenantId: clinica.tenantId,
-        },
+      // Fallback: buscar por telefone (fluxo sem auth)
+      const telefoneClean = clienteTelefone.replace(/\D/g, '');
+      paciente = await prisma.paciente.findFirst({
+        where: { tenantId: clinica.tenantId, telefone: { contains: telefoneClean.slice(-8) } },
+        select: { id: true },
       });
+      if (!paciente) {
+        paciente = await prisma.paciente.create({
+          data: {
+            nome: clienteNome.trim(),
+            telefone: clienteTelefone.trim(),
+            tipoAtendimento: 'particular',
+            tenantId: clinica.tenantId,
+          },
+          select: { id: true },
+        });
+      }
     }
 
     // 6b. Verificar blacklist e inadimplência
@@ -220,7 +249,12 @@ export async function POST(
       },
     });
 
-    // 8. Notificação WA em background — não bloqueia resposta
+    // 8a. Sincronizar isSubscriber para pacientes autenticados
+    if (sessao?.pacienteId) {
+      syncIsSubscriber(paciente.id, prisma).catch(() => {});
+    }
+
+    // 8b. Notificação WA em background — não bloqueia resposta
     import('@/lib/whatsapp-service')
       .then(({ notificarNovoAgendamento }) => notificarNovoAgendamento(agendamento.id))
       .catch(e => console.warn('[agendar/public] WhatsApp:', e));

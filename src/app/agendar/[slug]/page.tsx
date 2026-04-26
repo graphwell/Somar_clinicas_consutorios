@@ -1,7 +1,10 @@
 "use client";
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import BadgePlanoAssinante from '@/components/agenda/BadgePlanoAssinante';
 import { BarberBackgroundPattern } from '@/components/ui/BarberBackgroundPattern';
+import { AuthPublicoProvider } from '@/context/AuthPublicoContext';
+import BottomSheetAuth from '@/components/agenda/BottomSheetAuth';
+import { useAgendamentoState } from '@/hooks/useAgendamentoState';
 
 /* ─── Tipos ────────────────────────────────────────────── */
 interface ClinicaPublica {
@@ -269,6 +272,15 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
     });
   };
 
+  // ── Auth diferido (progressive disclosure) ──────────────────────────────────
+  const agendamentoState = useAgendamentoState(slug || 'default');
+  const [showAuth,          setShowAuth]          = useState(false);
+  const [authToken,         setAuthToken]          = useState<string | null>(null);
+  const [authPacienteId,    setAuthPacienteId]     = useState<string | null>(null);
+  const [authNome,          setAuthNome]           = useState<string | null>(null);
+  const [authIsNovoCliente, setAuthIsNovoCliente]  = useState(false);
+  const [authIsAssinante,   setAuthIsAssinante]    = useState(false);
+
   // Plano de assinatura (verificação pública por telefone)
   interface PlanoPublico { incluso: boolean; usosRestantes: number | null; planoNome: string | null; descontoProdutos: number }
   const [planoPublico, setPlanoPublico] = useState<PlanoPublico | null>(null);
@@ -395,6 +407,35 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
     return () => { cancelled = true; };
   }, [servico?.id, clienteTelefone, slug]);
 
+  // ── Auth diferido ─────────────────────────────────────────────────────────
+  const handleAuthSuccess = useCallback(async (
+    token: string,
+    dados: { pacienteId: string; nome: string; isNovoCliente: boolean },
+  ) => {
+    setAuthToken(token);
+    setAuthPacienteId(dados.pacienteId);
+    setAuthNome(dados.nome);
+    setAuthIsNovoCliente(dados.isNovoCliente);
+    setShowAuth(false);
+    // Verificar assinatura para badge correto
+    if (slug && servico?.id) {
+      try {
+        const r = await fetch(`/api/public/clinic/${slug}/assinatura?servicoId=${servico.id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const d = await r.json() as Record<string, unknown>;
+        if (d['temPlano'] && d['servicoIncluso'] && !d['cobrarNormal']) setAuthIsAssinante(true);
+      } catch { /* silent */ }
+    }
+    // Submeter agendamento automaticamente após auth
+    await confirmar(token);
+  }, [slug, servico?.id]); // eslint-disable-line
+
+  function handlePressConfirmar() {
+    if (!authToken) { setShowAuth(true); return; }
+    confirmar(authToken);
+  }
+
   const avancar = () => setPasso(p => (p < 7 ? (p + 1) as Passo : p));
   const voltar = () => setPasso(p => (p > 1 ? (p - 1) as Passo : p));
 
@@ -420,21 +461,24 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
 
   const totalProdutos = produtosReservados.reduce((s, r) => s + r.preco * r.quantidade, 0);
 
-  const confirmar = async () => {
+  const confirmar = async (tokenOverride?: string) => {
     if (!servico || !dataSelecionada || !horario) return;
     setConfirmando(true);
     setErroConfirm('');
     const profId = profEscolhido || profissional?.id || 'qualquer';
+    const tokenParaUsar = tokenOverride ?? authToken;
     try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (tokenParaUsar) headers['Authorization'] = `Bearer ${tokenParaUsar}`;
       const res = await fetch(`/api/public/clinic/${slug}/agendar`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           servicoId: servico.id,
           profissionalId: profId,
           data: dataSelecionada,
           horario,
-          clienteNome: clienteNome.trim(),
+          clienteNome: (authNome ?? clienteNome).trim() || 'Cliente',
           clienteTelefone: clienteTelefone.replace(/\D/g, ''),
           tipoPagamento,
         }),
@@ -468,6 +512,7 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
         } catch { /* não bloquear sucesso do agendamento */ }
       }
       setPasso(7);
+      agendamentoState.clearAgendamentoPendente();
     } catch { setErroConfirm('Erro de conexão. Tente novamente.'); }
     finally { setConfirmando(false); }
   };
@@ -494,6 +539,7 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
   const isBarbearia = clinica.nicho === 'BARBEARIA';
 
   return (
+    <AuthPublicoProvider slug={slug}>
     <div style={{ minHeight: '100svh', background: isBarbearia ? 'transparent' : visual.bg, position: 'relative', overflow: 'hidden' }}>
       {/* Background temático de barbearia — puramente decorativo, não afeta fluxo */}
       {isBarbearia && <BarberBackgroundPattern />}
@@ -1196,7 +1242,7 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
 
               <div style={{ display: 'flex', gap: 10 }}>
                 <button onClick={voltar} style={{ flex: 1, height: 52, borderRadius: 12, border: '1.5px solid #EEE9DF', background: 'white', color: '#4A6480', fontSize: 15, fontWeight: 500, cursor: 'pointer' }}>← Voltar</button>
-                <button onClick={confirmar} disabled={confirmando} style={{ flex: 2, height: 52, borderRadius: 12, border: 'none', color: 'white', fontSize: 15, fontWeight: 500, cursor: 'pointer', background: cor, opacity: confirmando ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <button onClick={handlePressConfirmar} disabled={confirmando} style={{ flex: 2, height: 52, borderRadius: 12, border: 'none', color: 'white', fontSize: 15, fontWeight: 500, cursor: 'pointer', background: cor, opacity: confirmando ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                   {confirmando ? (
                     <>
                       <div style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite' }} />
@@ -1222,7 +1268,13 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
 
               <h2 style={{ fontSize: 22, fontWeight: 700, color: '#1B2B3A', marginBottom: 6 }}>Agendamento confirmado!</h2>
               <p style={{ fontSize: 13, color: '#8A9BB0', marginBottom: 16 }}>
-                Você receberá uma confirmação no WhatsApp
+                {authIsAssinante && planoPublico?.planoNome
+                  ? `✓ Agendado e incluso no seu plano ${planoPublico.planoNome}!`
+                  : authIsNovoCliente
+                    ? `✓ Agendado! Cadastro criado — até ${formatarDataExibicao(dataSelecionada)} às ${horario}.`
+                    : authNome
+                      ? `✓ Agendado! Até ${formatarDataExibicao(dataSelecionada)} às ${horario}, ${authNome.split(' ')[0]}.`
+                      : 'Você receberá uma confirmação no WhatsApp'}
               </p>
 
               {/* Protocolo */}
@@ -1442,6 +1494,16 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
           )}
         </div>
       )}
+
+      {/* ── Auth diferido — BottomSheetAuth desliza de baixo ── */}
+      <BottomSheetAuth
+        isOpen={showAuth}
+        slug={slug}
+        nomeBarbearia={clinica?.nome ?? ''}
+        onClose={() => setShowAuth(false)}
+        onAuthSuccess={handleAuthSuccess}
+      />
     </div>
+    </AuthPublicoProvider>
   );
 }
