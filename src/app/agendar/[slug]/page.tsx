@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
 import BadgePlanoAssinante from '@/components/agenda/BadgePlanoAssinante';
+import { BarberBackgroundPattern } from '@/components/ui/BarberBackgroundPattern';
 
 /* ─── Tipos ────────────────────────────────────────────── */
 interface ClinicaPublica {
@@ -490,11 +491,15 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
   }
 
   const logoUrl = (clinica.branding as any)?.logoUrl;
+  const isBarbearia = clinica.nicho === 'BARBEARIA';
 
   return (
-    <div style={{ minHeight: '100svh', background: visual.bg, position: 'relative', overflow: 'hidden' }}>
-      {/* Pattern de fundo */}
-      {visual.pattern && (
+    <div style={{ minHeight: '100svh', background: isBarbearia ? 'transparent' : visual.bg, position: 'relative', overflow: 'hidden' }}>
+      {/* Background temático de barbearia — puramente decorativo, não afeta fluxo */}
+      {isBarbearia && <BarberBackgroundPattern />}
+
+      {/* Pattern de fundo — apenas para nichos não-barbearia */}
+      {visual.pattern && !isBarbearia && (
         <div style={{
           position: 'absolute', inset: 0,
           backgroundImage: visual.pattern,
@@ -503,8 +508,8 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
         }} />
       )}
 
-      {/* Conteúdo */}
-      <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '48px 20px 20px' }}>
+      {/* Conteúdo — z-index 10 para ficar acima do background fixo (z-index 0) */}
+      <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '48px 20px 20px' }}>
 
         {/* Logo destacada */}
         <div style={{ marginBottom: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
