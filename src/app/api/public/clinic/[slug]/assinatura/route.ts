@@ -56,8 +56,15 @@ export async function GET(
     const servicos = Array.isArray(plano.servicos) ? plano.servicos as Record<string, unknown>[] : [];
     const servico  = servicoId ? servicos.find(s => s['servicoId'] === servicoId) : null;
 
+    const descontoProdutos = typeof plano['descontoProdutos'] === 'number' ? plano['descontoProdutos'] : 0;
+
     if (!servico) {
-      return NextResponse.json({ temPlano: true, planoNome: plano['nome'], servicoIncluso: false });
+      return NextResponse.json({
+        temPlano:          true,
+        planoNome:         plano['nome'],
+        servicoIncluso:    false,
+        descontoProdutos,
+      });
     }
 
     const contador      = servicoId ? (assinatura.contadorUso as Record<string, unknown>)[servicoId] as Record<string, unknown> | undefined : undefined;
@@ -68,15 +75,16 @@ export async function GET(
     const saldoRestante  = limite !== null ? Math.max(0, limite - usado) : null;
 
     return NextResponse.json({
-      temPlano:       true,
-      planoNome:      plano['nome'],
-      assinaturaId:   assinatura.id,
-      servicoIncluso: true,
+      temPlano:          true,
+      planoNome:         plano['nome'],
+      assinaturaId:      assinatura.id,
+      servicoIncluso:    true,
       tipo,
       usado,
       limite,
       saldoRestante,
-      cobrarNormal:   limiteSuperado,
+      cobrarNormal:      limiteSuperado,
+      descontoProdutos,
     });
   } catch (err) {
     console.error('[public/assinatura]', err);

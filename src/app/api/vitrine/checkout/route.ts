@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
   let body: {
     slug?: string;
     agendamentoId?: string;
+    pacienteId?: string;
     items?: Array<{ pedidoItemId: string }>;
     successUrl?: string;
     cancelUrl?: string;
@@ -38,6 +39,31 @@ export async function POST(req: NextRequest) {
   if (!clinica) return NextResponse.json({ error: 'Clínica não encontrada' }, { status: 404 });
   if (!clinica.aceitaPagamento) {
     return NextResponse.json({ error: 'Pagamento online não habilitado para esta clínica' }, { status: 403 });
+  }
+
+  // Verificar desconto de assinante (campo pacienteId opcional — sem ele, sem desconto)
+  let percentualDesconto = 0;
+  let planoNomeDesconto: string | null = null;
+  if (body.pacienteId) {
+    const agora = new Date();
+    const assinaturaAtiva = await prisma.assinaturaCliente.findFirst({
+      where: {
+        pacienteId: body.pacienteId,
+        tenantId: clinica.tenantId,
+        status: 'ativo',
+        periodoInicio: { lte: agora },
+        OR: [{ periodoFim: null }, { periodoFim: { gte: agora } }],
+      },
+      include: { plano: { select: { descontoProdutos: true, nome: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (assinaturaAtiva?.plano) {
+      const desconto = (assinaturaAtiva.plano as { descontoProdutos?: number | null }).descontoProdutos ?? 0;
+      if (desconto > 0) {
+        percentualDesconto = desconto;
+        planoNomeDesconto  = (assinaturaAtiva.plano as { nome: string }).nome;
+      }
+    }
   }
 
   // Buscar os PedidoItens para montar os line items
@@ -61,16 +87,22 @@ export async function POST(req: NextRequest) {
     apiVersion: '2024-06-20' as Parameters<typeof Stripe>[1]['apiVersion'],
   });
 
+  const fatorDesconto = 1 - percentualDesconto / 100;
   const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = pedidoItens.map(item => {
     const nomeProduto = item.produto?.nome || item.combo?.nome || 'Produto';
-    const precoUnitario = Math.round(item.precoUnitario * 100); // centavos
+    const precoBase   = item.precoUnitario * fatorDesconto;
+    const precoUnitario = Math.round(precoBase * 100); // centavos
 
     return {
       quantity: item.quantidade,
       price_data: {
         currency: 'brl',
         unit_amount: precoUnitario,
-        product_data: { name: nomeProduto },
+        product_data: {
+          name: percentualDesconto > 0
+            ? `${nomeProduto} (${percentualDesconto}% OFF plano)`
+            : nomeProduto,
+        },
       },
     };
   });
@@ -91,7 +123,21 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ url: session.url, sessionId: session.id });
+    const totalOriginal   = pedidoItens.reduce((s, i) => s + i.precoUnitario * i.quantidade, 0);
+    const totalFinal      = pedidoItens.reduce((s, i) => s + i.precoUnitario * fatorDesconto * i.quantidade, 0);
+    const valorDescontado = Math.round((totalOriginal - totalFinal) * 100) / 100;
+
+    return NextResponse.json({
+      url:       session.url,
+      sessionId: session.id,
+      ...(percentualDesconto > 0 && {
+        descontoAplicado: {
+          percentual:     percentualDesconto,
+          valorDescontado,
+          planoNome:      planoNomeDesconto,
+        },
+      }),
+    });
   } catch (err) {
     console.error('[vitrine/checkout POST]', err);
     return NextResponse.json({ error: 'Erro ao criar sessão de pagamento' }, { status: 500 });

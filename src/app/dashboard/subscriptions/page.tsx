@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useNicho } from "@/context/NichoContext";
 import { fetchWithAuth } from "@/lib/api-utils";
 import { PLANOS_TEMPLATES, TEMPLATES_GENERICOS, TEMPLATES_BARBEARIA } from "@/lib/planos-templates";
+import ModalCobrancaPix from "@/components/subscriptions/ModalCobrancaPix";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -944,11 +945,162 @@ function TabUso({ planos }: { planos: Plano[] }) {
   );
 }
 
+// ─── Tab Financeiro do Clube ──────────────────────────────────────────────────
+
+type DashData = {
+  mrr: { total: number; porPlano: { planoId: string; planoNome: string; totalAssinantes: number; receitaMensal: number }[] };
+  assinantes: { total: number; novosNoMes: number; canceladosNoMes: number; inadimplentes: number };
+  churn: { taxa: number; mesAnterior: number };
+  frequencia: { pacienteId: string; pacienteNome: string; planoNome: string; usosNoMes: number; limiteNoMes: number; percentualUso: number | null; ultimaVisita: string | null; diasSemVisita: number; status: 'ativo' | 'sumindo' | 'perdido' }[];
+  proximosVencimentos: { assinaturaClienteId: string; pacienteId: string; pacienteNome: string; planoNome: string; vencimento: string; valorPago: number }[];
+};
+
+const STATUS_FREQ = {
+  ativo:    { label: 'Ativo',   bg: '#D1FAE5', text: '#065F46' },
+  sumindo:  { label: 'Sumindo', bg: '#FEF3C7', text: '#92400E' },
+  perdido:  { label: 'Perdido', bg: '#FEE2E2', text: '#991B1B' },
+} as const;
+
+function TabFinanceiro() {
+  const [dados,   setDados]   = useState<DashData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [modalPix, setModalPix] = useState<{ assinanteId: string; pacienteNome: string; planoNome: string; valor: number } | null>(null);
+
+  const carregar = useCallback(async () => {
+    setLoading(true);
+    try {
+      const r = await fetchWithAuth("/api/subscriptions/dashboard");
+      const d = await r.json();
+      setDados(d);
+    } catch { setDados(null); }
+    finally  { setLoading(false); }
+  }, []);
+
+  useEffect(() => { carregar(); }, [carregar]);
+
+  if (loading) return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+      {[1,2,3,4,5,6].map(i => <div key={i} className="h-20 rounded-xl animate-pulse" style={{ background: "#F3F4F5" }} />)}
+    </div>
+  );
+
+  if (!dados) return (
+    <div className="text-center py-12 text-sm" style={{ color: "#8A9BB0" }}>Erro ao carregar dados financeiros.</div>
+  );
+
+  const cards = [
+    { label: "MRR Total",           value: fmtBRL(dados.mrr.total),             badge: null,       bdg: "" },
+    { label: "Assinantes Ativos",   value: String(dados.assinantes.total),        badge: null,       bdg: "" },
+    { label: "Novos no Mês",        value: String(dados.assinantes.novosNoMes),   badge: "↑",        bdg: "#059669" },
+    { label: "Cancelados no Mês",   value: String(dados.assinantes.canceladosNoMes), badge: "↓",    bdg: "#DC2626" },
+    { label: "Inadimplentes",       value: String(dados.assinantes.inadimplentes), badge: "⚠",      bdg: "#D97706" },
+    { label: "Churn do Mês",        value: `${dados.churn.taxa}%`,                badge: null,       bdg: "" },
+  ];
+
+  return (
+    <div className="space-y-8">
+      {/* Cards MRR */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        {cards.map(c => (
+          <div key={c.label} className="rounded-xl p-4" style={{ background: "white", border: "1px solid #EEE9DF" }}>
+            <p className="text-[10px] uppercase font-semibold mb-1" style={{ color: "#8A9BB0", letterSpacing: "0.4px" }}>{c.label}</p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-xl font-bold" style={{ color: "#1B2B3A" }}>{c.value}</p>
+              {c.badge && <span className="text-sm font-bold" style={{ color: c.bdg }}>{c.badge}</span>}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Frequência do clube */}
+      {dados.frequencia.length > 0 && (
+        <div>
+          <p className="text-sm font-semibold mb-3" style={{ color: "#1B2B3A" }}>Frequência do Clube</p>
+          <div className="rounded-xl overflow-hidden" style={{ border: "1px solid #EEE9DF" }}>
+            <table className="w-full text-sm">
+              <thead>
+                <tr style={{ background: "#F8FAF9", borderBottom: "1px solid #EEE9DF" }}>
+                  {["Nome", "Plano", "Usos/Mês", "Última visita", "Status"].map(h => (
+                    <th key={h} className="px-4 py-3 text-left text-[11px] font-semibold uppercase"
+                      style={{ color: "#8A9BB0", letterSpacing: "0.4px" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {dados.frequencia.map((f, i) => {
+                  const scfg = STATUS_FREQ[f.status];
+                  return (
+                    <tr key={f.pacienteId} style={{ background: i % 2 === 0 ? "white" : "#FAFAF9", borderBottom: "1px solid #F0EDE8" }}>
+                      <td className="px-4 py-3 font-medium" style={{ color: "#1B2B3A" }}>{f.pacienteNome}</td>
+                      <td className="px-4 py-3 text-xs" style={{ color: "#4A6480" }}>{f.planoNome}</td>
+                      <td className="px-4 py-3 text-xs" style={{ color: "#4A6480" }}>
+                        {f.usosNoMes}/{f.limiteNoMes > 0 ? f.limiteNoMes : "∞"}
+                        {f.percentualUso !== null && <span className="ml-1 opacity-60">({f.percentualUso}%)</span>}
+                      </td>
+                      <td className="px-4 py-3 text-xs" style={{ color: "#4A6480" }}>
+                        {f.ultimaVisita
+                          ? new Date(f.ultimaVisita).toLocaleDateString("pt-BR")
+                          : <span style={{ color: "#9CA3AF" }}>Sem visitas</span>}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                          style={{ background: scfg.bg, color: scfg.text }}>{scfg.label}</span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Próximos vencimentos */}
+      {dados.proximosVencimentos.length > 0 && (
+        <div>
+          <p className="text-sm font-semibold mb-3" style={{ color: "#1B2B3A" }}>Vencendo nos próximos 7 dias</p>
+          <div className="space-y-2">
+            {dados.proximosVencimentos.map(v => (
+              <div key={v.assinaturaClienteId} className="flex items-center justify-between gap-3 rounded-xl px-4 py-3"
+                style={{ background: "white", border: "1px solid #EEE9DF" }}>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate" style={{ color: "#1B2B3A" }}>{v.pacienteNome}</p>
+                  <p className="text-xs" style={{ color: "#8A9BB0" }}>{v.planoNome} · {fmtBRL(v.valorPago)}</p>
+                </div>
+                <p className="text-xs font-medium shrink-0" style={{ color: "#4A6480" }}>
+                  {new Date(v.vencimento).toLocaleDateString("pt-BR")}
+                </p>
+                <button
+                  onClick={() => setModalPix({ assinanteId: v.assinaturaClienteId, pacienteNome: v.pacienteNome, planoNome: v.planoNome, valor: v.valorPago })}
+                  className="shrink-0 text-xs font-medium px-3 py-1.5 rounded-lg text-white"
+                  style={{ background: "#40916C" }}>
+                  Gerar Pix
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {modalPix && (
+        <ModalCobrancaPix
+          assinanteId={modalPix.assinanteId}
+          pacienteNome={modalPix.pacienteNome}
+          planoNome={modalPix.planoNome}
+          valor={modalPix.valor}
+          onClose={() => setModalPix(null)}
+          onPago={() => { setModalPix(null); carregar(); }}
+        />
+      )}
+    </div>
+  );
+}
+
 // ─── Página Principal ────────────────────────────────────────────────────────
 
 export default function SubscriptionsPage() {
   const { labels, nicho } = useNicho();
-  const [tab,      setTab]      = useState<"planos" | "assinantes" | "uso">("planos");
+  const [tab,      setTab]      = useState<"planos" | "assinantes" | "uso" | "financeiro">("planos");
   const [planos,   setPlanos]   = useState<Plano[]>([]);
   const [servicos, setServicos] = useState<Servico[]>([]);
   const [loading,  setLoading]  = useState(true);
@@ -976,9 +1128,10 @@ export default function SubscriptionsPage() {
   useEffect(() => { loadPlanos(); }, [loadPlanos]);
 
   const TABS = [
-    { key: "planos" as const,     label: "Planos" },
-    { key: "assinantes" as const, label: `${termoPaciente}s Assinantes` },
-    { key: "uso" as const,        label: "Uso do Mês" },
+    { key: "planos" as const,      label: "Planos" },
+    { key: "assinantes" as const,  label: `${termoPaciente}s Assinantes` },
+    { key: "uso" as const,         label: "Uso do Mês" },
+    { key: "financeiro" as const,  label: "💰 Financeiro" },
   ];
 
   return (
@@ -1013,6 +1166,7 @@ export default function SubscriptionsPage() {
         <TabAssinantes planos={planos} termoPaciente={termoPaciente} onRefresh={loadPlanos} />
       )}
       {tab === "uso" && <TabUso planos={planos} />}
+      {tab === "financeiro" && <TabFinanceiro />}
     </div>
   );
 }

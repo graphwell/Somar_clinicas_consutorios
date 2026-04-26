@@ -1,8 +1,51 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { getTenantPrisma } from '@/lib/prisma';
+import { confirmarPagamentoAssinatura } from '@/lib/confirmar-pagamento-assinatura';
+import { syncIsSubscriber } from '@/lib/sync-subscriber';
+
+const ALWAYS_OK  = (d: Record<string, unknown> = {}) => NextResponse.json({ ok: true,  ...d });
+const ALWAYS_NOK = (e: string)                        => NextResponse.json({ ok: false, erro: e });
 
 export async function POST(request: Request) {
+  // ── Handler Pix / n8n (x-webhook-secret presente) ──────────────────────────
+  const pixSecret = request.headers.get('x-webhook-secret');
+  if (pixSecret !== undefined) {
+    if (pixSecret !== (process.env.SUBSCRIPTIONS_WEBHOOK_SECRET ?? '')) {
+      return NextResponse.json({}, { status: 401 });
+    }
+    let body: { evento?: string; assinaturaClienteId?: string; transacaoId?: string; tenantId?: string };
+    try { body = await request.json(); } catch { return ALWAYS_OK({ aviso: 'Corpo inválido' }); }
+
+    const { evento, assinaturaClienteId, transacaoId, tenantId } = body;
+    if (!evento || !assinaturaClienteId || !tenantId) return ALWAYS_OK({ aviso: 'Campos ausentes' });
+
+    const prisma = getTenantPrisma();
+    try {
+      if (evento === 'pagamento_confirmado') {
+        await confirmarPagamentoAssinatura(assinaturaClienteId, transacaoId, tenantId, prisma);
+        console.info(`[webhook] pagamento confirmado assinaturaId=${assinaturaClienteId} tenant=${tenantId}`);
+        return ALWAYS_OK();
+      }
+      if (evento === 'pagamento_falhou') {
+        const ass = await prisma.assinaturaCliente.findFirst({
+          where: { id: assinaturaClienteId, tenantId }, select: { pacienteId: true },
+        });
+        if (ass) {
+          await prisma.assinaturaCliente.update({ where: { id: assinaturaClienteId }, data: { status: 'inadimplente' } });
+          await syncIsSubscriber(ass.pacienteId, prisma);
+          console.info(`[webhook] pagamento falhou assinaturaId=${assinaturaClienteId}`);
+        }
+        return ALWAYS_OK();
+      }
+      return ALWAYS_OK({ aviso: `Evento desconhecido: ${evento}` });
+    } catch (err: unknown) {
+      console.error('[webhook-pix]', err);
+      return ALWAYS_NOK(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  // ── Handler Stripe (stripe-signature presente) ──────────────────────────────
   const stripe    = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2024-06-20' as any });
   const sig       = request.headers.get('stripe-signature') || '';
   const rawBody   = await request.text();

@@ -269,7 +269,7 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
   };
 
   // Plano de assinatura (verificação pública por telefone)
-  interface PlanoPublico { incluso: boolean; usosRestantes: number | null; planoNome: string | null }
+  interface PlanoPublico { incluso: boolean; usosRestantes: number | null; planoNome: string | null; descontoProdutos: number }
   const [planoPublico, setPlanoPublico] = useState<PlanoPublico | null>(null);
   const [verificandoPlanoPublico, setVerificandoPlanoPublico] = useState(false);
 
@@ -382,9 +382,10 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
       .then((d: Record<string, unknown>) => {
         if (cancelled) return;
         setPlanoPublico({
-          incluso:       !!(d['temPlano'] && d['servicoIncluso'] && !d['cobrarNormal']),
-          usosRestantes: typeof d['saldoRestante'] === 'number' ? d['saldoRestante'] : null,
-          planoNome:     typeof d['planoNome'] === 'string'     ? d['planoNome']     : null,
+          incluso:          !!(d['temPlano'] && d['servicoIncluso'] && !d['cobrarNormal']),
+          usosRestantes:    typeof d['saldoRestante']     === 'number' ? d['saldoRestante']     : null,
+          planoNome:        typeof d['planoNome']         === 'string' ? d['planoNome']         : null,
+          descontoProdutos: typeof d['descontoProdutos']  === 'number' ? d['descontoProdutos']  : 0,
         });
       })
       .catch(() => { if (!cancelled) setPlanoPublico(null); })
@@ -947,7 +948,15 @@ export default function AgendarPage({ params }: { params: Promise<{ slug: string
                         )}
                         <div style={{ flex: 1 }}>
                           <p style={{ fontSize: 14, fontWeight: 500, color: '#1B2B3A' }}>{p.nome}</p>
-                          <p style={{ fontSize: 13, fontWeight: 600, color: cor, marginTop: 2 }}>R$ {p.preco.toFixed(2).replace('.', ',')}</p>
+                          {planoPublico && planoPublico.descontoProdutos > 0 ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                              <p style={{ fontSize: 11, color: '#9CA3AF', textDecoration: 'line-through' }}>R$ {p.preco.toFixed(2).replace('.', ',')}</p>
+                              <p style={{ fontSize: 13, fontWeight: 700, color: '#10B981' }}>R$ {(p.preco * (1 - planoPublico.descontoProdutos / 100)).toFixed(2).replace('.', ',')}</p>
+                              <span style={{ fontSize: 9, fontWeight: 700, color: 'white', background: '#10B981', borderRadius: 20, padding: '1px 5px' }}>Plano</span>
+                            </div>
+                          ) : (
+                            <p style={{ fontSize: 13, fontWeight: 600, color: cor, marginTop: 2 }}>R$ {p.preco.toFixed(2).replace('.', ',')}</p>
+                          )}
                           {p.estoque <= 3 && p.estoque > 0 && <p style={{ fontSize: 10, color: '#D97706', fontWeight: 600 }}>Últimas unidades</p>}
                           {semEstoque && <p style={{ fontSize: 10, color: '#9CA3AF' }}>Indisponível</p>}
                         </div>

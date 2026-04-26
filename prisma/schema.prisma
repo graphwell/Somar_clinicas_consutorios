@@ -330,7 +330,8 @@ model TransacaoFinanceira {
   observacao     String?
   dataVencimento DateTime?
   dataPagamento  DateTime?
-  numeroRecibo   String?      // REC-YYYYMM-SEQ
+  numeroRecibo   String?
+  metadata       Json?
 
   clinica        Clinica      @relation(fields: [tenantId], references: [tenantId])
   agendamento    Agendamento? @relation(fields: [agendamentoId], references: [id])
