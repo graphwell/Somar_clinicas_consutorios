@@ -189,7 +189,7 @@ export default function ComissoesPage() {
   );
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8 pb-32 px-4 animate-premium">
+    <div className="max-w-3xl mx-auto space-y-8 pb-32 px-4 md:px-6 animate-premium">
 
       {/* Cabeçalho */}
       <div className="premium-card p-6 bg-white space-y-1">
@@ -212,12 +212,12 @@ export default function ComissoesPage() {
             <label className="text-[9px] font-black uppercase tracking-widest text-text-placeholder block mb-3">
               Profissional
             </label>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex gap-2 overflow-x-auto pb-1">
               {profissionais.map(p => (
                 <button
                   key={p.id}
                   onClick={() => setProfSelId(p.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
+                  className={`flex shrink-0 items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
                     profSelId === p.id
                       ? "bg-primary text-white border-primary shadow-lg shadow-primary/20"
                       : "bg-white border-warm-200 text-text-muted hover:border-primary/30"
@@ -237,7 +237,7 @@ export default function ComissoesPage() {
           {/* Cards + botão unificado */}
           {prof && (
             <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <CardComissao
                   label="Comissão em serviços"
                   tipoValor={tipoServico}   setTipoValor={setTipoServico}
@@ -252,15 +252,23 @@ export default function ComissoesPage() {
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3">
-                {feedback.ok  && <span className="text-[10px] font-bold text-sage-600">✓ {feedback.ok}</span>}
-                {feedback.err && <span className="text-[10px] font-bold text-red-500">✗ {feedback.err}</span>}
+              <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-end">
+                {feedback.ok  && <span className="text-[10px] font-bold text-sage-600 text-center md:text-left">✓ {feedback.ok}</span>}
+                {feedback.err && <span className="text-[10px] font-bold text-red-500 text-center md:text-left">✗ {feedback.err}</span>}
                 <button
                   onClick={salvarTudo}
                   disabled={saving}
-                  className="btn-primary px-6 disabled:opacity-50"
+                  className="w-full md:w-auto flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-6 py-2.5 rounded-xl transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {saving ? "Salvando…" : "Salvar comissões"}
+                  {saving ? (
+                    <>
+                      <svg className="w-4 h-4 animate-spin shrink-0" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                      </svg>
+                      Salvando...
+                    </>
+                  ) : feedback.ok ? "✓ Salvo" : "Salvar comissões"}
                 </button>
               </div>
             </div>
