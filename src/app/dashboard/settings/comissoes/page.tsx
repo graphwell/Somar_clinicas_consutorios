@@ -34,52 +34,24 @@ function regraParaValor(regra?: ComissaoRegra): string {
   return regra.valorFixo != null ? String(regra.valorFixo) : String(regra.percentual ?? "");
 }
 
-// Lê a comissaoRegra de serviço se existir, senão cai no padrão global
 function badgeProfissional(p: Profissional): string {
   const r = p.comissaoRegras.find(r => r.tipoBase === "servico" && r.referenciaId === null);
   if (r) return r.valorFixo != null ? `R$ ${r.valorFixo}` : `${r.percentual ?? 0}%`;
   return p.repasseTipo === "fixo" ? `R$ ${p.repasseFixo ?? 0}` : `${p.percentualRepasse ?? 0}%`;
 }
 
-// ─── CardComissao ─────────────────────────────────────────────────────────────
-// key no pai garante que o useState reinicializa quando profissional ou
-// valor da regra mudarem (fix do bug de save não refletir na UI).
+// ─── CardComissao — componente controlado, sem botão de save ──────────────────
 
 function CardComissao({
-  label, tipoBase, regra, padrao, profissionalId, onSalvo,
+  label, tipoValor, setTipoValor, valor, setValor, padrao,
 }: {
-  label:          string;
-  tipoBase:       "servico" | "produto";
-  regra?:         ComissaoRegra;
-  padrao:         string;
-  profissionalId: string;
-  onSalvo:        () => Promise<void>;
+  label:        string;
+  tipoValor:    TipoValor;
+  setTipoValor: (t: TipoValor) => void;
+  valor:        string;
+  setValor:     (v: string) => void;
+  padrao:       string;
 }) {
-  const [tipoValor, setTipoValor] = useState<TipoValor>(regraParaTipo(regra));
-  const [valor,     setValor]     = useState(regraParaValor(regra));
-  const [saving,    setSaving]    = useState(false);
-  const [ok,        setOk]        = useState(false);
-  const [erro,      setErro]      = useState("");
-
-  async function salvar() {
-    if (!valor) return;
-    setSaving(true); setOk(false); setErro("");
-    try {
-      const body: Record<string, unknown> = { profissionalId, tipoBase, referenciaId: null };
-      if (tipoValor === "percentual") body.percentual = parseFloat(valor);
-      else body.valorFixo = parseFloat(valor);
-      const r = await fetchWithAuth("/api/settings/comissoes", {
-        method: "POST", body: JSON.stringify(body),
-      });
-      if (!r.ok) throw new Error((await r.json()).error ?? "Erro");
-      setOk(true);
-      setTimeout(() => setOk(false), 2000);
-      await onSalvo();
-    } catch (e: unknown) {
-      setErro(e instanceof Error ? e.message : "Erro ao salvar");
-    } finally { setSaving(false); }
-  }
-
   return (
     <div className="bg-warm-100 rounded-xl p-4 space-y-3">
       <div className="flex items-center justify-between">
@@ -101,33 +73,22 @@ function CardComissao({
           >R$</button>
         </div>
       </div>
-      <div className="flex items-center gap-2">
-        <div className="relative flex-1">
-          {tipoValor === "fixo" && (
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-text-muted">R$</span>
-          )}
-          <input
-            type="number" min="0" max={tipoValor === "percentual" ? 100 : undefined}
-            value={valor}
-            onChange={e => setValor(e.target.value)}
-            placeholder="0"
-            className={`input-premium w-full py-2 text-sm ${tipoValor === "fixo" ? "pl-8" : ""}`}
-          />
-          {tipoValor === "percentual" && (
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-text-muted">%</span>
-          )}
-        </div>
-        <button
-          onClick={salvar}
-          disabled={saving || !valor}
-          className="btn-primary py-2 px-4 text-xs disabled:opacity-50"
-        >
-          {saving ? "…" : "Salvar"}
-        </button>
+      <div className="relative">
+        {tipoValor === "fixo" && (
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-text-muted">R$</span>
+        )}
+        <input
+          type="number" min="0" max={tipoValor === "percentual" ? 100 : undefined}
+          value={valor}
+          onChange={e => setValor(e.target.value)}
+          placeholder="0"
+          className={`input-premium w-full py-2 text-sm ${tipoValor === "fixo" ? "pl-8" : ""}`}
+        />
+        {tipoValor === "percentual" && (
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-text-muted">%</span>
+        )}
       </div>
-      {ok   && <p className="text-[10px] font-bold text-sage-600">✓ Salvo</p>}
-      {erro && <p className="text-[10px] font-bold text-red-500">✗ {erro}</p>}
-      {!valor && !ok && !erro && (
+      {!valor && (
         <p className="text-[9px] text-text-placeholder italic">{padrao}</p>
       )}
     </div>
@@ -140,6 +101,16 @@ export default function ComissoesPage() {
   const [profissionais, setProfissionais] = useState<Profissional[]>([]);
   const [loading,       setLoading]       = useState(true);
   const [profSelId,     setProfSelId]     = useState<string>("");
+
+  // Estado dos dois cards — controlado no pai
+  const [tipoServico,  setTipoServico]  = useState<TipoValor>("percentual");
+  const [valorServico, setValorServico] = useState("");
+  const [tipoProduto,  setTipoProduto]  = useState<TipoValor>("percentual");
+  const [valorProduto, setValorProduto] = useState("");
+
+  // Estado do botão unificado
+  const [saving,   setSaving]   = useState(false);
+  const [feedback, setFeedback] = useState<{ ok?: string; err?: string }>({});
 
   const carregar = useCallback(async () => {
     setLoading(true);
@@ -155,14 +126,55 @@ export default function ComissoesPage() {
 
   useEffect(() => { carregar(); }, []); // eslint-disable-line
 
-  const prof = profissionais.find(p => p.id === profSelId);
+  // Sincroniza os inputs sempre que o profissional selecionado ou os dados mudarem
+  useEffect(() => {
+    const p    = profissionais.find(p => p.id === profSelId);
+    const serv = p?.comissaoRegras.find(r => r.tipoBase === "servico" && r.referenciaId === null);
+    const prod = p?.comissaoRegras.find(r => r.tipoBase === "produto" && r.referenciaId === null);
+    setTipoServico(regraParaTipo(serv));
+    setValorServico(regraParaValor(serv));
+    setTipoProduto(regraParaTipo(prod));
+    setValorProduto(regraParaValor(prod));
+    setFeedback({});
+  }, [profSelId, profissionais]);
 
-  const regraServ = prof?.comissaoRegras.find(
-    r => r.tipoBase === "servico" && r.referenciaId === null,
-  );
-  const regraProd = prof?.comissaoRegras.find(
-    r => r.tipoBase === "produto" && r.referenciaId === null,
-  );
+  async function salvarTudo() {
+    if (saving) return;
+    setSaving(true);
+    setFeedback({});
+
+    async function postRegra(tipoBase: "servico" | "produto", tipoValor: TipoValor, valor: string) {
+      if (!valor) return;
+      const body: Record<string, unknown> = { profissionalId: profSelId, tipoBase, referenciaId: null };
+      if (tipoValor === "percentual") body.percentual = parseFloat(valor);
+      else body.valorFixo = parseFloat(valor);
+      const r = await fetchWithAuth("/api/settings/comissoes", {
+        method: "POST", body: JSON.stringify(body),
+      });
+      if (!r.ok) throw new Error(`${tipoBase === "servico" ? "Serviços" : "Produtos"}: ${(await r.json()).error ?? "Erro"}`);
+    }
+
+    const [resServ, resProd] = await Promise.allSettled([
+      postRegra("servico", tipoServico, valorServico),
+      postRegra("produto", tipoProduto, valorProduto),
+    ]);
+
+    const erros = [resServ, resProd]
+      .filter((r): r is PromiseRejectedResult => r.status === "rejected")
+      .map(r => r.reason?.message ?? "Erro desconhecido");
+
+    if (erros.length > 0) {
+      setFeedback({ err: erros.join(" | ") });
+    } else {
+      setFeedback({ ok: "Comissões salvas" });
+      setTimeout(() => setFeedback({}), 2000);
+      await carregar();
+    }
+
+    setSaving(false);
+  }
+
+  const prof = profissionais.find(p => p.id === profSelId);
 
   const padraoGlobal = prof
     ? prof.repasseTipo === "fixo"
@@ -222,27 +234,35 @@ export default function ComissoesPage() {
             </div>
           </div>
 
-          {/* Cards de comissão — key muda quando dados da regra mudam → reinicializa state */}
+          {/* Cards + botão unificado */}
           {prof && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <CardComissao
-                key={`${profSelId}-s-${regraServ?.id ?? "new"}-${regraServ?.percentual ?? ""}-${regraServ?.valorFixo ?? ""}`}
-                label="Comissão em serviços"
-                tipoBase="servico"
-                regra={regraServ}
-                padrao={padraoGlobal}
-                profissionalId={profSelId}
-                onSalvo={carregar}
-              />
-              <CardComissao
-                key={`${profSelId}-p-${regraProd?.id ?? "new"}-${regraProd?.percentual ?? ""}-${regraProd?.valorFixo ?? ""}`}
-                label="Comissão em produtos vendidos"
-                tipoBase="produto"
-                regra={regraProd}
-                padrao={padraoGlobal}
-                profissionalId={profSelId}
-                onSalvo={carregar}
-              />
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <CardComissao
+                  label="Comissão em serviços"
+                  tipoValor={tipoServico}   setTipoValor={setTipoServico}
+                  valor={valorServico}      setValor={setValorServico}
+                  padrao={padraoGlobal}
+                />
+                <CardComissao
+                  label="Comissão em produtos vendidos"
+                  tipoValor={tipoProduto}   setTipoValor={setTipoProduto}
+                  valor={valorProduto}      setValor={setValorProduto}
+                  padrao={padraoGlobal}
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3">
+                {feedback.ok  && <span className="text-[10px] font-bold text-sage-600">✓ {feedback.ok}</span>}
+                {feedback.err && <span className="text-[10px] font-bold text-red-500">✗ {feedback.err}</span>}
+                <button
+                  onClick={salvarTudo}
+                  disabled={saving}
+                  className="btn-primary px-6 disabled:opacity-50"
+                >
+                  {saving ? "Salvando…" : "Salvar comissões"}
+                </button>
+              </div>
             </div>
           )}
         </>
