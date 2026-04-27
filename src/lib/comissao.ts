@@ -3,8 +3,8 @@ import prismaBase from '@/lib/prisma';
 export type TipoItemComissao = 'servico' | 'produto';
 
 export interface ResultadoComissao {
-  percentual:  number;           // 0–100
-  valorFixo:   number | null;    // R$ fixo por unidade (null = usar percentual)
+  percentual:  number;
+  valorFixo:   number | null;
   origem:      'especifico' | 'categoria' | 'padrao_tipo' | 'fallback_global';
   regraId:     string | null;
 }
@@ -15,70 +15,33 @@ type PrismaLike = typeof prismaBase | Omit<
 >;
 
 /**
- * Resolve a regra de comissão para um profissional + item (serviço ou produto).
+ * Resolve a regra de comissão para um profissional + tipo de item.
  *
- * Hierarquia (maior prioridade primeiro):
- *   1. regra específica por servicoId / produtoId   → origem: 'especifico'
- *   2. regra por categoria (string ou id)            → origem: 'categoria'
- *   3. regra padrão do tipo (servico | produto)      → origem: 'padrao_tipo'
- *   4. fallback: Profissional.percentualRepasse       → origem: 'fallback_global'
+ * Hierarquia (2 níveis):
+ *   1. ComissaoRegra tipoBase=tipoItem, referenciaId=null  → 'padrao_tipo'
+ *   2. Fallback: Profissional.percentualRepasse             → 'fallback_global'
+ *
+ * Os parâmetros referenciaId e categoriaRef são mantidos para
+ * compatibilidade com chamadores existentes, mas não são usados.
  */
 export async function resolverComissao(
   profissionalId: string,
   tipoItem:       TipoItemComissao,
-  referenciaId:   string,         // servicoId ou produtoId
-  categoriaRef:   string | null,  // categoria string ou categoriaProdutoId
+  _referenciaId:  string,
+  _categoriaRef:  string | null,
   prisma:         PrismaLike = prismaBase,
 ): Promise<ResultadoComissao> {
   const p = prisma as typeof prismaBase;
 
-  // 1. Regra específica por item
-  const especifica = await p.comissaoRegra.findFirst({
-    where: {
-      profissionalId,
-      tipoBase:    `${tipoItem}_especifico`,
-      referenciaId,
-      ativo:       true,
-    },
-  });
-  if (especifica) {
-    return {
-      percentual: especifica.percentual ?? 0,
-      valorFixo:  especifica.valorFixo ?? null,
-      origem:     'especifico',
-      regraId:    especifica.id,
-    };
-  }
-
-  // 2. Regra por categoria
-  if (categoriaRef) {
-    const porCategoria = await p.comissaoRegra.findFirst({
-      where: {
-        profissionalId,
-        tipoBase:    `${tipoItem}_categoria`,
-        referenciaId: categoriaRef,
-        ativo:        true,
-      },
-    });
-    if (porCategoria) {
-      return {
-        percentual: porCategoria.percentual ?? 0,
-        valorFixo:  porCategoria.valorFixo ?? null,
-        origem:     'categoria',
-        regraId:    porCategoria.id,
-      };
-    }
-  }
-
-  // 3. Regra padrão do tipo
   const padrao = await p.comissaoRegra.findFirst({
     where: {
       profissionalId,
-      tipoBase:    tipoItem,
+      tipoBase:     tipoItem,
       referenciaId: null,
       ativo:        true,
     },
   });
+
   if (padrao) {
     return {
       percentual: padrao.percentual ?? 0,
@@ -88,7 +51,6 @@ export async function resolverComissao(
     };
   }
 
-  // 4. Fallback global: Profissional.percentualRepasse
   const prof = await p.profissional.findUnique({
     where:  { id: profissionalId },
     select: { percentualRepasse: true },
