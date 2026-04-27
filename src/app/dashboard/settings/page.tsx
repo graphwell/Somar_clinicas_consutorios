@@ -314,20 +314,35 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Link rápido para permissões */}
-      <a
-        href="/dashboard/settings/permissoes"
-        className="flex items-center justify-between bg-white border border-warm-200 rounded-xl px-5 py-3 shadow-card hover:shadow-card-hover transition-all hover:-translate-y-px"
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-sage-50 flex items-center justify-center text-sage-500"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2.333" y="6.417" width="9.333" height="6.417" rx="1.5" stroke="currentColor" strokeWidth="1.3"/><path d="M4.667 6.417V4.667a2.333 2.333 0 014.666 0v1.75" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/><circle cx="7" cy="9.333" r="0.875" fill="currentColor"/></svg></div>
-          <div>
-            <p className="text-sm font-medium text-slate-700">Permissões por função</p>
-            <p className="text-[11px] text-slate-100">Controle o que recepção e profissionais podem acessar</p>
+      {/* Links rápidos */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <a
+          href="/dashboard/settings/permissoes"
+          className="flex items-center justify-between bg-white border border-warm-200 rounded-xl px-5 py-3 shadow-card hover:shadow-card-hover transition-all hover:-translate-y-px"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-sage-50 flex items-center justify-center text-sage-500"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2.333" y="6.417" width="9.333" height="6.417" rx="1.5" stroke="currentColor" strokeWidth="1.3"/><path d="M4.667 6.417V4.667a2.333 2.333 0 014.666 0v1.75" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/><circle cx="7" cy="9.333" r="0.875" fill="currentColor"/></svg></div>
+            <div>
+              <p className="text-sm font-medium text-slate-700">Permissões por função</p>
+              <p className="text-[11px] text-slate-100">Controle o que recepção e profissionais podem acessar</p>
+            </div>
           </div>
-        </div>
-        <span className="text-slate-100 text-sm">→</span>
-      </a>
+          <span className="text-slate-100 text-sm">→</span>
+        </a>
+        <a
+          href="/dashboard/settings/comissoes"
+          className="flex items-center justify-between bg-white border border-warm-200 rounded-xl px-5 py-3 shadow-card hover:shadow-card-hover transition-all hover:-translate-y-px"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.3"/><path d="M7 4v1.5M7 8.5V10M5.5 5.5a1.5 1.5 0 013 0c0 .828-.672 1.5-1.5 1.5S5.5 7.828 5.5 8.5a1.5 1.5 0 003 0" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg></div>
+            <div>
+              <p className="text-sm font-medium text-slate-700">Comissões por profissional</p>
+              <p className="text-[11px] text-slate-100">Defina percentuais e valores fixos por serviço ou produto</p>
+            </div>
+          </div>
+          <span className="text-slate-100 text-sm">→</span>
+        </a>
+      </div>
 
       {/* Header Premium V2.2 - 3x Smaller */}
       <div className="bg-white border border-card-border p-6 rounded-3xl shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">

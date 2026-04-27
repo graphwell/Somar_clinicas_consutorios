@@ -194,6 +194,7 @@ model Profissional {
   resultadosAntesDepois ResultadoAntesDepois[]
   filaEspera    FilaEspera[]
   movimentacoesEstoque MovimentacaoEstoque[]
+  comissaoRegras ComissaoRegra[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
@@ -1447,6 +1448,39 @@ model ConversaEstado {
 
   @@unique([telefone, tenantId])
   @@map("conversa_estados")
+}
+
+// ─── Comissão Granular por Profissional ──────────────────────────────────────
+
+model ComissaoRegra {
+  id             String       @id @default(cuid())
+  tenantId       String
+
+  profissionalId String
+  profissional   Profissional @relation(fields: [profissionalId], references: [id], onDelete: Cascade)
+
+  // Escopo da regra:
+  // 'servico'            → padrão para todos os serviços do profissional
+  // 'produto'            → padrão para todos os produtos
+  // 'servico_especifico' → serviço específico (referenciaId = servicoId)
+  // 'produto_especifico' → produto específico (referenciaId = produtoId)
+  // 'servico_categoria'  → categoria de serviço (referenciaId = categoria string)
+  // 'produto_categoria'  → categoria de produto (referenciaId = categoriaProdutoId)
+  tipoBase       String
+
+  // null = regra padrão do tipo; preenchido = regra específica/categoria
+  referenciaId   String?
+
+  percentual     Float?       // 0–100 (% sobre valor)
+  valorFixo      Float?       // R$ fixo por unidade
+
+  ativo          Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([tenantId])
+  @@index([profissionalId])
+  @@map("comissao_regras")
 }
 
 // ─── Verificação de Telefone (OTP para agendamento público) ──────────────────
