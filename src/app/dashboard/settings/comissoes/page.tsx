@@ -32,7 +32,28 @@ interface DadosComissao {
 
 type TipoValor = "percentual" | "fixo";
 
-// ─── Sub-componentes ─────────────────────────────────────────────────────────
+// ─── Helpers puros ────────────────────────────────────────────────────────────
+
+function regraTipoValor(regra?: ComissaoRegra): TipoValor {
+  return regra?.valorFixo != null ? "fixo" : "percentual";
+}
+
+function regraValorStr(regra?: ComissaoRegra): string {
+  if (!regra) return "";
+  return regra.valorFixo != null ? String(regra.valorFixo) : String(regra.percentual ?? "");
+}
+
+function getRegra(
+  profissional: Profissional | undefined,
+  tipoBase: string,
+  referenciaId: string | null,
+): ComissaoRegra | undefined {
+  return profissional?.comissaoRegras.find(
+    r => r.tipoBase === tipoBase && r.referenciaId === referenciaId,
+  );
+}
+
+// ─── SaveFeedback ─────────────────────────────────────────────────────────────
 
 function SaveFeedback({ msg, err }: { msg?: string; err?: string }) {
   if (!msg && !err) return null;
@@ -42,6 +63,8 @@ function SaveFeedback({ msg, err }: { msg?: string; err?: string }) {
     </span>
   );
 }
+
+// ─── InputComissao ────────────────────────────────────────────────────────────
 
 function InputComissao({
   label, tipoValor, setTipoValor, valor, setValor, saving, onSalvar, feedback,
@@ -101,28 +124,155 @@ function InputComissao({
   );
 }
 
+// ─── ComissaoRegraSimples ─────────────────────────────────────────────────────
+
+function ComissaoRegraSimples({
+  label, tipoBase, regraInicial, padrao, profissionalId, onSalvo,
+}: {
+  label:          string;
+  tipoBase:       string;
+  regraInicial?:  ComissaoRegra;
+  padrao:         string;
+  profissionalId: string;
+  onSalvo:        () => void;
+}) {
+  const [tipoValor, setTipoValor] = useState<TipoValor>(regraTipoValor(regraInicial));
+  const [valor,    setValor]    = useState(regraValorStr(regraInicial));
+  const [saving,   setSaving]   = useState(false);
+  const [feedback, setFeedback] = useState<{ msg?: string; err?: string }>({});
+
+  async function salvar() {
+    if (!valor) return;
+    setSaving(true); setFeedback({});
+    try {
+      const body: Record<string, unknown> = { profissionalId, tipoBase, referenciaId: null };
+      if (tipoValor === "percentual") body.percentual = parseFloat(valor);
+      else body.valorFixo = parseFloat(valor);
+      const r = await fetchWithAuth("/api/settings/comissoes", { method: "POST", body: JSON.stringify(body) });
+      if (!r.ok) throw new Error((await r.json()).error ?? "Erro");
+      setFeedback({ msg: "Salvo" });
+      setTimeout(() => setFeedback({}), 2000);
+      onSalvo();
+    } catch (e: unknown) {
+      setFeedback({ err: e instanceof Error ? e.message : "Erro ao salvar" });
+    } finally { setSaving(false); }
+  }
+
+  return (
+    <InputComissao
+      label={label}
+      tipoValor={tipoValor} setTipoValor={setTipoValor}
+      valor={valor} setValor={setValor}
+      saving={saving} onSalvar={salvar}
+      feedback={feedback}
+      padrao={!valor ? padrao : undefined}
+    />
+  );
+}
+
+// ─── SecaoCategoria ───────────────────────────────────────────────────────────
+
+function SecaoCategoria({
+  titulo, tipo, categorias, tipoBaseRegra, labelCategoria,
+  profissional, profSelId, savingMap, feedbackMap, onSalvar,
+}: {
+  titulo:         string;
+  tipo:           "servico_categoria" | "produto_categoria";
+  categorias:     { id: string; label: string }[];
+  tipoBaseRegra:  string;
+  labelCategoria: string;
+  profissional:   Profissional | undefined;
+  profSelId:      string;
+  savingMap:      Record<string, boolean>;
+  feedbackMap:    Record<string, { msg?: string; err?: string }>;
+  onSalvar:       (chave: string, tipo: string, refId: string, tv: TipoValor, val: string) => void;
+}) {
+  const [tiposValor, setTiposValor] = useState<Record<string, TipoValor>>({});
+  const [valores,    setValores]    = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (!profissional) return;
+    const tv: Record<string, TipoValor> = {};
+    const vl: Record<string, string>    = {};
+    for (const cat of categorias) {
+      const r = getRegra(profissional, tipo, cat.id);
+      tv[cat.id] = regraTipoValor(r);
+      vl[cat.id] = regraValorStr(r);
+    }
+    setTiposValor(tv);
+    setValores(vl);
+  }, [profSelId, profissional?.comissaoRegras.length]); // eslint-disable-line
+
+  return (
+    <div className="premium-card p-6 bg-white space-y-4">
+      <div className="border-b border-slate-50 pb-3">
+        <h3 className="text-sm font-black uppercase tracking-tight text-text-main italic">{titulo}</h3>
+        <p className="text-[9px] text-text-placeholder mt-0.5">Substituição por {labelCategoria}</p>
+      </div>
+      {categorias.length === 0 ? (
+        <p className="text-xs text-text-placeholder italic">Nenhuma {labelCategoria.toLowerCase()} cadastrada.</p>
+      ) : (
+        <div className="space-y-3">
+          {categorias.map(cat => {
+            const chave = `${tipoBaseRegra}_${cat.id}`;
+            const padrao = getRegra(profissional, tipo === "servico_categoria" ? "servico" : "produto", null);
+            const padraoTxt = padrao
+              ? padrao.valorFixo != null ? `Herda: R$ ${padrao.valorFixo}` : `Herda: ${padrao.percentual ?? 0}%`
+              : `Herda padrão de ${tipo === "servico_categoria" ? "serviços" : "produtos"}`;
+            return (
+              <div key={cat.id} className="flex items-center gap-3">
+                <span className="text-xs font-medium text-text-main w-36 truncate">{cat.label}</span>
+                <div className="flex items-center gap-1 bg-warm-100 rounded-lg border border-warm-200 p-0.5">
+                  <button
+                    onClick={() => setTiposValor(p => ({ ...p, [cat.id]: "percentual" }))}
+                    className={`text-[9px] font-black px-1.5 py-0.5 rounded transition-all ${tiposValor[cat.id] !== "fixo" ? "bg-primary text-white" : "text-text-muted"}`}
+                  >%</button>
+                  <button
+                    onClick={() => setTiposValor(p => ({ ...p, [cat.id]: "fixo" }))}
+                    className={`text-[9px] font-black px-1.5 py-0.5 rounded transition-all ${tiposValor[cat.id] === "fixo" ? "bg-primary text-white" : "text-text-muted"}`}
+                  >R$</button>
+                </div>
+                <input
+                  type="number" min="0"
+                  value={valores[cat.id] ?? ""}
+                  onChange={e => setValores(p => ({ ...p, [cat.id]: e.target.value }))}
+                  placeholder={padraoTxt}
+                  className="input-premium py-1.5 text-xs w-24"
+                />
+                <button
+                  onClick={() => onSalvar(chave, tipo, cat.id, tiposValor[cat.id] ?? "percentual", valores[cat.id] ?? "")}
+                  disabled={savingMap[chave] || !valores[cat.id]}
+                  className="btn-primary py-1.5 px-3 text-[9px] disabled:opacity-40"
+                >
+                  {savingMap[chave] ? "…" : "Salvar"}
+                </button>
+                <SaveFeedback {...(feedbackMap[chave] ?? {})} />
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Componente principal ─────────────────────────────────────────────────────
 
 export default function ComissoesPage() {
-  const [dados,         setDados]         = useState<DadosComissao | null>(null);
-  const [loading,       setLoading]       = useState(true);
-  const [profSelId,     setProfSelId]     = useState<string>("");
+  const [dados,        setDados]        = useState<DadosComissao | null>(null);
+  const [loading,      setLoading]      = useState(true);
+  const [profSelId,    setProfSelId]    = useState<string>("");
+  const [savingMap,    setSavingMap]    = useState<Record<string, boolean>>({});
+  const [feedbackMap,  setFeedbackMap]  = useState<Record<string, { msg?: string; err?: string }>>({});
+  const [novaExcecao,  setNovaExcecao]  = useState(false);
+  const [excTipo,      setExcTipo]      = useState<"servico" | "produto">("servico");
+  const [excServicos,  setExcServicos]  = useState<{ id: string; nome: string }[]>([]);
+  const [excProdutos,  setExcProdutos]  = useState<{ id: string; nome: string }[]>([]);
+  const [excRefId,     setExcRefId]     = useState("");
+  const [excTipoValor, setExcTipoValor] = useState<TipoValor>("percentual");
+  const [excValor,     setExcValor]     = useState("");
+  const [excSaving,    setExcSaving]    = useState(false);
 
-  // Estado por regra: saving e feedback
-  const [savingMap,     setSavingMap]     = useState<Record<string, boolean>>({});
-  const [feedbackMap,   setFeedbackMap]   = useState<Record<string, { msg?: string; err?: string }>>({});
-
-  // Painel de nova exceção
-  const [novaExcecao,   setNovaExcecao]   = useState(false);
-  const [excTipo,       setExcTipo]       = useState<"servico" | "produto">("servico");
-  const [excServicos,   setExcServicos]   = useState<{ id: string; nome: string }[]>([]);
-  const [excProdutos,   setExcProdutos]   = useState<{ id: string; nome: string }[]>([]);
-  const [excRefId,      setExcRefId]      = useState("");
-  const [excTipoValor,  setExcTipoValor]  = useState<TipoValor>("percentual");
-  const [excValor,      setExcValor]      = useState("");
-  const [excSaving,     setExcSaving]     = useState(false);
-
-  // ── Carregar dados ──────────────────────────────────────────────────────────
   const carregar = useCallback(async () => {
     setLoading(true);
     try {
@@ -136,7 +286,6 @@ export default function ComissoesPage() {
 
   useEffect(() => { carregar(); }, []); // eslint-disable-line
 
-  // Carregar serviços e produtos para nova exceção
   useEffect(() => {
     if (!novaExcecao) return;
     if (excTipo === "servico") {
@@ -146,7 +295,6 @@ export default function ComissoesPage() {
     }
   }, [novaExcecao, excTipo]);
 
-  // ── Salvar regra ────────────────────────────────────────────────────────────
   async function salvar(chave: string, tipoBase: string, referenciaId: string | null, tipoValor: TipoValor, valor: string) {
     if (!profSelId || !valor) return;
     setSavingMap(p => ({ ...p, [chave]: true }));
@@ -189,21 +337,7 @@ export default function ComissoesPage() {
     finally  { setExcSaving(false); }
   }
 
-  // ── Helpers de estado ───────────────────────────────────────────────────────
   const profissional = dados?.profissionais.find(p => p.id === profSelId);
-
-  function getRegra(tipoBase: string, referenciaId: string | null): ComissaoRegra | undefined {
-    return profissional?.comissaoRegras.find(r => r.tipoBase === tipoBase && r.referenciaId === referenciaId);
-  }
-
-  function regraTipoValor(regra?: ComissaoRegra): TipoValor {
-    return regra?.valorFixo !== null ? "fixo" : "percentual";
-  }
-
-  function regraValor(regra?: ComissaoRegra): string {
-    if (!regra) return "";
-    return regra.valorFixo !== null ? String(regra.valorFixo) : String(regra.percentual ?? "");
-  }
 
   const padraoGlobal = profissional
     ? profissional.repasseTipo === "fixo"
@@ -211,81 +345,16 @@ export default function ComissoesPage() {
       : `Usando padrão global: ${profissional.percentualRepasse ?? 0}%`
     : "";
 
-  // ── Sub-componente reutilizável por categoria ───────────────────────────────
-  function SecaoCategoria({
-    titulo, tipo, categorias, tipoBaseRegra, labelCategoria,
-  }: {
-    titulo:        string;
-    tipo:          "servico_categoria" | "produto_categoria";
-    categorias:    { id: string; label: string }[];
-    tipoBaseRegra: string;
-    labelCategoria: string;
-  }) {
-    const [tiposValor, setTiposValor] = useState<Record<string, TipoValor>>({});
-    const [valores,    setValores]    = useState<Record<string, string>>({});
+  const excEspecificas = profissional?.comissaoRegras.filter(r =>
+    r.tipoBase === "servico_especifico" || r.tipoBase === "produto_especifico"
+  ) ?? [];
 
-    // Inicializar com valores existentes
-    useEffect(() => {
-      if (!profissional) return;
-      const tv: Record<string, TipoValor> = {};
-      const vl: Record<string, string>    = {};
-      for (const cat of categorias) {
-        const r = getRegra(tipo, cat.id);
-        tv[cat.id] = regraTipoValor(r);
-        vl[cat.id] = regraValor(r);
-      }
-      setTiposValor(tv);
-      setValores(vl);
-    }, [profSelId, profissional?.comissaoRegras.length]); // eslint-disable-line
+  const catServico = (dados?.categoriasServico ?? []).map(c => ({ id: c, label: c }));
+  const catProduto = (dados?.categoriasProduto ?? []).map(c => ({ id: c.id, label: c.nome }));
 
-    return (
-      <div className="premium-card p-6 bg-white space-y-4">
-        <div className="border-b border-slate-50 pb-3">
-          <h3 className="text-sm font-black uppercase tracking-tight text-text-main italic">{titulo}</h3>
-          <p className="text-[9px] text-text-placeholder mt-0.5">Substituição por {labelCategoria}</p>
-        </div>
-        {categorias.length === 0 ? (
-          <p className="text-xs text-text-placeholder italic">Nenhuma {labelCategoria.toLowerCase()} cadastrada.</p>
-        ) : (
-          <div className="space-y-3">
-            {categorias.map(cat => {
-              const chave = `${tipoBaseRegra}_${cat.id}`;
-              const padrao = getRegra(tipo === "servico_categoria" ? "servico" : "produto", null);
-              const padraoTxt = padrao
-                ? padrao.valorFixo !== null ? `Herda: R$ ${padrao.valorFixo}` : `Herda: ${padrao.percentual ?? 0}%`
-                : `Herda padrão de ${tipo === "servico_categoria" ? "serviços" : "produtos"}`;
-              return (
-                <div key={cat.id} className="flex items-center gap-3">
-                  <span className="text-xs font-medium text-text-main w-36 truncate">{cat.label}</span>
-                  <div className="flex items-center gap-1 bg-warm-100 rounded-lg border border-warm-200 p-0.5">
-                    <button onClick={() => setTiposValor(p => ({ ...p, [cat.id]: "percentual" }))} className={`text-[9px] font-black px-1.5 py-0.5 rounded transition-all ${tiposValor[cat.id] !== "fixo" ? "bg-primary text-white" : "text-text-muted"}`}>%</button>
-                    <button onClick={() => setTiposValor(p => ({ ...p, [cat.id]: "fixo" }))} className={`text-[9px] font-black px-1.5 py-0.5 rounded transition-all ${tiposValor[cat.id] === "fixo" ? "bg-primary text-white" : "text-text-muted"}`}>R$</button>
-                  </div>
-                  <input
-                    type="number" min="0"
-                    value={valores[cat.id] ?? ""}
-                    onChange={e => setValores(p => ({ ...p, [cat.id]: e.target.value }))}
-                    placeholder={padraoTxt}
-                    className="input-premium py-1.5 text-xs w-24"
-                  />
-                  <button
-                    onClick={() => salvar(chave, tipo, cat.id, tiposValor[cat.id] ?? "percentual", valores[cat.id] ?? "")}
-                    disabled={savingMap[chave] || !valores[cat.id]}
-                    className="btn-primary py-1.5 px-3 text-[9px] disabled:opacity-40"
-                  >
-                    {savingMap[chave] ? "…" : "Salvar"}
-                  </button>
-                  <SaveFeedback {...(feedbackMap[chave] ?? {})} />
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    );
-  }
+  const regraServ = getRegra(profissional, "servico", null);
+  const regraProd = getRegra(profissional, "produto", null);
 
-  // ── Render ──────────────────────────────────────────────────────────────────
   if (loading) return (
     <div className="max-w-5xl mx-auto py-12 flex justify-center">
       <div className="w-6 h-6 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
@@ -295,17 +364,6 @@ export default function ComissoesPage() {
   if (!dados) return (
     <div className="max-w-5xl mx-auto py-12 text-center text-xs text-text-placeholder">Erro ao carregar dados.</div>
   );
-
-  const excEspecificas = profissional?.comissaoRegras.filter(r =>
-    r.tipoBase === "servico_especifico" || r.tipoBase === "produto_especifico"
-  ) ?? [];
-
-  // Categorias para seção 2 e 3
-  const catServico  = dados.categoriasServico.map(c => ({ id: c, label: c }));
-  const catProduto  = dados.categoriasProduto.map(c => ({ id: c.id, label: c.nome }));
-
-  const regraServ = getRegra("servico", null);
-  const regraProd = getRegra("produto", null);
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-32 px-4 animate-premium">
@@ -385,6 +443,11 @@ export default function ComissoesPage() {
               categorias={catServico}
               tipoBaseRegra="servcat"
               labelCategoria="Categoria de serviço"
+              profissional={profissional}
+              profSelId={profSelId}
+              savingMap={savingMap}
+              feedbackMap={feedbackMap}
+              onSalvar={salvar}
             />
           </div>
 
@@ -399,6 +462,11 @@ export default function ComissoesPage() {
               categorias={catProduto}
               tipoBaseRegra="prodcat"
               labelCategoria="Categoria de produto"
+              profissional={profissional}
+              profSelId={profSelId}
+              savingMap={savingMap}
+              feedbackMap={feedbackMap}
+              onSalvar={salvar}
             />
           </div>
 
@@ -423,7 +491,7 @@ export default function ComissoesPage() {
                       </div>
                       <div className="flex items-center gap-3">
                         <span className="text-sm font-bold text-primary">
-                          {r.valorFixo !== null ? `R$ ${r.valorFixo}` : `${r.percentual ?? 0}%`}
+                          {r.valorFixo != null ? `R$ ${r.valorFixo}` : `${r.percentual ?? 0}%`}
                         </span>
                         <button onClick={() => remover(r.id)} className="text-[9px] text-red-400 hover:text-red-600 font-black uppercase">Remover</button>
                       </div>
@@ -494,55 +562,5 @@ export default function ComissoesPage() {
         </>
       )}
     </div>
-  );
-}
-
-// ─── Sub-componente para regra simples (seção 1) ─────────────────────────────
-
-function ComissaoRegraSimples({
-  label, tipoBase, regraInicial, padrao, profissionalId, onSalvo,
-}: {
-  label:          string;
-  tipoBase:       string;
-  regraInicial?:  ComissaoRegra;
-  padrao:         string;
-  profissionalId: string;
-  onSalvo:        () => void;
-}) {
-  const [tipoValor, setTipoValor] = useState<TipoValor>(
-    regraInicial?.valorFixo !== null ? "fixo" : "percentual"
-  );
-  const [valor,    setValor]    = useState(
-    regraInicial ? (regraInicial.valorFixo !== null ? String(regraInicial.valorFixo) : String(regraInicial.percentual ?? "")) : ""
-  );
-  const [saving,   setSaving]   = useState(false);
-  const [feedback, setFeedback] = useState<{ msg?: string; err?: string }>({});
-
-  async function salvar() {
-    if (!valor) return;
-    setSaving(true); setFeedback({});
-    try {
-      const body: Record<string, unknown> = { profissionalId, tipoBase, referenciaId: null };
-      if (tipoValor === "percentual") body.percentual = parseFloat(valor);
-      else body.valorFixo = parseFloat(valor);
-      const r = await fetchWithAuth("/api/settings/comissoes", { method: "POST", body: JSON.stringify(body) });
-      if (!r.ok) throw new Error((await r.json()).error ?? "Erro");
-      setFeedback({ msg: "Salvo" });
-      setTimeout(() => setFeedback({}), 2000);
-      onSalvo();
-    } catch (e: unknown) {
-      setFeedback({ err: e instanceof Error ? e.message : "Erro ao salvar" });
-    } finally { setSaving(false); }
-  }
-
-  return (
-    <InputComissao
-      label={label}
-      tipoValor={tipoValor} setTipoValor={setTipoValor}
-      valor={valor} setValor={setValor}
-      saving={saving} onSalvar={salvar}
-      feedback={feedback}
-      padrao={!valor ? padrao : undefined}
-    />
   );
 }
