@@ -304,14 +304,8 @@ export default function ComissoesPage() {
   const catServico  = dados.categoriasServico.map(c => ({ id: c, label: c }));
   const catProduto  = dados.categoriasProduto.map(c => ({ id: c.id, label: c.nome }));
 
-  // Valores locais para seção 1
-  const regraServ    = getRegra("servico", null);
-  const regraProd    = getRegra("produto", null);
-  const [tvServ, setTvServ] = [useState<TipoValor>(regraTipoValor(regraServ)), (v: TipoValor) => {
-    (window as any).__tvServ = v; // armazenar para uso
-  }];
-  // Usar useState local via hook separado não é possível aqui de forma limpa
-  // — simplificando com estado inline derivado
+  const regraServ = getRegra("servico", null);
+  const regraProd = getRegra("produto", null);
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-32 px-4 animate-premium">
